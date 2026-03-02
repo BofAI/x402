@@ -32,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed all linting and formatting issues
 - Fixed test imports to use new mechanism names
 
-[0.1.5]: https://github.com/bankofai/x402-tron/releases/tag/v0.1.5
+[0.1.5]: https://github.com/BofAI/x402/releases/tag/v0.1.5
 
 ## [0.1.4] - 2026-02-05
 
@@ -64,6 +64,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Full TypeScript type definitions
 
 ### Changed
-- Examples moved to separate repository: [x402-tron-demo](https://github.com/bankofai/x402-tron-demo)
+- Examples moved to separate repository: [x402-demo](https://github.com/BofAI/x402-demo)
 
-[0.1.4]: https://github.com/bankofai/x402-tron/releases/tag/v0.1.4
+[0.1.4]: https://github.com/BofAI/x402/releases/tag/v0.1.4

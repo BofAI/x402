@@ -6,7 +6,7 @@ x402 currently supports the **TRON** and **BSC** networks, with plans to expand 
 
 ---
 
-**[📚 Full Documentation](https://x402-docs.bankofai.io/)** | **[💻 Demo Repository](https://github.com/bankofai/x402-demo)**
+**[📚 Full Documentation](https://x402-docs.bankofai.io/)** | **[💻 Demo Repository](https://github.com/BofAI/x402-demo)**
 
 ---
 
@@ -27,7 +27,7 @@ The Python SDK includes support for Server (FastAPI/Flask), Client, and Facilita
 
 ```bash
 # Clone the repository
-git clone https://github.com/bankofai/x402.git
+git clone https://github.com/BofAI/x402.git
 cd x402/python/x402
 
 # Install with all dependencies
@@ -43,7 +43,7 @@ npm install @bankofai/x402
 
 ## AI Agent Integration
 
-x402 is designed for the Agentic Web. AI agents can autonomously negotiate and pay for resources using the [**x402-payment**](https://github.com/bankofai/skills/tree/main/x402-payment) skill.
+x402 is designed for the Agentic Web. AI agents can autonomously negotiate and pay for resources using the [**x402-payment**](https://github.com/BofAI/skills/tree/main/x402-payment) skill.
 
 This skill enables agents to:
 
@@ -56,8 +56,8 @@ This skill enables agents to:
 ### 1. Facilitator
 The Facilitator is responsible for verifying TIP-712/EIP-712 signatures and executing on-chain settlements.
 
-- **Self-Hosted**: Deploy and manage your own Facilitator instance for full control over fee policies and settlement strategies. See the [**demo repository quick start**](https://github.com/bankofai/x402-demo/tree/main?tab=readme-ov-file#quick-start) for deployment instructions.
-- **Official Facilitator**: An [officially hosted Facilitator](https://github.com/bankofai/x402-facilitator) service is available, allowing you to use x402 without deploying infrastructure yourself.
+- **Self-Hosted**: Deploy and manage your own Facilitator instance for full control over fee policies and settlement strategies. See the [**demo repository quick start**](https://github.com/BofAI/x402-demo/tree/main?tab=readme-ov-file#quick-start) for deployment instructions.
+- **Official Facilitator**: An [officially hosted Facilitator](https://github.com/BofAI/x402-facilitator) service is available, allowing you to use x402 without deploying infrastructure yourself.
 
 ### 2. Server (Seller)
 Protect your FastAPI endpoints with a single decorator.
@@ -181,7 +181,7 @@ export TRON_GRID_API_KEY="your_trongrid_api_key_here"  # Recommended
 ```
 
 **Using with Agentic Tools:**
-You can add the [**x402-payment**](https://github.com/bankofai/skills/tree/main/x402-payment) skill to your favorite agentic tools:
+You can add the [**x402-payment**](https://github.com/BofAI/skills/tree/main/x402-payment) skill to your favorite agentic tools:
 
 - **OpenClaw**: `npx clawhub install x402-payment`
 - **opencode**: Copy the skill to your project's `.opencode/skill/` directory to enable autonomous TRON payments.

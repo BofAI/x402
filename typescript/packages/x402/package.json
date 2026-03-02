@@ -11,13 +11,13 @@
     "payment",
     "blockchain"
   ],
-  "homepage": "https://github.com/bankofai/x402#readme",
+  "homepage": "https://github.com/BofAI/x402#readme",
   "bugs": {
-    "url": "https://github.com/bankofai/x402/issues"
+    "url": "https://github.com/BofAI/x402/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bankofai/x402.git",
+    "url": "git+https://github.com/BofAI/x402.git",
     "directory": "typescript/packages/x402"
   },
   "engines": {

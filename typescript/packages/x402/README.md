@@ -356,10 +356,10 @@ await signer.ensureAllowance(tokenAddress, amount, network, 'auto');
 
 ## Links
 
-- **Repository**: https://github.com/bankofai/x402
-- **Issues**: https://github.com/bankofai/x402/issues
-- **Contributing**: https://github.com/bankofai/CONTRIBUTING.md
-- **Documentation**: https://github.com/bankofai/x402#readme
+- **Repository**: https://github.com/BofAI/x402
+- **Issues**: https://github.com/BofAI/x402/issues
+- **Contributing**: https://github.com/BofAI/CONTRIBUTING.md
+- **Documentation**: https://github.com/BofAI/x402#readme
 - **TRON Documentation**: https://developers.tron.network/
 - **TIP-712 Specification**: https://github.com/tronprotocol/tips/blob/master/tip-712.md
 

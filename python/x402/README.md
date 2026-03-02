@@ -39,6 +39,6 @@ client = X402HttpClient(http_client=http_client, x402_client=x402_client)
 
 ## Links
 
-- Repository: https://github.com/bankofai/x402
-- Issues: https://github.com/bankofai/x402/issues
-- Contributing: https://github.com/bankofai/CONTRIBUTING.md
+- Repository: https://github.com/BofAI/x402
+- Issues: https://github.com/BofAI/x402/issues
+- Contributing: https://github.com/BofAI/CONTRIBUTING.md
