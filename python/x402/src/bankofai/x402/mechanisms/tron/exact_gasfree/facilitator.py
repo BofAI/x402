@@ -125,8 +125,7 @@ class ExactGasFreeFacilitatorMechanism(BaseExactPermitFacilitatorMechanism):
         if self._allowed_tokens is not None:
             if norm(permit.payment.pay_token) not in self._allowed_tokens:
                 self._logger.warning(
-                    f"Token not allowed: {permit.payment.pay_token} "
-                    f"not in {self._allowed_tokens}"
+                    f"Token not allowed: {permit.payment.pay_token} not in {self._allowed_tokens}"
                 )
                 return "token_not_allowed"
 
@@ -167,14 +166,11 @@ class ExactGasFreeFacilitatorMechanism(BaseExactPermitFacilitatorMechanism):
         expected_fee = self._get_base_fee(permit.payment.pay_token, requirements.network)
         if expected_fee is None:
             self._logger.warning(
-                f"Unsupported token for fee: {permit.payment.pay_token} "
-                f"on {requirements.network}"
+                f"Unsupported token for fee: {permit.payment.pay_token} on {requirements.network}"
             )
             return "unsupported_token"
         if int(permit.fee.fee_amount) < expected_fee:
-            self._logger.warning(
-                f"FeeAmount too low: {permit.fee.fee_amount} < {expected_fee}"
-            )
+            self._logger.warning(f"FeeAmount too low: {permit.fee.fee_amount} < {expected_fee}")
             return "fee_amount_mismatch"
 
         # deadline must not have passed
