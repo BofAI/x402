@@ -1,6 +1,6 @@
 # x402
 
-Python SDK for the x402 payment protocol (TRON-only).
+Python SDK for the x402 payment protocol — supports TRON and EVM (BSC) networks.
 
 ## Installation
 
@@ -47,4 +47,5 @@ client = X402HttpClient(http_client=http_client, x402_client=x402_client)
 
 - Repository: https://github.com/BofAI/x402
 - Issues: https://github.com/BofAI/x402/issues
-- Contributing: https://github.com/BofAI/CONTRIBUTING.md
+- Documentation: https://docs.bankofai.io/
+- Contributing: [CONTRIBUTING.md](../../CONTRIBUTING.md)

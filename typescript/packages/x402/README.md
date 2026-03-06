@@ -1,15 +1,15 @@
 # @bankofai/x402
 
-TypeScript client SDK for the x402 payment protocol on TRON blockchain. Enable pay-per-request APIs with automatic HTTP 402 payment handling.
+TypeScript SDK for the x402 payment protocol. Supports TRON and EVM (BSC) networks with automatic HTTP 402 payment handling.
 
 ## Features
 
 - 🔐 **Automatic Payment Handling** - Transparently handles HTTP 402 Payment Required responses
-- ⛓️ **TRON Native** - Built for TRON Mainnet, Shasta, and Nile testnets
-- 🔑 **TIP-712 Signing** - Secure cryptographic signatures using TRON's EIP-712 implementation
-- 💰 **Token Approval Management** - Automatic ERC20 token allowance handling
+- ⛓️ **Multi-Chain** - TRON (Mainnet, Nile, Shasta) and EVM/BSC (Mainnet, Testnet)
+- 🔑 **TIP-712 / EIP-712 Signing** - Secure cryptographic signatures
+- 💰 **GasFree Support** - Pay with USDT/USDD on TRON without holding TRX for gas
 - 🚀 **Simple Integration** - Just 3 lines of code to get started
-- 📦 **Zero Dependencies** - Only requires `tronweb` as peer dependency
+- 📦 **Lightweight** - Minimal dependencies (`tronweb` for TRON, `viem` for EVM)
 
 ## Installation
 
@@ -20,28 +20,21 @@ npm i @bankofai/x402 tronweb
 ## Quick Start
 
 ```typescript
-import TronWeb from 'tronweb';
 import {
   X402Client,
   X402FetchClient,
-  ExactTronClientMechanism,
+  ExactPermitTronClientMechanism,
   TronClientSigner,
 } from '@bankofai/x402';
 
-// 1. Initialize TronWeb
-const tronWeb = new TronWeb({
-  fullHost: 'https://nile.trongrid.io',
-  privateKey: 'your_private_key_here',
-});
+// 1. Create signer and register payment mechanism
+const signer = new TronClientSigner(process.env.TRON_PRIVATE_KEY);
+const x402Client = new X402Client().register('tron:*', new ExactPermitTronClientMechanism(signer));
 
-// 2. Create signer and register payment mechanism
-const signer = TronClientSigner.withPrivateKey(tronWeb, 'your_private_key_here', 'nile');
-const x402Client = new X402Client().register('tron:*', new ExactTronClientMechanism(signer));
-
-// 3. Create HTTP client with automatic 402 handling
+// 2. Create HTTP client with automatic 402 handling
 const client = new X402FetchClient(x402Client);
 
-// 4. Make requests - payments are handled automatically!
+// 3. Make requests - payments are handled automatically!
 const response = await client.get('https://api.example.com/premium-data');
 const data = await response.json();
 console.log(data);
@@ -63,8 +56,9 @@ When you make a request to a protected resource:
 
 - **`X402Client`** - Core payment client that manages payment mechanisms
 - **`X402FetchClient`** - HTTP client wrapper with automatic 402 handling
-- **`TronClientSigner`** - Signs payment permits using TIP-712
-- **`ExactTronClientMechanism`** - Implements the "exact" payment scheme for TRON
+- **`TronClientSigner`** / **`EvmClientSigner`** - Sign payment permits using TIP-712 / EIP-712
+- **`ExactPermitTronClientMechanism`** - Implements the "exact_permit" payment scheme for TRON
+- **`ExactGasFreeClientMechanism`** - Implements the "exact_gasfree" scheme (no TRX gas needed)
 
 ## API Reference
 
@@ -83,8 +77,8 @@ const x402Client = new X402Client();
 Register a payment mechanism for a network pattern.
 
 ```typescript
-x402Client.register('tron:*', new ExactTronClientMechanism(signer));
-x402Client.register('tron:nile', new ExactTronClientMechanism(nileSigner));
+x402Client.register('tron:*', new ExactPermitTronClientMechanism(signer));
+x402Client.register('tron:nile', new ExactPermitTronClientMechanism(nileSigner));
 ```
 
 ##### `selectPaymentRequirements(accepts: PaymentRequirements[], filters?: PaymentRequirementsFilter): PaymentRequirements`
@@ -147,22 +141,8 @@ const response = await client.request('https://api.example.com/data', {
 
 Signer for creating payment permits using TIP-712.
 
-#### Static Methods
-
-##### `withPrivateKey(tronWeb: TronWeb, privateKey: string, network?: TronNetwork): TronClientSigner`
-
-Create a signer with an explicit private key.
-
 ```typescript
-const signer = TronClientSigner.withPrivateKey(tronWeb, '0x...', 'nile');
-```
-
-##### `fromTronWeb(tronWeb: TronWeb, network?: TronNetwork): TronClientSigner`
-
-Create a signer from a TronWeb instance (uses default private key).
-
-```typescript
-const signer = TronClientSigner.fromTronWeb(tronWeb, 'mainnet');
+const signer = new TronClientSigner(privateKey);
 ```
 
 #### Instance Methods
@@ -191,12 +171,28 @@ Ensure sufficient token allowance, approving if necessary.
 await signer.ensureAllowance(tokenAddress, BigInt(1000000), 'tron:nile', 'auto');
 ```
 
-### ExactTronClientMechanism
+### EvmClientSigner
 
-Payment mechanism implementing the "exact" scheme for TRON.
+Signer for creating payment permits using EIP-712 (BSC and other EVM networks).
 
 ```typescript
-const mechanism = new ExactTronClientMechanism(signer);
+const signer = new EvmClientSigner(privateKey);
+```
+
+### ExactPermitTronClientMechanism
+
+Payment mechanism implementing the "exact_permit" scheme for TRON.
+
+```typescript
+const mechanism = new ExactPermitTronClientMechanism(signer);
+```
+
+### ExactGasFreeClientMechanism
+
+Payment mechanism implementing the "exact_gasfree" scheme for TRON (no TRX gas needed).
+
+```typescript
+const mechanism = new ExactGasFreeClientMechanism(signer);
 ```
 
 ## Usage Examples
@@ -204,16 +200,10 @@ const mechanism = new ExactTronClientMechanism(signer);
 ### Basic Usage with Automatic Payment
 
 ```typescript
-import TronWeb from 'tronweb';
-import { X402Client, X402FetchClient, ExactTronClientMechanism, TronClientSigner } from '@bankofai/x402';
+import { X402Client, X402FetchClient, ExactPermitTronClientMechanism, TronClientSigner } from '@bankofai/x402';
 
-const tronWeb = new TronWeb({
-  fullHost: 'https://nile.trongrid.io',
-  privateKey: process.env.TRON_PRIVATE_KEY,
-});
-
-const signer = TronClientSigner.withPrivateKey(tronWeb, process.env.TRON_PRIVATE_KEY, 'nile');
-const x402Client = new X402Client().register('tron:*', new ExactTronClientMechanism(signer));
+const signer = new TronClientSigner(process.env.TRON_PRIVATE_KEY);
+const x402Client = new X402Client().register('tron:*', new ExactPermitTronClientMechanism(signer));
 const client = new X402FetchClient(x402Client);
 
 // Automatic payment handling
@@ -225,12 +215,10 @@ console.log(weather);
 ### Manual Payment Handling
 
 ```typescript
-import TronWeb from 'tronweb';
-import { X402Client, ExactTronClientMechanism, TronClientSigner, encodePaymentPayload } from '@bankofai/x402';
+import { X402Client, ExactPermitTronClientMechanism, TronClientSigner, encodePaymentPayload } from '@bankofai/x402';
 
-const tronWeb = new TronWeb({ fullHost: 'https://nile.trongrid.io', privateKey: process.env.TRON_PRIVATE_KEY });
-const signer = TronClientSigner.withPrivateKey(tronWeb, process.env.TRON_PRIVATE_KEY, 'nile');
-const x402Client = new X402Client().register('tron:*', new ExactTronClientMechanism(signer));
+const signer = new TronClientSigner(process.env.TRON_PRIVATE_KEY);
+const x402Client = new X402Client().register('tron:*', new ExactPermitTronClientMechanism(signer));
 
 // First request
 const response = await fetch('https://api.example.com/data');
@@ -261,7 +249,7 @@ if (response.status === 402) {
 ### Custom Payment Selection
 
 ```typescript
-import { X402Client, X402FetchClient, ExactTronClientMechanism, TronClientSigner } from '@bankofai/x402';
+import { X402Client, X402FetchClient, ExactPermitTronClientMechanism, TronClientSigner } from '@bankofai/x402';
 
 // Custom selector function
 const selector = (requirements) => {
@@ -273,23 +261,16 @@ const client = new X402FetchClient(x402Client, selector);
 const response = await client.get('https://api.example.com/data');
 ```
 
-### Browser Integration
+### GasFree Usage (No TRX Gas Needed)
 
 ```typescript
-// In browser with TronLink wallet
-import { X402Client, X402FetchClient, ExactTronClientMechanism, TronClientSigner } from '@bankofai/x402';
+import { X402Client, X402FetchClient, ExactGasFreeClientMechanism, TronClientSigner } from '@bankofai/x402';
 
-// Wait for TronLink
-const tronWeb = window.tronWeb;
-if (!tronWeb) {
-  throw new Error('TronLink not found');
-}
-
-const signer = TronClientSigner.fromTronWeb(tronWeb, 'mainnet');
-const x402Client = new X402Client().register('tron:*', new ExactTronClientMechanism(signer));
+const signer = new TronClientSigner(process.env.TRON_PRIVATE_KEY);
+const x402Client = new X402Client().register('tron:*', new ExactGasFreeClientMechanism(signer));
 const client = new X402FetchClient(x402Client);
 
-// Make paid requests
+// Pay with USDT/USDD without holding TRX
 const response = await client.get('https://api.example.com/premium-content');
 ```
 
@@ -298,9 +279,9 @@ const response = await client.get('https://api.example.com/premium-content');
 ```typescript
 // Support multiple TRON networks
 const nileClient = new X402Client()
-  .register('tron:nile', new ExactTronClientMechanism(nileSigner))
-  .register('tron:shasta', new ExactTronClientMechanism(shastaSigner))
-  .register('tron:mainnet', new ExactTronClientMechanism(mainnetSigner));
+  .register('tron:nile', new ExactPermitTronClientMechanism(nileSigner))
+  .register('tron:shasta', new ExactPermitTronClientMechanism(shastaSigner))
+  .register('tron:mainnet', new ExactPermitTronClientMechanism(mainnetSigner));
 ```
 
 ## Supported Networks
@@ -308,6 +289,8 @@ const nileClient = new X402Client()
 - **TRON Mainnet** - `tron:mainnet`
 - **TRON Shasta Testnet** - `tron:shasta`
 - **TRON Nile Testnet** - `tron:nile`
+- **BSC Mainnet** - `eip155:56`
+- **BSC Testnet** - `eip155:97`
 
 ## Payment Schemes
 
@@ -349,15 +332,7 @@ npm i tronweb@latest
 Ensure you've registered a mechanism for the network:
 
 ```typescript
-x402Client.register('tron:nile', new ExactTronClientMechanism(signer));
-```
-
-### "Insufficient allowance"
-
-The SDK automatically handles token approvals in `auto` mode. If you're using `skip` mode, manually approve tokens:
-
-```typescript
-await signer.ensureAllowance(tokenAddress, amount, network, 'auto');
+x402Client.register('tron:nile', new ExactPermitTronClientMechanism(signer));
 ```
 
 ## Links
@@ -365,7 +340,7 @@ await signer.ensureAllowance(tokenAddress, amount, network, 'auto');
 - **Repository**: https://github.com/BofAI/x402
 - **Issues**: https://github.com/BofAI/x402/issues
 - **Contributing**: https://github.com/BofAI/CONTRIBUTING.md
-- **Documentation**: https://github.com/BofAI/x402#readme
+- **Documentation**: https://docs.bankofai.io/
 - **TRON Documentation**: https://developers.tron.network/
 - **TIP-712 Specification**: https://github.com/tronprotocol/tips/blob/master/tip-712.md
 

@@ -5,21 +5,23 @@ Release date: February 25, 2026
 ## Highlights
 
 - **Full GasFree Integration**: Pay-per-request using TRC20 tokens (USDT/USDD) without requiring TRX for gas.
-- **Domain Neutral Signers**: Core signers now support arbitrary EIP-712 / TIP-712 domains and primary types.
-- **Enhanced Reliability**: New transaction polling mechanism with 3-minute timeout and "Confirmed on Chain" grace success detection.
+- **Facilitator Provider Selection**: Facilitator's `fee_quote()` selects GasFree providers and returns them to clients via `feeTo`/`caller`, centralizing provider management.
+- **Domain Neutral Signers**: Core signers support arbitrary EIP-712 / TIP-712 domains and primary types.
+- **Enhanced Reliability**: Transaction polling with 3-minute timeout and "Confirmed on Chain" grace success detection.
 
 ## New Features
 
 ### GasFree Scheme (TRON)
-- Automatic discovery of GasFree service providers.
-- Asynchronous settlement via official HTTP Proxy.
-- Real-time status tracking and polling.
-- Transparent fee handling based on provider quotes.
+- `ExactGasFreeFacilitatorMechanism.fee_quote()` selects a GasFree provider and returns it in the fee quote response.
+- Client mechanisms use the provider from `requirements.extra.fee.feeTo`, with automatic fallback to fetching from the GasFree API.
+- Asynchronous settlement via official HTTP Proxy with real-time status tracking.
+- Comprehensive facilitator validation: token whitelist, fee amount floor, deadline expiry, provider allowlist.
+- Client `maxFee` calculated as `max(transferFee, facilitatorFee)`.
 
 ### Standardized Signers
 - Unified `sign_typed_data` and `verify_typed_data` interfaces across TRON and EVM.
-- Explicit `primary_type` passing to ensure signature consistency.
-- Pure passthrough mode for EIP-712 definitions.
+- Explicit `primary_type` parameter for signature consistency.
+- `EIP712Domain` no longer included in type dictionaries — domain is passed separately, consistent with ethers v6 / TronWeb v6 conventions.
 
 ## Migration Guide
 
