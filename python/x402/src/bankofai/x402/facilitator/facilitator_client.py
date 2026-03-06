@@ -48,7 +48,7 @@ class FacilitatorClient:
             self._http_client = httpx.AsyncClient(
                 base_url=self._base_url,
                 headers=self._headers,
-                timeout=30.0,
+                timeout=120.0,
             )
         return self._http_client
 

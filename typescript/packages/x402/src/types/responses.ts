@@ -60,7 +60,7 @@ export interface SupportedResponse {
     network: string;
   }>;
   /** Fee configuration */
-  fee?: {
+  fee: {
     feeTo: string;
     pricing: 'per_accept' | 'flat';
   };
@@ -75,8 +75,12 @@ export interface FeeQuoteResponse {
   };
   /** Pricing model */
   pricing: string;
+  /** Payment scheme */
+  scheme: string;
   /** Network identifier */
   network: string;
+  /** Token asset address */
+  asset: string;
   /** Quote expiry time */
   expiresAt?: number;
 }

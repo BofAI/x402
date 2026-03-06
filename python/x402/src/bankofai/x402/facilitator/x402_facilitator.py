@@ -9,6 +9,7 @@ from bankofai.x402.types import (
     PaymentPayload,
     PaymentRequirements,
     SettleResponse,
+    SupportedFee,
     SupportedKind,
     SupportedResponse,
     VerifyResponse,
@@ -100,7 +101,20 @@ class X402Facilitator:
                     )
                 )
 
-        return SupportedResponse(kinds=kinds)
+        # Get fee_to from the first registered mechanism
+        fee_to = ""
+        for schemes in self._mechanisms.values():
+            for mechanism in schemes.values():
+                if hasattr(mechanism, "_fee_to") and mechanism._fee_to:
+                    fee_to = mechanism._fee_to
+                    break
+            if fee_to:
+                break
+
+        return SupportedResponse(
+            kinds=kinds,
+            fee=SupportedFee(feeTo=fee_to, pricing=pricing),
+        )
 
     async def fee_quote(
         self,
@@ -174,6 +188,7 @@ class X402Facilitator:
         if mechanism is None:
             return SettleResponse(
                 success=False,
+                network=requirements.network,
                 error_reason=(
                     f"unsupported_network_scheme: {requirements.network}/{requirements.scheme}"
                 ),
