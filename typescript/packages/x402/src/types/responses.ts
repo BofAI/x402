@@ -59,8 +59,8 @@ export interface SupportedResponse {
     scheme: string;
     network: string;
   }>;
-  /** Fee configuration */
-  fee: {
+  /** Fee configuration (optional, actual fees come from /fee/quote) */
+  fee?: {
     feeTo: string;
     pricing: 'per_accept' | 'flat';
   };

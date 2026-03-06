@@ -9,7 +9,6 @@ from bankofai.x402.types import (
     PaymentPayload,
     PaymentRequirements,
     SettleResponse,
-    SupportedFee,
     SupportedKind,
     SupportedResponse,
     VerifyResponse,
@@ -80,12 +79,9 @@ class X402Facilitator:
             self._mechanisms[network][scheme] = mechanism
         return self
 
-    def supported(self, pricing: str = "flat") -> SupportedResponse:
+    def supported(self) -> SupportedResponse:
         """
         Return supported network/scheme combinations.
-
-        Args:
-            pricing: Fee pricing model, defaults to "flat"
 
         Returns:
             SupportedResponse with all supported capabilities
@@ -101,20 +97,7 @@ class X402Facilitator:
                     )
                 )
 
-        # Get fee_to from the first registered mechanism
-        fee_to = ""
-        for schemes in self._mechanisms.values():
-            for mechanism in schemes.values():
-                if hasattr(mechanism, "_fee_to") and mechanism._fee_to:
-                    fee_to = mechanism._fee_to
-                    break
-            if fee_to:
-                break
-
-        return SupportedResponse(
-            kinds=kinds,
-            fee=SupportedFee(feeTo=fee_to, pricing=pricing),
-        )
+        return SupportedResponse(kinds=kinds)
 
     async def fee_quote(
         self,
