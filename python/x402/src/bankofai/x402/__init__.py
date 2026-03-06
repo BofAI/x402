@@ -30,6 +30,7 @@ from bankofai.x402.exceptions import (
     X402Error,
 )
 from bankofai.x402.tokens import TokenInfo, TokenRegistry
+from bankofai.x402.wallet import AgentWalletAdapter, EvmPrivateKeyWallet, TronPrivateKeyWallet, Wallet
 from bankofai.x402.types import (
     PaymentPayload,
     PaymentPermit,
@@ -72,4 +73,9 @@ __all__ = [
     # Token registry
     "TokenInfo",
     "TokenRegistry",
+    # Wallet
+    "Wallet",
+    "EvmPrivateKeyWallet",
+    "TronPrivateKeyWallet",
+    "AgentWalletAdapter",
 ]

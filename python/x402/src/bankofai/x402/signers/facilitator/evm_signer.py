@@ -8,6 +8,7 @@ from typing import Any
 from bankofai.x402.abi import PAYMENT_PERMIT_PRIMARY_TYPE
 from bankofai.x402.signers.facilitator.base import FacilitatorSigner
 from bankofai.x402.signers.utils import _eip712_domain_type_from_keys, resolve_provider_uri
+from bankofai.x402.wallet import EvmPrivateKeyWallet, Wallet
 
 logger = logging.getLogger(__name__)
 
@@ -15,25 +16,21 @@ logger = logging.getLogger(__name__)
 class EvmFacilitatorSigner(FacilitatorSigner):
     """EVM facilitator signer implementation using web3.py"""
 
-    def __init__(self, private_key: str) -> None:
-        if not private_key.startswith("0x"):
-            private_key = "0x" + private_key
-        self._private_key = private_key
-        self._address = self._derive_address(private_key)
+    def __init__(self, wallet: Wallet) -> None:
+        self._wallet = wallet
+        self._address = wallet.get_address()
         self._async_web3_clients: dict[str, Any] = {}
         logger.debug("EvmFacilitatorSigner initialized", extra={"address": self._address})
 
     @classmethod
+    def from_wallet(cls, wallet: Wallet) -> "EvmFacilitatorSigner":
+        """Create signer from a Wallet instance."""
+        return cls(wallet)
+
+    @classmethod
     def from_private_key(cls, private_key: str) -> "EvmFacilitatorSigner":
-        """Create signer from private key"""
-        return cls(private_key)
-
-    @staticmethod
-    def _derive_address(private_key: str) -> str:
-        """Derive EVM address from private key"""
-        from eth_account import Account
-
-        return Account.from_key(private_key).address
+        """Create signer from private key (convenience factory)."""
+        return cls(EvmPrivateKeyWallet(private_key))
 
     def get_address(self) -> str:
         return self._address
@@ -126,8 +123,8 @@ class EvmFacilitatorSigner(FacilitatorSigner):
                 }
             )
 
-            signed_tx = w3.eth.account.sign_transaction(tx, private_key=self._private_key)
-            tx_hash = await w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            signed_tx_hex = await self._wallet.sign_transaction(tx)
+            tx_hash = await w3.eth.send_raw_transaction(bytes.fromhex(signed_tx_hex))
             return tx_hash.hex()
         except Exception as e:
             logger.error(

@@ -8,21 +8,26 @@ from typing import Any
 
 from bankofai.x402.abi import EIP712_DOMAIN_TYPE, PAYMENT_PERMIT_PRIMARY_TYPE
 from bankofai.x402.signers.facilitator.base import FacilitatorSigner
+from bankofai.x402.wallet import TronPrivateKeyWallet, Wallet
 
 
 class TronFacilitatorSigner(FacilitatorSigner):
     """TRON facilitator signer implementation"""
 
-    def __init__(self, private_key: str) -> None:
-        clean_key = private_key[2:] if private_key.startswith("0x") else private_key
-        self._private_key = clean_key
-        self._address = self._derive_address(clean_key)
+    def __init__(self, wallet: Wallet) -> None:
+        self._wallet = wallet
+        self._address = wallet.get_address()
         self._async_tron_clients: dict[str, Any] = {}
 
     @classmethod
+    def from_wallet(cls, wallet: Wallet) -> "TronFacilitatorSigner":
+        """Create signer from a Wallet instance."""
+        return cls(wallet)
+
+    @classmethod
     def from_private_key(cls, private_key: str) -> "TronFacilitatorSigner":
-        """Create signer from private key"""
-        return cls(private_key)
+        """Create signer from private key (convenience factory)."""
+        return cls(TronPrivateKeyWallet(private_key))
 
     def _ensure_async_tron_client(self, network: str) -> Any:
         """Lazy initialize async tron_client for the given network.
@@ -38,17 +43,6 @@ class TronFacilitatorSigner(FacilitatorSigner):
             except ImportError:
                 return None
         return self._async_tron_clients[network]
-
-    @staticmethod
-    def _derive_address(private_key: str) -> str:
-        """Derive TRON address from private key"""
-        try:
-            from tronpy.keys import PrivateKey
-
-            pk = PrivateKey(bytes.fromhex(private_key))
-            return pk.public_key.to_base58check_address()
-        except ImportError:
-            return f"T{private_key[:33]}"
 
     def get_address(self) -> str:
         return self._address
@@ -165,9 +159,45 @@ class TronFacilitatorSigner(FacilitatorSigner):
         import json as json_module
         import logging
 
-        from tronpy.keys import PrivateKey
-
         logger = logging.getLogger(__name__)
+
+        def _build_unsigned_tx_payload(txn: Any) -> dict[str, Any]:
+            """Build a TronGrid-style unsigned tx payload.
+
+            agent-wallet's TRON adapter expects at least {txID, raw_data_hex}.
+            tronpy's transaction JSON sometimes lacks raw_data_hex at build time,
+            so we try multiple extraction strategies.
+            """
+
+            payload: dict[str, Any] = txn.to_json() if hasattr(txn, "to_json") else {}
+
+            txid = payload.get("txID")
+            if not txid:
+                txid = getattr(txn, "txid", None) or getattr(txn, "txID", None)
+            if txid:
+                payload["txID"] = txid
+
+            raw_data_hex = payload.get("raw_data_hex")
+            if not raw_data_hex:
+                raw_data_hex = getattr(txn, "raw_data_hex", None)
+            if not raw_data_hex:
+                maybe = getattr(txn, "_raw_data_hex", None)
+                if callable(maybe):
+                    try:
+                        raw_data_hex = maybe()
+                    except Exception:
+                        raw_data_hex = None
+
+            if raw_data_hex:
+                payload["raw_data_hex"] = raw_data_hex
+
+            unsigned: dict[str, Any] = {
+                "txID": payload.get("txID"),
+                "raw_data_hex": payload.get("raw_data_hex"),
+            }
+            if payload.get("raw_data") is not None:
+                unsigned["raw_data"] = payload.get("raw_data")
+            return unsigned
 
         client = self._ensure_async_tron_client(network)
         if client is None:
@@ -222,7 +252,15 @@ class TronFacilitatorSigner(FacilitatorSigner):
             txn_builder = await func(*args)
             txn_builder = txn_builder.with_owner(self._address).fee_limit(1_000_000_000)
             txn = await txn_builder.build()
-            txn = txn.sign(PrivateKey(bytes.fromhex(self._private_key)))
+            # Sign the transaction via wallet
+            unsigned_payload = _build_unsigned_tx_payload(txn)
+            signed_payload = await self._wallet.sign_transaction(unsigned_payload)
+
+            # All wallet implementations now return signature hex consistently
+            sig_hex = str(signed_payload)
+            if sig_hex.startswith("0x"):
+                sig_hex = sig_hex[2:]
+            txn._signature = [sig_hex]
 
             # Log transaction details before broadcast
             try:
