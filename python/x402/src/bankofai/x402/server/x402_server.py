@@ -296,7 +296,11 @@ class X402Server:
             SettleResponse with tx_hash
         """
         if self._facilitator is None:
-            return SettleResponse(success=False, error_reason="no_facilitator")
+            return SettleResponse(
+                success=False,
+                network=requirements.network,
+                error_reason="no_facilitator",
+            )
 
         return await self._facilitator.settle(payload, requirements)
 

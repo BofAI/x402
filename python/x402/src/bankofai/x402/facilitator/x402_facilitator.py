@@ -79,12 +79,9 @@ class X402Facilitator:
             self._mechanisms[network][scheme] = mechanism
         return self
 
-    def supported(self, pricing: str = "flat") -> SupportedResponse:
+    def supported(self) -> SupportedResponse:
         """
         Return supported network/scheme combinations.
-
-        Args:
-            pricing: Fee pricing model, defaults to "flat"
 
         Returns:
             SupportedResponse with all supported capabilities
@@ -174,6 +171,7 @@ class X402Facilitator:
         if mechanism is None:
             return SettleResponse(
                 success=False,
+                network=requirements.network,
                 error_reason=(
                     f"unsupported_network_scheme: {requirements.network}/{requirements.scheme}"
                 ),
