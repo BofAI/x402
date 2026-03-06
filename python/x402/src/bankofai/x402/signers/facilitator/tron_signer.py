@@ -6,7 +6,6 @@ import asyncio
 import time
 from typing import Any
 
-from bankofai.x402.abi import EIP712_DOMAIN_TYPE, PAYMENT_PERMIT_PRIMARY_TYPE
 from bankofai.x402.signers.facilitator.base import FacilitatorSigner
 
 
@@ -60,8 +59,9 @@ class TronFacilitatorSigner(FacilitatorSigner):
         types: dict[str, Any],
         message: dict[str, Any],
         signature: str,
+        primary_type: str,
     ) -> bool:
-        """Verify EIP-712 signature"""
+        """Verify EIP-712 signature (Domain Neutral)"""
         try:
             import logging
 
@@ -72,46 +72,19 @@ class TronFacilitatorSigner(FacilitatorSigner):
 
             from bankofai.x402.utils.address import tron_address_to_evm
 
-            # Note: PaymentPermit contract uses EIP712Domain WITHOUT version field
-            # Contract:
-            # keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)")
-            full_types = {
-                "EIP712Domain": EIP712_DOMAIN_TYPE,
-                **types,
-            }
-
-            primary_type = PAYMENT_PERMIT_PRIMARY_TYPE
-
-            # Convert paymentId from hex string to bytes for eth_account compatibility
-            # TronWeb signs with hex strings, but eth_account expects bytes for bytes16
-            message_copy = dict(message)
-            if "meta" in message_copy and "paymentId" in message_copy["meta"]:
-                payment_id = message_copy["meta"]["paymentId"]
-                if isinstance(payment_id, str) and payment_id.startswith("0x"):
-                    message_copy["meta"] = dict(message_copy["meta"])
-                    message_copy["meta"]["paymentId"] = bytes.fromhex(payment_id[2:])
-
             typed_data = {
-                "types": full_types,
+                "types": types,
                 "primaryType": primary_type,
                 "domain": domain,
-                "message": message_copy,
+                "message": message,
             }
 
             signable = encode_typed_data(full_message=typed_data)
-
             sig_bytes = bytes.fromhex(signature[2:] if signature.startswith("0x") else signature)
             recovered = Account.recover_message(signable, signature=sig_bytes)
 
-            # Convert expected TRON address to EVM format for comparison
             expected_evm = tron_address_to_evm(address)
-
-            logger.info(
-                "Signature verification: expected_tron=%s, expected_evm=%s, recovered=%s",
-                address,
-                expected_evm,
-                recovered,
-            )
+            logger.info(f"Signature verification: expected_tron={address}, recovered={recovered}")
 
             return recovered.lower() == expected_evm.lower()
         except Exception as e:
@@ -149,6 +122,36 @@ class TronFacilitatorSigner(FacilitatorSigner):
             return address
         except Exception:
             return address
+
+    async def check_balance(
+        self,
+        token: str,
+        network: str,
+        address: str | None = None,
+    ) -> int:
+        """Check TRC20 token balance"""
+        client = self._ensure_async_tron_client(network)
+        if client is None:
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.warning("AsyncTron client not available, returning 0 balance")
+            return 0
+
+        from bankofai.x402.abi import ERC20_ABI
+
+        target_address = address or self._address
+        try:
+            contract = await client.get_contract(token)
+            contract.abi = ERC20_ABI
+            balance = await contract.functions.balanceOf(target_address)
+            return int(balance)
+        except Exception as e:
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to check balance for {target_address}: {e}")
+            return 0
 
     async def write_contract(
         self,

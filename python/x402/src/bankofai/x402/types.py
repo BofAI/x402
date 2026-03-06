@@ -192,6 +192,9 @@ class TransactionInfo(BaseModel):
     block_number: Optional[str] = Field(None, alias="blockNumber")
     status: Optional[str] = None
 
+    class Config:
+        populate_by_name = True
+
 
 class SettleResponse(BaseModel):
     """Settlement response from facilitator"""

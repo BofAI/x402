@@ -42,6 +42,20 @@ class NetworkConfig:
         "eip155:56": "0x1825bB32db3443dEc2cc7508b2D818fc13EaD878",
     }
 
+    # GasFreeController contract addresses
+    GASFREE_CONTROLLER_ADDRESSES: Dict[str, str] = {
+        "tron:mainnet": "TFFAMLQZybALab4uxHA9RBE7pxhUAjfF3U",
+        "tron:shasta": "TQghdCeVDA6CnuNVTUhfaAyPfTetqZWNpm",
+        "tron:nile": "THQGuFzL87ZqhxkgqYEryRAd7gqFqL5rdc",
+    }
+
+    # GasFree API Base URLs
+    GASFREE_API_BASE_URLS: Dict[str, str] = {
+        "tron:mainnet": "https://open.gasfree.io/tron",
+        "tron:shasta": "https://open-test.gasfree.io/shasta",
+        "tron:nile": "https://open-test.gasfree.io/nile",
+    }
+
     # RPC URLs for EVM networks
     RPC_URLS: Dict[str, str] = {
         "eip155:97": "https://data-seed-prebsc-1-s1.binance.org:8545/",
@@ -103,3 +117,41 @@ class NetworkConfig:
         if network.startswith("eip155:"):
             return "0x0000000000000000000000000000000000000000"
         return "T0000000000000000000000000000000"
+
+    @classmethod
+    def get_gasfree_controller_address(cls, network: str) -> str:
+        """Get GasFreeController contract address for network"""
+        return cls.GASFREE_CONTROLLER_ADDRESSES.get(network, "T0000000000000000000000000000000")
+
+    @classmethod
+    def get_gasfree_api_base_url(cls, network: str) -> str:
+        """Get GasFree API Base URL for network"""
+        return cls.GASFREE_API_BASE_URLS.get(network, "https://api.gasfree.io/v1")
+
+    @classmethod
+    def get_gasfree_api_key(cls, network: str) -> str | None:
+        """Get GasFree API Key from environment"""
+        import os
+
+        # 1. Try network-specific key (e.g. GASFREE_API_KEY_NILE)
+        suffix = network.split(":")[-1].upper()
+        key = os.environ.get(f"GASFREE_API_KEY_{suffix}")
+        if key:
+            return key
+
+        # 2. Fallback to generic key
+        return os.environ.get("GASFREE_API_KEY")
+
+    @classmethod
+    def get_gasfree_api_secret(cls, network: str) -> str | None:
+        """Get GasFree API Secret from environment"""
+        import os
+
+        # 1. Try network-specific secret (e.g. GASFREE_API_SECRET_NILE)
+        suffix = network.split(":")[-1].upper()
+        secret = os.environ.get(f"GASFREE_API_SECRET_{suffix}")
+        if secret:
+            return secret
+
+        # 2. Fallback to generic secret
+        return os.environ.get("GASFREE_API_SECRET")

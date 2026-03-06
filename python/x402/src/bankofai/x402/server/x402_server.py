@@ -263,7 +263,7 @@ class X402Server:
             VerifyResponse
         """
         if not self._validate_payload_matches_requirements(payload, requirements):
-            return VerifyResponse(isValid=False, invalidReason="payload_mismatch")
+            return VerifyResponse(is_valid=False, invalid_reason="payload_mismatch")
 
         # Server-side signature verification to prevent incorrect signatures from frontend
         mechanism = self._find_mechanism(requirements.network, requirements.scheme)
@@ -273,10 +273,10 @@ class X402Server:
 
             is_valid = await mechanism.verify_signature(permit, signature, requirements.network)
             if not is_valid:
-                return VerifyResponse(isValid=False, invalidReason="invalid_signature_server")
+                return VerifyResponse(is_valid=False, invalid_reason="invalid_signature_server")
 
         if self._facilitator is None:
-            return VerifyResponse(isValid=False, invalidReason="no_facilitator")
+            return VerifyResponse(is_valid=False, invalid_reason="no_facilitator")
 
         return await self._facilitator.verify(payload, requirements)
 
@@ -296,7 +296,7 @@ class X402Server:
             SettleResponse with tx_hash
         """
         if self._facilitator is None:
-            return SettleResponse(success=False, errorReason="no_facilitator")
+            return SettleResponse(success=False, error_reason="no_facilitator")
 
         return await self._facilitator.settle(payload, requirements)
 

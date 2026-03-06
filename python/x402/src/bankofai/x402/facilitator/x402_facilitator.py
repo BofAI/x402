@@ -148,8 +148,8 @@ class X402Facilitator:
         mechanism = self._find_mechanism(requirements.network, requirements.scheme)
         if mechanism is None:
             return VerifyResponse(
-                isValid=False,
-                invalidReason=(
+                is_valid=False,
+                invalid_reason=(
                     f"unsupported_network_scheme: {requirements.network}/{requirements.scheme}"
                 ),
             )
@@ -174,7 +174,7 @@ class X402Facilitator:
         if mechanism is None:
             return SettleResponse(
                 success=False,
-                errorReason=(
+                error_reason=(
                     f"unsupported_network_scheme: {requirements.network}/{requirements.scheme}"
                 ),
             )

@@ -8,12 +8,11 @@ from typing import Any, List
 # EIP-712 Primary Type for PaymentPermit
 PAYMENT_PERMIT_PRIMARY_TYPE = "PaymentPermitDetails"
 
-# EIP-712 Domain Type
-# Both TRON and EVM use the same domain definition (name, chainId, verifyingContract)
-# Based on contract:
-# keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)")
-# NO version field!
-EIP712_DOMAIN_TYPE = [
+# EIP-712 Primary Type for GasFree
+GASFREE_PRIMARY_TYPE = "PermitTransfer"
+
+# EIP-712 Domain Type for PaymentPermit (Standard)
+PAYMENT_PERMIT_EIP712_DOMAIN_TYPE = [
     {"name": "name", "type": "string"},
     {"name": "chainId", "type": "uint256"},
     {"name": "verifyingContract", "type": "address"},

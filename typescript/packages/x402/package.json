@@ -1,6 +1,6 @@
 {
   "name": "@bankofai/x402",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "x402 TypeScript SDK (TRON and EVM support)",
   "keywords": [
     "x402",
@@ -27,6 +27,10 @@
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "dependencies": {
+    "@gasfree/gasfree-sdk": "^1.1.2",
+    "viem": "^2.45.2"
+  },
   "exports": {
     ".": {
       "import": "./dist/index.js",
@@ -44,9 +48,6 @@
   },
   "peerDependencies": {
     "tronweb": "^5.0.0 || ^6.0.0"
-  },
-  "dependencies": {
-    "viem": "^2.45.2"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",

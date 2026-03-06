@@ -92,15 +92,9 @@ export class TronClientSigner implements ClientSigner {
   async signTypedData(
     domain: Record<string, unknown>,
     types: Record<string, unknown>,
-    message: Record<string, unknown>
+    message: Record<string, unknown>,
+    _primaryType: string
   ): Promise<string> {
-    // Prepare domain
-    const typedDomain: TypedDataDomain = {
-      name: domain.name as string,
-      chainId: domain.chainId as number,
-      verifyingContract: domain.verifyingContract as string,
-    };
-
     // Signing is pure crypto — any TronWeb instance works
     const tw = this.getDefaultTronWeb();
     // Use signTypedData (stable API) or fall back to _signTypedData (legacy)
@@ -109,18 +103,20 @@ export class TronClientSigner implements ClientSigner {
       throw new SignatureCreationError('TronWeb does not support signTypedData. Please upgrade to TronWeb >= 5.0');
     }
 
+    // Pure Passthrough: Let TronWeb handle the domain and types as-is.
     return signFn.call(
       tw.trx,
-      typedDomain,
-      types as Record<string, TypedDataField[]>,
+      domain as any,
+      types as any,
       message,
       this.privateKey
     );
   }
 
-  async checkBalance(token: string, network: string): Promise<bigint> {
+  async checkBalance(token: string, network: string, address?: string): Promise<bigint> {
     try {
-      const ownerHex = toEvmHex(this.address);
+      const targetAddress = address || this.address;
+      const ownerHex = toEvmHex(targetAddress);
 
       const tw = this.getTronWeb(network);
       const result = await tw.transactionBuilder.triggerConstantContract(

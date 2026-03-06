@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "bankofai-x402"
-version = "0.3.1"
+version = "0.4.0"
 description = "x402 Payment Protocol SDK for Python"
 readme = "README.md"
 license = {text = "MIT"}

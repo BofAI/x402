@@ -97,7 +97,7 @@ async def test_evm_signer_sign_typed_data():
         "wallet": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB",
     }
 
-    signature = await signer.sign_typed_data(domain, types, message)
+    signature = await signer.sign_typed_data(domain, types, message, primary_type="Person")
 
     assert signature is not None
     assert signature.startswith("0x") or len(signature) == 130

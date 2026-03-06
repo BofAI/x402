@@ -1,6 +1,11 @@
 from typing import Any
 
-from bankofai.x402.abi import PAYMENT_PERMIT_ABI, get_abi_json, get_payment_permit_eip712_types
+from bankofai.x402.abi import (
+    PAYMENT_PERMIT_ABI,
+    PAYMENT_PERMIT_PRIMARY_TYPE,
+    get_abi_json,
+    get_payment_permit_eip712_types,
+)
 from bankofai.x402.address import AddressConverter, TronAddressConverter
 from bankofai.x402.config import NetworkConfig
 from bankofai.x402.mechanisms._exact_permit_base.facilitator import (
@@ -67,6 +72,7 @@ class ExactPermitTronFacilitatorMechanism(BaseExactPermitFacilitatorMechanism):
             types=get_payment_permit_eip712_types(),
             message=message,
             signature=signature,
+            primary_type=PAYMENT_PERMIT_PRIMARY_TYPE,
         )
 
     async def _settle_payment_only(

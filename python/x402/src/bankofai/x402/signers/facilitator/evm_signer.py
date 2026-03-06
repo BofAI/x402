@@ -5,9 +5,8 @@ EvmFacilitatorSigner - EVM facilitator signer implementation
 import logging
 from typing import Any
 
-from bankofai.x402.abi import PAYMENT_PERMIT_PRIMARY_TYPE
 from bankofai.x402.signers.facilitator.base import FacilitatorSigner
-from bankofai.x402.signers.utils import _eip712_domain_type_from_keys, resolve_provider_uri
+from bankofai.x402.signers.utils import resolve_provider_uri
 
 logger = logging.getLogger(__name__)
 
@@ -58,35 +57,18 @@ class EvmFacilitatorSigner(FacilitatorSigner):
         types: dict[str, Any],
         message: dict[str, Any],
         signature: str,
+        primary_type: str,
     ) -> bool:
-        """Verify EIP-712 signature"""
+        """Verify EIP-712 signature (Pure Passthrough)."""
         try:
             from eth_account import Account
             from eth_account.messages import encode_typed_data
 
-            # TODO: Refactor FacilitatorSigner interface to accept primary_type explicitly
-            primary_type = (
-                PAYMENT_PERMIT_PRIMARY_TYPE
-                if PAYMENT_PERMIT_PRIMARY_TYPE in types
-                else list(types.keys())[-1]
-            )
-
-            # Convert paymentId from hex string to bytes for eth_account compatibility
-            message_copy = dict(message)
-            if "meta" in message_copy and "paymentId" in message_copy["meta"]:
-                payment_id = message_copy["meta"]["paymentId"]
-                if isinstance(payment_id, str) and payment_id.startswith("0x"):
-                    message_copy["meta"] = dict(message_copy["meta"])
-                    message_copy["meta"]["paymentId"] = bytes.fromhex(payment_id[2:])
-
-            # Build EIP712Domain type dynamically from domain keys
-            domain_type = _eip712_domain_type_from_keys(domain)
-
             typed_data = {
-                "types": {"EIP712Domain": domain_type, **types},
+                "types": types,
                 "primaryType": primary_type,
                 "domain": domain,
-                "message": message_copy,
+                "message": message,
             }
 
             signable = encode_typed_data(full_message=typed_data)
@@ -97,6 +79,27 @@ class EvmFacilitatorSigner(FacilitatorSigner):
         except Exception as e:
             logger.error("Signature verification failed", extra={"error": str(e)})
             return False
+
+    async def check_balance(
+        self,
+        token: str,
+        network: str,
+        address: str | None = None,
+    ) -> int:
+        """Check ERC20 token balance"""
+        w3 = self._ensure_async_web3_client(network)
+        if not w3:
+            return 0
+
+        from bankofai.x402.abi import ERC20_ABI
+
+        target_address = address or self._address
+        try:
+            contract = w3.eth.contract(address=token, abi=ERC20_ABI)
+            return await contract.functions.balanceOf(target_address).call()
+        except Exception as e:
+            logger.error(f"Failed to check balance for {target_address}: {e}")
+            return 0
 
     async def write_contract(
         self,

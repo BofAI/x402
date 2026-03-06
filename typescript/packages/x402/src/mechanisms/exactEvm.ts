@@ -13,6 +13,7 @@ import type {
 import {
   KIND_MAP,
   PAYMENT_PERMIT_TYPES,
+  PAYMENT_PERMIT_PRIMARY_TYPE,
   getChainId,
   getPaymentPermitAddress,
   EVM_ZERO_ADDRESS,
@@ -115,7 +116,8 @@ export class ExactPermitEvmClientMechanism implements ClientMechanism {
     const signature = await this.signer.signTypedData(
       domain,
       PAYMENT_PERMIT_TYPES,
-      permitForSigning as unknown as Record<string, unknown>
+      permitForSigning as unknown as Record<string, unknown>,
+      PAYMENT_PERMIT_PRIMARY_TYPE
     );
 
     return {

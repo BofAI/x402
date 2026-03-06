@@ -6,7 +6,7 @@ import json
 import logging
 from typing import Any
 
-from bankofai.x402.abi import EIP712_DOMAIN_TYPE, ERC20_ABI, PAYMENT_PERMIT_PRIMARY_TYPE
+from bankofai.x402.abi import ERC20_ABI
 from bankofai.x402.config import NetworkConfig
 from bankofai.x402.exceptions import InsufficientAllowanceError, SignatureCreationError
 from bankofai.x402.signers.client.base import ClientSigner
@@ -63,7 +63,7 @@ class TronClientSigner(ClientSigner):
             pk = PrivateKey(bytes.fromhex(private_key))
             return pk.public_key.to_base58check_address()
         except ImportError:
-            return f"T{private_key[:33]}"
+            raise RuntimeError("tronpy is required to derive TRON addresses from private keys")
 
     def get_address(self) -> str:
         return self._address
@@ -84,21 +84,9 @@ class TronClientSigner(ClientSigner):
         domain: dict[str, Any],
         types: dict[str, Any],
         message: dict[str, Any],
+        primary_type: str,
     ) -> str:
-        """Sign EIP-712 typed data.
-
-        Note: The primaryType is determined from the types dict.
-        For PaymentPermit contract, it should be "PaymentPermitDetails".
-
-        TODO: Update interface to accept primary_type explicitly.
-        """
-        # Determine primary type from types dict (should be the last/main type)
-        # For PaymentPermit, the main type is "PaymentPermitDetails"
-        primary_type = (
-            PAYMENT_PERMIT_PRIMARY_TYPE
-            if PAYMENT_PERMIT_PRIMARY_TYPE in types
-            else list(types.keys())[-1]
-        )
+        """Sign EIP-712 typed data (Pure Passthrough)."""
         logger.info(
             f"Signing EIP-712 typed data: domain={domain.get('name')}, primaryType={primary_type}"
         )
@@ -106,16 +94,8 @@ class TronClientSigner(ClientSigner):
             from eth_account import Account
             from eth_account.messages import encode_typed_data
 
-            # Note: PaymentPermit contract uses EIP712Domain WITHOUT version field
-            # Contract:
-            # keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)")
-            full_types = {
-                "EIP712Domain": EIP712_DOMAIN_TYPE,
-                **types,
-            }
-
             typed_data = {
-                "types": full_types,
+                "types": types,
                 "primaryType": primary_type,
                 "domain": domain,
                 "message": message,
@@ -136,7 +116,6 @@ class TronClientSigner(ClientSigner):
             logger.info(f"[SIGN] Message: {json_module.dumps(message_for_log)}")
 
             signable = encode_typed_data(full_message=typed_data)
-            # Convert hex private key to bytes for eth_account
             private_key_bytes = bytes.fromhex(self._private_key)
             signed_message = Account.sign_message(signable, private_key_bytes)
 
@@ -152,6 +131,7 @@ class TronClientSigner(ClientSigner):
         self,
         token: str,
         network: str,
+        address: str | None = None,
     ) -> int:
         """Check TRC20 token balance"""
         client = self._ensure_async_tron_client(network)
@@ -159,10 +139,11 @@ class TronClientSigner(ClientSigner):
             logger.warning("AsyncTron client not available, returning 0 balance")
             return 0
 
+        target_address = address or self._address
         try:
             contract = await client.get_contract(token)
             contract.abi = ERC20_ABI
-            balance = await contract.functions.balanceOf(self._address)
+            balance = await contract.functions.balanceOf(target_address)
             balance_int = int(balance)
             from bankofai.x402.tokens import TokenRegistry
 
@@ -171,12 +152,12 @@ class TronClientSigner(ClientSigner):
             symbol = token_info.symbol if token_info else token[:8]
             human = balance_int / (10**decimals)
             logger.info(
-                f"Token balance: {human:.6f} {symbol} "
+                f"Token balance for {target_address}: {human:.6f} {symbol} "
                 f"(raw={balance_int}, token={token}, network={network})"
             )
             return balance_int
         except Exception as e:
-            logger.error(f"Failed to check balance: {e}")
+            logger.error(f"Failed to check balance for {target_address}: {e}")
             return 0
 
     async def check_allowance(

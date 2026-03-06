@@ -1,6 +1,6 @@
 {
   "name": "x402-typescript",
-  "version": "0.1.0-beta.1",
+  "version": "0.4.0",
   "private": true,
   "description": "x402 TypeScript Client SDK",
   "workspaces": [

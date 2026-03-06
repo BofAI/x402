@@ -10,7 +10,7 @@ def test_evm_facilitator_signer_creation(mock_evm_private_key):
     assert signer.get_address().lower() == "0xFCAd0B19bB29D4674531d6f115237E16AfCE377c".lower()
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_evm_verify_typed_data(mock_evm_private_key):
     """Test EVM signature verification"""
     signer = EvmFacilitatorSigner.from_private_key(mock_evm_private_key)
@@ -28,9 +28,9 @@ async def test_evm_verify_typed_data(mock_evm_private_key):
     from eth_account import Account
     from eth_account.messages import encode_typed_data
 
-    from bankofai.x402.abi import EIP712_DOMAIN_TYPE
+    from bankofai.x402.abi import PAYMENT_PERMIT_EIP712_DOMAIN_TYPE
 
-    full_types = {"EIP712Domain": EIP712_DOMAIN_TYPE, **types}
+    full_types = {"EIP712Domain": PAYMENT_PERMIT_EIP712_DOMAIN_TYPE, **types}
 
     typed_data = {"types": full_types, "primaryType": "Test", "domain": domain, "message": message}
 
@@ -39,11 +39,13 @@ async def test_evm_verify_typed_data(mock_evm_private_key):
     signature = signed.signature.hex()
 
     # Verify
-    valid = await signer.verify_typed_data(signer.get_address(), domain, types, message, signature)
+    valid = await signer.verify_typed_data(
+        signer.get_address(), domain, types, message, signature, primary_type="Test"
+    )
     assert valid is True
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_evm_verify_typed_data_invalid(mock_evm_private_key):
     """Test invalid signature verification"""
     signer = EvmFacilitatorSigner.from_private_key(mock_evm_private_key)
@@ -53,5 +55,7 @@ async def test_evm_verify_typed_data_invalid(mock_evm_private_key):
     message = {"content": "test"}
     signature = "0x" + "00" * 65
 
-    valid = await signer.verify_typed_data(signer.get_address(), domain, types, message, signature)
+    valid = await signer.verify_typed_data(
+        signer.get_address(), domain, types, message, signature, primary_type="Test"
+    )
     assert valid is False
