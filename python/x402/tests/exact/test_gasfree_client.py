@@ -8,9 +8,10 @@ import pytest
 
 from bankofai.x402.abi import GASFREE_PRIMARY_TYPE
 from bankofai.x402.mechanisms.tron.exact_gasfree.client import ExactGasFreeClientMechanism
-from bankofai.x402.types import PaymentRequirements
+from bankofai.x402.types import FeeInfo, PaymentRequirements, PaymentRequirementsExtra
 
 USDT_ADDRESS = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf"
+PROVIDER_ADDRESS = "TKtWbdzEq5ss9vTS9kwRhBp5mXmBfBns3E"
 
 
 @pytest.fixture
@@ -31,6 +32,9 @@ def nile_requirements():
         asset=USDT_ADDRESS,
         payTo="TMerchantAddr12345678901234567890",
         maxTimeoutSeconds=3600,
+        extra=PaymentRequirementsExtra(
+            fee=FeeInfo(feeTo=PROVIDER_ADDRESS, feeAmount="0"),
+        ),
     )
 
 
@@ -81,9 +85,9 @@ class TestGasFreeClient:
     @pytest.mark.anyio
     async def test_max_fee_adjustment(self, mock_signer, nile_requirements, mock_api_client):
         # Requirements has 0.1 USDT fee, but protocol needs 1 USDT
-        nile_requirements.extra = MagicMock()
-        nile_requirements.extra.fee = MagicMock()
-        nile_requirements.extra.fee.fee_amount = "100000"
+        nile_requirements.extra = PaymentRequirementsExtra(
+            fee=FeeInfo(feeTo=PROVIDER_ADDRESS, feeAmount="100000"),
+        )
 
         mechanism = ExactGasFreeClientMechanism(mock_signer, clients={"tron:nile": mock_api_client})
         payload = await mechanism.create_payment_payload(
@@ -102,6 +106,26 @@ class TestGasFreeClient:
         mechanism = ExactGasFreeClientMechanism(mock_signer, clients={"tron:nile": mock_api_client})
         with pytest.raises(InsufficientGasFreeBalance):
             await mechanism.create_payment_payload(nile_requirements, "https://example.com")
+
+    @pytest.mark.anyio
+    async def test_fallback_fetch_providers(self, mock_signer, mock_api_client):
+        """When extra.fee is missing, client falls back to fetching providers from API"""
+        requirements_no_fee = PaymentRequirements(
+            scheme="exact_gasfree",
+            network="tron:nile",
+            amount="1000000",
+            asset=USDT_ADDRESS,
+            payTo="TMerchantAddr12345678901234567890",
+        )
+
+        mechanism = ExactGasFreeClientMechanism(mock_signer, clients={"tron:nile": mock_api_client})
+        payload = await mechanism.create_payment_payload(
+            requirements_no_fee, "https://example.com/resource"
+        )
+
+        # Should have called get_providers as fallback
+        mock_api_client.get_providers.assert_called_once()
+        assert payload.x402_version == 2
 
     @pytest.mark.anyio
     async def test_not_activated(self, mock_signer, nile_requirements, mock_api_client):

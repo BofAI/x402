@@ -2,6 +2,7 @@
 ExactGasFreeFacilitatorMechanism - GasFree payment scheme facilitator mechanism for TRON.
 """
 
+import random
 import time
 from typing import Any, Dict, Optional
 
@@ -9,9 +10,12 @@ from bankofai.x402.abi import GASFREE_PRIMARY_TYPE
 from bankofai.x402.address.converter import AddressConverter, TronAddressConverter
 from bankofai.x402.config import NetworkConfig
 from bankofai.x402.mechanisms._exact_permit_base.facilitator import (
+    FEE_QUOTE_EXPIRY_SECONDS,
     BaseExactPermitFacilitatorMechanism,
 )
 from bankofai.x402.types import (
+    FeeInfo,
+    FeeQuoteResponse,
     PaymentPayload,
     PaymentPermit,
     PaymentRequirements,
@@ -54,31 +58,94 @@ class ExactGasFreeFacilitatorMechanism(BaseExactPermitFacilitatorMechanism):
     def _get_address_converter(self) -> AddressConverter:
         return TronAddressConverter()
 
+    async def fee_quote(
+        self,
+        accept: PaymentRequirements,
+        context: dict[str, Any] | None = None,
+    ) -> FeeQuoteResponse | None:
+        """Override fee_quote to select a random GasFree provider.
+
+        Uses base_fee for feeAmount (same as parent), but selects a GasFree
+        provider as feeTo/caller instead of the facilitator's own address.
+        """
+        base_fee = self._get_base_fee(accept.asset, accept.network)
+        if base_fee is None:
+            self._logger.warning(
+                f"Unsupported token: asset={accept.asset}, network={accept.network}"
+            )
+            return None
+
+        network = accept.network
+        api_client = self._get_api_client(network)
+
+        providers = await api_client.get_providers()
+        if not providers:
+            self._logger.warning("No GasFree providers available")
+            return None
+
+        selected = random.choice(providers)
+        provider_addr = selected["address"]
+        fee_amount = str(base_fee)
+
+        self._logger.info(
+            f"GasFree fee_quote: provider={provider_addr}, "
+            f"fee={fee_amount}, network={network}, asset={accept.asset}"
+        )
+
+        # In GasFree, the service provider relays the transaction,
+        # so feeTo and caller both point to the provider address.
+        return FeeQuoteResponse(
+            fee=FeeInfo(
+                feeTo=provider_addr,
+                feeAmount=fee_amount,
+                caller=provider_addr,
+            ),
+            pricing="flat",
+            scheme=accept.scheme,
+            network=network,
+            asset=accept.asset,
+            expires_at=int(time.time()) + FEE_QUOTE_EXPIRY_SECONDS,
+        )
+
     async def _validate_permit_async(
         self, permit: PaymentPermit, requirements: PaymentRequirements
     ) -> str | None:
         """
-        Specialized validation for GasFree:
-        1. receiver (permit.pay_to) must match merchant (requirements.pay_to)
-        2. serviceProvider (permit.fee_to) must be a valid GasFree provider
+        Specialized validation for GasFree.
+
+        GasFree signed fields → PaymentPermit mapping:
+          token → pay_token, value → pay_amount, receiver → pay_to,
+          serviceProvider → fee_to, maxFee → fee_amount, deadline → valid_before,
+          nonce → nonce.
+        Fields NOT in GasFree: validAfter, paymentId, kind.
         """
         norm = self._address_converter.normalize
 
-        # Business Logic Validation (Amount and Asset)
+        # Token whitelist check (facilitator config)
+        if self._allowed_tokens is not None:
+            if norm(permit.payment.pay_token) not in self._allowed_tokens:
+                self._logger.warning(
+                    f"Token not allowed: {permit.payment.pay_token} "
+                    f"not in {self._allowed_tokens}"
+                )
+                return "token_not_allowed"
+
+        # value >= required amount
         if int(permit.payment.pay_amount) < int(requirements.amount):
             return "amount_mismatch"
 
+        # token must match
         if norm(permit.payment.pay_token) != norm(requirements.asset):
             return "token_mismatch"
 
-        # PayTo (Merchant) validation
+        # receiver must match merchant
         if norm(permit.payment.pay_to) != norm(requirements.pay_to):
             self._logger.warning(
                 f"Merchant mismatch: {permit.payment.pay_to} != {requirements.pay_to}"
             )
             return "payto_mismatch"
 
-        # Provider validation: The serviceProvider in GasFree permit must be valid
+        # serviceProvider must be a valid GasFree provider
         network = requirements.network
         api_client = self._get_api_client(network)
 
@@ -96,10 +163,29 @@ class ExactGasFreeFacilitatorMechanism(BaseExactPermitFacilitatorMechanism):
             if norm(permit.fee.fee_to) != norm(self._fee_to):
                 return "fee_to_mismatch"
 
-        # Date validation
+        # maxFee must be >= configured base_fee
+        expected_fee = self._get_base_fee(permit.payment.pay_token, requirements.network)
+        if expected_fee is None:
+            self._logger.warning(
+                f"Unsupported token for fee: {permit.payment.pay_token} "
+                f"on {requirements.network}"
+            )
+            return "unsupported_token"
+        if int(permit.fee.fee_amount) < expected_fee:
+            self._logger.warning(
+                f"FeeAmount too low: {permit.fee.fee_amount} < {expected_fee}"
+            )
+            return "fee_amount_mismatch"
+
+        # deadline must not have passed
         now = int(time.time())
         if permit.meta.valid_before < now:
+            self._logger.warning(
+                f"Deadline passed: deadline={permit.meta.valid_before} < now={now}"
+            )
             return "expired"
+
+        # Note: GasFree has no validAfter concept, so no not_yet_valid check.
 
         return None
 

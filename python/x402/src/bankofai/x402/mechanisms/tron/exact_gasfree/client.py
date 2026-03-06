@@ -86,15 +86,22 @@ class ExactGasFreeClientMechanism(ClientMechanism):
         if not is_active and not allow_submit:
             raise GasFreeAccountNotActivated(user_address, gasfree_address)
 
-        # 3. Prepare maxFee and providers
-        providers = await api_client.get_providers()
-        if not providers:
-            raise RuntimeError("No GasFree service providers available")
+        # 3. Get provider and fee
+        fee_info = requirements.extra.fee if requirements.extra else None
+        if fee_info and fee_info.fee_to:
+            # Use provider from facilitator's fee quote
+            service_provider_addr = fee_info.fee_to
+            self._logger.debug(f"Using GasFree provider from requirements: {service_provider_addr}")
+        else:
+            # Fallback: fetch providers from GasFree API directly
+            self._logger.debug("No provider in requirements, fetching from GasFree API...")
+            providers = await api_client.get_providers()
+            if not providers:
+                raise RuntimeError("No GasFree service providers available")
+            service_provider_addr = random.choice(providers)["address"]
+            self._logger.debug(f"Selected GasFree provider: {service_provider_addr}")
 
-        # Pick a random provider from the supported list
-        service_provider_addr = random.choice(providers)["address"]
-        self._logger.debug(f"Selected GasFree provider: {service_provider_addr}")
-
+        # Look up per-user transferFee from account info
         assets = account_info.get("assets", [])
         transfer_fee = 0
         target_token = self._address_converter.normalize(requirements.asset)
@@ -104,21 +111,16 @@ class ExactGasFreeClientMechanism(ClientMechanism):
                 transfer_fee = int(asset.get("transferFee", 0))
                 break
 
-        # Facilitator base fee is usually 1,000,000 (1 USDT)
-        max_fee = str(transfer_fee)
-        if requirements.extra and requirements.extra.fee:
-            max_fee = requirements.extra.fee.fee_amount
-        elif transfer_fee == 0:
-            # Get decimals from registry, default to 6 (USDT)
+        # Determine maxFee
+        facilitator_fee = int(fee_info.fee_amount or "0") if fee_info else 0
+        max_fee_val = max(transfer_fee, facilitator_fee)
+
+        # Fallback: if both are 0 and no facilitator fee, default to 1 token
+        if max_fee_val == 0 and not fee_info:
             token_info = TokenRegistry.find_by_address(network, requirements.asset)
             decimals = token_info.decimals if token_info else 6
-            max_fee = str(10**decimals)  # Default fallback to 1.0 token if API returns 0
-
-        max_fee_val = int(max_fee)
-        if max_fee_val < transfer_fee:
-            self._logger.debug(f"Increasing maxFee to {transfer_fee} to meet protocol requirement")
-            max_fee_val = transfer_fee
-            max_fee = str(max_fee_val)
+            max_fee_val = 10**decimals
+        max_fee = str(max_fee_val)
 
         # 4. Balance verification
         skip_balance_check = (extensions or {}).get("skipBalanceCheck", False)

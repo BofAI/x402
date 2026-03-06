@@ -1,4 +1,5 @@
-import { TronGasFree } from '@gasfree/gasfree-sdk';
+import gasFreeSDK from '@gasfree/gasfree-sdk';
+const { TronGasFree } = gasFreeSDK;
 import {
   PaymentPayload,
   PaymentRequirements,
@@ -58,35 +59,39 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
       throw new Error(`GasFree account for ${userAddress} (${gasfreeAddress}) is not activated.`);
     }
 
-    // 3. Prepare maxFee and providers
-    const providers = await apiClient.getProviders();
-    if (!providers || providers.length === 0) {
+    // 3. Get provider and fee
+    const feeInfo = requirements.extra?.fee;
+    let serviceProviderAddr: string;
+    if (feeInfo?.feeTo) {
+      // Use provider from facilitator's fee quote
+      serviceProviderAddr = feeInfo.feeTo;
+      console.debug(`Using GasFree provider from requirements: ${serviceProviderAddr}`);
+    } else {
+      // Fallback: fetch providers from GasFree API directly
+      console.debug('No provider in requirements, fetching from GasFree API...');
+      const providers = await apiClient.getProviders();
+      if (!providers || providers.length === 0) {
         throw new Error('No GasFree service providers available');
+      }
+      serviceProviderAddr = providers[Math.floor(Math.random() * providers.length)].address;
+      console.debug(`Selected GasFree provider: ${serviceProviderAddr}`);
     }
-    const serviceProviderAddr = providers[Math.floor(Math.random() * providers.length)].address;
-    console.debug(`Selected GasFree provider: ${serviceProviderAddr}`);
 
+    // Look up per-user transferFee from account info
     const asset = accountInfo.assets.find((a: any) => a.tokenAddress === requirements.asset);
     const transferFee = BigInt(asset?.transferFee || '0');
-    
-    let maxFee = requirements.extra?.fee?.feeAmount;
-    if (!maxFee) {
-        // Default to transferFee from API, or 1.0 token units as a safe fallback
-        if (transferFee > 0n) {
-            maxFee = transferFee.toString();
-        } else {
-            const tokenInfo = findByAddress(requirements.network, requirements.asset);
-            const decimals = tokenInfo?.decimals ?? 6;
-            maxFee = (10 ** decimals).toString();
-        }
-    }
 
-    let maxFeeBig = BigInt(maxFee);
-    if (maxFeeBig < transferFee) {
-      console.debug(`Increasing maxFee to ${transferFee} to meet protocol requirement`);
-      maxFeeBig = transferFee;
-      maxFee = maxFeeBig.toString();
+    // Determine maxFee
+    const facilitatorFee = BigInt(feeInfo?.feeAmount || '0');
+    let maxFeeBig = transferFee > facilitatorFee ? transferFee : facilitatorFee;
+
+    // Fallback: if both are 0 and no facilitator fee, default to 1 token
+    if (maxFeeBig === 0n && !feeInfo) {
+      const tokenInfo = findByAddress(requirements.network, requirements.asset);
+      const decimals = tokenInfo?.decimals ?? 6;
+      maxFeeBig = BigInt(10 ** decimals);
     }
+    let maxFee = maxFeeBig.toString();
 
     // 4. Balance verification
     const skipBalanceCheck = (extensions as any)?.skipBalanceCheck || false;

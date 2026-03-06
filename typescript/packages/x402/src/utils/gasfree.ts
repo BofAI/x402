@@ -1,6 +1,5 @@
 import {
   GASFREE_PRIMARY_TYPE,
-  GASFREE_DOMAIN_TYPE,
 } from '../abi.js';
 import { getGasFreeApiKey, getGasFreeApiSecret } from '../config.js';
 
@@ -66,7 +65,6 @@ export interface GasFreeProvider {
 
 // GasFree TIP-712 Types
 export const GASFREE_TYPES = {
-  EIP712Domain: GASFREE_DOMAIN_TYPE,
   [GASFREE_PRIMARY_TYPE]: [
     { name: 'token', type: 'address' },
     { name: 'serviceProvider', type: 'address' },

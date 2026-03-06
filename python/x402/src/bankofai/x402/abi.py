@@ -152,7 +152,6 @@ def get_payment_permit_eip712_types() -> dict[str, Any]:
     Note: The primary type name is "PaymentPermitDetails" to match the contract's typehash.
     """
     return {
-        "EIP712Domain": PAYMENT_PERMIT_EIP712_DOMAIN_TYPE,
         "PermitMeta": [
             {"name": "kind", "type": "uint8"},
             {"name": "paymentId", "type": "bytes16"},

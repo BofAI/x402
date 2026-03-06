@@ -35,7 +35,6 @@ export const GASFREE_DOMAIN_TYPE = [
  * Based on PermitHash.sol from the contract
  */
 export const PAYMENT_PERMIT_TYPES = {
-  EIP712Domain: PAYMENT_PERMIT_EIP712_DOMAIN_TYPE,
   PermitMeta: [
     { name: 'kind', type: 'uint8' },
     { name: 'paymentId', type: 'bytes16' },

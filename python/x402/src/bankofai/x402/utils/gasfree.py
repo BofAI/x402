@@ -22,7 +22,6 @@ GASFREE_DOMAIN_TYPE = [
 
 # GasFree TIP-712 Message Types
 GASFREE_TYPES = {
-    "EIP712Domain": GASFREE_DOMAIN_TYPE,
     "PermitTransfer": [
         {"name": "token", "type": "address"},
         {"name": "serviceProvider", "type": "address"},

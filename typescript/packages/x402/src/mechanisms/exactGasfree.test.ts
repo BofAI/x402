@@ -53,6 +53,12 @@ describe('ExactGasFreeClientMechanism', () => {
       amount: '1000000',
       asset: USDT_ADDRESS,
       payTo: MOCK_ADDR,
+      extra: {
+        fee: {
+          feeTo: MOCK_ADDR,
+          feeAmount: '0',
+        },
+      },
     };
 
     const payload = await mechanism.createPaymentPayload(requirements, 'https://example.com/res');
@@ -81,6 +87,21 @@ describe('ExactGasFreeClientMechanism', () => {
     
     // Should be adjusted to 1 USDT (1,000,000)
     expect(payload.payload.paymentPermit?.fee.feeAmount).toBe('1000000');
+  });
+
+  it('should fallback to fetch providers when extra.fee is missing', async () => {
+    const requirements: PaymentRequirements = {
+      scheme: 'exact_gasfree',
+      network: 'tron:nile',
+      amount: '1000000',
+      asset: USDT_ADDRESS,
+      payTo: MOCK_ADDR,
+    };
+
+    const payload = await mechanism.createPaymentPayload(requirements, 'https://example.com/res');
+
+    expect(payload.x402Version).toBe(2);
+    expect(mockApiClient.getProviders).toHaveBeenCalled();
   });
 
   it('should throw error if network is not configured', async () => {
