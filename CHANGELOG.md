@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-03-07
+
+### Removed
+- `SupportedResponse.fee` field (Python and TypeScript) — fee info is now exclusively via `/fee/quote`
+- `pricing` parameter from `X402Facilitator.supported()`
+
+### Fixed
+- Added missing `scheme` and `asset` fields to TypeScript `FeeQuoteResponse` interface
+- `SettleResponse` error paths now include `network` field in `X402Facilitator` and `X402Server`
+- `FacilitatorClient` HTTP timeout increased from 30s to 120s for GasFree settlement
+
 ## [0.4.0] - 2026-02-25
 
 ### Added
