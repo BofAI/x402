@@ -41,12 +41,10 @@ class Wallet(ABC):
     @abstractmethod
     async def sign_transaction(self, tx: dict[str, Any]) -> str:
         """Sign a pre-built transaction.
-        
-        Return format depends on blockchain:
-        - EVM: Returns complete signed transaction hex (RLP-encoded) ready for broadcast
-        - TRON: Returns signature hex only (to be attached to transaction object)
-        
-        This difference reflects the underlying blockchain APIs:
-        - EVM (web3.py) broadcasts raw signed transactions
-        - TRON (tronpy) requires manual signature attachment before broadcast
+
+        Returns:
+            Hex string **without** ``0x`` prefix.
+
+            - EVM: complete signed transaction hex (RLP-encoded)
+            - TRON: signature hex only (to be attached to transaction)
         """

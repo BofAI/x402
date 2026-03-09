@@ -46,8 +46,9 @@ export class EvmPrivateKeyWallet implements Wallet {
   }
 
   async signTransaction(tx: Record<string, unknown>): Promise<string> {
-    return this.account.signTransaction(
+    const raw = await this.account.signTransaction(
       tx as Parameters<typeof this.account.signTransaction>[0],
     );
+    return raw.startsWith('0x') ? raw.slice(2) : raw;
   }
 }

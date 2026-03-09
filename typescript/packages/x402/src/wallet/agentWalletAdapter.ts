@@ -47,6 +47,17 @@ export class AgentWalletAdapter implements Wallet {
   }
 
   async signTransaction(tx: Record<string, unknown>): Promise<string> {
-    return this.agentWallet.signTransaction(tx);
+    let result = await this.agentWallet.signTransaction(tx);
+
+    // TRON case: agent-wallet may return JSON with embedded signature
+    if (result.trimStart().startsWith('{')) {
+      const signed = JSON.parse(result);
+      const sigs: string[] = signed.signature ?? [];
+      if (!sigs.length) throw new Error('agent-wallet returned signed tx JSON without signature');
+      result = sigs[0];
+    }
+
+    // Normalize: strip 0x prefix to match Wallet contract
+    return result.startsWith('0x') ? result.slice(2) : result;
   }
 }

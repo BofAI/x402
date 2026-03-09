@@ -214,9 +214,9 @@ export class TronClientSigner implements ClientSigner {
         throw new InsufficientAllowanceError('Failed to build approve transaction');
       }
 
-      // Sign transaction via wallet
-      const signedTxJson = await this.wallet.signTransaction(tx.transaction as Record<string, unknown>);
-      const signedTx = JSON.parse(signedTxJson);
+      // Sign transaction via wallet (returns signature hex without 0x)
+      const sigHex = await this.wallet.signTransaction(tx.transaction as Record<string, unknown>);
+      const signedTx = { ...(tx.transaction as Record<string, unknown>), signature: [sigHex] };
 
       // Broadcast transaction
       const broadcast = await tw.trx.sendRawTransaction(signedTx);

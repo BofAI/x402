@@ -256,11 +256,7 @@ class TronFacilitatorSigner(FacilitatorSigner):
             unsigned_payload = _build_unsigned_tx_payload(txn)
             signed_payload = await self._wallet.sign_transaction(unsigned_payload)
 
-            # All wallet implementations now return signature hex consistently
-            sig_hex = str(signed_payload)
-            if sig_hex.startswith("0x"):
-                sig_hex = sig_hex[2:]
-            txn._signature = [sig_hex]
+            txn._signature = [signed_payload]
 
             # Log transaction details before broadcast
             try:

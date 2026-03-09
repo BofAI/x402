@@ -234,9 +234,6 @@ class TronClientSigner(ClientSigner):
             # Sign the transaction via wallet
             txn_dict = txn.to_json()
             sig_hex = await self._wallet.sign_transaction(txn_dict)
-            # Attach signature - tronpy expects list of hex strings for JSON serialization
-            if not sig_hex.startswith('0x'):
-                sig_hex = '0x' + sig_hex
             txn._signature = [sig_hex]
             logger.info("Broadcasting approval transaction...")
             result = await txn.broadcast()

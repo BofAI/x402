@@ -14,6 +14,11 @@ export interface Wallet {
   /** Sign EIP-712 typed data, return signature hex. */
   signTypedData(data: Record<string, unknown>): Promise<string>;
 
-  /** Sign a pre-built transaction, return signed result. */
+  /**
+   * Sign a pre-built transaction.
+   * @returns Hex string **without** `0x` prefix.
+   *   - EVM: complete signed transaction hex (RLP-encoded)
+   *   - TRON: signature hex only (to be attached to transaction)
+   */
   signTransaction(tx: Record<string, unknown>): Promise<string>;
 }

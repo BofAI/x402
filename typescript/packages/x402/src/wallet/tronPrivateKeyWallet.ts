@@ -66,6 +66,7 @@ export class TronPrivateKeyWallet implements Wallet {
 
   async signTransaction(tx: Record<string, unknown>): Promise<string> {
     const signedTx = await this.tronWeb.trx.sign(tx, this.privateKey);
-    return JSON.stringify(signedTx);
+    const sig: string = (signedTx as any).signature?.[0] ?? '';
+    return sig.startsWith('0x') ? sig.slice(2) : sig;
   }
 }

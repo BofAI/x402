@@ -58,7 +58,9 @@ class AgentWalletAdapter(Wallet):
             signatures = signed_obj.get("signature") or []
             if not signatures:
                 raise ValueError("agent-wallet returned signed tx JSON without signature")
-            return signatures[0]
+            result = signatures[0]
         
-        # EVM case: agent-wallet returns raw transaction hex directly
+        # Normalize: strip 0x prefix to match Wallet contract
+        if isinstance(result, str) and result.startswith("0x"):
+            result = result[2:]
         return result
