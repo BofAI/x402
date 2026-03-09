@@ -1,47 +1,48 @@
+"""Pytest configuration and fixtures.
+
+This file is automatically loaded by pytest before running tests.
 """
-Pytest 配置和测试夹具
-"""
 
-import pytest
-
-
-@pytest.fixture
-def mock_tron_private_key():
-    """用于测试的模拟 TRON 私钥"""
-    return "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+import os
+from pathlib import Path
 
 
-@pytest.fixture
-def mock_evm_private_key():
-    """用于测试的模拟 EVM 私钥"""
-    return "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+def pytest_configure(config):
+    """Load .env file before tests run."""
+    # Try to load from python/x402/.env first, then root .env
+    possible_paths = [
+        Path(__file__).parent.parent / ".env",  # python/x402/.env
+        Path(__file__).parent.parent.parent.parent / ".env",  # root .env
+    ]
+
+    for env_path in possible_paths:
+        if env_path.exists():
+            _load_dotenv(env_path)
+            break
 
 
-@pytest.fixture
-def mock_tron_payment_requirements():
-    """用于测试的模拟 TRON 支付要求"""
-    from bankofai.x402.types import PaymentRequirements
+def _load_dotenv(path: Path) -> None:
+    """Load environment variables from a .env file.
 
-    return PaymentRequirements(
-        scheme="exact_permit",
-        network="tron:shasta",
-        amount="1000000",
-        asset="TTestUSDTAddress",
-        payTo="TTestMerchantAddress",
-        maxTimeoutSeconds=3600,
-    )
-
-
-@pytest.fixture
-def mock_evm_payment_requirements():
-    """用于测试的模拟 EVM 支付要求"""
-    from bankofai.x402.types import PaymentRequirements
-
-    return PaymentRequirements(
-        scheme="exact_permit",
-        network="eip155:8453",
-        amount="1000000",
-        asset="0xTestUSDCAddress",
-        payTo="0xTestMerchantAddress",
-        maxTimeoutSeconds=3600,
-    )
+    Args:
+        path: Path to the .env file.
+    """
+    with open(path) as f:
+        for line in f:
+            line = line.strip()
+            # Skip empty lines and comments
+            if not line or line.startswith("#"):
+                continue
+            # Parse KEY=VALUE
+            if "=" in line:
+                key, _, value = line.partition("=")
+                key = key.strip()
+                value = value.strip()
+                # Remove surrounding quotes if present
+                if (value.startswith('"') and value.endswith('"')) or (
+                    value.startswith("'") and value.endswith("'")
+                ):
+                    value = value[1:-1]
+                # Only set if not already in environment
+                if key not in os.environ:
+                    os.environ[key] = value

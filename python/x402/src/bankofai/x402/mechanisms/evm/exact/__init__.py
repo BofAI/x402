@@ -1,15 +1,25 @@
-"""
-EVM "exact" payment scheme mechanisms.
-"""
+"""Exact EVM payment scheme for x402."""
 
-from bankofai.x402.mechanisms.evm.exact.client import ExactEvmClientMechanism
-from bankofai.x402.mechanisms.evm.exact.facilitator import (
-    ExactEvmFacilitatorMechanism,
+from .client import ExactEvmScheme as ExactEvmClientScheme
+from .facilitator import ExactEvmScheme as ExactEvmFacilitatorScheme
+from .facilitator import ExactEvmSchemeConfig
+from .register import (
+    register_exact_evm_client,
+    register_exact_evm_facilitator,
+    register_exact_evm_server,
 )
-from bankofai.x402.mechanisms.evm.exact.server import ExactEvmServerMechanism
+from .server import ExactEvmScheme as ExactEvmServerScheme
+
+# Unified export (context determines which is used)
+ExactEvmScheme = ExactEvmClientScheme  # Most common use case
 
 __all__ = [
-    "ExactEvmClientMechanism",
-    "ExactEvmFacilitatorMechanism",
-    "ExactEvmServerMechanism",
+    "ExactEvmScheme",
+    "ExactEvmClientScheme",
+    "ExactEvmServerScheme",
+    "ExactEvmFacilitatorScheme",
+    "ExactEvmSchemeConfig",
+    "register_exact_evm_client",
+    "register_exact_evm_server",
+    "register_exact_evm_facilitator",
 ]

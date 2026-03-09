@@ -207,6 +207,15 @@ marimo/_lsp/
 __marimo__/
 /.idea/
 /.vscode/
-/examples/typescript/client-web/node_modules/
-/examples/typescript/client/node_modules/
 *node_modules/
+
+# Turbo cache
+.turbo/
+
+# TypeScript build output
+dist/
+*.tsbuildinfo
+
+# Agent / AI tool config
+CLAUDE.md
+.claude/
