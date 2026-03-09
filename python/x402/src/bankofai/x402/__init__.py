@@ -63,6 +63,7 @@ from .client import (
     x402ClientSync,
 )
 from .facilitator import x402Facilitator, x402FacilitatorSync
+from .registry import AssetInfo, AssetRegistry, convert_money, global_asset_registry
 
 # Interfaces (for implementing custom schemes)
 from .interfaces import (
@@ -140,6 +141,11 @@ from .server import (
 __version__ = "0.1.0"
 
 __all__ = [
+    # Asset Registry
+    "AssetInfo",
+    "AssetRegistry",
+    "convert_money",
+    "global_asset_registry",
     # Version
     "__version__",
     # Core components - Async (default)

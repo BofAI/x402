@@ -167,6 +167,7 @@ class PaymentOption:
     network: Network
     max_timeout_seconds: int | None = None
     extra: dict[str, Any] | None = None
+    assets: list[str] | None = None
 
 
 @dataclass

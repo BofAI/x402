@@ -1,0 +1,245 @@
+import { Network } from "../types/index.js";
+
+/**
+ * Information about a token asset on a specific network.
+ */
+export interface AssetInfo {
+  address: string;
+  decimals: number;
+  name?: string;
+  version?: string;
+  assetTransferMethod?: string;
+  supportsEip2612?: boolean;
+  [key: string]: unknown;
+}
+
+/**
+ * Registry of known token assets across networks.
+ * Provides symbol-based lookup for token metadata.
+ */
+export class AssetRegistry {
+  private assets: Map<string, Map<string, AssetInfo>> = new Map();
+  private defaults: Map<string, string> = new Map();
+
+  constructor() {
+    this.registerBuiltins();
+  }
+
+  /**
+   * Register a single asset for a network.
+   */
+  register(network: Network, symbol: string, info: AssetInfo): void {
+    if (!this.assets.has(network)) {
+      this.assets.set(network, new Map());
+    }
+    this.assets.get(network)!.set(symbol, info);
+  }
+
+  /**
+   * Batch-register multiple assets for a network.
+   */
+  registerAll(network: Network, assets: Record<string, AssetInfo>): void {
+    for (const [symbol, info] of Object.entries(assets)) {
+      this.register(network, symbol, info);
+    }
+  }
+
+  /**
+   * Set the default asset symbol for a network.
+   */
+  setDefault(network: Network, symbol: string): void {
+    if (!this.has(network, symbol)) {
+      throw new Error(
+        `Cannot set default: asset "${symbol}" is not registered on network "${network}"`,
+      );
+    }
+    this.defaults.set(network, symbol);
+  }
+
+  /**
+   * Resolve a symbol to its AssetInfo on a network.
+   * Throws if not found.
+   */
+  resolve(network: Network, symbol: string): AssetInfo {
+    const networkAssets = this.assets.get(network);
+    if (!networkAssets || !networkAssets.has(symbol)) {
+      throw new Error(
+        `Asset "${symbol}" is not registered on network "${network}". ` +
+          `Available: ${networkAssets ? Array.from(networkAssets.keys()).join(", ") : "none"}`,
+      );
+    }
+    return networkAssets.get(symbol)!;
+  }
+
+  /**
+   * Get the default asset for a network.
+   */
+  getDefault(network: Network): { symbol: string; info: AssetInfo } {
+    const symbol = this.defaults.get(network);
+    if (!symbol) {
+      throw new Error(`No default asset configured for network "${network}"`);
+    }
+    return { symbol, info: this.resolve(network, symbol) };
+  }
+
+  /**
+   * List all registered symbols for a network.
+   */
+  getSymbols(network: Network): string[] {
+    const networkAssets = this.assets.get(network);
+    return networkAssets ? Array.from(networkAssets.keys()) : [];
+  }
+
+  /**
+   * Check if an asset is registered on a network.
+   */
+  has(network: Network, symbol: string): boolean {
+    return this.assets.get(network)?.has(symbol) ?? false;
+  }
+
+  /**
+   * Register built-in known assets.
+   * Data sourced from EVM mechanism's getDefaultAsset() and x402-deprecated token registry.
+   */
+  private registerBuiltins(): void {
+    // ── EVM Networks ──────────────────────────────────────────────
+
+    // eip155:1 — Ethereum Mainnet
+    this.registerAll("eip155:1" as Network, {
+      USDC: {
+        address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        decimals: 6,
+        name: "USD Coin",
+        version: "2",
+      },
+      USDT: {
+        address: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+        decimals: 6,
+        name: "Tether USD",
+        version: "1",
+        assetTransferMethod: "permit2",
+      },
+    });
+    this.defaults.set("eip155:1", "USDC");
+
+    // eip155:56 — BSC Mainnet (BEP-20, no EIP-3009/EIP-2612)
+    this.registerAll("eip155:56" as Network, {
+      USDC: {
+        address: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+        decimals: 18,
+        name: "USD Coin",
+        version: "1",
+        assetTransferMethod: "permit2",
+      },
+      USDT: {
+        address: "0x55d398326f99059fF775485246999027B3197955",
+        decimals: 18,
+        name: "Tether USD",
+        version: "1",
+        assetTransferMethod: "permit2",
+      },
+      EPS: {
+        address: "0xA7f552078dcC247C2684336020c03648500C6d9F",
+        decimals: 18,
+        name: "Ellipsis",
+        version: "1",
+        assetTransferMethod: "permit2",
+      },
+    });
+    this.defaults.set("eip155:56", "USDC");
+
+    // eip155:97 — BSC Testnet (BEP-20, no EIP-3009/EIP-2612)
+    this.registerAll("eip155:97" as Network, {
+      USDT: {
+        address: "0x337610d27c682E347C9cD60BD4b3b107C9d34dDd",
+        decimals: 18,
+        name: "Tether USD",
+        version: "1",
+        assetTransferMethod: "permit2",
+      },
+      USDC: {
+        address: "0x64544969ed7EBf5f083679233325356EbE738930",
+        decimals: 18,
+        name: "USD Coin",
+        version: "1",
+        assetTransferMethod: "permit2",
+      },
+      DHLU: {
+        address: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
+        decimals: 6,
+        name: "DA HULU",
+        version: "1",
+        assetTransferMethod: "permit2",
+      },
+    });
+    this.defaults.set("eip155:97", "USDT");
+
+    // ── TRON Networks ─────────────────────────────────────────────
+
+    // tron:mainnet
+    this.registerAll("tron:mainnet" as Network, {
+      USDT: {
+        address: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+        decimals: 6,
+        name: "Tether USD",
+        version: "1",
+        assetTransferMethod: "permit2",
+      },
+      USDD: {
+        address: "TXDk8mbtRbXeYuMNS83CfKPaYYT8XWv9Hz",
+        decimals: 18,
+        name: "Decentralized USD",
+        version: "1",
+        supportsEip2612: true,
+      },
+    });
+    this.defaults.set("tron:mainnet", "USDT");
+
+    // tron:shasta
+    this.register("tron:shasta" as Network, "USDT", {
+      address: "TG3XXyExBkPp9nzdajDZsozEu4BkaSJozs",
+      decimals: 6,
+      name: "Tether USD",
+      version: "1",
+      assetTransferMethod: "permit2",
+    });
+    this.defaults.set("tron:shasta", "USDT");
+
+    // tron:nile
+    this.registerAll("tron:nile" as Network, {
+      USDT: {
+        address: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
+        decimals: 6,
+        name: "Tether USD",
+        version: "1",
+        assetTransferMethod: "permit2",
+      },
+      USDD: {
+        address: "TGjgvdTWWrybVLaVeFqSyVqJQWjxqRYbaK",
+        decimals: 18,
+        name: "Decentralized USD",
+        version: "1",
+        supportsEip2612: true,
+      },
+    });
+    this.defaults.set("tron:nile", "USDT");
+  }
+}
+
+/**
+ * Convert a Money value (e.g., "$1.50", 1.5) to token smallest-unit string
+ * using the given decimals.
+ */
+export function convertMoney(price: string | number, decimals: number): string {
+  const numericAmount =
+    typeof price === "string" ? parseFloat(price.replace(/^\$/, "").trim()) : price;
+
+  if (isNaN(numericAmount)) {
+    throw new Error(`Invalid money format: ${price}`);
+  }
+
+  // Use string math to avoid floating point issues
+  const [intPart, decPart = ""] = String(numericAmount).split(".");
+  const paddedDec = decPart.padEnd(decimals, "0").slice(0, decimals);
+  return (intPart + paddedDec).replace(/^0+/, "") || "0";
+}
