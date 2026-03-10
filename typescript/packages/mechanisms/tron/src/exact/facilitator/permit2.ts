@@ -27,6 +27,9 @@ export async function verifyPermit2(
   permit2Payload: ExactPermit2Payload,
 ): Promise<VerifyResponse> {
   const payer = permit2Payload.permit2Authorization.from;
+  const facilitatorAddresses = signer.getAddresses().map((address) =>
+    normalizeAddressForSigning(address),
+  );
 
   if (payload.accepted.scheme !== "exact" || requirements.scheme !== "exact") {
     return { isValid: false, invalidReason: errors.INVALID_SCHEME, payer };
@@ -56,6 +59,13 @@ export async function verifyPermit2(
   const requiresPayTo = normalizeAddressForSigning(requirements.payTo);
   if (payloadTo !== requiresPayTo) {
     return { isValid: false, invalidReason: errors.PERMIT2_RECIPIENT_MISMATCH, payer };
+  }
+
+  const payloadFacilitator = normalizeAddressForSigning(
+    permit2Payload.permit2Authorization.witness.facilitator,
+  );
+  if (!facilitatorAddresses.includes(payloadFacilitator)) {
+    return { isValid: false, invalidReason: errors.INVALID_PERMIT2_FACILITATOR, payer };
   }
 
   // Verify deadline (with 6 second buffer)
@@ -101,6 +111,7 @@ export async function verifyPermit2(
       deadline: BigInt(permit2Payload.permit2Authorization.deadline),
       witness: {
         to: permit2Payload.permit2Authorization.witness.to,
+        facilitator: permit2Payload.permit2Authorization.witness.facilitator,
         validAfter: BigInt(permit2Payload.permit2Authorization.witness.validAfter),
       },
     },
@@ -181,24 +192,29 @@ export async function settlePermit2(
   const proxyAddress = X402_PERMIT2_PROXY_ADDRESSES[requirements.network]!;
 
   try {
+    const permitTuple = [
+      [
+        permit2Payload.permit2Authorization.permitted.token,
+        BigInt(permit2Payload.permit2Authorization.permitted.amount),
+      ],
+      BigInt(permit2Payload.permit2Authorization.nonce),
+      BigInt(permit2Payload.permit2Authorization.deadline),
+    ] as const;
+
+    const witnessTuple = [
+      permit2Payload.permit2Authorization.witness.to,
+      permit2Payload.permit2Authorization.witness.facilitator,
+      BigInt(permit2Payload.permit2Authorization.witness.validAfter),
+    ] as const;
+
     const tx = await signer.writeContract({
       address: proxyAddress,
       abi: x402ExactPermit2ProxyABI as unknown as readonly Record<string, unknown>[],
       functionName: "settle",
       args: [
-        {
-          permitted: {
-            token: permit2Payload.permit2Authorization.permitted.token,
-            amount: BigInt(permit2Payload.permit2Authorization.permitted.amount),
-          },
-          nonce: BigInt(permit2Payload.permit2Authorization.nonce),
-          deadline: BigInt(permit2Payload.permit2Authorization.deadline),
-        },
+        permitTuple,
         payer,
-        {
-          to: permit2Payload.permit2Authorization.witness.to,
-          validAfter: BigInt(permit2Payload.permit2Authorization.witness.validAfter),
-        },
+        witnessTuple,
         permit2Payload.signature,
       ],
     });

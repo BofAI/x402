@@ -12,6 +12,8 @@ describe("ExactTronScheme (Facilitator)", () => {
   let mockSigner: FacilitatorTronSigner;
 
   const now = Math.floor(Date.now() / 1000);
+  const facilitatorBase58 = "TSForFRqxmZdJ6Yfx2rNaFykhuQLc9cTMR";
+  const facilitatorAddress = normalizeAddressForSigning(facilitatorBase58);
 
   const buyerAddress = "0x1234567890123456789012345678901234567890" as `0x${string}`;
   const payToAddress = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd" as `0x${string}`;
@@ -57,7 +59,11 @@ describe("ExactTronScheme (Facilitator)", () => {
       spender: proxyAddress,
       nonce: ("0x" + "aa".repeat(32)) as `0x${string}`,
       deadline: (now + 300).toString(),
-      witness: { to: payToAddress, validAfter: (now - 600).toString() },
+      witness: {
+        to: payToAddress,
+        facilitator: facilitatorAddress,
+        validAfter: (now - 600).toString(),
+      },
     },
   };
 
@@ -74,12 +80,15 @@ describe("ExactTronScheme (Facilitator)", () => {
     asset: tokenAddress,
     payTo: payToAddress,
     maxTimeoutSeconds: 300,
-    extra: { assetTransferMethod: "permit2" },
+    extra: {
+      assetTransferMethod: "permit2",
+      permit2FacilitatorAddress: facilitatorBase58,
+    },
   };
 
   beforeEach(() => {
     mockSigner = {
-      getAddresses: vi.fn().mockReturnValue(["TFacilitatorAddress123456789012"]),
+      getAddresses: vi.fn().mockReturnValue([facilitatorBase58]),
       readContract: vi.fn().mockResolvedValue(BigInt("10000000")),
       verifyTypedData: vi.fn().mockResolvedValue(true),
       writeContract: vi.fn().mockResolvedValue("tx_hash_123"),
@@ -98,7 +107,7 @@ describe("ExactTronScheme (Facilitator)", () => {
   describe("getSigners", () => {
     it("should return signer addresses", () => {
       const signers = facilitator.getSigners("tron:nile");
-      expect(signers).toEqual(["TFacilitatorAddress123456789012"]);
+      expect(signers).toEqual([facilitatorBase58]);
     });
   });
 
@@ -112,6 +121,7 @@ describe("ExactTronScheme (Facilitator)", () => {
     it("should include permit2 when proxy address exists for network", () => {
       const extra = facilitator.getExtra("tron:nile");
       expect(extra!.supportedAssetTransferMethods).toContain("permit2");
+      expect(extra!.permit2FacilitatorAddress).toBe(facilitatorBase58);
     });
 
     it("should not include permit2 for unknown network without proxy", () => {
@@ -266,6 +276,23 @@ describe("ExactTronScheme (Facilitator)", () => {
       expect(result.invalidReason).toBe(errors.PERMIT2_RECIPIENT_MISMATCH);
     });
 
+    it("should reject facilitator mismatch", async () => {
+      const badPermit2 = {
+        ...mockPermit2Payload,
+        permit2Authorization: {
+          ...mockPermit2Payload.permit2Authorization,
+          witness: {
+            ...mockPermit2Payload.permit2Authorization.witness,
+            facilitator: "0x0000000000000000000000000000000000000bad" as `0x${string}`,
+          },
+        },
+      };
+      const badPayload = { ...mockPermit2PaymentPayload, payload: badPermit2 };
+      const result = await facilitator.verify(badPayload, mockPermit2Requirements);
+      expect(result.isValid).toBe(false);
+      expect(result.invalidReason).toBe(errors.INVALID_PERMIT2_FACILITATOR);
+    });
+
     it("should reject expired deadline", async () => {
       const badPermit2 = {
         ...mockPermit2Payload,
@@ -315,6 +342,10 @@ describe("ExactTronScheme (Facilitator)", () => {
       const callArgs = (mockSigner.writeContract as ReturnType<typeof vi.fn>).mock.calls[0][0];
       expect(callArgs.functionName).toBe("settle");
       expect(callArgs.address).toBe(X402_PERMIT2_PROXY_ADDRESSES["tron:nile"]);
+      expect(Array.isArray(callArgs.args[0])).toBe(true);
+      expect(Array.isArray(callArgs.args[0][0])).toBe(true);
+      expect(Array.isArray(callArgs.args[2])).toBe(true);
+      expect(callArgs.args[2][1]).toBe(facilitatorAddress);
     });
 
     it("should fail when verification fails", async () => {

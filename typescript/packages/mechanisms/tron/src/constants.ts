@@ -67,6 +67,7 @@ export const permit2WitnessTypes = {
   ],
   Witness: [
     { name: "to", type: "address" },
+    { name: "facilitator", type: "address" },
     { name: "validAfter", type: "uint256" },
   ],
 } as const;
@@ -75,7 +76,7 @@ export const permit2WitnessTypes = {
  * Permit2 contract addresses per TRON network.
  */
 export const PERMIT2_ADDRESSES: Record<string, string> = {
-  "tron:nile": "TSForFRqxmZdJ6Yfx2rNaFykhuQLc9cTMR",
+  "tron:nile": "TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h",
 };
 
 /**
@@ -116,6 +117,7 @@ export const x402ExactPermit2ProxyABI = [
         type: "tuple",
         components: [
           { name: "to", type: "address" },
+          { name: "facilitator", type: "address" },
           { name: "validAfter", type: "uint256" },
         ],
       },

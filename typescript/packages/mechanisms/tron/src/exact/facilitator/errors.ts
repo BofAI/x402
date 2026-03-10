@@ -14,6 +14,7 @@ export const TRANSACTION_FAILED = "transaction_failed";
 // Permit2-specific error reasons
 export const INVALID_PERMIT2_SPENDER = "invalid_permit2_spender";
 export const PERMIT2_RECIPIENT_MISMATCH = "invalid_permit2_recipient_mismatch";
+export const INVALID_PERMIT2_FACILITATOR = "invalid_permit2_facilitator";
 export const PERMIT2_DEADLINE_EXPIRED = "permit2_deadline_expired";
 export const PERMIT2_NOT_YET_VALID = "permit2_not_yet_valid";
 export const PERMIT2_AMOUNT_MISMATCH = "permit2_amount_mismatch";

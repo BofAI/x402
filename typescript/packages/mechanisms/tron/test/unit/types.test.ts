@@ -22,7 +22,11 @@ describe("Type Guards", () => {
       spender: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
       nonce: "0x" + "aa".repeat(32),
       deadline: "9999999999",
-      witness: { to: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd", validAfter: "0" },
+      witness: {
+        to: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+        facilitator: "0x1111111111111111111111111111111111111111",
+        validAfter: "0",
+      },
     },
   } as const;
 

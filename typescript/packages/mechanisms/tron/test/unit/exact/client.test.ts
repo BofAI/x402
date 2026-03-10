@@ -5,6 +5,7 @@ import { PaymentRequirements } from "@bankofai/x402-core/types";
 
 describe("ExactTronScheme (Client)", () => {
   let mockSigner: ClientTronSigner;
+  const facilitatorAddress = "TSForFRqxmZdJ6Yfx2rNaFykhuQLc9cTMR";
 
   const tip712Requirements: PaymentRequirements = {
     scheme: "exact",
@@ -23,7 +24,10 @@ describe("ExactTronScheme (Client)", () => {
     asset: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
     payTo: "TG3XXyExBkPp9nzdajDZsozEu4BkaSJozs",
     maxTimeoutSeconds: 300,
-    extra: { assetTransferMethod: "permit2" },
+    extra: {
+      assetTransferMethod: "permit2",
+      permit2FacilitatorAddress: facilitatorAddress,
+    },
   };
 
   beforeEach(() => {
@@ -136,6 +140,14 @@ describe("ExactTronScheme (Client)", () => {
       expect(auth.witness.to).toMatch(/^0x[0-9a-f]{40}$/);
     });
 
+    it("should set permit2 witness.facilitator from requirements extra", async () => {
+      const client = new ExactTronScheme(mockSigner);
+      const result = await client.createPaymentPayload(2, permit2Requirements);
+      const auth = (result.payload as any).permit2Authorization;
+
+      expect(auth.witness.facilitator).toMatch(/^0x[0-9a-f]{40}$/);
+    });
+
     it("should call signTypedData with PermitWitnessTransferFrom", async () => {
       const client = new ExactTronScheme(mockSigner);
       await client.createPaymentPayload(2, permit2Requirements);
@@ -143,6 +155,7 @@ describe("ExactTronScheme (Client)", () => {
       const callArgs = (mockSigner.signTypedData as ReturnType<typeof vi.fn>).mock.calls[0][0];
       expect(callArgs.primaryType).toBe("PermitWitnessTransferFrom");
       expect(callArgs.domain.name).toBe("Permit2");
+      expect(callArgs.message.witness.facilitator).toMatch(/^0x[0-9a-f]{40}$/);
     });
 
     it("should throw for unknown network", async () => {
@@ -150,6 +163,18 @@ describe("ExactTronScheme (Client)", () => {
       const client = new ExactTronScheme(mockSigner);
 
       await expect(client.createPaymentPayload(2, reqs)).rejects.toThrow();
+    });
+
+    it("should throw when permit2 facilitator address is missing", async () => {
+      const reqs = {
+        ...permit2Requirements,
+        extra: { assetTransferMethod: "permit2" },
+      };
+      const client = new ExactTronScheme(mockSigner);
+
+      await expect(client.createPaymentPayload(2, reqs)).rejects.toThrow(
+        "Permit2 facilitator address is required",
+      );
     });
   });
 });

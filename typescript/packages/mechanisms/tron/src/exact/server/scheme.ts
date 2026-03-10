@@ -64,27 +64,34 @@ export class ExactTronScheme implements SchemeNetworkServer {
   ): Promise<PaymentRequirements> {
     void extensionKeys;
 
-    // If requirements already have assetTransferMethod, pass through
-    if (paymentRequirements.extra?.assetTransferMethod) {
-      return Promise.resolve(paymentRequirements);
-    }
-
-    // Check if facilitator advertises supported transfer methods
     const supportedMethods = supportedKind.extra?.supportedAssetTransferMethods as
       | string[]
       | undefined;
-    if (!supportedMethods || supportedMethods.length === 0) {
+    const existingMethod = paymentRequirements.extra?.assetTransferMethod as string | undefined;
+    const method =
+      existingMethod ??
+      (supportedMethods && supportedMethods.length > 0
+        ? supportedMethods.includes("tip712")
+          ? "tip712"
+          : supportedMethods[0]
+        : undefined);
+
+    if (!method) {
       return Promise.resolve(paymentRequirements);
     }
 
-    // Default: use tip712 if supported; otherwise use the first supported method
-    const method = supportedMethods.includes("tip712") ? "tip712" : supportedMethods[0];
+    const permit2FacilitatorAddress =
+      (paymentRequirements.extra?.permit2FacilitatorAddress as string | undefined) ??
+      (supportedKind.extra?.permit2FacilitatorAddress as string | undefined);
 
     return Promise.resolve({
       ...paymentRequirements,
       extra: {
         ...paymentRequirements.extra,
         assetTransferMethod: method,
+        ...(method === "permit2" && permit2FacilitatorAddress
+          ? { permit2FacilitatorAddress }
+          : {}),
       },
     });
   }

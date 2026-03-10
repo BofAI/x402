@@ -146,11 +146,17 @@ describe("ExactTronScheme (Server)", () => {
           x402Version: 2,
           scheme: "exact",
           network: "tron:nile",
-          extra: { supportedAssetTransferMethods: ["permit2"] },
+          extra: {
+            supportedAssetTransferMethods: ["permit2"],
+            permit2FacilitatorAddress: "TSForFRqxmZdJ6Yfx2rNaFykhuQLc9cTMR",
+          },
         },
         [],
       );
       expect(result.extra?.assetTransferMethod).toBe("permit2");
+      expect(result.extra?.permit2FacilitatorAddress).toBe(
+        "TSForFRqxmZdJ6Yfx2rNaFykhuQLc9cTMR",
+      );
     });
 
     it("should pass through when supportedAssetTransferMethods is empty", async () => {
@@ -165,6 +171,26 @@ describe("ExactTronScheme (Server)", () => {
         [],
       );
       expect(result).toEqual(baseRequirements);
+    });
+
+    it("should add permit2 facilitator address when method is already permit2", async () => {
+      const reqsWithMethod = {
+        ...baseRequirements,
+        extra: { ...baseRequirements.extra, assetTransferMethod: "permit2" },
+      };
+      const result = await server.enhancePaymentRequirements(
+        reqsWithMethod,
+        {
+          x402Version: 2,
+          scheme: "exact",
+          network: "tron:nile",
+          extra: { permit2FacilitatorAddress: "TSForFRqxmZdJ6Yfx2rNaFykhuQLc9cTMR" },
+        },
+        [],
+      );
+      expect(result.extra?.permit2FacilitatorAddress).toBe(
+        "TSForFRqxmZdJ6Yfx2rNaFykhuQLc9cTMR",
+      );
     });
   });
 

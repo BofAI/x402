@@ -32,6 +32,7 @@ export type ExactTIP712Payload = {
  */
 export type Permit2Witness = {
   to: `0x${string}`;
+  facilitator: `0x${string}`;
   validAfter: string;
 };
 

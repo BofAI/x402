@@ -24,10 +24,16 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
 
   getExtra(network: string): Record<string, unknown> | undefined {
     const supportedMethods: string[] = ["tip712"];
+    const signers = this.signer.getAddresses();
     if (X402_PERMIT2_PROXY_ADDRESSES[network]) {
       supportedMethods.push("permit2");
     }
-    return { supportedAssetTransferMethods: supportedMethods };
+    return {
+      supportedAssetTransferMethods: supportedMethods,
+      ...(signers.length > 0 && X402_PERMIT2_PROXY_ADDRESSES[network]
+        ? { permit2FacilitatorAddress: signers[0] }
+        : {}),
+    };
   }
 
   getSigners(_: string): string[] {

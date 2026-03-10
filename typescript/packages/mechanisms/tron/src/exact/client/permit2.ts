@@ -34,11 +34,20 @@ export async function createPermit2Payload(
 
   const validAfter = (now - 600).toString();
   const deadline = (now + paymentRequirements.maxTimeoutSeconds).toString();
+  const facilitatorAddress =
+    (paymentRequirements.extra?.permit2FacilitatorAddress as string | undefined) ??
+    (paymentRequirements.extra?.facilitatorAddress as string | undefined);
+  if (!facilitatorAddress) {
+    throw new Error(
+      `Permit2 facilitator address is required in payment requirements extra for network ${network}`,
+    );
+  }
 
   const fromAddress = normalizeAddressForSigning(signer.address);
   const tokenAddress = normalizeAddressForSigning(paymentRequirements.asset);
   const payToAddress = normalizeAddressForSigning(paymentRequirements.payTo);
   const spenderAddress = normalizeAddressForSigning(proxyAddress);
+  const facilitatorWitnessAddress = normalizeAddressForSigning(facilitatorAddress);
 
   const permit2Authorization: ExactPermit2Payload["permit2Authorization"] = {
     from: fromAddress,
@@ -51,6 +60,7 @@ export async function createPermit2Payload(
     deadline,
     witness: {
       to: payToAddress,
+      facilitator: facilitatorWitnessAddress,
       validAfter,
     },
   };
@@ -96,6 +106,7 @@ async function signPermit2Authorization(
     deadline: BigInt(permit2Authorization.deadline),
     witness: {
       to: permit2Authorization.witness.to,
+      facilitator: permit2Authorization.witness.facilitator,
       validAfter: BigInt(permit2Authorization.witness.validAfter),
     },
   };
