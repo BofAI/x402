@@ -23,4 +23,5 @@ export type {
   ProcessSettleSuccessResponse,
   ProcessSettleFailureResponse,
   RouteValidationError,
+  PaymentOption,
 } from "../http/x402HTTPResourceServer";

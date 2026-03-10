@@ -401,3 +401,6 @@ export {
 export type { RouteValidationError } from "@bankofai/x402-core/server";
 
 export { NextAdapter } from "./adapter";
+
+export { withPayment } from "./withPayment";
+export type { WithPaymentOptions } from "./withPayment";

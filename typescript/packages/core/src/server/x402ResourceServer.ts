@@ -545,6 +545,7 @@ export class x402ResourceServer {
       network: Network;
       maxTimeoutSeconds?: number;
       extra?: Record<string, unknown>;
+      assets?: string[];
     }>,
     context: TContext,
   ): Promise<PaymentRequirements[]> {
@@ -564,6 +565,7 @@ export class x402ResourceServer {
         network: option.network,
         maxTimeoutSeconds: option.maxTimeoutSeconds,
         extra: option.extra,
+        assets: option.assets,
       };
 
       // Use existing buildPaymentRequirements for each option
