@@ -59,11 +59,6 @@ export interface SupportedResponse {
     scheme: string;
     network: string;
   }>;
-  /** Fee configuration */
-  fee?: {
-    feeTo: string;
-    pricing: 'per_accept' | 'flat';
-  };
 }
 
 /** Fee quote response from facilitator */
@@ -75,8 +70,12 @@ export interface FeeQuoteResponse {
   };
   /** Pricing model */
   pricing: string;
+  /** Payment scheme */
+  scheme: string;
   /** Network identifier */
   network: string;
+  /** Token asset address */
+  asset: string;
   /** Quote expiry time */
   expiresAt?: number;
 }

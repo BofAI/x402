@@ -4,6 +4,8 @@
  * Manages payment mechanism registry and coordinates payment flows.
  */
 
+import { ExactGasFreeClientMechanism } from '../mechanisms/exactGasfree.js';
+import { GasFreeAPIClient } from '../utils/gasfree.js';
 import type {
   PaymentRequirements,
   PaymentPayload,
@@ -44,11 +46,12 @@ export interface ClientSigner {
   signTypedData(
     domain: Record<string, unknown>,
     types: Record<string, unknown>,
-    message: Record<string, unknown>
+    message: Record<string, unknown>,
+    primaryType: string
   ): Promise<string>;
   
   /** Check token balance */
-  checkBalance(token: string, network: string): Promise<bigint>;
+  checkBalance(token: string, network: string, address?: string): Promise<bigint>;
 
   /** Check token allowance */
   checkAllowance(token: string, amount: bigint, network: string): Promise<bigint>;
@@ -149,6 +152,17 @@ export class X402Client {
   }
 
   /**
+   * Register built-in GasFree mechanism for TRON
+   * 
+   * @param signer - Client signer instance
+   * @param clients - Optional GasFree API clients per network
+   * @returns this for method chaining
+   */
+  registerGasFree(signer: ClientSigner, clients: Record<string, GasFreeAPIClient> = {}): X402Client {
+    return this.register('tron:*', new ExactGasFreeClientMechanism(signer, clients));
+  }
+
+  /**
    * Select payment requirements from available options
    * 
    * @param accepts - Available payment requirements
@@ -226,7 +240,7 @@ export class X402Client {
   async handlePayment(
     accepts: PaymentRequirements[],
     resource: string,
-    extensions?: { paymentPermitContext?: PaymentPermitContext },
+    extensions?: Record<string, unknown>,
     selector?: PaymentRequirementsSelector
   ): Promise<PaymentPayload> {
     const requirements = selector

@@ -195,6 +195,9 @@ class TransactionInfo(BaseModel):
     block_number: Optional[str] = Field(None, alias="blockNumber")
     status: Optional[str] = None
 
+    class Config:
+        populate_by_name = True
+
 
 class SettleResponse(BaseModel):
     """Settlement response from facilitator"""
@@ -219,21 +222,10 @@ class SupportedKind(BaseModel):
         populate_by_name = True
 
 
-class SupportedFee(BaseModel):
-    """Supported fee configuration"""
-
-    fee_to: str = Field(alias="feeTo")
-    pricing: Literal["per_accept", "flat"]
-
-    class Config:
-        populate_by_name = True
-
-
 class SupportedResponse(BaseModel):
     """Supported response from facilitator"""
 
     kinds: list[SupportedKind]
-    fee: SupportedFee  # Required - facilitator must configure fee with non-empty feeTo
 
     class Config:
         populate_by_name = True

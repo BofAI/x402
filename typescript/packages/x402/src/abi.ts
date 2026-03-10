@@ -8,13 +8,24 @@ import type { DeliveryKind } from './types/payment.js';
 /** EIP-712 Primary Type for PaymentPermit */
 export const PAYMENT_PERMIT_PRIMARY_TYPE = 'PaymentPermitDetails';
 
+/** EIP-712 Primary Type for GasFree */
+export const GASFREE_PRIMARY_TYPE = 'PermitTransfer';
+
 /**
- * EIP-712 Domain Type
- * Based on contract: keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)")
- * Note: NO version field!
+ * EIP-712 Domain Type for PaymentPermit
  */
-export const EIP712_DOMAIN_TYPE = [
+export const PAYMENT_PERMIT_EIP712_DOMAIN_TYPE = [
   { name: 'name', type: 'string' },
+  { name: 'chainId', type: 'uint256' },
+  { name: 'verifyingContract', type: 'address' },
+] as const;
+
+/**
+ * EIP-712 Domain Type for GasFree
+ */
+export const GASFREE_DOMAIN_TYPE = [
+  { name: 'name', type: 'string' },
+  { name: 'version', type: 'string' },
   { name: 'chainId', type: 'uint256' },
   { name: 'verifyingContract', type: 'address' },
 ] as const;

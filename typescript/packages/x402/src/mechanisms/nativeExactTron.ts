@@ -19,6 +19,7 @@ import { findByAddress } from '../tokens.js';
 import {
   SCHEME_EXACT,
   TRANSFER_AUTH_EIP712_TYPES,
+  TRANSFER_AUTH_PRIMARY_TYPE,
   buildEip712Domain,
   buildEip712Message,
   createNonce,
@@ -84,6 +85,7 @@ export class ExactTronClientMechanism implements ClientMechanism {
       domain,
       TRANSFER_AUTH_EIP712_TYPES,
       message,
+      TRANSFER_AUTH_PRIMARY_TYPE
     );
 
     return {

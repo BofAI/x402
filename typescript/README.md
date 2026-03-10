@@ -17,25 +17,18 @@ pnpm add @bankofai/x402 tronweb
 
 ```typescript
 import { X402Client, ExactPermitTronClientMechanism, TronClientSigner, X402FetchClient } from '@bankofai/x402';
-import TronWeb from 'tronweb';
 
-// 1. Initialize TronWeb
-const tronWeb = new TronWeb({
-  fullHost: 'https://nile.trongrid.io',
-  privateKey: 'your_private_key',
-});
+// 1. Create signer
+const signer = new TronClientSigner(process.env.TRON_PRIVATE_KEY);
 
-// 2. Create signer
-const signer = TronClientSigner.withPrivateKey(tronWeb, 'your_private_key', 'nile');
-
-// 3. Create X402Client and register mechanisms
+// 2. Create X402Client and register mechanisms
 const x402Client = new X402Client()
   .register('tron:*', new ExactPermitTronClientMechanism(signer));
 
-// 4. Create HTTP client with automatic 402 handling
+// 3. Create HTTP client with automatic 402 handling
 const client = new X402FetchClient(x402Client);
 
-// 5. Make requests - 402 payments handled automatically
+// 4. Make requests - 402 payments handled automatically
 const response = await client.get('https://api.example.com/premium-data');
 console.log(await response.json());
 ```

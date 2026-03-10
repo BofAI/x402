@@ -39,6 +39,27 @@ export const PAYMENT_PERMIT_ADDRESSES: Record<string, string> = {
   'eip155:56': '0x1825bB32db3443dEc2cc7508b2D818fc13EaD878',
 };
 
+/** GasFreeController contract addresses */
+export const GASFREE_CONTROLLER_ADDRESSES: Record<string, string> = {
+  'tron:mainnet': 'TFFAMLQZybALab4uxHA9RBE7pxhUAjfF3U',
+  'tron:shasta': 'TQghdCeVDA6CnuNVTUhfaAyPfTetqZWNpm',
+  'tron:nile': 'THQGuFzL87ZqhxkgqYEryRAd7gqFqL5rdc',
+};
+
+/** GasFree beacon addresses */
+export const GASFREE_BEACON_ADDRESSES: Record<string, string> = {
+  'tron:mainnet': 'TSP9UW6FQhT76XD2jWA6ipGMx3yGbjDffP',
+  'tron:shasta': 'TQ1jvA3nLDMDNbJoMPLzTPoqAg8NvZ5CCW',
+  'tron:nile': 'TLtCGmaxH3PbuaF6kbybwteZcHptEdgQGC',
+};
+
+/** GasFree API Base URLs */
+export const GASFREE_API_BASE_URLS: Record<string, string> = {
+  'tron:mainnet': 'https://open.gasfree.io/tron',
+  'tron:shasta': 'https://open-test.gasfree.io/shasta',
+  'tron:nile': 'https://open-test.gasfree.io/nile',
+};
+
 /** Default RPC URLs for EVM networks */
 export const EVM_RPC_URLS: Record<string, string> = {
   'eip155:97': 'https://data-seed-prebsc-1-s1.binance.org:8545/',
@@ -96,6 +117,57 @@ export function getPaymentPermitAddress(network: string): string {
   // EVM fallback: zero address (not yet deployed)
   if (network.startsWith('eip155:')) return EVM_ZERO_ADDRESS;
   return TRON_ZERO_ADDRESS;
+}
+
+/**
+ * Get GasFreeController contract address for network
+ */
+export function getGasFreeControllerAddress(network: string): string {
+  return GASFREE_CONTROLLER_ADDRESSES[network] ?? TRON_ZERO_ADDRESS;
+}
+
+/**
+ * Get GasFree beacon address for network
+ */
+export function getGasFreeBeaconAddress(network: string): string {
+  return GASFREE_BEACON_ADDRESSES[network] ?? TRON_ZERO_ADDRESS;
+}
+
+/**
+ * Get GasFree API Base URL for network
+ */
+export function getGasFreeApiBaseUrl(network: string): string {
+  return GASFREE_API_BASE_URLS[network] ?? 'https://api.gasfree.io/v1';
+}
+
+/**
+ * Get GasFree API Key
+ */
+export function getGasFreeApiKey(network?: string): string | undefined {
+  if (typeof process !== 'undefined') {
+    if (network) {
+      const suffix = network.split(':').pop()?.toUpperCase();
+      const networkKey = process.env[`GASFREE_API_KEY_${suffix}`];
+      if (networkKey) return networkKey;
+    }
+    return process.env.GASFREE_API_KEY;
+  }
+  return undefined;
+}
+
+/**
+ * Get GasFree API Secret
+ */
+export function getGasFreeApiSecret(network?: string): string | undefined {
+  if (typeof process !== 'undefined') {
+    if (network) {
+      const suffix = network.split(':').pop()?.toUpperCase();
+      const networkSecret = process.env[`GASFREE_API_SECRET_${suffix}`];
+      if (networkSecret) return networkSecret;
+    }
+    return process.env.GASFREE_API_SECRET;
+  }
+  return undefined;
 }
 
 /**

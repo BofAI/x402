@@ -10,6 +10,9 @@ export { ExactPermitEvmClientMechanism } from './exactEvm.js';
 export { ExactTronClientMechanism } from './nativeExactTron.js';
 export { ExactEvmClientMechanism } from './nativeExactEvm.js';
 
+// exact_gasfree scheme
+export { ExactGasFreeClientMechanism } from './exactGasfree.js';
+
 // exact shared types
 export {
   SCHEME_EXACT,

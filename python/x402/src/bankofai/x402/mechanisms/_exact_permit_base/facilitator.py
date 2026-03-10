@@ -28,7 +28,6 @@ from bankofai.x402.utils import convert_permit_to_eip712_message, payment_id_to_
 if TYPE_CHECKING:
     from bankofai.x402.signers.facilitator import FacilitatorSigner
 
-
 # Configuration constants
 DEFAULT_BASE_FEE = 0
 FEE_QUOTE_EXPIRY_SECONDS = 300
@@ -128,7 +127,7 @@ class BaseExactPermitFacilitatorMechanism(FacilitatorMechanism):
             scheme=accept.scheme,
             network=accept.network,
             asset=accept.asset,
-            expiresAt=int(time.time()) + FEE_QUOTE_EXPIRY_SECONDS,
+            expires_at=int(time.time()) + FEE_QUOTE_EXPIRY_SECONDS,
         )
 
     async def verify(
@@ -138,6 +137,9 @@ class BaseExactPermitFacilitatorMechanism(FacilitatorMechanism):
     ) -> VerifyResponse:
         """Verify payment signature"""
         permit = payload.payload.payment_permit
+        if not permit:
+            return VerifyResponse(is_valid=False, invalid_reason="missing_permit")
+
         self._logger.info(
             f"Verifying payment: paymentId={permit.meta.payment_id}, "
             f"buyer={permit.buyer}, amount={permit.payment.pay_amount}"
@@ -147,22 +149,19 @@ class BaseExactPermitFacilitatorMechanism(FacilitatorMechanism):
         validation_error = self._validate_permit(permit, requirements)
         if validation_error:
             self._logger.warning(f"Validation failed: {validation_error}")
-            return VerifyResponse(isValid=False, invalidReason=validation_error)
+            return VerifyResponse(is_valid=False, invalid_reason=validation_error)
 
         # Verify EIP-712 signature
         self._logger.info("Verifying EIP-712 signature...")
         is_valid = await self._verify_signature(
-            permit,
-            payload.payload.signature,
-            requirements.network,
+            permit, payload.payload.signature, requirements.network
         )
-
         if not is_valid:
             self._logger.warning("Invalid signature")
-            return VerifyResponse(isValid=False, invalidReason="invalid_signature")
+            return VerifyResponse(is_valid=False, invalid_reason="invalid_signature")
 
         self._logger.info("Payment verification successful")
-        return VerifyResponse(isValid=True)
+        return VerifyResponse(is_valid=True)
 
     async def settle(
         self,
@@ -184,7 +183,7 @@ class BaseExactPermitFacilitatorMechanism(FacilitatorMechanism):
             )
             return SettleResponse(
                 success=False,
-                errorReason=verify_result.invalid_reason,
+                error_reason=verify_result.invalid_reason,
                 network=requirements.network,
             )
 
@@ -211,7 +210,7 @@ class BaseExactPermitFacilitatorMechanism(FacilitatorMechanism):
             self._logger.error("  - Contract execution error (check contract address and ABI)")
             return SettleResponse(
                 success=False,
-                errorReason="transaction_failed",
+                error_reason="transaction_failed",
                 network=requirements.network,
             )
 
@@ -228,7 +227,7 @@ class BaseExactPermitFacilitatorMechanism(FacilitatorMechanism):
             self._logger.error(f"Transaction failed on-chain: txHash={tx_hash}, receipt={receipt}")
             return SettleResponse(
                 success=False,
-                errorReason="transaction_failed_on_chain",
+                error_reason="transaction_failed_on_chain",
                 transaction=tx_hash,
                 network=requirements.network,
             )
@@ -333,6 +332,8 @@ class BaseExactPermitFacilitatorMechanism(FacilitatorMechanism):
         logger.info(f"[VERIFY] Signature: {signature}")
         logger.info(f"[VERIFY] Buyer address: {permit.buyer}")
 
+        from bankofai.x402.abi import PAYMENT_PERMIT_PRIMARY_TYPE
+
         return await self._signer.verify_typed_data(
             address=permit.buyer,
             domain={
@@ -343,6 +344,7 @@ class BaseExactPermitFacilitatorMechanism(FacilitatorMechanism):
             types=get_payment_permit_eip712_types(),
             message=message,
             signature=signature,
+            primary_type=PAYMENT_PERMIT_PRIMARY_TYPE,
         )
 
     @abstractmethod

@@ -6,6 +6,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Callable, Protocol
 
 from bankofai.x402.exceptions import UnsupportedNetworkError
+from bankofai.x402.mechanisms.tron.exact_gasfree.client import ExactGasFreeClientMechanism
 from bankofai.x402.types import (
     PaymentPayload,
     PaymentRequirements,
@@ -140,6 +141,10 @@ class X402Client:
         self._mechanisms.append(MechanismEntry(network_pattern, mechanism, priority))
         self._mechanisms.sort(key=lambda e: e.priority, reverse=True)
         return self
+
+    def with_gasfree(self, signer: Any) -> "X402Client":
+        """Register built-in GasFree mechanism for TRON"""
+        return self.register("tron:*", ExactGasFreeClientMechanism(signer))
 
     async def select_payment_requirements(
         self,

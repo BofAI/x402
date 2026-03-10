@@ -99,3 +99,38 @@ def tron_address_to_evm(tron_addr: str) -> str:
     except Exception as e:
         logger.warning(f"Failed to convert TRON address {tron_addr}: {e}, using as-is")
         return tron_addr
+
+
+def evm_address_to_tron(evm_addr: str) -> str:
+    """Convert EVM hex address (0x...) to TRON Base58 format
+
+    Args:
+        evm_addr: EVM address in hex format (0x...)
+
+    Returns:
+        TRON address in Base58 format
+    """
+    if not evm_addr.startswith("0x"):
+        return evm_addr
+
+    try:
+        # Remove 0x prefix
+        addr_hex = evm_addr[2:]
+        # Add TRON version prefix (0x41)
+        full_hex = "41" + addr_hex
+        # Convert to bytes
+        full_bytes = bytes.fromhex(full_hex)
+
+        # Calculate checksum
+        import hashlib
+
+        hash1 = hashlib.sha256(full_bytes).digest()
+        hash2 = hashlib.sha256(hash1).digest()
+        checksum = hash2[:4]
+
+        # Combine and encode
+        final_bytes = full_bytes + checksum
+        return base58.b58encode(final_bytes).decode("ascii")
+    except Exception as e:
+        logger.warning(f"Failed to convert EVM address {evm_addr}: {e}, using as-is")
+        return evm_addr

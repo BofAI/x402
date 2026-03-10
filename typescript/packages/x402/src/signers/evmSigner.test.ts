@@ -49,7 +49,7 @@ describe('EvmClientSigner', () => {
       wallet: '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB' as const,
     };
 
-    const signature = await signer.signTypedData(domain, types, message);
+    const signature = await signer.signTypedData(domain, types, message, 'Person');
     expect(signature).toBeDefined();
     expect(signature.startsWith('0x')).toBe(true);
   });

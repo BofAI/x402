@@ -206,7 +206,7 @@ class ExactBaseFacilitatorMechanism(FacilitatorMechanism):
             scheme=accept.scheme,
             network=accept.network,
             asset=accept.asset,
-            expiresAt=int(time.time()) + 300,
+            expires_at=int(time.time()) + 300,
         )
 
     # ------------------------------------------------------------------
@@ -220,17 +220,17 @@ class ExactBaseFacilitatorMechanism(FacilitatorMechanism):
     ) -> VerifyResponse:
         auth = self._extract_authorization(payload)
         if auth is None:
-            return VerifyResponse(isValid=False, invalidReason="missing_transfer_authorization")
+            return VerifyResponse(is_valid=False, invalid_reason="missing_transfer_authorization")
 
         error = self._validate_authorization(auth, requirements)
         if error:
-            return VerifyResponse(isValid=False, invalidReason=error)
+            return VerifyResponse(is_valid=False, invalid_reason=error)
 
         is_valid = await self._verify_signature(auth, payload.payload.signature, requirements)
         if not is_valid:
-            return VerifyResponse(isValid=False, invalidReason="invalid_signature")
+            return VerifyResponse(is_valid=False, invalid_reason="invalid_signature")
 
-        return VerifyResponse(isValid=True)
+        return VerifyResponse(is_valid=True)
 
     # ------------------------------------------------------------------
     # settle
@@ -245,7 +245,7 @@ class ExactBaseFacilitatorMechanism(FacilitatorMechanism):
         if not verify_result.is_valid:
             return SettleResponse(
                 success=False,
-                errorReason=verify_result.invalid_reason,
+                error_reason=verify_result.invalid_reason,
                 network=requirements.network,
             )
 
@@ -257,7 +257,7 @@ class ExactBaseFacilitatorMechanism(FacilitatorMechanism):
         if len(sig_bytes) != 65:
             return SettleResponse(
                 success=False,
-                errorReason="invalid_signature_length",
+                error_reason="invalid_signature_length",
                 network=requirements.network,
             )
         r = sig_bytes[:32]
@@ -299,7 +299,7 @@ class ExactBaseFacilitatorMechanism(FacilitatorMechanism):
         if tx_hash is None:
             return SettleResponse(
                 success=False,
-                errorReason="transaction_failed",
+                error_reason="transaction_failed",
                 network=requirements.network,
             )
 
@@ -311,7 +311,7 @@ class ExactBaseFacilitatorMechanism(FacilitatorMechanism):
         if tx_status == "failed" or tx_status == "0" or tx_status == 0:
             return SettleResponse(
                 success=False,
-                errorReason="transaction_failed_on_chain",
+                error_reason="transaction_failed_on_chain",
                 transaction=tx_hash,
                 network=requirements.network,
             )

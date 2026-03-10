@@ -98,7 +98,8 @@ export class TronClientSigner implements ClientSigner {
   async signTypedData(
     domain: Record<string, unknown>,
     types: Record<string, unknown>,
-    message: Record<string, unknown>
+    message: Record<string, unknown>,
+    _primaryType: string
   ): Promise<string> {
     const fullData = {
       types: { EIP712Domain: [], ...types },
@@ -112,9 +113,10 @@ export class TronClientSigner implements ClientSigner {
     return this.wallet.signTypedData(fullData);
   }
 
-  async checkBalance(token: string, network: string): Promise<bigint> {
+  async checkBalance(token: string, network: string, address?: string): Promise<bigint> {
     try {
-      const ownerHex = toEvmHex(this.address);
+      const targetAddress = address || this.address;
+      const ownerHex = toEvmHex(targetAddress);
 
       const tw = this.getTronWeb(network);
       const result = await tw.transactionBuilder.triggerConstantContract(

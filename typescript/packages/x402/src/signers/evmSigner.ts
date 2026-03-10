@@ -68,16 +68,8 @@ export class EvmClientSigner implements ClientSigner {
     domain: Record<string, unknown>,
     types: Record<string, unknown>,
     message: Record<string, unknown>,
+    primaryType: string
   ): Promise<string> {
-    // TODO: Add explicit primaryType to ClientSigner interface
-    const primaryType = types.PaymentPermitDetails
-      ? 'PaymentPermitDetails'
-      : Object.keys(types).pop();
-
-    if (!primaryType) {
-      throw new Error('No primary type found in types definition');
-    }
-
     const fullData = {
       types: { EIP712Domain: [], ...types },
       domain,
@@ -88,16 +80,15 @@ export class EvmClientSigner implements ClientSigner {
     return this.wallet.signTypedData(fullData);
   }
 
-  async checkBalance(token: string, network: string): Promise<bigint> {
+  async checkBalance(token: string, network: string, address?: string): Promise<bigint> {
     const chainId = this.parseNetworkToChainId(network);
     const client = this.getPublicClient(chainId, network);
-
     try {
       return await client.readContract({
         address: token as Hex,
         abi: ERC20_ABI,
         functionName: 'balanceOf',
-        args: [this._address as Hex],
+        args: [(address ?? this._address) as Hex],
       });
     } catch (error) {
       console.error(

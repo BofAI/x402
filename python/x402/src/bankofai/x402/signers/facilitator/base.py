@@ -26,6 +26,7 @@ class FacilitatorSigner(ABC):
         types: dict[str, Any],
         message: dict[str, Any],
         signature: str,
+        primary_type: str,
     ) -> bool:
         """
         Verify EIP-712 typed data signature.
@@ -36,6 +37,7 @@ class FacilitatorSigner(ABC):
             types: Type definitions
             message: Signed message
             signature: Signature to verify
+            primary_type: The root type name of the message
 
         Returns:
             True if signature is valid
@@ -63,6 +65,26 @@ class FacilitatorSigner(ABC):
 
         Returns:
             Transaction hash, or None on failure
+        """
+        pass
+
+    @abstractmethod
+    async def check_balance(
+        self,
+        token: str,
+        network: str,
+        address: str | None = None,
+    ) -> int:
+        """
+        Check token balance.
+
+        Args:
+            token: Token contract address
+            network: Network identifier
+            address: Optional address to check. Defaults to signer's address.
+
+        Returns:
+            Current balance (raw units)
         """
         pass
 

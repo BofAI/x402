@@ -6,7 +6,7 @@ x402 currently supports the **TRON** and **BSC** networks, with plans to expand 
 
 ---
 
-**[📚 Full Documentation](https://x402-docs.bankofai.io/)** | **[💻 Demo Repository](https://github.com/BofAI/x402-demo)**
+**[📚 Full Documentation](https://docs.bankofai.io/)** | **[💻 Demo Repository](https://github.com/BofAI/x402-demo)**
 
 ---
 
@@ -122,16 +122,21 @@ Clients handle the `402` challenge-response loop automatically using the SDK.
 import 'dotenv/config'
 import {
   X402Client, X402FetchClient,
-  ExactPermitTronClientMechanism, TronClientSigner,
-  SufficientBalancePolicy,
+  ExactPermitTronClientMechanism, ExactGasFreeClientMechanism,
+  TronClientSigner, SufficientBalancePolicy,
+  GasFreeAPIClient, getGasFreeApiBaseUrl,
 } from '@bankofai/x402'
 
-const TRON_PRIVATE_KEY = process.env.TRON_PRIVATE_KEY!
-
-const signer = new TronClientSigner(TRON_PRIVATE_KEY)
+const signer = new TronClientSigner(process.env.TRON_PRIVATE_KEY!)
 
 const x402 = new X402Client()
+
+// Register both exact_permit and exact_gasfree mechanisms
 x402.register('tron:*', new ExactPermitTronClientMechanism(signer))
+x402.register('tron:*', new ExactGasFreeClientMechanism(signer, {
+  'tron:nile': new GasFreeAPIClient(getGasFreeApiBaseUrl('tron:nile')),
+  'tron:mainnet': new GasFreeAPIClient(getGasFreeApiBaseUrl('tron:mainnet')),
+}))
 x402.registerPolicy(SufficientBalancePolicy)
 
 const client = new X402FetchClient(x402)
@@ -140,6 +145,37 @@ const client = new X402FetchClient(x402)
 // Demo service: https://x402-demo.bankofai.io/protected-nile
 const response = await client.get('http://localhost:8000/protected')
 const data = await response.json()
+```
+
+**TRON — Python Example:**
+```python
+import asyncio, httpx
+from bankofai.x402.clients import X402Client, X402HttpClient, SufficientBalancePolicy
+from bankofai.x402.mechanisms.tron.exact_permit import ExactPermitTronClientMechanism
+from bankofai.x402.mechanisms.tron.exact_gasfree.client import ExactGasFreeClientMechanism
+from bankofai.x402.signers.client import TronClientSigner
+from bankofai.x402.utils.gasfree import GasFreeAPIClient
+from bankofai.x402.config import NetworkConfig
+
+signer = TronClientSigner.from_private_key("YOUR_TRON_PRIVATE_KEY")
+
+gasfree_clients = {
+    "tron:nile": GasFreeAPIClient(NetworkConfig.get_gasfree_api_base_url("tron:nile")),
+    "tron:mainnet": GasFreeAPIClient(NetworkConfig.get_gasfree_api_base_url("tron:mainnet")),
+}
+
+x402 = X402Client()
+x402.register("tron:*", ExactPermitTronClientMechanism(signer))
+x402.register("tron:*", ExactGasFreeClientMechanism(signer, clients=gasfree_clients))
+x402.register_policy(SufficientBalancePolicy)
+
+async def main():
+    async with httpx.AsyncClient(timeout=120) as http:
+        client = X402HttpClient(http, x402)
+        response = await client.get("http://localhost:8000/protected")
+        print(response.json())
+
+asyncio.run(main())
 ```
 
 **EVM (BSC) — TypeScript Example:**
@@ -151,9 +187,7 @@ import {
   EvmClientSigner, SufficientBalancePolicy,
 } from '@bankofai/x402'
 
-const BSC_PRIVATE_KEY = process.env.BSC_PRIVATE_KEY!
-
-const signer = new EvmClientSigner(BSC_PRIVATE_KEY)
+const signer = new EvmClientSigner(process.env.BSC_PRIVATE_KEY!)
 
 const x402 = new X402Client()
 x402.register('eip155:*', new ExactPermitEvmClientMechanism(signer))
@@ -245,6 +279,16 @@ x402 currently supports TRC-20 tokens on the TRON network and BEP-20 tokens on t
 **Supported Tokens:**
 - **USDT** (Tether)
 - **USDD** (Decentralized USD)
+
+## Supported Payment Schemes
+
+The x402 protocol supports multiple payment schemes to accommodate different user needs and blockchain capabilities.
+
+| Scheme | Chain | Description |
+|--------|-------|-------------|
+| **`exact_permit`** | TRON, EVM | Standard x402 scheme using TIP-712/EIP-712 permits. Requires a `PaymentPermit` contract. |
+| **`exact_gasfree`**| TRON | Allows users to pay with USDT/USDD without holding TRX for gas. Settled via the official GasFree Proxy. |
+| **`exact`** | EVM | Native direct payment using ERC-3009 (`TransferWithAuthorization`) where supported by the token (e.g., USDC). |
 
 ## Development
 

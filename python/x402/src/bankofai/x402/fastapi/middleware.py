@@ -133,7 +133,10 @@ class X402Middleware:
 
                 # Match payload to the correct config
                 config = self._match_config(
-                    configs, payload.accepted.network, payload.accepted.asset
+                    configs,
+                    payload.accepted.network,
+                    payload.accepted.asset,
+                    payload.accepted.scheme,
                 )
                 if config is None:
                     return JSONResponse(
@@ -202,13 +205,17 @@ class X402Middleware:
         configs: list[ResourceConfig],
         network: str,
         asset: str,
+        scheme: str | None = None,
     ) -> ResourceConfig | None:
-        """Find the config matching the payment's network and asset."""
+        """Find the config matching the payment's network, asset, and scheme."""
         from bankofai.x402.tokens import TokenRegistry
 
         for cfg in configs:
             if cfg.network != network:
                 continue
+            if scheme and cfg.scheme != scheme:
+                continue
+
             # Parse the price to get the expected asset address
             parts = cfg.price.strip().split()
             if len(parts) != 2:
