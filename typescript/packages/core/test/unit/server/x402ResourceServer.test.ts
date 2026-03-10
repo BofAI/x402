@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { x402ResourceServer } from "../../../src/server/x402ResourceServer";
 import {
   MockFacilitatorClient,
@@ -398,6 +398,133 @@ describe("x402ResourceServer", () => {
             network: "test:network" as Network,
           }),
       ).rejects.toThrow("Facilitator does not support test-scheme on test:network");
+    });
+  });
+
+  describe("buildPaymentRequirementsFromOptions", () => {
+    it("should pass assets field through to buildPaymentRequirements", async () => {
+      const mockClient = new MockFacilitatorClient(
+        buildSupportedResponse({
+          kinds: [{ x402Version: 2, scheme: "test-scheme", network: "test:network" as Network }],
+        }),
+      );
+
+      const server = new x402ResourceServer(mockClient);
+      const mockScheme = new MockSchemeNetworkServer("test-scheme", {
+        amount: "1000000",
+        asset: "USDC",
+        extra: {},
+      });
+
+      server.register("test:network" as Network, mockScheme);
+      await server.initialize();
+
+      // Mock buildPaymentRequirements to capture the ResourceConfig without hitting AssetRegistry
+      const buildSpy = vi
+        .spyOn(server, "buildPaymentRequirements")
+        .mockResolvedValue([buildPaymentRequirements()]);
+
+      await server.buildPaymentRequirementsFromOptions(
+        [
+          {
+            scheme: "test-scheme",
+            payTo: "recipient",
+            price: "$1.00",
+            network: "test:network" as Network,
+            assets: ["USDC", "USDT"],
+          },
+        ],
+        {},
+      );
+
+      expect(buildSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          assets: ["USDC", "USDT"],
+        }),
+      );
+
+      buildSpy.mockRestore();
+    });
+
+    it("should resolve dynamic payTo and price functions", async () => {
+      const mockClient = new MockFacilitatorClient(
+        buildSupportedResponse({
+          kinds: [{ x402Version: 2, scheme: "test-scheme", network: "test:network" as Network }],
+        }),
+      );
+
+      const server = new x402ResourceServer(mockClient);
+      const mockScheme = new MockSchemeNetworkServer("test-scheme", {
+        amount: "500000",
+        asset: "USDT",
+        extra: {},
+      });
+
+      server.register("test:network" as Network, mockScheme);
+      await server.initialize();
+
+      const buildSpy = vi
+        .spyOn(server, "buildPaymentRequirements")
+        .mockResolvedValue([buildPaymentRequirements()]);
+
+      await server.buildPaymentRequirementsFromOptions(
+        [
+          {
+            scheme: "test-scheme",
+            payTo: () => "dynamic_recipient",
+            price: () => "$2.00",
+            network: "test:network" as Network,
+          },
+        ],
+        {},
+      );
+
+      expect(buildSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          payTo: "dynamic_recipient",
+          price: "$2.00",
+        }),
+      );
+
+      buildSpy.mockRestore();
+    });
+
+    it("should handle multiple payment options and aggregate results", async () => {
+      const mockClient = new MockFacilitatorClient(
+        buildSupportedResponse({
+          kinds: [{ x402Version: 2, scheme: "test-scheme", network: "test:network" as Network }],
+        }),
+      );
+
+      const server = new x402ResourceServer(mockClient);
+      const mockScheme = new MockSchemeNetworkServer("test-scheme", {
+        amount: "1000000",
+        asset: "USDC",
+        extra: {},
+      });
+
+      server.register("test:network" as Network, mockScheme);
+      await server.initialize();
+
+      const results = await server.buildPaymentRequirementsFromOptions(
+        [
+          {
+            scheme: "test-scheme",
+            payTo: "recipient1",
+            price: "$1.00",
+            network: "test:network" as Network,
+          },
+          {
+            scheme: "test-scheme",
+            payTo: "recipient2",
+            price: "$2.00",
+            network: "test:network" as Network,
+          },
+        ],
+        {},
+      );
+
+      expect(results).toHaveLength(2);
     });
   });
 

@@ -399,3 +399,6 @@ export { RouteConfigurationError } from "@bankofai/x402-core/server";
 export type { RouteValidationError } from "@bankofai/x402-core/server";
 
 export { ExpressAdapter } from "./adapter";
+
+export { withPayment } from "./withPayment";
+export type { WithPaymentOptions } from "./withPayment";
