@@ -265,10 +265,13 @@ export class TestDiscovery {
             continue;
           }
 
-          // For EVM endpoints, check transfer method compatibility with client
-          if (endpointProtocolFamily === 'evm') {
-            const endpointTransferMethod = endpoint.transferMethod || 'eip3009';
-            const clientTransferMethods = client.config.evm?.transferMethods || ['eip3009'];
+          // For protocols with transfer methods (EVM, TRON), check compatibility with client
+          if (endpointProtocolFamily === 'evm' || endpointProtocolFamily === 'tron') {
+            const defaultMethod = endpointProtocolFamily === 'evm' ? 'eip3009' : 'tip712';
+            const endpointTransferMethod = endpoint.transferMethod || defaultMethod;
+            const clientTransferMethods = (endpointProtocolFamily === 'evm'
+              ? client.config.evm?.transferMethods
+              : client.config.tron?.transferMethods) || [defaultMethod];
             if (!clientTransferMethods.includes(endpointTransferMethod)) {
               verboseLog(`  ⚠️  Skipping ${client.name} ↔ ${server.name} ${endpoint.path}: Transfer method mismatch (client supports [${clientTransferMethods.join(', ')}], endpoint requires ${endpointTransferMethod})`);
               continue;
@@ -279,10 +282,13 @@ export class TestDiscovery {
           const matchingFacilitators = facilitators.filter(f => {
             const supportsProtocol = f.config.protocolFamilies?.includes(endpointProtocolFamily);
             const supportsVersion = f.config.x402Versions?.includes(serverVersion);
-            // For EVM, also check transfer method support
-            if (endpointProtocolFamily === 'evm') {
-              const endpointTransferMethod = endpoint.transferMethod || 'eip3009';
-              const facilTransferMethods = f.config.evm?.transferMethods || ['eip3009'];
+            // For protocols with transfer methods, also check compatibility
+            if (endpointProtocolFamily === 'evm' || endpointProtocolFamily === 'tron') {
+              const defaultMethod = endpointProtocolFamily === 'evm' ? 'eip3009' : 'tip712';
+              const endpointTransferMethod = endpoint.transferMethod || defaultMethod;
+              const facilTransferMethods = (endpointProtocolFamily === 'evm'
+                ? f.config.evm?.transferMethods
+                : f.config.tron?.transferMethods) || [defaultMethod];
               if (!facilTransferMethods.includes(endpointTransferMethod)) return false;
             }
             return supportsProtocol && supportsVersion;
