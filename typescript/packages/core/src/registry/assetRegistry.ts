@@ -138,13 +138,6 @@ export class AssetRegistry {
         version: "1",
         assetTransferMethod: "permit2",
       },
-      EPS: {
-        address: "0xA7f552078dcC247C2684336020c03648500C6d9F",
-        decimals: 18,
-        name: "Ellipsis",
-        version: "1",
-        assetTransferMethod: "permit2",
-      },
     });
     this.defaults.set("eip155:56", "USDC");
 
@@ -161,13 +154,6 @@ export class AssetRegistry {
         address: "0x64544969ed7EBf5f083679233325356EbE738930",
         decimals: 18,
         name: "USD Coin",
-        version: "1",
-        assetTransferMethod: "permit2",
-      },
-      DHLU: {
-        address: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
-        decimals: 6,
-        name: "DA HULU",
         version: "1",
         assetTransferMethod: "permit2",
       },

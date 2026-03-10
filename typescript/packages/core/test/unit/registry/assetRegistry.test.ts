@@ -27,18 +27,12 @@ describe("AssetRegistry", () => {
       const usdt = registry.resolve("eip155:56" as Network, "USDT");
       expect(usdt.address).toBe("0x55d398326f99059fF775485246999027B3197955");
       expect(usdt.assetTransferMethod).toBe("permit2");
-
-      expect(registry.has("eip155:56" as Network, "EPS")).toBe(true);
     });
 
     it("should have BSC Testnet tokens with permit2", () => {
       const registry = new AssetRegistry();
       expect(registry.has("eip155:97" as Network, "USDT")).toBe(true);
       expect(registry.has("eip155:97" as Network, "USDC")).toBe(true);
-      expect(registry.has("eip155:97" as Network, "DHLU")).toBe(true);
-      const dhlu = registry.resolve("eip155:97" as Network, "DHLU");
-      expect(dhlu.decimals).toBe(6);
-      expect(dhlu.assetTransferMethod).toBe("permit2");
     });
 
     it("should have TRON mainnet tokens with correct transfer methods", () => {

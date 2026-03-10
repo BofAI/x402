@@ -98,16 +98,10 @@ class TestAssetRegistry:
         assert usdt.address == "0x55d398326f99059fF775485246999027B3197955"
         assert usdt.asset_transfer_method == "permit2"
 
-        assert registry.has("eip155:56", "EPS")
-
     def test_builtin_bsc_testnet_tokens(self) -> None:
         registry = AssetRegistry()
         assert registry.has("eip155:97", "USDT")
         assert registry.has("eip155:97", "USDC")
-        assert registry.has("eip155:97", "DHLU")
-        dhlu = registry.resolve("eip155:97", "DHLU")
-        assert dhlu.decimals == 6
-        assert dhlu.asset_transfer_method == "permit2"
 
     def test_builtin_tron_mainnet_tokens(self) -> None:
         registry = AssetRegistry()
