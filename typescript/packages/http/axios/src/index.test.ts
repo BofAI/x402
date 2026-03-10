@@ -8,7 +8,11 @@ import {
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { wrapAxiosWithPayment, wrapAxiosWithPaymentFromConfig } from "./index";
 import type { x402Client, x402ClientConfig } from "@bankofai/x402-core/client";
-import type { PaymentPayload, PaymentRequired, PaymentRequirements } from "@bankofai/x402-core/types";
+import type {
+  PaymentPayload,
+  PaymentRequired,
+  PaymentRequirements,
+} from "@bankofai/x402-core/types";
 
 // Mock the @bankofai/x402-core/client module
 vi.mock("@bankofai/x402-core/client", () => {

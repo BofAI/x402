@@ -22,6 +22,7 @@ class ResourceConfig(BaseX402Model):
     price: Price
     network: Network
     max_timeout_seconds: int | None = None
+    assets: list[str] | None = None
 
 
 class FacilitatorConfig(TypedDict, total=False):

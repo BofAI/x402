@@ -68,7 +68,9 @@ describe("fetchWithPayment()", () => {
     const paymentHeader = "payment-header-value";
     const successResponse = createResponse(200, { data: "success" });
 
-    const { createPaymentHeader, selectPaymentRequirements } = await import("@bankofai/x402-legacy/client");
+    const { createPaymentHeader, selectPaymentRequirements } = await import(
+      "@bankofai/x402-legacy/client"
+    );
     (createPaymentHeader as ReturnType<typeof vi.fn>).mockResolvedValue(paymentHeader);
     (selectPaymentRequirements as ReturnType<typeof vi.fn>).mockImplementation(
       (requirements, _) => requirements[0],

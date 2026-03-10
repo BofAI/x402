@@ -1,6 +1,9 @@
 """Tests for Payment-Identifier utility functions."""
 
-from bankofai.x402.extensions.payment_identifier.utils import generate_payment_id, is_valid_payment_id
+from bankofai.x402.extensions.payment_identifier.utils import (
+    generate_payment_id,
+    is_valid_payment_id,
+)
 
 
 class TestGeneratePaymentId:

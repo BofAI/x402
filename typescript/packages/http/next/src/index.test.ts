@@ -7,7 +7,11 @@ import type {
   FacilitatorClient,
 } from "@bankofai/x402-core/server";
 import { x402ResourceServer, x402HTTPResourceServer } from "@bankofai/x402-core/server";
-import type { PaymentPayload, PaymentRequirements, SchemeNetworkServer } from "@bankofai/x402-core/types";
+import type {
+  PaymentPayload,
+  PaymentRequirements,
+  SchemeNetworkServer,
+} from "@bankofai/x402-core/types";
 import { paymentProxy, paymentProxyFromConfig, withX402, type SchemeRegistration } from "./index";
 
 import { createHttpServer } from "./utils";

@@ -122,6 +122,7 @@ export interface PaymentOption {
   network: Network;
   maxTimeoutSeconds?: number;
   extra?: Record<string, unknown>;
+  assets?: string[];
 }
 
 /**

@@ -16,6 +16,7 @@ import { Price, Network, ResourceServerExtension, VerifyError } from "../types";
 import { deepEqual, findByNetworkAndScheme } from "../utils";
 import { FacilitatorClient, HTTPFacilitatorClient } from "../http/httpFacilitatorClient";
 import { x402Version } from "..";
+import { AssetRegistry, convertMoney, globalAssetRegistry } from "../registry/index.js";
 
 /**
  * Configuration for a protected resource
@@ -28,6 +29,7 @@ export interface ResourceConfig {
   network: Network;
   maxTimeoutSeconds?: number;
   extra?: Record<string, unknown>; // Scheme-specific additional data
+  assets?: string[]; // Asset symbols to resolve via AssetRegistry (B-form)
 }
 
 /**
@@ -98,6 +100,8 @@ export type OnSettleFailureHook = (
  * Transport-agnostic implementation of the x402 payment protocol
  */
 export class x402ResourceServer {
+  public readonly assetRegistry: AssetRegistry;
+
   private facilitatorClients: FacilitatorClient[];
   private registeredServerSchemes: Map<string, Map<string, SchemeNetworkServer>> = new Map();
   private supportedResponsesMap: Map<number, Map<string, Map<string, SupportedResponse>>> =
@@ -117,8 +121,13 @@ export class x402ResourceServer {
    * Creates a new x402ResourceServer instance.
    *
    * @param facilitatorClients - Optional facilitator client(s) for payment processing
+   * @param assetRegistry - Optional asset registry for symbol-based asset resolution
    */
-  constructor(facilitatorClients?: FacilitatorClient | FacilitatorClient[]) {
+  constructor(
+    facilitatorClients?: FacilitatorClient | FacilitatorClient[],
+    assetRegistry?: AssetRegistry,
+  ) {
+    this.assetRegistry = assetRegistry ?? globalAssetRegistry;
     // Normalize facilitator clients to array
     if (!facilitatorClients) {
       // No clients provided, create a default HTTP client
@@ -441,6 +450,49 @@ export class x402ResourceServer {
       resourceConfig.network,
       SchemeNetworkServer.scheme,
     );
+
+    // New path: assets field + Money price → resolve via AssetRegistry
+    if (
+      resourceConfig.assets?.length &&
+      (typeof resourceConfig.price === "string" || typeof resourceConfig.price === "number")
+    ) {
+      const results: PaymentRequirements[] = [];
+      for (const symbol of resourceConfig.assets) {
+        const assetInfo = this.assetRegistry.resolve(resourceConfig.network, symbol);
+        const amount = convertMoney(resourceConfig.price, assetInfo.decimals);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { address, decimals, name, version, assetTransferMethod, supportsEip2612, ...rest } =
+          assetInfo;
+
+        // Build extra: include EIP-712 domain fields conditionally (same logic as EVM scheme)
+        const includeEip712Domain = !assetTransferMethod || supportsEip2612;
+        const extra: Record<string, unknown> = {
+          ...(includeEip712Domain && name && { name }),
+          ...(includeEip712Domain && version && { version }),
+          ...(assetTransferMethod && { assetTransferMethod }),
+          ...rest,
+          ...resourceConfig.extra,
+        };
+
+        const baseReq: PaymentRequirements = {
+          scheme: SchemeNetworkServer.scheme,
+          network: resourceConfig.network,
+          amount,
+          asset: address,
+          payTo: resourceConfig.payTo,
+          maxTimeoutSeconds: resourceConfig.maxTimeoutSeconds || 300,
+          extra,
+        };
+
+        const enhanced = await SchemeNetworkServer.enhancePaymentRequirements(
+          baseReq,
+          { ...supportedKind, x402Version },
+          facilitatorExtensions,
+        );
+        results.push(enhanced);
+      }
+      return results;
+    }
 
     // Parse the price using the scheme's price parser
     const parsedPrice = await SchemeNetworkServer.parsePrice(

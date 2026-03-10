@@ -309,9 +309,8 @@ async def create_x402_mcp_client(
             result = await mcp.call_tool("get_weather", {"city": "SF"})
         ```
     """
-    from mcp.client.sse import sse_client
-
     from mcp import ClientSession
+    from mcp.client.sse import sse_client
 
     sse_url = server_url.rstrip("/")
     if not sse_url.endswith("/sse"):

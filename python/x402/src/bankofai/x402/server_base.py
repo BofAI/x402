@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Literal, Protocol
 from typing_extensions import Self
 
 from .interfaces import SchemeNetworkServer
+from .registry import AssetRegistry, convert_money, global_asset_registry
 from .schemas import (
     AbortResult,
     Network,
@@ -143,6 +144,7 @@ class x402ResourceServerBase:
     def __init__(
         self,
         facilitator_clients: (_AnyFacilitatorClient | list[_AnyFacilitatorClient] | None) = None,
+        asset_registry: AssetRegistry | None = None,
     ) -> None:
         """Initialize base server."""
         # Normalize to list
@@ -152,6 +154,8 @@ class x402ResourceServerBase:
             self._facilitator_clients = facilitator_clients
         else:
             self._facilitator_clients = [facilitator_clients]
+
+        self.asset_registry: AssetRegistry = asset_registry or global_asset_registry
 
         # Scheme servers
         self._schemes: dict[Network, dict[str, SchemeNetworkServer]] = {}
@@ -313,6 +317,46 @@ class x402ResourceServerBase:
 
         if supported_kind is None:
             raise SchemeNotFoundError(config.scheme, config.network)
+
+        # New path: assets field + Money price → resolve via AssetRegistry
+        if (
+            hasattr(config, "assets")
+            and config.assets
+            and isinstance(config.price, (str, int, float))
+        ):
+            results: list[PaymentRequirements] = []
+            for symbol in config.assets:
+                asset_info = self.asset_registry.resolve(config.network, symbol)
+                amount = convert_money(config.price, asset_info.decimals)
+
+                # Build extra with EIP-712 domain fields conditionally
+                include_eip712 = not asset_info.asset_transfer_method or asset_info.supports_eip2612
+                extra: dict[str, Any] = {}
+                if include_eip712 and asset_info.name:
+                    extra["name"] = asset_info.name
+                if include_eip712 and asset_info.version:
+                    extra["version"] = asset_info.version
+                if asset_info.asset_transfer_method:
+                    extra["assetTransferMethod"] = asset_info.asset_transfer_method
+                extra.update(asset_info.extra)
+
+                base_req = PaymentRequirements(
+                    scheme=config.scheme,
+                    network=config.network,
+                    asset=asset_info.address,
+                    amount=amount,
+                    pay_to=config.pay_to,
+                    max_timeout_seconds=config.max_timeout_seconds or 300,
+                    extra=extra,
+                )
+
+                enhanced = server.enhance_payment_requirements(
+                    base_req,
+                    supported_kind,
+                    extensions or [],
+                )
+                results.append(enhanced)
+            return results
 
         # Parse price
         asset_amount = server.parse_price(config.price, config.network)

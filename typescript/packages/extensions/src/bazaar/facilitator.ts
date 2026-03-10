@@ -8,7 +8,11 @@
  */
 
 import Ajv from "ajv/dist/2020.js";
-import type { PaymentPayload, PaymentRequirements, PaymentRequirementsV1 } from "@bankofai/x402-core/types";
+import type {
+  PaymentPayload,
+  PaymentRequirements,
+  PaymentRequirementsV1,
+} from "@bankofai/x402-core/types";
 import type { DiscoveryExtension, DiscoveryInfo } from "./types";
 import type { McpDiscoveryInfo } from "./mcp/types";
 import type { DiscoveredHTTPResource } from "./http/types";

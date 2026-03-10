@@ -6,7 +6,13 @@ import {
   InternalAxiosRequestConfig,
 } from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { evm, PaymentRequirements, ChainIdToNetwork, Signer, MultiNetworkSigner } from "@bankofai/x402-legacy/types";
+import {
+  evm,
+  PaymentRequirements,
+  ChainIdToNetwork,
+  Signer,
+  MultiNetworkSigner,
+} from "@bankofai/x402-legacy/types";
 import { withPaymentInterceptor } from "./index";
 
 // Mock the createPaymentHeader function
@@ -111,7 +117,9 @@ describe("withPaymentInterceptor()", () => {
     const paymentHeader = "payment-header-value";
     const successResponse = { data: "success" } as AxiosResponse;
 
-    const { createPaymentHeader, selectPaymentRequirements } = await import("@bankofai/x402-legacy/client");
+    const { createPaymentHeader, selectPaymentRequirements } = await import(
+      "@bankofai/x402-legacy/client"
+    );
     (createPaymentHeader as ReturnType<typeof vi.fn>).mockResolvedValue(paymentHeader);
     (selectPaymentRequirements as ReturnType<typeof vi.fn>).mockImplementation(
       (requirements, _) => requirements[0],
@@ -179,7 +187,9 @@ describe("withPaymentInterceptor()", () => {
     const paymentHeader = "payment-header-value";
     const successResponse = { data: "success" } as AxiosResponse;
 
-    const { createPaymentHeader, selectPaymentRequirements } = await import("@bankofai/x402-legacy/client");
+    const { createPaymentHeader, selectPaymentRequirements } = await import(
+      "@bankofai/x402-legacy/client"
+    );
     (createPaymentHeader as ReturnType<typeof vi.fn>).mockResolvedValue(paymentHeader);
     (selectPaymentRequirements as ReturnType<typeof vi.fn>).mockImplementation(
       (requirements, _) => requirements[0],
