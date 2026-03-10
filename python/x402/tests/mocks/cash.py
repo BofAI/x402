@@ -20,6 +20,7 @@ from bankofai.x402.schemas import (
     SupportedResponse,
     VerifyResponse,
 )
+from bankofai.x402.schemas.v1 import PaymentRequirementsV1
 
 
 class CashSchemeNetworkClient:
@@ -412,6 +413,45 @@ class CashFacilitatorClientSync:
         )
 
 
+class CashSchemeNetworkClientV1:
+    """Client-side mock "cash" scheme implementation for V1 protocol.
+
+    Creates V1-compatible payment payloads with a simple signature format.
+
+    Attributes:
+        scheme: The scheme identifier ("cash").
+    """
+
+    scheme = "cash"
+
+    def __init__(self, payer: str) -> None:
+        """Create a CashSchemeNetworkClientV1.
+
+        Args:
+            payer: The name of the payer (used in signature).
+        """
+        self._payer = payer
+
+    def create_payment_payload(
+        self,
+        requirements: "PaymentRequirementsV1",
+    ) -> dict[str, Any]:
+        """Create a V1 cash payment payload.
+
+        Args:
+            requirements: The V1 payment requirements.
+
+        Returns:
+            Inner payload dict with signature and validity.
+        """
+        valid_until = int(time.time() * 1000) + (requirements.max_timeout_seconds * 1000)
+        return {
+            "signature": f"~{self._payer}",
+            "validUntil": str(valid_until),
+            "name": self._payer,
+        }
+
+
 def build_cash_payment_requirements(
     pay_to: str,
     asset: str,
@@ -435,4 +475,30 @@ def build_cash_payment_requirements(
         pay_to=pay_to,
         max_timeout_seconds=1000,
         extra={},
+    )
+
+
+def build_cash_payment_requirements_v1(
+    pay_to: str,
+    asset: str,
+    max_amount_required: str,
+) -> PaymentRequirementsV1:
+    """Build V1 payment requirements for the cash scheme.
+
+    Args:
+        pay_to: The recipient address/name.
+        asset: The asset being paid (e.g., "USD").
+        max_amount_required: The maximum amount required.
+
+    Returns:
+        PaymentRequirementsV1 for cash scheme.
+    """
+    return PaymentRequirementsV1(
+        scheme="cash",
+        network="x402:cash",
+        max_amount_required=max_amount_required,
+        resource="https://example.com",
+        pay_to=pay_to,
+        max_timeout_seconds=1000,
+        asset=asset,
     )

@@ -670,4 +670,173 @@ describe("x402Client", () => {
       expect(result).toBe(client);
     });
   });
+
+  describe("V1 Auto-Adaptive Protocol", () => {
+    it("should create v1 payment payload when v1 scheme registered", async () => {
+      const client = new x402Client();
+      const mockV1Client = new MockSchemeNetworkClient("exact", {
+        x402Version: 1,
+        payload: { signature: "v1_mock_sig" },
+      });
+      client.registerV1("base-sepolia", mockV1Client);
+
+      const paymentRequired = buildPaymentRequired({
+        x402Version: 1,
+        accepts: [
+          buildPaymentRequirements({
+            scheme: "exact",
+            network: "base-sepolia" as Network,
+            amount: "500000",
+          }),
+        ],
+      });
+
+      const result = await client.createPaymentPayload(paymentRequired);
+
+      expect(result.x402Version).toBe(1);
+      expect(result.payload).toEqual({ signature: "v1_mock_sig" });
+    });
+
+    it("should auto-adapt to v1 when server returns v1 response", async () => {
+      const client = new x402Client();
+      // Register both v1 and v2
+      const mockV2Client = new MockSchemeNetworkClient("exact", {
+        x402Version: 2,
+        payload: { signature: "v2_mock_sig" },
+      });
+      const mockV1Client = new MockSchemeNetworkClient("exact", {
+        x402Version: 1,
+        payload: { signature: "v1_mock_sig" },
+      });
+      client.register("eip155:8453" as Network, mockV2Client);
+      client.registerV1("base-sepolia", mockV1Client);
+
+      // Send v1 payment required
+      const v1PaymentRequired = buildPaymentRequired({
+        x402Version: 1,
+        accepts: [
+          buildPaymentRequirements({
+            scheme: "exact",
+            network: "base-sepolia" as Network,
+          }),
+        ],
+      });
+
+      const result = await client.createPaymentPayload(v1PaymentRequired);
+
+      expect(result.x402Version).toBe(1);
+      // V1 client should have been called
+      expect(mockV1Client.createPaymentPayloadCalls.length).toBe(1);
+      expect(mockV1Client.createPaymentPayloadCalls[0].x402Version).toBe(1);
+      // V2 client should NOT have been called
+      expect(mockV2Client.createPaymentPayloadCalls.length).toBe(0);
+    });
+
+    it("should auto-adapt to v2 when server returns v2 response", async () => {
+      const client = new x402Client();
+      const mockV2Client = new MockSchemeNetworkClient("exact", {
+        x402Version: 2,
+        payload: { signature: "v2_mock_sig" },
+      });
+      const mockV1Client = new MockSchemeNetworkClient("exact", {
+        x402Version: 1,
+        payload: { signature: "v1_mock_sig" },
+      });
+      client.register("eip155:8453" as Network, mockV2Client);
+      client.registerV1("base-sepolia", mockV1Client);
+
+      // Send v2 payment required
+      const v2PaymentRequired = buildPaymentRequired({
+        x402Version: 2,
+        accepts: [
+          buildPaymentRequirements({
+            scheme: "exact",
+            network: "eip155:8453" as Network,
+          }),
+        ],
+      });
+
+      const result = await client.createPaymentPayload(v2PaymentRequired);
+
+      expect(result.x402Version).toBe(2);
+      // V2 client should have been called
+      expect(mockV2Client.createPaymentPayloadCalls.length).toBe(1);
+      expect(mockV2Client.createPaymentPayloadCalls[0].x402Version).toBe(2);
+      // V1 client should NOT have been called
+      expect(mockV1Client.createPaymentPayloadCalls.length).toBe(0);
+    });
+
+    it("should use correct v1 scheme for v1 response (version isolation)", async () => {
+      const client = new x402Client();
+      // Register same scheme name on both v1 and v2
+      const mockV2Client = new MockSchemeNetworkClient("exact");
+      const mockV1Client = new MockSchemeNetworkClient("exact", {
+        x402Version: 1,
+        payload: { type: "v1_specific" },
+      });
+      client.register("eip155:*" as Network, mockV2Client);
+      client.registerV1("base-sepolia", mockV1Client);
+
+      const v1PaymentRequired = buildPaymentRequired({
+        x402Version: 1,
+        accepts: [
+          buildPaymentRequirements({
+            scheme: "exact",
+            network: "base-sepolia" as Network,
+          }),
+        ],
+      });
+
+      const result = await client.createPaymentPayload(v1PaymentRequired);
+
+      // Should use v1 client's result
+      expect(result.payload).toEqual({ type: "v1_specific" });
+      expect(mockV1Client.createPaymentPayloadCalls.length).toBe(1);
+      expect(mockV2Client.createPaymentPayloadCalls.length).toBe(0);
+    });
+
+    it("should pass x402Version=1 to v1 scheme's createPaymentPayload", async () => {
+      const client = new x402Client();
+      const mockV1Client = new MockSchemeNetworkClient("exact", {
+        x402Version: 1,
+        payload: { signature: "v1_sig" },
+      });
+      client.registerV1("base-sepolia", mockV1Client);
+
+      const paymentRequired = buildPaymentRequired({
+        x402Version: 1,
+        accepts: [
+          buildPaymentRequirements({
+            scheme: "exact",
+            network: "base-sepolia" as Network,
+          }),
+        ],
+      });
+
+      await client.createPaymentPayload(paymentRequired);
+
+      expect(mockV1Client.createPaymentPayloadCalls.length).toBe(1);
+      expect(mockV1Client.createPaymentPayloadCalls[0].x402Version).toBe(1);
+    });
+
+    it("should throw when no v1 scheme registered but v1 request received", async () => {
+      const client = new x402Client();
+      const mockV2Client = new MockSchemeNetworkClient("exact");
+      client.register("eip155:8453" as Network, mockV2Client);
+
+      const v1PaymentRequired = buildPaymentRequired({
+        x402Version: 1,
+        accepts: [
+          buildPaymentRequirements({
+            scheme: "exact",
+            network: "base-sepolia" as Network,
+          }),
+        ],
+      });
+
+      await expect(
+        async () => await client.createPaymentPayload(v1PaymentRequired),
+      ).rejects.toThrow("No client registered for x402 version: 1");
+    });
+  });
 });

@@ -304,6 +304,40 @@ class TestX402HTTPClient:
         assert PAYMENT_SIGNATURE_HEADER in payment_headers
         assert payload.x402_version == 2
 
+    @pytest.mark.asyncio
+    async def test_handle_402_response_v1(self):
+        """Test handle_402_response with V1 body."""
+        v1_payload = PaymentPayloadV1(
+            x402_version=1,
+            scheme="exact",
+            network="base-sepolia",
+            payload={"signature": "0xabc"},
+        )
+        mock_client = MockX402Client(payload_to_return=v1_payload)
+        http_client = x402HTTPClient(mock_client)
+
+        v1_body = {
+            "x402Version": 1,
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "base-sepolia",
+                    "maxAmountRequired": "500000",
+                    "resource": "https://example.com",
+                    "payTo": "0x1234567890123456789012345678901234567890",
+                    "maxTimeoutSeconds": 300,
+                    "asset": "0x0000000000000000000000000000000000000000",
+                }
+            ],
+        }
+        body_bytes = json.dumps(v1_body).encode("utf-8")
+
+        payment_headers, payload = await http_client.handle_402_response({}, body_bytes)
+
+        assert X_PAYMENT_HEADER in payment_headers
+        assert PAYMENT_SIGNATURE_HEADER not in payment_headers
+        assert payload.x402_version == 1
+
 
 # =============================================================================
 # Sync HTTP Client Tests
@@ -344,6 +378,39 @@ class TestX402HTTPClientSync:
 
         assert PAYMENT_SIGNATURE_HEADER in payment_headers
         assert payload.x402_version == 2
+
+    def test_handle_402_response_v1(self):
+        """Test handle_402_response with V1 body."""
+        v1_payload = PaymentPayloadV1(
+            x402_version=1,
+            scheme="exact",
+            network="base-sepolia",
+            payload={"signature": "0xabc"},
+        )
+        mock_client = MockX402ClientSync(payload_to_return=v1_payload)
+        http_client = x402HTTPClientSync(mock_client)
+
+        v1_body = {
+            "x402Version": 1,
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "base-sepolia",
+                    "maxAmountRequired": "500000",
+                    "resource": "https://example.com",
+                    "payTo": "0x1234567890123456789012345678901234567890",
+                    "maxTimeoutSeconds": 300,
+                    "asset": "0x0000000000000000000000000000000000000000",
+                }
+            ],
+        }
+        body_bytes = json.dumps(v1_body).encode("utf-8")
+
+        payment_headers, payload = http_client.handle_402_response({}, body_bytes)
+
+        assert X_PAYMENT_HEADER in payment_headers
+        assert PAYMENT_SIGNATURE_HEADER not in payment_headers
+        assert payload.x402_version == 1
 
     def test_rejects_async_client(self):
         """Test that TypeError is raised when async client is passed."""
@@ -442,3 +509,50 @@ class TestPaymentRoundTripper:
                 body=None,
                 retry_func=lambda h: "should not happen",
             )
+
+    def test_v1_402_triggers_payment_with_x_payment_header(self):
+        """Test that V1 402 response produces X-PAYMENT header (not PAYMENT-SIGNATURE)."""
+        v1_payload = PaymentPayloadV1(
+            x402_version=1,
+            scheme="exact",
+            network="base-sepolia",
+            payload={"signature": "0xabc"},
+        )
+        mock_client = MockX402ClientSync(payload_to_return=v1_payload)
+        http_client = x402HTTPClientSync(mock_client)
+        tripper = PaymentRoundTripper(http_client)
+
+        v1_body = {
+            "x402Version": 1,
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "base-sepolia",
+                    "maxAmountRequired": "500000",
+                    "resource": "https://example.com",
+                    "payTo": "0x1234567890123456789012345678901234567890",
+                    "maxTimeoutSeconds": 300,
+                    "asset": "0x0000000000000000000000000000000000000000",
+                }
+            ],
+        }
+        body_bytes = json.dumps(v1_body).encode("utf-8")
+
+        retry_called_with = []
+
+        def retry_func(payment_headers):
+            retry_called_with.append(payment_headers)
+            return "retry_response"
+
+        result = tripper.handle_response(
+            request_id="v1_req",
+            status_code=402,
+            headers={},
+            body=body_bytes,
+            retry_func=retry_func,
+        )
+
+        assert result == "retry_response"
+        assert len(retry_called_with) == 1
+        assert X_PAYMENT_HEADER in retry_called_with[0]
+        assert PAYMENT_SIGNATURE_HEADER not in retry_called_with[0]
