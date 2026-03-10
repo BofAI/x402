@@ -4,8 +4,6 @@ import { Network } from "../types/index.js";
  * Information about a token asset on a specific network.
  */
 export interface AssetInfo {
-  /** Additional metadata */
-  [key: string]: unknown;
   /** Token contract address */
   address: string;
   /** Number of decimal places */
@@ -18,6 +16,9 @@ export interface AssetInfo {
   assetTransferMethod?: string;
   /** Whether the token supports EIP-2612 permit */
   supportsEip2612?: boolean;
+  /** Additional metadata */
+  // eslint-disable-next-line @typescript-eslint/member-ordering
+  [key: string]: unknown;
 }
 
 /**
