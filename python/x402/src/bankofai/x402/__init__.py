@@ -63,7 +63,6 @@ from .client import (
     x402ClientSync,
 )
 from .facilitator import x402Facilitator, x402FacilitatorSync
-from .registry import AssetInfo, AssetRegistry, convert_money, global_asset_registry
 
 # Interfaces (for implementing custom schemes)
 from .interfaces import (
@@ -73,6 +72,7 @@ from .interfaces import (
     SchemeNetworkFacilitatorV1,
     SchemeNetworkServer,
 )
+from .registry import AssetInfo, AssetRegistry, convert_money, global_asset_registry
 
 # Types (re-export commonly used types)
 from .schemas import (

@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, Literal, Protocol
 from typing_extensions import Self
 
 from .interfaces import SchemeNetworkServer
-from .registry import AssetInfo, AssetRegistry, convert_money, global_asset_registry
+from .registry import AssetRegistry, convert_money, global_asset_registry
 from .schemas import (
     AbortResult,
     Network,
@@ -330,10 +330,7 @@ class x402ResourceServerBase:
                 amount = convert_money(config.price, asset_info.decimals)
 
                 # Build extra with EIP-712 domain fields conditionally
-                include_eip712 = (
-                    not asset_info.asset_transfer_method
-                    or asset_info.supports_eip2612
-                )
+                include_eip712 = not asset_info.asset_transfer_method or asset_info.supports_eip2612
                 extra: dict[str, Any] = {}
                 if include_eip712 and asset_info.name:
                     extra["name"] = asset_info.name

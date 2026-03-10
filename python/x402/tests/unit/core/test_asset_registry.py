@@ -26,9 +26,7 @@ class TestAssetRegistry:
 
     def test_register_on_new_network(self) -> None:
         registry = AssetRegistry()
-        registry.register(
-            "eip155:999", "FOO", AssetInfo(address="0xFoo", decimals=8)
-        )
+        registry.register("eip155:999", "FOO", AssetInfo(address="0xFoo", decimals=8))
         assert registry.has("eip155:999", "FOO")
 
     def test_register_all(self) -> None:
@@ -56,9 +54,7 @@ class TestAssetRegistry:
 
     def test_get_default_no_default_raises(self) -> None:
         registry = AssetRegistry()
-        registry.register(
-            "eip155:999", "FOO", AssetInfo(address="0xFoo", decimals=6)
-        )
+        registry.register("eip155:999", "FOO", AssetInfo(address="0xFoo", decimals=6))
         with pytest.raises(KeyError, match="No default"):
             registry.get_default("eip155:999")
 

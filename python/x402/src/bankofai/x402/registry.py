@@ -55,9 +55,7 @@ class AssetRegistry:
             self._assets[network] = {}
         self._assets[network][symbol] = info
 
-    def register_all(
-        self, network: Network, assets: dict[str, AssetInfo]
-    ) -> None:
+    def register_all(self, network: Network, assets: dict[str, AssetInfo]) -> None:
         """Batch-register multiple assets for a network."""
         for symbol, info in assets.items():
             self.register(network, symbol, info)
@@ -66,8 +64,7 @@ class AssetRegistry:
         """Set the default asset symbol for a network."""
         if not self.has(network, symbol):
             raise ValueError(
-                f'Cannot set default: asset "{symbol}" is not registered '
-                f'on network "{network}"'
+                f'Cannot set default: asset "{symbol}" is not registered on network "{network}"'
             )
         self._defaults[network] = symbol
 
@@ -79,12 +76,9 @@ class AssetRegistry:
         """
         network_assets = self._assets.get(network)
         if network_assets is None or symbol not in network_assets:
-            available = (
-                ", ".join(network_assets.keys()) if network_assets else "none"
-            )
+            available = ", ".join(network_assets.keys()) if network_assets else "none"
             raise KeyError(
-                f'Asset "{symbol}" is not registered on network "{network}". '
-                f"Available: {available}"
+                f'Asset "{symbol}" is not registered on network "{network}". Available: {available}'
             )
         return network_assets[symbol]
 
@@ -99,9 +93,7 @@ class AssetRegistry:
         """
         symbol = self._defaults.get(network)
         if symbol is None:
-            raise KeyError(
-                f'No default asset configured for network "{network}"'
-            )
+            raise KeyError(f'No default asset configured for network "{network}"')
         return symbol, self.resolve(network, symbol)
 
     def get_symbols(self, network: Network) -> list[str]:
