@@ -12,7 +12,11 @@ import {
   validateStellarDestinationAddress,
 } from "../../utils";
 import type { ClientStellarSigner } from "../../signer";
-import type { PaymentPayload, PaymentRequirements, SchemeNetworkClient } from "@bankofai/x402-core/types";
+import type {
+  PaymentPayload,
+  PaymentRequirements,
+  SchemeNetworkClient,
+} from "@bankofai/x402-core/types";
 
 /** Base fee in stroops (0.001 XLM) used when building the final tx fee after auth signing. */
 const DEFAULT_BASE_FEE_STROOPS = 10_000;

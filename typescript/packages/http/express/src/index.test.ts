@@ -10,7 +10,11 @@ import {
   x402ResourceServer,
   x402HTTPResourceServer as HTTPResourceServer,
 } from "@bankofai/x402-core/server";
-import type { PaymentPayload, PaymentRequirements, SchemeNetworkServer } from "@bankofai/x402-core/types";
+import type {
+  PaymentPayload,
+  PaymentRequirements,
+  SchemeNetworkServer,
+} from "@bankofai/x402-core/types";
 import { paymentMiddleware, paymentMiddlewareFromConfig, type SchemeRegistration } from "./index";
 
 // --- Test Fixtures ---
