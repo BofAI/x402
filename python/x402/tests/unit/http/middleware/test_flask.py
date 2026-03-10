@@ -420,7 +420,9 @@ class TestFlaskMiddlewareIntegration:
         }
 
         # Create middleware with mocked http server
-        with patch("bankofai.x402.http.middleware.flask.x402HTTPResourceServerSync") as mock_http_server:
+        with patch(
+            "bankofai.x402.http.middleware.flask.x402HTTPResourceServerSync"
+        ) as mock_http_server:
             mock_http_server_instance = MagicMock()
             mock_http_server_instance.requires_payment.return_value = False
             mock_http_server.return_value = mock_http_server_instance
@@ -453,7 +455,9 @@ class TestFlaskMiddlewareIntegration:
         }
 
         # Create middleware with mocked http server
-        with patch("bankofai.x402.http.middleware.flask.x402HTTPResourceServerSync") as mock_http_server:
+        with patch(
+            "bankofai.x402.http.middleware.flask.x402HTTPResourceServerSync"
+        ) as mock_http_server:
             mock_http_server_instance = MagicMock()
             mock_http_server_instance.requires_payment.return_value = True
             mock_http_server_instance.process_http_request.return_value = HTTPProcessResult(
@@ -496,7 +500,9 @@ class TestFlaskMiddlewareIntegration:
         payment_payload = make_v2_payload()
         payment_requirements = make_payment_requirements()
 
-        with patch("bankofai.x402.http.middleware.flask.x402HTTPResourceServerSync") as mock_http_server:
+        with patch(
+            "bankofai.x402.http.middleware.flask.x402HTTPResourceServerSync"
+        ) as mock_http_server:
             mock_http_server_instance = MagicMock()
             mock_http_server_instance.requires_payment.return_value = True
             mock_http_server_instance.process_http_request.return_value = HTTPProcessResult(
@@ -535,7 +541,9 @@ class TestFlaskMiddlewareIntegration:
         payment_payload = make_v2_payload()
         payment_requirements = make_payment_requirements()
 
-        with patch("bankofai.x402.http.middleware.flask.x402HTTPResourceServerSync") as mock_http_server:
+        with patch(
+            "bankofai.x402.http.middleware.flask.x402HTTPResourceServerSync"
+        ) as mock_http_server:
             mock_http_server_instance = MagicMock()
             mock_http_server_instance.requires_payment.return_value = True
             mock_http_server_instance.process_http_request.return_value = HTTPProcessResult(

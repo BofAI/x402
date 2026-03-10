@@ -353,7 +353,9 @@ class TestFastAPIMiddlewareIntegration:
         payment_payload = make_v2_payload()
         payment_requirements = make_payment_requirements()
 
-        with patch("bankofai.x402.http.middleware.fastapi.x402HTTPResourceServer") as mock_http_server:
+        with patch(
+            "bankofai.x402.http.middleware.fastapi.x402HTTPResourceServer"
+        ) as mock_http_server:
             mock_http_server_instance = MagicMock()
             mock_http_server_instance.requires_payment.return_value = True
             mock_http_server_instance.process_http_request = AsyncMock(
@@ -409,7 +411,9 @@ class TestFastAPIMiddlewareIntegration:
         payment_payload = make_v2_payload()
         payment_requirements = make_payment_requirements()
 
-        with patch("bankofai.x402.http.middleware.fastapi.x402HTTPResourceServer") as mock_http_server:
+        with patch(
+            "bankofai.x402.http.middleware.fastapi.x402HTTPResourceServer"
+        ) as mock_http_server:
             mock_http_server_instance = MagicMock()
             mock_http_server_instance.requires_payment.return_value = True
             mock_http_server_instance.process_http_request = AsyncMock(

@@ -23,7 +23,7 @@ jobs:
         run: uv sync --all-extras --dev
 
       - name: Run Tests
-        run: uv run python -m pytest
+        run: uv run pytest
 
   lint-python:
     runs-on: ubuntu-latest
@@ -39,8 +39,8 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "python/x402/uv.lock"
 
-      - name: Lint with ruff
+      - name: Lint
         run: uvx ruff check
 
-      - name: Format check with ruff
+      - name: Check formatting
         run: uvx ruff format --check

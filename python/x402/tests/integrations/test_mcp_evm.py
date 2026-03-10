@@ -22,11 +22,11 @@ import time
 import pytest
 
 mcp = pytest.importorskip("mcp", reason="mcp package not available")
+from mcp import ClientSession  # noqa: E402
 from mcp.client.streamable_http import streamable_http_client  # noqa: E402
 from mcp.server.fastmcp import FastMCP  # noqa: E402
-
-from mcp import ClientSession  # noqa: E402
 from mcp.types import TextContent  # noqa: E402
+
 from bankofai.x402 import x402ClientSync, x402FacilitatorSync, x402ResourceServerSync  # noqa: E402
 from bankofai.x402.mcp import create_payment_wrapper, x402MCPClientSync  # noqa: E402
 from bankofai.x402.mechanisms.evm.exact import (  # noqa: E402
@@ -35,7 +35,10 @@ from bankofai.x402.mechanisms.evm.exact import (  # noqa: E402
     ExactEvmSchemeConfig,
     ExactEvmServerScheme,
 )
-from bankofai.x402.mechanisms.evm.signers import EthAccountSigner, FacilitatorWeb3Signer  # noqa: E402
+from bankofai.x402.mechanisms.evm.signers import (  # noqa: E402
+    EthAccountSigner,
+    FacilitatorWeb3Signer,
+)
 from bankofai.x402.schemas import ResourceConfig, ResourceInfo  # noqa: E402
 
 # Environment variables

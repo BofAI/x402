@@ -17,7 +17,6 @@ import { deepEqual, findByNetworkAndScheme } from "../utils";
 import { FacilitatorClient, HTTPFacilitatorClient } from "../http/httpFacilitatorClient";
 import { x402Version } from "..";
 import { AssetRegistry, convertMoney, globalAssetRegistry } from "../registry/index.js";
-import type { AssetInfo } from "../registry/index.js";
 
 /**
  * Configuration for a protected resource
@@ -101,6 +100,8 @@ export type OnSettleFailureHook = (
  * Transport-agnostic implementation of the x402 payment protocol
  */
 export class x402ResourceServer {
+  public readonly assetRegistry: AssetRegistry;
+
   private facilitatorClients: FacilitatorClient[];
   private registeredServerSchemes: Map<string, Map<string, SchemeNetworkServer>> = new Map();
   private supportedResponsesMap: Map<number, Map<string, Map<string, SupportedResponse>>> =
@@ -108,7 +109,6 @@ export class x402ResourceServer {
   private facilitatorClientsMap: Map<number, Map<string, Map<string, FacilitatorClient>>> =
     new Map();
   private registeredExtensions: Map<string, ResourceServerExtension> = new Map();
-  public readonly assetRegistry: AssetRegistry;
 
   private beforeVerifyHooks: BeforeVerifyHook[] = [];
   private afterVerifyHooks: AfterVerifyHook[] = [];
@@ -460,6 +460,7 @@ export class x402ResourceServer {
       for (const symbol of resourceConfig.assets) {
         const assetInfo = this.assetRegistry.resolve(resourceConfig.network, symbol);
         const amount = convertMoney(resourceConfig.price, assetInfo.decimals);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { address, decimals, name, version, assetTransferMethod, supportsEip2612, ...rest } =
           assetInfo;
 

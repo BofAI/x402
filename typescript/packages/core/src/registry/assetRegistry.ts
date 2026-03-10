@@ -4,13 +4,20 @@ import { Network } from "../types/index.js";
  * Information about a token asset on a specific network.
  */
 export interface AssetInfo {
-  address: string;
-  decimals: number;
-  name?: string;
-  version?: string;
-  assetTransferMethod?: string;
-  supportsEip2612?: boolean;
+  /** Additional metadata */
   [key: string]: unknown;
+  /** Token contract address */
+  address: string;
+  /** Number of decimal places */
+  decimals: number;
+  /** Human-readable token name (used in EIP-712 domain) */
+  name?: string;
+  /** Token version string (used in EIP-712 domain) */
+  version?: string;
+  /** Transfer method identifier (e.g. "permit2") */
+  assetTransferMethod?: string;
+  /** Whether the token supports EIP-2612 permit */
+  supportsEip2612?: boolean;
 }
 
 /**
@@ -21,12 +28,17 @@ export class AssetRegistry {
   private assets: Map<string, Map<string, AssetInfo>> = new Map();
   private defaults: Map<string, string> = new Map();
 
+  /** Creates a new AssetRegistry pre-populated with built-in token data. */
   constructor() {
     this.registerBuiltins();
   }
 
   /**
    * Register a single asset for a network.
+   *
+   * @param network - The network identifier (e.g. "eip155:1")
+   * @param symbol - The token symbol (e.g. "USDT")
+   * @param info - Asset metadata
    */
   register(network: Network, symbol: string, info: AssetInfo): void {
     if (!this.assets.has(network)) {
@@ -37,6 +49,9 @@ export class AssetRegistry {
 
   /**
    * Batch-register multiple assets for a network.
+   *
+   * @param network - The network identifier
+   * @param assets - Map of symbol to AssetInfo
    */
   registerAll(network: Network, assets: Record<string, AssetInfo>): void {
     for (const [symbol, info] of Object.entries(assets)) {
@@ -46,6 +61,9 @@ export class AssetRegistry {
 
   /**
    * Set the default asset symbol for a network.
+   *
+   * @param network - The network identifier
+   * @param symbol - The symbol to set as default
    */
   setDefault(network: Network, symbol: string): void {
     if (!this.has(network, symbol)) {
@@ -58,7 +76,11 @@ export class AssetRegistry {
 
   /**
    * Resolve a symbol to its AssetInfo on a network.
-   * Throws if not found.
+   *
+   * @param network - The network identifier
+   * @param symbol - The token symbol
+   * @returns The resolved AssetInfo
+   * @throws If the asset is not registered
    */
   resolve(network: Network, symbol: string): AssetInfo {
     const networkAssets = this.assets.get(network);
@@ -73,6 +95,10 @@ export class AssetRegistry {
 
   /**
    * Get the default asset for a network.
+   *
+   * @param network - The network identifier
+   * @returns The default symbol and its AssetInfo
+   * @throws If no default is configured
    */
   getDefault(network: Network): { symbol: string; info: AssetInfo } {
     const symbol = this.defaults.get(network);
@@ -84,6 +110,9 @@ export class AssetRegistry {
 
   /**
    * List all registered symbols for a network.
+   *
+   * @param network - The network identifier
+   * @returns Array of registered symbols
    */
   getSymbols(network: Network): string[] {
     const networkAssets = this.assets.get(network);
@@ -92,6 +121,10 @@ export class AssetRegistry {
 
   /**
    * Check if an asset is registered on a network.
+   *
+   * @param network - The network identifier
+   * @param symbol - The token symbol
+   * @returns True if the asset is registered
    */
   has(network: Network, symbol: string): boolean {
     return this.assets.get(network)?.has(symbol) ?? false;
@@ -215,6 +248,10 @@ export class AssetRegistry {
 /**
  * Convert a Money value (e.g., "$1.50", 1.5) to token smallest-unit string
  * using the given decimals.
+ *
+ * @param price - The price as a string or number
+ * @param decimals - The number of decimal places for the token
+ * @returns The amount in smallest units as a string
  */
 export function convertMoney(price: string | number, decimals: number): string {
   const numericAmount =

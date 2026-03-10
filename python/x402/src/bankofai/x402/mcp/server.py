@@ -85,7 +85,6 @@ def create_payment_wrapper(
     """
     # Lazy import mcp types so the module can be imported without mcp installed
     from mcp.server.fastmcp import Context
-
     from mcp.types import CallToolResult, TextContent
 
     if not accepts:
