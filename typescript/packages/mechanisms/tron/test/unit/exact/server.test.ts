@@ -37,7 +37,7 @@ describe("ExactTronScheme (Server)", () => {
 
       expect(result.amount).toBe("1500000");
       expect(result.asset).toBe("TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf");
-      expect(result.extra).toEqual({ name: "Tether USD", version: "1" });
+      expect(result.extra).toEqual({ assetTransferMethod: "permit2" });
     });
 
     it("should parse string money amount", async () => {
@@ -98,6 +98,11 @@ describe("ExactTronScheme (Server)", () => {
       extra: { name: "Tether USD", version: "1" },
     };
 
+    const nilePermit2Requirements = {
+      ...baseRequirements,
+      extra: { assetTransferMethod: "permit2" },
+    };
+
     it("should pass through when no facilitator extra", async () => {
       const result = await server.enhancePaymentRequirements(
         baseRequirements,
@@ -122,12 +127,8 @@ describe("ExactTronScheme (Server)", () => {
     });
 
     it("should not override existing assetTransferMethod", async () => {
-      const reqsWithMethod = {
-        ...baseRequirements,
-        extra: { ...baseRequirements.extra, assetTransferMethod: "permit2" },
-      };
       const result = await server.enhancePaymentRequirements(
-        reqsWithMethod,
+        nilePermit2Requirements,
         {
           x402Version: 2,
           scheme: "exact",
@@ -137,6 +138,27 @@ describe("ExactTronScheme (Server)", () => {
         [],
       );
       expect(result.extra?.assetTransferMethod).toBe("permit2");
+    });
+
+    it("should preserve Nile default permit2 method and add facilitator address", async () => {
+      const result = await server.enhancePaymentRequirements(
+        nilePermit2Requirements,
+        {
+          x402Version: 2,
+          scheme: "exact",
+          network: "tron:nile",
+          extra: {
+            supportedAssetTransferMethods: ["tip712", "permit2"],
+            permit2FacilitatorAddress: "TSForFRqxmZdJ6Yfx2rNaFykhuQLc9cTMR",
+          },
+        },
+        [],
+      );
+
+      expect(result.extra?.assetTransferMethod).toBe("permit2");
+      expect(result.extra?.permit2FacilitatorAddress).toBe(
+        "TSForFRqxmZdJ6Yfx2rNaFykhuQLc9cTMR",
+      );
     });
 
     it("should use first method if tip712 not in supported list", async () => {

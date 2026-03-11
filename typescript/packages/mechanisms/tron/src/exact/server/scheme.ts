@@ -158,6 +158,7 @@ export class ExactTronScheme implements SchemeNetworkServer {
         name: "Tether USD",
         version: "1",
         decimals: 6,
+        assetTransferMethod: "permit2",
       },
       "tron:shasta": {
         address: "TG3XXyExBkPp9nzdajDZsozEu4BkaSJozs",
