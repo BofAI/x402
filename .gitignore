@@ -219,3 +219,8 @@ dist/
 # Agent / AI tool config
 CLAUDE.md
 .claude/
+
+# Vim swap files
+*.swp
+*.swo
+*~
