@@ -1,6 +1,6 @@
 import { TRON_CHAIN_IDS } from "./constants";
 
-/**
+declare var require: any;/**
  * Get the numeric chain ID for a TRON network identifier.
  *
  * @param network - The network identifier in CAIP-2 format (e.g., "tron:nile")
@@ -23,8 +23,8 @@ export function getTronChainId(network: string): number {
 /**
  * Get the crypto object from the global scope.
  */
-function getCrypto(): typeof globalThis.crypto {
-  const cryptoObj = globalThis.crypto;
+function getCrypto(): any {
+  const cryptoObj = (globalThis as any).crypto;
   if (!cryptoObj) {
     throw new Error("Crypto API not available");
   }
@@ -36,8 +36,8 @@ function getCrypto(): typeof globalThis.crypto {
  */
 export function createNonce(): `0x${string}` {
   const bytes = getCrypto().getRandomValues(new Uint8Array(32));
-  return `0x${Array.from(bytes)
-    .map((b: number) => b.toString(16).padStart(2, "0"))
+  return `0x${Array.from(bytes as Iterable<number>)
+    .map((b) => b.toString(16).padStart(2, "0"))
     .join("")}` as `0x${string}`;
 }
 

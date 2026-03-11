@@ -3,15 +3,14 @@
   "version": "2.6.0",
   "description": "x402 payment mechanism for TRON (TRC-20 tokens via TIP-712 and Permit2)",
   "license": "Apache-2.0",
-  "type": "module",
   "main": "dist/cjs/index.js",
-  "module": "dist/esm/index.js",
-  "types": "dist/esm/index.d.ts",
+  "module": "dist/esm/index.mjs",
+  "types": "dist/esm/index.d.mts",
   "exports": {
     ".": {
       "import": {
-        "types": "./dist/esm/index.d.ts",
-        "default": "./dist/esm/index.js"
+        "types": "./dist/esm/index.d.mts",
+        "default": "./dist/esm/index.mjs"
       },
       "require": {
         "types": "./dist/cjs/index.d.ts",
@@ -20,8 +19,8 @@
     },
     "./exact/client": {
       "import": {
-        "types": "./dist/esm/exact/client/index.d.ts",
-        "default": "./dist/esm/exact/client/index.js"
+        "types": "./dist/esm/exact/client/index.d.mts",
+        "default": "./dist/esm/exact/client/index.mjs"
       },
       "require": {
         "types": "./dist/cjs/exact/client/index.d.ts",
@@ -30,8 +29,8 @@
     },
     "./exact/server": {
       "import": {
-        "types": "./dist/esm/exact/server/index.d.ts",
-        "default": "./dist/esm/exact/server/index.js"
+        "types": "./dist/esm/exact/server/index.d.mts",
+        "default": "./dist/esm/exact/server/index.mjs"
       },
       "require": {
         "types": "./dist/cjs/exact/server/index.d.ts",
@@ -40,8 +39,8 @@
     },
     "./exact/facilitator": {
       "import": {
-        "types": "./dist/esm/exact/facilitator/index.d.ts",
-        "default": "./dist/esm/exact/facilitator/index.js"
+        "types": "./dist/esm/exact/facilitator/index.d.mts",
+        "default": "./dist/esm/exact/facilitator/index.mjs"
       },
       "require": {
         "types": "./dist/cjs/exact/facilitator/index.d.ts",
