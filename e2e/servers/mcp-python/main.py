@@ -50,6 +50,20 @@ def main() -> None:
     # Set up x402 resource server
     facilitator_client = HTTPFacilitatorClient(FacilitatorConfig(url=FACILITATOR_URL))
     resource_server = x402ResourceServer(facilitator_client)
+
+    # Register DHLU token for BSC Testnet in the AssetRegistry for E2E testing.
+    resource_server.asset_registry.register(
+        EVM_NETWORK,
+        "DHLU",
+        {
+            "address": "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
+            "decimals": 6,
+            "name": "DA HULU",
+            "version": "1",
+            "supports_eip2612": True,
+        },
+    )
+
     register_exact_evm_server(resource_server, EVM_NETWORK)
 
     # Initialize (fetches supported kinds from facilitator)
@@ -60,6 +74,7 @@ def main() -> None:
         scheme="exact",
         network=EVM_NETWORK,
         pay_to=EVM_PAYEE_ADDRESS,
+        assets=["DHLU"],
         price={
             "amount": "1000",
             "asset": "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",

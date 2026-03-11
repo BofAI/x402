@@ -60,6 +60,16 @@ const facilitatorClient = new HTTPFacilitatorClient({ url: facilitatorUrl });
 // Create x402 resource server with builder pattern (cleaner!)
 const x402Server = new x402ResourceServer(facilitatorClient);
 
+// Register DHLU token for BSC Testnet in the AssetRegistry for E2E testing.
+// DHLU supports EIP-3009, EIP-2612, and standard ERC-20.
+x402Server.assetRegistry.register(EVM_NETWORK, "DHLU", {
+  address: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
+  decimals: 6,
+  name: "DA HULU",
+  version: "1",
+  supportsEip2612: true,
+});
+
 // Register server schemes
 x402Server.register("eip155:*", new ExactEvmScheme());
 if (SVM_PAYEE_ADDRESS) {
@@ -130,6 +140,7 @@ app.use(
           payTo: EVM_PAYEE_ADDRESS,
           scheme: "exact",
           network: EVM_NETWORK,
+          assets: ["DHLU"],
           price: {
             amount: "1000",
             asset: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
@@ -217,6 +228,7 @@ app.use(
           payTo: EVM_PAYEE_ADDRESS,
           scheme: "exact",
           network: EVM_NETWORK,
+          assets: ["DHLU"],
           price: {
             amount: "1000",
             asset: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
@@ -253,6 +265,7 @@ app.use(
           payTo: EVM_PAYEE_ADDRESS,
           scheme: "exact",
           network: EVM_NETWORK,
+          assets: ["DHLU"],
           price: {
             amount: "1000",
             asset: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816", // DHLU (ERC-20 approval path)

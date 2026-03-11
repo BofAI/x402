@@ -48,6 +48,16 @@ async function main(): Promise<void> {
   // Step 2: Set up x402 resource server for payment handling
   const facilitatorClient = new HTTPFacilitatorClient({ url: facilitatorUrl });
   const resourceServer = new x402ResourceServer(facilitatorClient);
+
+  // Register DHLU token for BSC Testnet in the AssetRegistry for E2E testing.
+  resourceServer.assetRegistry.register(EVM_NETWORK, "DHLU", {
+    address: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
+    decimals: 6,
+    name: "DA HULU",
+    version: "1",
+    supportsEip2612: true,
+  });
+
   resourceServer.register("eip155:97", new ExactEvmScheme());
   await resourceServer.initialize();
 
@@ -56,6 +66,7 @@ async function main(): Promise<void> {
     scheme: "exact",
     network: EVM_NETWORK,
     payTo: EVM_PAYEE_ADDRESS,
+    assets: ["DHLU"],
     price: {
       amount: "1000",
       asset: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",

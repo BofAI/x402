@@ -57,6 +57,19 @@ else:
 # Create resource server
 server = x402ResourceServer(facilitator)
 
+# Register DHLU token for BSC Testnet
+server.asset_registry.register(
+    EVM_NETWORK,
+    "DHLU",
+    {
+        "address": "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
+        "decimals": 6,
+        "name": "DA HULU",
+        "version": "1",
+        "supports_eip2612": True,
+    },
+)
+
 # Register EVM exact scheme (always) and SVM exact scheme (if configured)
 register_exact_evm_server(server, EVM_NETWORK)
 if SVM_ADDRESS:
@@ -71,6 +84,7 @@ routes = {
         "accepts": {
             "scheme": "exact",
             "payTo": EVM_ADDRESS,
+            "assets": ["DHLU"],
             "price": {
                 "amount": "1000",
                 "asset": "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
@@ -100,6 +114,7 @@ routes = {
         "accepts": {
             "scheme": "exact",
             "payTo": EVM_ADDRESS,
+            "assets": ["DHLU"],
             "price": {
                 "amount": "1000",
                 "asset": "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",

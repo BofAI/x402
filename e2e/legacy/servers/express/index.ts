@@ -34,7 +34,17 @@ app.use(
     payToEvm,
     {
       "GET /protected": {
-        price: "$0.001",
+        price: {
+          amount: "1000",
+          asset: {
+            address: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
+            decimals: 6,
+            eip712: {
+              name: "DA HULU",
+              version: "1",
+            },
+          },
+        },
         network: evmNetwork,
       },
     },

@@ -23,6 +23,7 @@ export const GET = withX402(
     accepts: {
       payTo: EVM_PAYEE_ADDRESS,
       scheme: "exact",
+      assets: ["DHLU"],
       price: {
         amount: "1000",
         asset: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
