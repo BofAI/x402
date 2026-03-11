@@ -37,7 +37,8 @@ export class CoverageTracker {
    * including different EVM transfer methods (eip3009 vs permit2).
    */
   private getEndpointCoverageKey(serverName: string, endpointPath: string, protocolFamily: string, version: number, transferMethod?: string): string {
-    const method = protocolFamily === 'evm' ? (transferMethod || 'eip3009') : '';
+    const defaultMethods: Record<string, string> = { evm: 'eip3009', tron: 'tip712' };
+    const method = defaultMethods[protocolFamily] ? (transferMethod || defaultMethods[protocolFamily]) : '';
     return `${serverName}-${endpointPath}-${protocolFamily}${method ? `-${method}` : ''}-v${version}`;
   }
 

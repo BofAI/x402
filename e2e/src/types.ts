@@ -1,8 +1,8 @@
 import type { NetworkSet } from './networks/networks';
 
-export type ProtocolFamily = 'evm' | 'svm' | 'aptos' | 'stellar';
+export type ProtocolFamily = 'evm' | 'svm' | 'aptos' | 'stellar' | 'tron';
 export type Transport = 'http' | 'mcp';
-export type TransferMethod = 'eip3009' | 'permit2';
+export type TransferMethod = 'eip3009' | 'permit2' | 'tip712';
 
 export interface ClientResult {
   success: boolean;
@@ -17,6 +17,7 @@ export interface ClientConfig {
   svmPrivateKey: string;
   aptosPrivateKey: string;
   stellarPrivateKey: string;
+  tronPrivateKey: string;
   serverUrl: string;
   endpointPath: string;
 }
@@ -27,6 +28,7 @@ export interface ServerConfig {
   svmPayTo: string;
   aptosPayTo: string;
   stellarPayTo: string;
+  tronPayTo: string;
   networks: NetworkSet;
   facilitatorUrl?: string;
 }
@@ -64,6 +66,9 @@ export interface TestConfig {
   x402Versions?: number[];
   extensions?: string[];
   evm?: {
+    transferMethods: TransferMethod[];
+  };
+  tron?: {
     transferMethods: TransferMethod[];
   };
   endpoints?: TestEndpoint[];
