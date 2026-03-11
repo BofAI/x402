@@ -41,17 +41,17 @@ class AgentWalletAdapter(Wallet):
 
     async def sign_transaction(self, tx: dict[str, Any]) -> str:
         """Sign transaction and return result.
-        
+
         Return format depends on blockchain:
         - EVM: Returns complete signed transaction hex (RLP-encoded)
         - TRON: Returns signature hex only
-        
+
         agent-wallet's TRON adapter returns a JSON string with the full signed transaction,
         so we parse it and extract only the signature to match PrivateKeyWallet behavior.
         agent-wallet's EVM adapter already returns the raw transaction hex directly.
         """
         result = await self._agent_wallet.sign_transaction(tx)
-        
+
         # TRON case: agent-wallet returns JSON, extract signature
         if isinstance(result, str) and result.strip().startswith("{"):
             signed_obj = json.loads(result)
@@ -59,7 +59,7 @@ class AgentWalletAdapter(Wallet):
             if not signatures:
                 raise ValueError("agent-wallet returned signed tx JSON without signature")
             result = signatures[0]
-        
+
         # Normalize: strip 0x prefix to match Wallet contract
         if isinstance(result, str) and result.startswith("0x"):
             result = result[2:]

@@ -45,7 +45,8 @@ class TronPrivateKeyWallet(Wallet):
             raw_data_hex = tx.get("raw_data_hex") or tx.get("raw_dataHex")
             if raw_data_hex is None:
                 raise ValueError(
-                    "Payload must be an unsigned TRON transaction JSON containing txID/txid or raw_data_hex"
+                    "Payload must be an unsigned TRON transaction JSON "
+                    "containing txID/txid or raw_data_hex"
                 )
             raw_data_bytes = bytes.fromhex(raw_data_hex)
             tx_id_hex = SHA256.new(raw_data_bytes).hexdigest()
