@@ -224,3 +224,15 @@ CLAUDE.md
 *.swp
 *.swo
 *~
+
+# E2E test results and local config
+e2e/*.json
+**/.env-local
+**/uv.lock
+!python/x402/uv.lock
+!e2e/clients/*/uv.lock
+!e2e/facilitators/*/uv.lock
+!e2e/servers/*/uv.lock
+!examples/python/*/uv.lock
+!examples/python/*/*/uv.lock
+!examples/python/*/*/*/uv.lock
