@@ -24,6 +24,7 @@ export class GenericClientProxy extends BaseProxy implements ClientProxy {
           SVM_PRIVATE_KEY: config.svmPrivateKey,
           APTOS_PRIVATE_KEY: config.aptosPrivateKey,
           STELLAR_PRIVATE_KEY: config.stellarPrivateKey,
+          EVM_RPC_URL: config.evmRpcUrl || '',
           RESOURCE_SERVER_URL: config.serverUrl,
           ENDPOINT_PATH: config.endpointPath,
         }

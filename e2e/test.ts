@@ -598,6 +598,7 @@ async function runTest() {
       svmPrivateKey: clientSvmPrivateKey!,
       aptosPrivateKey: clientAptosPrivateKey || '',
       stellarPrivateKey: clientStellarPrivateKey || '',
+      evmRpcUrl: networks.evm.rpcUrl,
       serverUrl: `http://localhost:${port}`,
       endpointPath: scenario.endpoint.path,
     };

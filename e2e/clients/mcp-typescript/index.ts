@@ -9,8 +9,11 @@
 
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
+import { toClientEvmSigner } from "@bankofai/x402-evm";
 import { createx402MCPClient } from "@bankofai/x402-mcp";
+import { createPublicClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import { bscTestnet } from "viem/chains";
 
 interface E2EResult {
   success: boolean;
@@ -34,7 +37,12 @@ if (!serverUrl || !endpointPath || !evmPrivateKey) {
 }
 
 async function main(): Promise<void> {
-  const evmSigner = privateKeyToAccount(evmPrivateKey);
+  const evmAccount = privateKeyToAccount(evmPrivateKey);
+  const publicClient = createPublicClient({
+    chain: bscTestnet,
+    transport: http(process.env.EVM_RPC_URL || undefined),
+  });
+  const evmSigner = toClientEvmSigner(evmAccount, publicClient);
 
   // Create x402 MCP client with auto-payment enabled
   const x402Mcp = createx402MCPClient({

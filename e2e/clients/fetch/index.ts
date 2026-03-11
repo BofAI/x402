@@ -29,7 +29,7 @@ if (process.env.SVM_PRIVATE_KEY) {
 
 const publicClient = createPublicClient({
   chain: bscTestnet,
-  transport: http(),
+  transport: http(process.env.EVM_RPC_URL || undefined),
 });
 
 const evmSigner = toClientEvmSigner(evmAccount, publicClient);

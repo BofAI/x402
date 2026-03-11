@@ -17,6 +17,7 @@ export interface ClientConfig {
   svmPrivateKey: string;
   aptosPrivateKey: string;
   stellarPrivateKey: string;
+  evmRpcUrl?: string;
   serverUrl: string;
   endpointPath: string;
 }

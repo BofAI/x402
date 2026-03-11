@@ -14,7 +14,8 @@ Run with: uv run uvicorn main:app --port 4022
 
 import os
 import sys
-from typing import Any
+from typing import Any, AsyncGenerator
+from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -147,11 +148,21 @@ class SettleRequest(BaseModel):
     paymentRequirements: dict
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Facilitator lifespan manager."""
+    # This message signals to the E2E framework that the server is ready.
+    # By placing it in the lifespan, we ensure the web server is actually up.
+    print("Facilitator listening")
+    yield
+
+
 # Initialize FastAPI app
 app = FastAPI(
     title="x402 Python Facilitator (E2E)",
     description="Verifies and settles x402 payments on-chain for e2e testing",
     version="2.0.0",
+    lifespan=lifespan,
 )
 
 
@@ -337,6 +348,6 @@ if __name__ == "__main__":
     """)
 
     # Log that facilitator is ready (needed for e2e test discovery)
-    print("Facilitator listening")
+    # Note: "Facilitator listening" is now handled via lifespan
 
     uvicorn.run(app, host="0.0.0.0", port=PORT, log_level="warning")
