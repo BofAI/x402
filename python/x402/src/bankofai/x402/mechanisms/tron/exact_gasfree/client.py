@@ -101,14 +101,16 @@ class ExactGasFreeClientMechanism(ClientMechanism):
             service_provider_addr = random.choice(providers)["address"]
             self._logger.debug(f"Selected GasFree provider: {service_provider_addr}")
 
-        # Look up per-user transferFee from account info
+        # Look up per-user transferFee and activateFee from account info
         assets = account_info.get("assets", [])
         transfer_fee = 0
+        activate_fee = 0
         target_token = self._address_converter.normalize(requirements.asset)
 
         for asset in assets:
             if asset.get("tokenAddress") == target_token:
                 transfer_fee = int(asset.get("transferFee", 0))
+                activate_fee = int(asset.get("activateFee", 0))
                 break
 
         # Determine maxFee
@@ -120,6 +122,13 @@ class ExactGasFreeClientMechanism(ClientMechanism):
             token_info = TokenRegistry.find_by_address(network, requirements.asset)
             decimals = token_info.decimals if token_info else 6
             max_fee_val = 10**decimals
+
+        # If the account is not yet activated, add activateFee to maxFee
+        if not is_active and activate_fee > 0:
+            max_fee_val = max_fee_val + activate_fee
+            self._logger.debug(
+                f"GasFree account not activated, adding activateFee {activate_fee} to maxFee"
+            )
         max_fee = str(max_fee_val)
 
         # 4. Balance verification

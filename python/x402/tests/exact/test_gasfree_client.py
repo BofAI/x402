@@ -128,6 +128,231 @@ class TestGasFreeClient:
         assert payload.x402_version == 2
 
     @pytest.mark.anyio
+    async def test_activate_fee_included_when_not_active(
+        self, mock_signer, nile_requirements, mock_api_client
+    ):
+        """activateFee should be added to maxFee when account is not activated"""
+        mock_api_client.get_address_info = AsyncMock(
+            return_value={
+                "accountAddress": "THKbWd2g5aS9tY59xk8hp5xMnbE8m3B3E",
+                "gasFreeAddress": "TLCvf7MktLG7XkbJRyUwnvCeDnaEXYkcbC",
+                "active": False,
+                "allowSubmit": True,
+                "nonce": 0,
+                "assets": [
+                    {
+                        "tokenAddress": USDT_ADDRESS,
+                        "balance": 15000000,
+                        "transferFee": 1000000,
+                        "activateFee": 2050000,
+                    }
+                ],
+            }
+        )
+        mock_signer.check_balance = AsyncMock(return_value=15000000)
+
+        mechanism = ExactGasFreeClientMechanism(mock_signer, clients={"tron:nile": mock_api_client})
+        payload = await mechanism.create_payment_payload(nile_requirements, "https://example.com")
+
+        # maxFee = transferFee(1000000) + activateFee(2050000) = 3050000
+        assert payload.payload.payment_permit.fee.fee_amount == "3050000"
+
+    @pytest.mark.anyio
+    async def test_activate_fee_not_added_when_active(
+        self, mock_signer, nile_requirements, mock_api_client
+    ):
+        """activateFee should NOT be added to maxFee when account is already activated"""
+        mock_api_client.get_address_info = AsyncMock(
+            return_value={
+                "accountAddress": "THKbWd2g5aS9tY59xk8hp5xMnbE8m3B3E",
+                "gasFreeAddress": "TLCvf7MktLG7XkbJRyUwnvCeDnaEXYkcbC",
+                "active": True,
+                "nonce": 1,
+                "assets": [
+                    {
+                        "tokenAddress": USDT_ADDRESS,
+                        "balance": 5000000,
+                        "transferFee": 1000000,
+                        "activateFee": 2050000,
+                    }
+                ],
+            }
+        )
+
+        mechanism = ExactGasFreeClientMechanism(mock_signer, clients={"tron:nile": mock_api_client})
+        payload = await mechanism.create_payment_payload(nile_requirements, "https://example.com")
+
+        # activateFee should be ignored since account is active
+        assert payload.payload.payment_permit.fee.fee_amount == "1000000"
+
+    @pytest.mark.anyio
+    async def test_activate_fee_zero_when_not_active(
+        self, mock_signer, nile_requirements, mock_api_client
+    ):
+        """When activateFee is 0 and account not active, maxFee should not change"""
+        mock_api_client.get_address_info = AsyncMock(
+            return_value={
+                "accountAddress": "THKbWd2g5aS9tY59xk8hp5xMnbE8m3B3E",
+                "gasFreeAddress": "TLCvf7MktLG7XkbJRyUwnvCeDnaEXYkcbC",
+                "active": False,
+                "allowSubmit": True,
+                "nonce": 0,
+                "assets": [
+                    {
+                        "tokenAddress": USDT_ADDRESS,
+                        "balance": 5000000,
+                        "transferFee": 1000000,
+                        "activateFee": 0,
+                    }
+                ],
+            }
+        )
+
+        mechanism = ExactGasFreeClientMechanism(mock_signer, clients={"tron:nile": mock_api_client})
+        payload = await mechanism.create_payment_payload(nile_requirements, "https://example.com")
+
+        # activateFee is 0, so maxFee stays as transferFee
+        assert payload.payload.payment_permit.fee.fee_amount == "1000000"
+
+    @pytest.mark.anyio
+    async def test_activate_fee_missing_from_asset(
+        self, mock_signer, nile_requirements, mock_api_client
+    ):
+        """When activateFee field is absent from asset, should default to 0"""
+        mock_api_client.get_address_info = AsyncMock(
+            return_value={
+                "accountAddress": "THKbWd2g5aS9tY59xk8hp5xMnbE8m3B3E",
+                "gasFreeAddress": "TLCvf7MktLG7XkbJRyUwnvCeDnaEXYkcbC",
+                "active": False,
+                "allowSubmit": True,
+                "nonce": 0,
+                "assets": [
+                    {
+                        "tokenAddress": USDT_ADDRESS,
+                        "balance": 5000000,
+                        "transferFee": 1000000,
+                        # activateFee field missing entirely
+                    }
+                ],
+            }
+        )
+
+        mechanism = ExactGasFreeClientMechanism(mock_signer, clients={"tron:nile": mock_api_client})
+        payload = await mechanism.create_payment_payload(nile_requirements, "https://example.com")
+
+        # No activateFee → defaults to 0 → maxFee stays as transferFee
+        assert payload.payload.payment_permit.fee.fee_amount == "1000000"
+
+    @pytest.mark.anyio
+    async def test_activate_fee_with_higher_facilitator_fee(self, mock_signer, mock_api_client):
+        """activateFee should be added on top of whichever is higher (facilitator vs transfer)"""
+        mock_api_client.get_address_info = AsyncMock(
+            return_value={
+                "accountAddress": "THKbWd2g5aS9tY59xk8hp5xMnbE8m3B3E",
+                "gasFreeAddress": "TLCvf7MktLG7XkbJRyUwnvCeDnaEXYkcbC",
+                "active": False,
+                "allowSubmit": True,
+                "nonce": 0,
+                "assets": [
+                    {
+                        "tokenAddress": USDT_ADDRESS,
+                        "balance": 20000000,
+                        "transferFee": 1000000,
+                        "activateFee": 2050000,
+                    }
+                ],
+            }
+        )
+        mock_signer.check_balance = AsyncMock(return_value=20000000)
+
+        requirements = PaymentRequirements(
+            scheme="exact_gasfree",
+            network="tron:nile",
+            amount="1000000",
+            asset=USDT_ADDRESS,
+            payTo="TMerchantAddr12345678901234567890",
+            maxTimeoutSeconds=3600,
+            extra=PaymentRequirementsExtra(
+                fee=FeeInfo(feeTo=PROVIDER_ADDRESS, feeAmount="5000000"),
+            ),
+        )
+
+        mechanism = ExactGasFreeClientMechanism(mock_signer, clients={"tron:nile": mock_api_client})
+        payload = await mechanism.create_payment_payload(requirements, "https://example.com")
+
+        # facilitatorFee(5000000) > transferFee(1000000), so base = 5000000
+        # maxFee = 5000000 + activateFee(2050000) = 7050000
+        assert payload.payload.payment_permit.fee.fee_amount == "7050000"
+
+    @pytest.mark.anyio
+    async def test_activate_fee_balance_check_includes_activate_fee(
+        self, mock_signer, nile_requirements, mock_api_client
+    ):
+        """Balance check should account for activateFee in the required total"""
+        from bankofai.x402.exceptions import InsufficientGasFreeBalance
+
+        mock_api_client.get_address_info = AsyncMock(
+            return_value={
+                "accountAddress": "THKbWd2g5aS9tY59xk8hp5xMnbE8m3B3E",
+                "gasFreeAddress": "TLCvf7MktLG7XkbJRyUwnvCeDnaEXYkcbC",
+                "active": False,
+                "allowSubmit": True,
+                "nonce": 0,
+                "assets": [
+                    {
+                        "tokenAddress": USDT_ADDRESS,
+                        "balance": 3000000,
+                        "transferFee": 1000000,
+                        "activateFee": 2050000,
+                    }
+                ],
+            }
+        )
+        # Balance = 3000000, but need amount(1000000) + maxFee(3050000) = 4050000
+        mock_signer.check_balance = AsyncMock(return_value=3000000)
+
+        mechanism = ExactGasFreeClientMechanism(mock_signer, clients={"tron:nile": mock_api_client})
+        with pytest.raises(InsufficientGasFreeBalance):
+            await mechanism.create_payment_payload(nile_requirements, "https://example.com")
+
+    @pytest.mark.anyio
+    async def test_activate_fee_on_top_of_fallback_minimum(self, mock_signer, mock_api_client):
+        """activateFee should be added on top of fallback 1-token minimum"""
+        mock_api_client.get_address_info = AsyncMock(
+            return_value={
+                "accountAddress": "THKbWd2g5aS9tY59xk8hp5xMnbE8m3B3E",
+                "gasFreeAddress": "TLCvf7MktLG7XkbJRyUwnvCeDnaEXYkcbC",
+                "active": False,
+                "allowSubmit": True,
+                "nonce": 0,
+                "assets": [
+                    {
+                        "tokenAddress": USDT_ADDRESS,
+                        "balance": 10000000,
+                        "transferFee": 0,
+                        "activateFee": 2050000,
+                    }
+                ],
+            }
+        )
+        mock_signer.check_balance = AsyncMock(return_value=10000000)
+
+        # No extra.fee → triggers fallback to 1 token (1000000)
+        requirements_no_fee = PaymentRequirements(
+            scheme="exact_gasfree",
+            network="tron:nile",
+            amount="1000000",
+            asset=USDT_ADDRESS,
+            payTo="TMerchantAddr12345678901234567890",
+        )
+
+        mechanism = ExactGasFreeClientMechanism(mock_signer, clients={"tron:nile": mock_api_client})
+        payload = await mechanism.create_payment_payload(requirements_no_fee, "https://example.com")
+
+        # fallback(1000000) + activateFee(2050000) = 3050000
+        assert payload.payload.payment_permit.fee.fee_amount == "3050000"
+
+    @pytest.mark.anyio
     async def test_not_activated(self, mock_signer, nile_requirements, mock_api_client):
         from bankofai.x402.exceptions import GasFreeAccountNotActivated
 

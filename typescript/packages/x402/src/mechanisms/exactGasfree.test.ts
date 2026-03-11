@@ -104,6 +104,226 @@ describe('ExactGasFreeClientMechanism', () => {
     expect(mockApiClient.getProviders).toHaveBeenCalled();
   });
 
+  it('should include activateFee in maxFee when account is not activated', async () => {
+    mockApiClient.getAddressInfo.mockResolvedValue({
+      accountAddress: MOCK_ADDR,
+      gasFreeAddress: 'TLCvf7MktLG7XkbJRyUwnvCeDnaEXYkcbC',
+      active: false,
+      allowSubmit: true,
+      nonce: 0,
+      assets: [
+        {
+          tokenAddress: USDT_ADDRESS,
+          balance: '15000000',
+          transferFee: '1000000',
+          activateFee: '2050000',
+        },
+      ],
+    });
+    mockSigner.checkBalance.mockResolvedValue(15000000n);
+
+    const requirements: PaymentRequirements = {
+      scheme: 'exact_gasfree',
+      network: 'tron:nile',
+      amount: '1000000',
+      asset: USDT_ADDRESS,
+      payTo: MOCK_ADDR,
+      extra: {
+        fee: {
+          feeAmount: '0',
+          feeTo: MOCK_ADDR,
+        }
+      }
+    };
+
+    const payload = await mechanism.createPaymentPayload(requirements, 'https://example.com/res');
+
+    // maxFee should be transferFee (1000000) + activateFee (2050000) = 3050000
+    expect(payload.payload.paymentPermit?.fee.feeAmount).toBe('3050000');
+  });
+
+  it('should NOT include activateFee when account is already activated', async () => {
+    mockApiClient.getAddressInfo.mockResolvedValue({
+      accountAddress: MOCK_ADDR,
+      gasFreeAddress: 'TLCvf7MktLG7XkbJRyUwnvCeDnaEXYkcbC',
+      active: true,
+      nonce: 1,
+      assets: [
+        {
+          tokenAddress: USDT_ADDRESS,
+          balance: '5000000',
+          transferFee: '1000000',
+          activateFee: '2050000',
+        },
+      ],
+    });
+
+    const requirements: PaymentRequirements = {
+      scheme: 'exact_gasfree',
+      network: 'tron:nile',
+      amount: '1000000',
+      asset: USDT_ADDRESS,
+      payTo: MOCK_ADDR,
+      extra: {
+        fee: {
+          feeAmount: '0',
+          feeTo: MOCK_ADDR,
+        }
+      }
+    };
+
+    const payload = await mechanism.createPaymentPayload(requirements, 'https://example.com/res');
+
+    // activateFee should be ignored since account is active
+    expect(payload.payload.paymentPermit?.fee.feeAmount).toBe('1000000');
+  });
+
+  it('should handle zero activateFee when not activated', async () => {
+    mockApiClient.getAddressInfo.mockResolvedValue({
+      accountAddress: MOCK_ADDR,
+      gasFreeAddress: 'TLCvf7MktLG7XkbJRyUwnvCeDnaEXYkcbC',
+      active: false,
+      allowSubmit: true,
+      nonce: 0,
+      assets: [
+        {
+          tokenAddress: USDT_ADDRESS,
+          balance: '5000000',
+          transferFee: '1000000',
+          activateFee: '0',
+        },
+      ],
+    });
+
+    const requirements: PaymentRequirements = {
+      scheme: 'exact_gasfree',
+      network: 'tron:nile',
+      amount: '1000000',
+      asset: USDT_ADDRESS,
+      payTo: MOCK_ADDR,
+      extra: {
+        fee: {
+          feeAmount: '0',
+          feeTo: MOCK_ADDR,
+        }
+      }
+    };
+
+    const payload = await mechanism.createPaymentPayload(requirements, 'https://example.com/res');
+
+    // activateFee is 0 → maxFee stays as transferFee
+    expect(payload.payload.paymentPermit?.fee.feeAmount).toBe('1000000');
+  });
+
+  it('should handle missing activateFee field gracefully', async () => {
+    mockApiClient.getAddressInfo.mockResolvedValue({
+      accountAddress: MOCK_ADDR,
+      gasFreeAddress: 'TLCvf7MktLG7XkbJRyUwnvCeDnaEXYkcbC',
+      active: false,
+      allowSubmit: true,
+      nonce: 0,
+      assets: [
+        {
+          tokenAddress: USDT_ADDRESS,
+          balance: '5000000',
+          transferFee: '1000000',
+          // activateFee field missing entirely
+        },
+      ],
+    });
+
+    const requirements: PaymentRequirements = {
+      scheme: 'exact_gasfree',
+      network: 'tron:nile',
+      amount: '1000000',
+      asset: USDT_ADDRESS,
+      payTo: MOCK_ADDR,
+      extra: {
+        fee: {
+          feeAmount: '0',
+          feeTo: MOCK_ADDR,
+        }
+      }
+    };
+
+    const payload = await mechanism.createPaymentPayload(requirements, 'https://example.com/res');
+
+    // No activateFee → defaults to 0 → maxFee = transferFee only
+    expect(payload.payload.paymentPermit?.fee.feeAmount).toBe('1000000');
+  });
+
+  it('should add activateFee on top of higher facilitator fee', async () => {
+    mockApiClient.getAddressInfo.mockResolvedValue({
+      accountAddress: MOCK_ADDR,
+      gasFreeAddress: 'TLCvf7MktLG7XkbJRyUwnvCeDnaEXYkcbC',
+      active: false,
+      allowSubmit: true,
+      nonce: 0,
+      assets: [
+        {
+          tokenAddress: USDT_ADDRESS,
+          balance: '20000000',
+          transferFee: '1000000',
+          activateFee: '2050000',
+        },
+      ],
+    });
+    mockSigner.checkBalance.mockResolvedValue(20000000n);
+
+    const requirements: PaymentRequirements = {
+      scheme: 'exact_gasfree',
+      network: 'tron:nile',
+      amount: '1000000',
+      asset: USDT_ADDRESS,
+      payTo: MOCK_ADDR,
+      extra: {
+        fee: {
+          feeAmount: '5000000',
+          feeTo: MOCK_ADDR,
+        }
+      }
+    };
+
+    const payload = await mechanism.createPaymentPayload(requirements, 'https://example.com/res');
+
+    // facilitatorFee(5000000) > transferFee(1000000), base = 5000000
+    // maxFee = 5000000 + activateFee(2050000) = 7050000
+    expect(payload.payload.paymentPermit?.fee.feeAmount).toBe('7050000');
+  });
+
+  it('should add activateFee on top of fallback 1-token minimum', async () => {
+    mockApiClient.getAddressInfo.mockResolvedValue({
+      accountAddress: MOCK_ADDR,
+      gasFreeAddress: 'TLCvf7MktLG7XkbJRyUwnvCeDnaEXYkcbC',
+      active: false,
+      allowSubmit: true,
+      nonce: 0,
+      assets: [
+        {
+          tokenAddress: USDT_ADDRESS,
+          balance: '10000000',
+          transferFee: '0',
+          activateFee: '2050000',
+        },
+      ],
+    });
+    mockSigner.checkBalance.mockResolvedValue(10000000n);
+
+    // No extra.fee → triggers fallback to 1 token (1000000)
+    const requirements: PaymentRequirements = {
+      scheme: 'exact_gasfree',
+      network: 'tron:nile',
+      amount: '1000000',
+      asset: USDT_ADDRESS,
+      payTo: MOCK_ADDR,
+    };
+
+    const payload = await mechanism.createPaymentPayload(requirements, 'https://example.com/res');
+
+    // fallback(1000000) + activateFee(2050000) = 3050000
+    expect(payload.payload.paymentPermit?.fee.feeAmount).toBe('3050000');
+  });
+
   it('should throw error if network is not configured', async () => {
     const requirements: PaymentRequirements = {
       scheme: 'exact_gasfree',

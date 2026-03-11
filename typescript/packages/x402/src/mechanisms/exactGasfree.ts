@@ -80,6 +80,7 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
     // Look up per-user transferFee from account info
     const asset = accountInfo.assets.find((a: any) => a.tokenAddress === requirements.asset);
     const transferFee = BigInt(asset?.transferFee || '0');
+    const activateFee = BigInt(asset?.activateFee || '0');
 
     // Determine maxFee
     const facilitatorFee = BigInt(feeInfo?.feeAmount || '0');
@@ -90,6 +91,12 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
       const tokenInfo = findByAddress(requirements.network, requirements.asset);
       const decimals = tokenInfo?.decimals ?? 6;
       maxFeeBig = BigInt(10 ** decimals);
+    }
+
+    // If the account is not yet activated, add activateFee to maxFee
+    if (!accountInfo.active && activateFee > 0n) {
+      maxFeeBig = maxFeeBig + activateFee;
+      console.debug(`GasFree account not activated, adding activateFee ${activateFee} to maxFee`);
     }
     let maxFee = maxFeeBig.toString();
 
