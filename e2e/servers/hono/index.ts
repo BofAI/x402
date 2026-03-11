@@ -62,7 +62,9 @@ const x402Server = new x402ResourceServer(facilitatorClient);
 
 // Register server schemes
 x402Server.register("eip155:*", new ExactEvmScheme());
-x402Server.register("solana:*", new ExactSvmScheme());
+if (SVM_PAYEE_ADDRESS) {
+  x402Server.register("solana:*", new ExactSvmScheme());
+}
 if (APTOS_PAYEE_ADDRESS) {
   x402Server.register("aptos:*", new ExactAptosScheme());
 }

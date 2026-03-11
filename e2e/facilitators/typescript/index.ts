@@ -18,7 +18,7 @@ import {
   PrivateKeyVariants,
 } from "@aptos-labs/ts-sdk";
 import { base58 } from "@scure/base";
-import { createKeyPairSignerFromBytes } from "@solana/kit";
+import { createKeyPairSignerFromBytes, type KeyPairSigner } from "@solana/kit";
 import { toFacilitatorAptosSigner } from "@bankofai/x402-aptos";
 import { ExactAptosScheme } from "@bankofai/x402-aptos/exact/facilitator";
 import { x402Facilitator } from "@bankofai/x402-core/facilitator";
@@ -103,7 +103,7 @@ const evmAccount = privateKeyToAccount(
 console.info(`EVM Facilitator account: ${evmAccount.address}`);
 
 // Initialize the SVM account from private key (optional)
-let svmAccount: Awaited<ReturnType<typeof createKeyPairSignerFromBytes>> | undefined;
+let svmAccount: KeyPairSigner | undefined;
 if (process.env.SVM_PRIVATE_KEY) {
   svmAccount = await createKeyPairSignerFromBytes(
     base58.decode(process.env.SVM_PRIVATE_KEY as string),

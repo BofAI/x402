@@ -15,13 +15,13 @@ const baseURL = process.env.RESOURCE_SERVER_URL as string;
 const endpointPath = process.env.ENDPOINT_PATH as string;
 const url = `${baseURL}${endpointPath}`;
 
-if (!baseURL || !evmPrivateKey || !svmPrivateKey || !endpointPath) {
+if (!baseURL || !evmPrivateKey || !endpointPath) {
   console.error("Missing required environment variables");
   process.exit(1);
 }
 
 const evmSigner = await createSigner("bsc-testnet", evmPrivateKey);
-const svmSigner = await createSigner("solana-devnet", svmPrivateKey);
+const svmSigner = svmPrivateKey ? await createSigner("solana-devnet", svmPrivateKey) : undefined;
 const account = { evm: evmSigner, svm: svmSigner } as MultiNetworkSigner;
 
 const fetchWithPayment = wrapFetchWithPayment(fetch, account);

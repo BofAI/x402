@@ -21,7 +21,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from solders.keypair import Keypair
 
-from bankofai.x402 import bankofai.x402Facilitator
+from bankofai.x402 import x402Facilitator
 from bankofai.x402.extensions.bazaar import extract_discovery_info
 from bankofai.x402.mechanisms.evm import FacilitatorWeb3Signer
 from bankofai.x402.mechanisms.evm.exact import register_exact_evm_facilitator

@@ -13,7 +13,7 @@ import { Account, Ed25519PrivateKey, PrivateKey, PrivateKeyVariants } from "@apt
 import { ExactStellarScheme } from "@bankofai/x402-stellar/exact/client";
 import { createEd25519Signer, Ed25519Signer } from "@bankofai/x402-stellar";
 import { base58 } from "@scure/base";
-import { createKeyPairSignerFromBytes } from "@solana/kit";
+import { createKeyPairSignerFromBytes, type KeyPairSigner } from "@solana/kit";
 import { x402Client, x402HTTPClient } from "@bankofai/x402-core/client";
 
 config();
@@ -22,9 +22,10 @@ const baseURL = process.env.RESOURCE_SERVER_URL as string;
 const endpointPath = process.env.ENDPOINT_PATH as string;
 const url = `${baseURL}${endpointPath}`;
 const evmAccount = privateKeyToAccount(process.env.EVM_PRIVATE_KEY as `0x${string}`);
-const svmSigner = await createKeyPairSignerFromBytes(
-  base58.decode(process.env.SVM_PRIVATE_KEY as string),
-);
+let svmSigner: KeyPairSigner | undefined;
+if (process.env.SVM_PRIVATE_KEY) {
+  svmSigner = await createKeyPairSignerFromBytes(base58.decode(process.env.SVM_PRIVATE_KEY as string));
+}
 
 const publicClient = createPublicClient({
   chain: bscTestnet,
@@ -54,10 +55,14 @@ const client = new x402Client()
   .register("eip155:*", new ExactEvmScheme(evmSigner))
   .registerV1("bsc-testnet", new ExactEvmSchemeV1(evmSigner))
   .registerV1("base-sepolia", new ExactEvmSchemeV1(evmSigner))
-  .registerV1("base", new ExactEvmSchemeV1(evmSigner))
-  .register("solana:*", new ExactSvmScheme(svmSigner))
-  .registerV1("solana-devnet", new ExactSvmSchemeV1(svmSigner))
-  .registerV1("solana", new ExactSvmSchemeV1(svmSigner));
+  .registerV1("base", new ExactEvmSchemeV1(evmSigner));
+
+if (svmSigner) {
+  client
+    .register("solana:*", new ExactSvmScheme(svmSigner))
+    .registerV1("solana-devnet", new ExactSvmSchemeV1(svmSigner))
+    .registerV1("solana", new ExactSvmSchemeV1(svmSigner));
+}
 if (aptosAccount) {
   client.register("aptos:*", new ExactAptosScheme(aptosAccount));
 }

@@ -3,7 +3,7 @@ import json
 import asyncio
 from dotenv import load_dotenv
 from eth_account import Account
-from bankofai.x402.clients.httpx import bankofai.x402_payment_hooks
+from bankofai.x402.clients.httpx import x402_payment_hooks
 from bankofai.x402.clients.base import decode_x_payment_response
 import httpx
 

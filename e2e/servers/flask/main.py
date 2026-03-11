@@ -9,7 +9,7 @@ from flask import Flask, jsonify
 from dotenv import load_dotenv
 
 # Import from new x402 package (sync variants for Flask)
-from bankofai.x402 import bankofai.x402ResourceServerSync
+from bankofai.x402 import x402ResourceServerSync
 from bankofai.x402.http import FacilitatorConfig, HTTPFacilitatorClientSync
 from bankofai.x402.http.middleware.flask import PaymentMiddleware
 from bankofai.x402.mechanisms.evm.exact import register_exact_evm_server

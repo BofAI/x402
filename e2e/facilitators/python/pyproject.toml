@@ -13,5 +13,5 @@ dependencies = [
 package = false
 
 [tool.uv.sources]
-x402 = { path = "../../../python/x402", editable = true }
+"bankofai.x402" = { path = "../../../python/x402", editable = true }
 

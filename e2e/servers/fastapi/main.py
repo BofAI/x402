@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 
 # Import from new x402 package
-from bankofai.x402 import bankofai.x402ResourceServer
+from bankofai.x402 import x402ResourceServer
 from bankofai.x402.http import FacilitatorConfig, HTTPFacilitatorClient
 from bankofai.x402.http.middleware.fastapi import payment_middleware
 from bankofai.x402.mechanisms.evm.exact import (

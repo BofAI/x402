@@ -36,10 +36,10 @@
       "PORT",
       "EVM_NETWORK",
       "SVM_NETWORK",
-      "EVM_PAYEE_ADDRESS",
-      "SVM_PAYEE_ADDRESS"
+      "EVM_PAYEE_ADDRESS"
     ],
     "optional": [
+      "SVM_PAYEE_ADDRESS",
       "FACILITATOR_URL"
     ]
   }
