@@ -118,7 +118,7 @@ export function printHelp(): void {
   console.log('  pnpm test -v               Interactive with verbose logging');
   console.log('');
   console.log('Network Selection:');
-  console.log('  --testnet                  Use testnet networks (Base Sepolia + Solana Devnet)');
+  console.log('  --testnet                  Use testnet networks (BSC Testnet + Solana Devnet)');
   console.log('  --mainnet                  Use mainnet networks (Base + Solana) ⚠️  Real funds!');
   console.log('  (If not specified, will prompt in interactive mode)');
   console.log('');

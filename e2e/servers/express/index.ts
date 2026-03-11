@@ -5,7 +5,10 @@ import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
 import { ExactSvmScheme } from "@bankofai/x402-svm/exact/server";
 import { ExactAptosScheme } from "@bankofai/x402-aptos/exact/server";
 import { ExactStellarScheme } from "@bankofai/x402-stellar/exact/server";
-import { bazaarResourceServerExtension, declareDiscoveryExtension } from "@bankofai/x402-extensions/bazaar";
+import {
+  bazaarResourceServerExtension,
+  declareDiscoveryExtension,
+} from "@bankofai/x402-extensions/bazaar";
 import {
   declareEip2612GasSponsoringExtension,
   declareErc20ApprovalGasSponsoringExtension,
@@ -22,7 +25,7 @@ dotenv.config();
  */
 
 const PORT = process.env.PORT || "4021";
-const EVM_NETWORK = (process.env.EVM_NETWORK || "eip155:84532") as `${string}:${string}`;
+const EVM_NETWORK = (process.env.EVM_NETWORK || "eip155:97") as `${string}:${string}`;
 const SVM_NETWORK = (process.env.SVM_NETWORK ||
   "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1") as `${string}:${string}`;
 const APTOS_NETWORK = (process.env.APTOS_NETWORK || "aptos:2") as `${string}:${string}`;
@@ -117,8 +120,12 @@ app.use(
         accepts: {
           payTo: EVM_PAYEE_ADDRESS,
           scheme: "exact",
-          price: "$0.001",
           network: EVM_NETWORK,
+          price: {
+            amount: "1000",
+            asset: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
+            extra: { name: "DA HULU", version: "1" },
+          },
         },
         extensions: {
           ...declareDiscoveryExtension({
@@ -200,10 +207,9 @@ app.use(
           network: EVM_NETWORK,
           price: {
             amount: "1000",
-            asset: "0xeED520980fC7C7B4eB379B96d61CEdea2423005a", // Generic MockERC20 token (no EIP-2612)
+            asset: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816", // DHLU (ERC-20 approval path, no name/version)
             extra: {
               assetTransferMethod: "permit2",
-              // No name/version - generic ERC-20 without EIP-2612
             },
           },
         },
@@ -217,9 +223,15 @@ app.use(
           payTo: EVM_PAYEE_ADDRESS,
           scheme: "exact",
           network: EVM_NETWORK,
-          price: "$0.001",
-          // Use pre-parsed price with assetTransferMethod to force Permit2
-          extra: { assetTransferMethod: "permit2" },
+          price: {
+            amount: "1000",
+            asset: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816", // DHLU (permit2 + EIP-2612 path)
+            extra: {
+              name: "DA HULU",
+              version: "1",
+              assetTransferMethod: "permit2",
+            },
+          },
         },
         extensions: {
           ...declareDiscoveryExtension({

@@ -21,24 +21,19 @@ import {
   formatUnits,
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { baseSepolia } from 'viem/chains';
+import { bscTestnet } from 'viem/chains';
 
 config();
 
 // Permit2 canonical address (same on all EVM chains)
 const PERMIT2_ADDRESS = '0x000000000022D473030F116dDEE9F6B43aC78BA3';
 
-// Known tokens on Base Sepolia
+// Known tokens on BSC Testnet
 const TOKENS: Record<string, { address: `0x${string}`; decimals: number; name: string }> = {
-  USDC: {
-    address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
+  DHLU: {
+    address: '0x375cADdd2cB68cE82e3D9B075D551067a7b4B816',
     decimals: 6,
-    name: 'USDC',
-  },
-  MockERC20: {
-    address: '0xeED520980fC7C7B4eB379B96d61CEdea2423005a',
-    decimals: 6,
-    name: 'MockERC20',
+    name: 'DHLU',
   },
 };
 
@@ -78,18 +73,18 @@ Environment variables required:
   const account = privateKeyToAccount(privateKey as `0x${string}`);
 
   const publicClient = createPublicClient({
-    chain: baseSepolia,
+    chain: bscTestnet,
     transport: http(),
   });
 
   const walletClient = createWalletClient({
     account,
-    chain: baseSepolia,
+    chain: bscTestnet,
     transport: http(),
   });
 
   console.log(`\n🔑 Wallet: ${account.address}`);
-  console.log(`📍 Network: Base Sepolia`);
+  console.log(`📍 Network: BSC Testnet`);
   console.log(`🔐 Permit2: ${PERMIT2_ADDRESS}\n`);
 
   // Display balance and allowance for all known tokens

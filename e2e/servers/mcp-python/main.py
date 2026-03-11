@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 PORT = int(os.getenv("PORT", "4022"))
-EVM_NETWORK = os.getenv("EVM_NETWORK", "eip155:84532")
+EVM_NETWORK = os.getenv("EVM_NETWORK", "eip155:97")
 EVM_PAYEE_ADDRESS = os.getenv("EVM_PAYEE_ADDRESS", "")
 FACILITATOR_URL = os.getenv("FACILITATOR_URL", "")
 
@@ -60,7 +60,11 @@ def main() -> None:
         scheme="exact",
         network=EVM_NETWORK,
         pay_to=EVM_PAYEE_ADDRESS,
-        price="$0.001",
+        price={
+            "amount": "1000",
+            "asset": "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
+            "extra": {"name": "DA HULU", "version": "1"},
+        },
     )
     weather_accepts = resource_server.build_payment_requirements(weather_config)
 

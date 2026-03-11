@@ -41,7 +41,7 @@ if not SVM_ADDRESS:
     sys.exit(1)
 
 # Network configurations (CAIP-2 format)
-EVM_NETWORK = "eip155:84532"  # Base Sepolia
+EVM_NETWORK = "eip155:97"  # BSC Testnet
 SVM_NETWORK = "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1"  # Solana Devnet
 
 app = FastAPI()
@@ -71,7 +71,11 @@ routes = {
         "accepts": {
             "scheme": "exact",
             "payTo": EVM_ADDRESS,
-            "price": "$0.001",
+            "price": {
+                "amount": "1000",
+                "asset": "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
+                "extra": {"name": "DA HULU", "version": "1"},
+            },
             "network": EVM_NETWORK,
         },
         "extensions": {
@@ -96,7 +100,11 @@ routes = {
         "accepts": {
             "scheme": "exact",
             "payTo": EVM_ADDRESS,
-            "price": "$0.001",  # 0.001 USDC
+            "price": {
+                "amount": "1000",
+                "asset": "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
+                "extra": {"name": "DA HULU", "version": "1"},
+            },
             "network": EVM_NETWORK,
         },
         "extensions": {

@@ -2,7 +2,7 @@ import { config } from "dotenv";
 import { wrapFetchWithPayment } from "@bankofai/x402-fetch";
 import { createPublicClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { baseSepolia } from "viem/chains";
+import { bscTestnet } from "viem/chains";
 import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
 import { ExactEvmSchemeV1 } from "@bankofai/x402-evm/v1";
 import { toClientEvmSigner } from "@bankofai/x402-evm";
@@ -22,10 +22,12 @@ const baseURL = process.env.RESOURCE_SERVER_URL as string;
 const endpointPath = process.env.ENDPOINT_PATH as string;
 const url = `${baseURL}${endpointPath}`;
 const evmAccount = privateKeyToAccount(process.env.EVM_PRIVATE_KEY as `0x${string}`);
-const svmSigner = await createKeyPairSignerFromBytes(base58.decode(process.env.SVM_PRIVATE_KEY as string));
+const svmSigner = await createKeyPairSignerFromBytes(
+  base58.decode(process.env.SVM_PRIVATE_KEY as string),
+);
 
 const publicClient = createPublicClient({
-  chain: baseSepolia,
+  chain: bscTestnet,
   transport: http(),
 });
 
@@ -34,7 +36,10 @@ const evmSigner = toClientEvmSigner(evmAccount, publicClient);
 // Initialize Aptos signer if key is provided
 let aptosAccount: Account | undefined;
 if (process.env.APTOS_PRIVATE_KEY) {
-  const formattedKey = PrivateKey.formatPrivateKey(process.env.APTOS_PRIVATE_KEY, PrivateKeyVariants.Ed25519);
+  const formattedKey = PrivateKey.formatPrivateKey(
+    process.env.APTOS_PRIVATE_KEY,
+    PrivateKeyVariants.Ed25519,
+  );
   const aptosPrivateKey = new Ed25519PrivateKey(formattedKey);
   aptosAccount = Account.fromPrivateKey({ privateKey: aptosPrivateKey });
 }
@@ -47,6 +52,7 @@ if (process.env.STELLAR_PRIVATE_KEY) {
 
 const client = new x402Client()
   .register("eip155:*", new ExactEvmScheme(evmSigner))
+  .registerV1("bsc-testnet", new ExactEvmSchemeV1(evmSigner))
   .registerV1("base-sepolia", new ExactEvmSchemeV1(evmSigner))
   .registerV1("base", new ExactEvmSchemeV1(evmSigner))
   .register("solana:*", new ExactSvmScheme(svmSigner))
@@ -65,7 +71,9 @@ fetchWithPayment(url, {
   method: "GET",
 }).then(async response => {
   const data = await response.json();
-  const paymentResponse = new x402HTTPClient(client).getPaymentSettleResponse((name) => response.headers.get(name));
+  const paymentResponse = new x402HTTPClient(client).getPaymentSettleResponse(name =>
+    response.headers.get(name),
+  );
 
   if (!paymentResponse) {
     // No payment was required

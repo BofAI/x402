@@ -4,7 +4,10 @@ import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
 import { ExactSvmScheme } from "@bankofai/x402-svm/exact/server";
 import { ExactAptosScheme } from "@bankofai/x402-aptos/exact/server";
 import { ExactStellarScheme } from "@bankofai/x402-stellar/exact/server";
-import { bazaarResourceServerExtension, declareDiscoveryExtension } from "@bankofai/x402-extensions/bazaar";
+import {
+  bazaarResourceServerExtension,
+  declareDiscoveryExtension,
+} from "@bankofai/x402-extensions/bazaar";
 import {
   declareEip2612GasSponsoringExtension,
   declareErc20ApprovalGasSponsoringExtension,
@@ -14,7 +17,7 @@ export const EVM_PAYEE_ADDRESS = process.env.EVM_PAYEE_ADDRESS as `0x${string}`;
 export const SVM_PAYEE_ADDRESS = process.env.SVM_PAYEE_ADDRESS as string;
 export const APTOS_PAYEE_ADDRESS = process.env.APTOS_PAYEE_ADDRESS as string;
 export const STELLAR_PAYEE_ADDRESS = process.env.STELLAR_PAYEE_ADDRESS as string | undefined;
-export const EVM_NETWORK = (process.env.EVM_NETWORK || "eip155:84532") as `${string}:${string}`;
+export const EVM_NETWORK = (process.env.EVM_NETWORK || "eip155:97") as `${string}:${string}`;
 export const SVM_NETWORK = (process.env.SVM_NETWORK ||
   "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1") as `${string}:${string}`;
 export const APTOS_NETWORK = (process.env.APTOS_NETWORK || "aptos:2") as `${string}:${string}`;

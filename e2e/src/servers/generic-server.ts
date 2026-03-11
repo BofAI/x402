@@ -238,6 +238,7 @@ function translateNetworkForV1(network: string): string {
   const networkMap: Record<string, string> = {
     // Testnets
     'eip155:84532': 'base-sepolia',
+    'eip155:97': 'bsc-testnet',
     'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1': 'solana-devnet',
     // Mainnets
     'eip155:8453': 'base',

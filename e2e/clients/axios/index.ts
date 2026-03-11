@@ -3,7 +3,7 @@ import axios from "axios";
 import { wrapAxiosWithPayment, decodePaymentResponseHeader } from "@bankofai/x402-axios";
 import { createPublicClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { baseSepolia } from "viem/chains";
+import { bscTestnet } from "viem/chains";
 import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
 import { ExactEvmSchemeV1 } from "@bankofai/x402-evm/v1";
 import { toClientEvmSigner } from "@bankofai/x402-evm";
@@ -28,7 +28,7 @@ const svmSigner = await createKeyPairSignerFromBytes(
 );
 
 const publicClient = createPublicClient({
-  chain: baseSepolia,
+  chain: bscTestnet,
   transport: http(),
 });
 
@@ -53,6 +53,7 @@ if (process.env.STELLAR_PRIVATE_KEY) {
 
 const client = new x402Client()
   .register("eip155:*", new ExactEvmScheme(evmSigner))
+  .registerV1("bsc-testnet", new ExactEvmSchemeV1(evmSigner))
   .registerV1("base-sepolia", new ExactEvmSchemeV1(evmSigner))
   .registerV1("base", new ExactEvmSchemeV1(evmSigner))
   .register("solana:*", new ExactSvmScheme(svmSigner))
@@ -69,7 +70,7 @@ const axiosWithPayment = wrapAxiosWithPayment(axios.create(), client);
 
 axiosWithPayment
   .get(url)
-  .then(async (response) => {
+  .then(async response => {
     const data = response.data;
     // Check both v2 (PAYMENT-RESPONSE) and v1 (X-PAYMENT-RESPONSE) headers
     const paymentResponse =
@@ -100,11 +101,13 @@ axiosWithPayment
     console.log(JSON.stringify(result));
     process.exit(0);
   })
-  .catch((error) => {
-    console.error(JSON.stringify({
-      success: false,
-      error: error.message || "Request failed",
-      status_code: error.response?.status || 500,
-    }));
+  .catch(error => {
+    console.error(
+      JSON.stringify({
+        success: false,
+        error: error.message || "Request failed",
+        status_code: error.response?.status || 500,
+      }),
+    );
     process.exit(1);
   });

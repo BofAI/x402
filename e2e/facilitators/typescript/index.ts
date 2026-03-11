@@ -49,14 +49,14 @@ import dotenv from "dotenv";
 import express from "express";
 import { createWalletClient, http, publicActions, Chain } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { baseSepolia, base } from "viem/chains";
+import { bscTestnet, base } from "viem/chains";
 import { BazaarCatalog } from "./bazaar.js";
 
 dotenv.config();
 
 // Configuration
 const PORT = process.env.PORT || "4022";
-const EVM_NETWORK = process.env.EVM_NETWORK || "eip155:84532";
+const EVM_NETWORK = process.env.EVM_NETWORK || "eip155:97";
 const SVM_NETWORK =
   process.env.SVM_NETWORK || "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1";
 const APTOS_NETWORK = process.env.APTOS_NETWORK || "aptos:2";
@@ -71,9 +71,9 @@ function getEvmChain(network: string): Chain {
   switch (network) {
     case "eip155:8453":
       return base;
-    case "eip155:84532":
+    case "eip155:97":
     default:
-      return baseSepolia;
+      return bscTestnet;
   }
 }
 

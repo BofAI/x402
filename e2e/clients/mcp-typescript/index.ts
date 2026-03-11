@@ -40,7 +40,7 @@ async function main(): Promise<void> {
   const x402Mcp = createx402MCPClient({
     name: "x402-mcp-e2e-client",
     version: "1.0.0",
-    schemes: [{ network: "eip155:84532", client: new ExactEvmScheme(evmSigner) }],
+    schemes: [{ network: "eip155:97", client: new ExactEvmScheme(evmSigner) }],
     autoPayment: true,
     onPaymentRequested: async () => true, // Auto-approve all payments for e2e
   });

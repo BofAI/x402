@@ -14,7 +14,7 @@ import express from "express";
 import { z } from "zod";
 
 const PORT = process.env.PORT || "4022";
-const EVM_NETWORK = (process.env.EVM_NETWORK || "eip155:84532") as `${string}:${string}`;
+const EVM_NETWORK = (process.env.EVM_NETWORK || "eip155:97") as `${string}:${string}`;
 const EVM_PAYEE_ADDRESS = process.env.EVM_PAYEE_ADDRESS as `0x${string}`;
 const facilitatorUrl = process.env.FACILITATOR_URL;
 
@@ -48,7 +48,7 @@ async function main(): Promise<void> {
   // Step 2: Set up x402 resource server for payment handling
   const facilitatorClient = new HTTPFacilitatorClient({ url: facilitatorUrl });
   const resourceServer = new x402ResourceServer(facilitatorClient);
-  resourceServer.register("eip155:84532", new ExactEvmScheme());
+  resourceServer.register("eip155:97", new ExactEvmScheme());
   await resourceServer.initialize();
 
   // Step 3: Build payment requirements
@@ -56,8 +56,11 @@ async function main(): Promise<void> {
     scheme: "exact",
     network: EVM_NETWORK,
     payTo: EVM_PAYEE_ADDRESS,
-    price: "$0.001",
-    extra: { name: "USDC", version: "2" },
+    price: {
+      amount: "1000",
+      asset: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
+      extra: { name: "DA HULU", version: "1" },
+    },
   });
 
   // Step 4: Create payment wrapper

@@ -4,7 +4,7 @@ FastAPI-based facilitator service that verifies and settles payments
 on-chain for the x402 protocol.
 
 Supports:
-- EVM networks (Base Sepolia) via web3.py
+- EVM networks (BSC Testnet) via web3.py
 - SVM networks (Solana Devnet) via solders
 - Bazaar discovery extension for resource cataloging
 - V1 and V2 protocol versions
@@ -49,7 +49,7 @@ if not os.environ.get("SVM_PRIVATE_KEY"):
     sys.exit(1)
 
 # Initialize the EVM signer from private key
-evm_rpc_url = os.environ.get("EVM_RPC_URL") or "https://sepolia.base.org"
+evm_rpc_url = os.environ.get("EVM_RPC_URL") or "https://bsc-testnet-rpc.publicnode.com"
 evm_signer = FacilitatorWeb3Signer(
     private_key=os.environ["EVM_PRIVATE_KEY"],
     rpc_url=evm_rpc_url,
@@ -118,7 +118,7 @@ facilitator = (
 register_exact_evm_facilitator(
     facilitator,
     evm_signer,
-    networks="eip155:84532",  # Base Sepolia
+    networks="eip155:97",  # BSC Testnet
     deploy_erc4337_with_eip6492=True,
 )
 
@@ -289,7 +289,7 @@ async def health():
     """Health check endpoint."""
     return {
         "status": "ok",
-        "network": "eip155:84532",
+        "network": "eip155:97",
         "facilitator": "python",
         "version": "2.0.0",
         "extensions": ["bazaar"],
@@ -320,7 +320,7 @@ if __name__ == "__main__":
 ║           x402 Python Facilitator (E2E)                ║
 ╠════════════════════════════════════════════════════════╣
 ║  Server:     http://localhost:{PORT}                       ║
-║  Network:    eip155:84532                              ║
+║  Network:    eip155:97                              ║
 ║  Address:    {evm_signer.get_addresses()[0]}  ║
 ║  Extensions: bazaar                                    ║
 ║                                                        ║
