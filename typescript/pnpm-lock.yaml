@@ -1344,7 +1344,13 @@ importers:
       tronweb:
         specifier: '>=6.0.0'
         version: 6.2.2(bufferutil@4.1.0)(utf-8-validate@6.0.6)
+      viem:
+        specifier: ^2.39.3
+        version: 2.47.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.3.6)
     devDependencies:
+      '@types/node':
+        specifier: ^22.13.4
+        version: 22.19.15
       tsup:
         specifier: ^8.0.0
         version: 8.5.1(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)
@@ -10729,7 +10735,7 @@ snapshots:
 
   '@types/bn.js@4.11.6':
     dependencies:
-      '@types/node': 20.19.37
+      '@types/node': 22.19.15
 
   '@types/body-parser@1.19.6':
     dependencies:
@@ -10805,7 +10811,7 @@ snapshots:
 
   '@types/pbkdf2@3.1.2':
     dependencies:
-      '@types/node': 20.19.37
+      '@types/node': 22.19.15
 
   '@types/qs@6.15.0': {}
 
@@ -10825,7 +10831,7 @@ snapshots:
 
   '@types/secp256k1@4.0.7':
     dependencies:
-      '@types/node': 20.19.37
+      '@types/node': 22.19.15
 
   '@types/send@1.2.1':
     dependencies:

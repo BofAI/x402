@@ -1,4 +1,11 @@
+import { toHex } from "viem";
+import { TronWeb } from "tronweb";
 import { TRON_CHAIN_IDS } from "./constants";
+
+// Dummy instance for address utilities
+const tronWeb = new TronWeb({
+  fullHost: "https://api.trongrid.io",
+});
 
 /**
  * Get the numeric chain ID for a TRON network identifier.
@@ -23,8 +30,8 @@ export function getTronChainId(network: string): number {
 /**
  * Get the crypto object from the global scope.
  */
-function getCrypto(): typeof globalThis.crypto {
-  const cryptoObj = globalThis.crypto;
+function getCrypto(): Crypto {
+  const cryptoObj = globalThis.crypto as Crypto | undefined;
   if (!cryptoObj) {
     throw new Error("Crypto API not available");
   }
@@ -35,10 +42,7 @@ function getCrypto(): typeof globalThis.crypto {
  * Create a random 32-byte nonce for TIP-712 authorization.
  */
 export function createNonce(): `0x${string}` {
-  const bytes = getCrypto().getRandomValues(new Uint8Array(32));
-  return `0x${Array.from(bytes)
-    .map((b: number) => b.toString(16).padStart(2, "0"))
-    .join("")}` as `0x${string}`;
+  return toHex(getCrypto().getRandomValues(new Uint8Array(32)));
 }
 
 /**
@@ -55,26 +59,10 @@ export function tronAddressToEvm(tronAddress: string): `0x${string}` {
     return `0x${tronAddress.slice(2).toLowerCase()}` as `0x${string}`;
   }
 
-  // Base58Check format - decode manually
-  const ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-  let num = BigInt(0);
-  for (const char of tronAddress) {
-    const index = ALPHABET.indexOf(char);
-    if (index === -1) {
-      throw new Error(`Invalid Base58 character: ${char}`);
-    }
-    num = num * BigInt(58) + BigInt(index);
-  }
-
-  // Convert to bytes (25 bytes: 1 version + 20 address + 4 checksum)
-  let hex = num.toString(16);
-  while (hex.length < 50) {
-    hex = "0" + hex;
-  }
-
-  // Skip version byte (0x41) and checksum (4 bytes), extract 20-byte address
-  const addressHex = hex.slice(2, 42);
-  return `0x${addressHex.toLowerCase()}` as `0x${string}`;
+  // Use TronWeb for Base58Check decoding
+  const hex = tronWeb.address.toHex(tronAddress);
+  // tronWeb.address.toHex returns '41...'
+  return `0x${hex.slice(2).toLowerCase()}` as `0x${string}`;
 }
 
 /**
@@ -82,18 +70,8 @@ export function tronAddressToEvm(tronAddress: string): `0x${string}` {
  */
 export function evmAddressToTron(evmAddress: string): string {
   const cleanAddr = evmAddress.startsWith("0x") ? evmAddress.slice(2) : evmAddress;
-  const addressWithPrefix = "41" + cleanAddr.toLowerCase();
-
-  const bytes = hexToBytes(addressWithPrefix);
-  const hash1 = sha256(bytes);
-  const hash2 = sha256(hash1);
-  const checksum = hash2.slice(0, 4);
-
-  const fullBytes = new Uint8Array(bytes.length + checksum.length);
-  fullBytes.set(bytes);
-  fullBytes.set(checksum, bytes.length);
-
-  return base58Encode(fullBytes);
+  // TronWeb expects '41...' for fromHex
+  return tronWeb.address.fromHex("41" + cleanAddr.toLowerCase());
 }
 
 /**
@@ -117,46 +95,4 @@ export function normalizeAddressForSigning(address: string): `0x${string}` {
     return `0x${address.slice(2).toLowerCase()}` as `0x${string}`;
   }
   throw new Error(`Unrecognized address format: ${address}`);
-}
-
-// --- Internal helpers ---
-
-function hexToBytes(hex: string): Uint8Array {
-  const clean = hex.startsWith("0x") ? hex.slice(2) : hex;
-  const bytes = new Uint8Array(clean.length / 2);
-  for (let i = 0; i < bytes.length; i++) {
-    bytes[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16);
-  }
-  return bytes;
-}
-
-function sha256(data: Uint8Array): Uint8Array {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const crypto = require("crypto");
-  return new Uint8Array(crypto.createHash("sha256").update(data).digest());
-}
-
-function base58Encode(bytes: Uint8Array): string {
-  const ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-  let num = BigInt(0);
-  for (const byte of bytes) {
-    num = num * BigInt(256) + BigInt(byte);
-  }
-
-  let result = "";
-  while (num > BigInt(0)) {
-    const remainder = Number(num % BigInt(58));
-    num = num / BigInt(58);
-    result = ALPHABET[remainder] + result;
-  }
-
-  for (const byte of bytes) {
-    if (byte === 0) {
-      result = "1" + result;
-    } else {
-      break;
-    }
-  }
-
-  return result;
 }
