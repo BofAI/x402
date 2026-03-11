@@ -246,11 +246,8 @@ async function runTest() {
   const facilitatorSvmPrivateKey = process.env.FACILITATOR_SVM_PRIVATE_KEY;
   const facilitatorAptosPrivateKey = process.env.FACILITATOR_APTOS_PRIVATE_KEY;
   const facilitatorStellarPrivateKey = process.env.FACILITATOR_STELLAR_PRIVATE_KEY;
-  if (!serverEvmAddress || !serverSvmAddress || !clientEvmPrivateKey || !clientSvmPrivateKey || !facilitatorEvmPrivateKey || !facilitatorSvmPrivateKey) {
-    errorLog('❌ Missing required environment variables:');
-    errorLog(' SERVER_EVM_ADDRESS, SERVER_SVM_ADDRESS, CLIENT_EVM_PRIVATE_KEY, CLIENT_SVM_PRIVATE_KEY, FACILITATOR_EVM_PRIVATE_KEY, and FACILITATOR_SVM_PRIVATE_KEY must be set');
-    process.exit(1);
-  }
+  // Env validation is deferred until after scenario filtering so we only
+  // require variables for the protocol families that will actually be tested.
 
   // Discover all servers, clients, and facilitators (always include legacy)
   const discovery = new TestDiscovery('.', true); // Always discover legacy
@@ -355,6 +352,38 @@ async function runTest() {
     log(`🎁 Extensions enabled: ${selectedExtensions.join(', ')}`);
   }
   log('');
+
+  // Validate environment variables for required protocol families
+  const requiredFamilies = new Set(filteredScenarios.map(s => s.protocolFamily));
+  const missingEnv: string[] = [];
+
+  if (requiredFamilies.has('evm')) {
+    if (!serverEvmAddress) missingEnv.push('SERVER_EVM_ADDRESS');
+    if (!clientEvmPrivateKey) missingEnv.push('CLIENT_EVM_PRIVATE_KEY');
+    if (!facilitatorEvmPrivateKey) missingEnv.push('FACILITATOR_EVM_PRIVATE_KEY');
+  }
+  if (requiredFamilies.has('svm')) {
+    if (!serverSvmAddress) missingEnv.push('SERVER_SVM_ADDRESS');
+    if (!clientSvmPrivateKey) missingEnv.push('CLIENT_SVM_PRIVATE_KEY');
+    if (!facilitatorSvmPrivateKey) missingEnv.push('FACILITATOR_SVM_PRIVATE_KEY');
+  }
+  if (requiredFamilies.has('aptos')) {
+    if (!serverAptosAddress) missingEnv.push('SERVER_APTOS_ADDRESS');
+    if (!clientAptosPrivateKey) missingEnv.push('CLIENT_APTOS_PRIVATE_KEY');
+    if (!facilitatorAptosPrivateKey) missingEnv.push('FACILITATOR_APTOS_PRIVATE_KEY');
+  }
+  if (requiredFamilies.has('stellar')) {
+    if (!serverStellarAddress) missingEnv.push('SERVER_STELLAR_ADDRESS');
+    if (!clientStellarPrivateKey) missingEnv.push('CLIENT_STELLAR_PRIVATE_KEY');
+    if (!facilitatorStellarPrivateKey) missingEnv.push('FACILITATOR_STELLAR_PRIVATE_KEY');
+  }
+
+  if (missingEnv.length > 0) {
+    errorLog('❌ Missing required environment variables for selected protocol families:');
+    missingEnv.forEach(v => errorLog(`   - ${v}`));
+    errorLog(`\n💡 Required families: ${[...requiredFamilies].join(', ')}`);
+    process.exit(1);
+  }
 
   // Auto-detect Permit2 scenarios
   const hasPermit2Scenarios = filteredScenarios.some(
