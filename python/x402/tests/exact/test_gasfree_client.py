@@ -244,9 +244,7 @@ class TestGasFreeClient:
         assert payload.payload.payment_permit.fee.fee_amount == "1000000"
 
     @pytest.mark.anyio
-    async def test_activate_fee_with_higher_facilitator_fee(
-        self, mock_signer, mock_api_client
-    ):
+    async def test_activate_fee_with_higher_facilitator_fee(self, mock_signer, mock_api_client):
         """activateFee should be added on top of whichever is higher (facilitator vs transfer)"""
         mock_api_client.get_address_info = AsyncMock(
             return_value={
@@ -318,9 +316,7 @@ class TestGasFreeClient:
             await mechanism.create_payment_payload(nile_requirements, "https://example.com")
 
     @pytest.mark.anyio
-    async def test_activate_fee_on_top_of_fallback_minimum(
-        self, mock_signer, mock_api_client
-    ):
+    async def test_activate_fee_on_top_of_fallback_minimum(self, mock_signer, mock_api_client):
         """activateFee should be added on top of fallback 1-token minimum"""
         mock_api_client.get_address_info = AsyncMock(
             return_value={
@@ -351,9 +347,7 @@ class TestGasFreeClient:
         )
 
         mechanism = ExactGasFreeClientMechanism(mock_signer, clients={"tron:nile": mock_api_client})
-        payload = await mechanism.create_payment_payload(
-            requirements_no_fee, "https://example.com"
-        )
+        payload = await mechanism.create_payment_payload(requirements_no_fee, "https://example.com")
 
         # fallback(1000000) + activateFee(2050000) = 3050000
         assert payload.payload.payment_permit.fee.fee_amount == "3050000"
