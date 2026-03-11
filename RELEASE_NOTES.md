@@ -20,11 +20,14 @@ The GasFree API returns per-asset fee information including an optional `activat
 }
 ```
 
-When `active` is `false` and `activateFee > 0`:
-- `maxFee = max(transferFee, facilitatorFee) + activateFee`
+The `maxFee` calculation follows this order:
+
+1. `baseFee = max(transferFee, facilitatorFee)`
+2. If `baseFee == 0` and no fee info provided → fallback to 1 token (e.g. `1000000` for USDT)
+3. If `active` is `false` and `activateFee > 0` → `maxFee = baseFee + activateFee`
 
 When `active` is `true` (account already activated):
-- `maxFee = max(transferFee, facilitatorFee)` (unchanged behavior)
+- `maxFee = baseFee` (unchanged behavior, activateFee is ignored)
 
 ## Affected SDKs
 
