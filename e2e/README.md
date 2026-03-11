@@ -6,7 +6,7 @@ End-to-end test suite for validating client-server-facilitator communication acr
 
 ### First Time Setup
 
-Install all dependencies (TypeScript via pnpm, Go, Python):
+Install all dependencies (TypeScript via pnpm, Python):
 
 ```bash
 pnpm install:all
@@ -34,7 +34,7 @@ pnpm setup
 Or manually for a specific component:
 
 ```bash
-cd facilitators/go
+cd facilitators/typescript
 bash install.sh
 bash build.sh
 ```
@@ -48,7 +48,7 @@ pnpm test
 ```
 
 Launches an interactive CLI where you can select:
-- **Facilitators** - Payment verification/settlement services (Go, TypeScript)
+- **Facilitators** - Payment verification/settlement services (TypeScript, Python)
 - **Servers** - Protected endpoints requiring payment (Express, Gin, Hono, Next.js, FastAPI, Flask, etc.)
 - **Clients** - Payment-capable HTTP clients (axios, fetch, httpx, requests, etc.)
 - **Extensions** - Additional features like Bazaar discovery
@@ -129,7 +129,7 @@ $ pnpm test --min
 🎯 Interactive Mode
 ==================
 
-✔ Select facilitators › go, typescript
+✔ Select facilitators › typescript, python
 ✔ Select servers › express, hono, legacy-express
 ✔ Select clients › axios, fetch, httpx
 ✔ Select extensions › bazaar

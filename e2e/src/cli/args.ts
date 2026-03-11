@@ -146,7 +146,7 @@ export function printHelp(): void {
   console.log('  pnpm test --mainnet                                 # Use mainnet (real funds!)');
   console.log('  pnpm test --min -v                                  # Minimize with verbose');
   console.log('  pnpm test --transport=mcp                                # MCP transport only');
-  console.log('  pnpm test --mainnet --facilitators=go --servers=express  # Mainnet programmatic');
+  console.log('  pnpm test --mainnet --facilitators=typescript --servers=express  # Mainnet programmatic');
   console.log('  pnpm test --testnet --min --parallel -v                   # Parallel mode');
   console.log('  pnpm test --testnet --min --parallel --concurrency=2 -v   # Limited concurrency');
   console.log('');
