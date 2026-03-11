@@ -2,7 +2,6 @@
 TronClientSigner - TRON client signer implementation
 """
 
-import json
 import logging
 from typing import Any
 
