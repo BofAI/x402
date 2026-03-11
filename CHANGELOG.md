@@ -16,6 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unified transaction signing behavior across wallet implementations
 - Unified TRON wallet transaction signing to return signature hex only, with normalization handled inside wallet implementations
 
+## [0.4.2] - 2026-03-11
+
+### Added
+- **GasFree activateFee support**: When a TRON GasFree account is not yet activated, `activateFee` from the API asset info is now included in `maxFee` calculation to prevent transaction failures due to insufficient fee allowance.
+- Comprehensive test coverage for activateFee edge cases (both Python and TypeScript SDKs):
+  - activateFee included when account not activated
+  - activateFee ignored when account already activated
+  - Zero activateFee handled correctly
+  - Missing activateFee field defaults to 0
+  - activateFee stacks on top of higher facilitator fee
+  - Balance check accounts for activateFee
+
 ## [0.4.1] - 2026-03-07
 
 ### Removed
