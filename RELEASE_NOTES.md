@@ -1,15 +1,34 @@
-# v0.4.1 - Response Model Fixes
+# v0.4.2 - GasFree Activate Fee Support
 
-Release date: March 7, 2026
+Release date: March 11, 2026
 
-## Fixes
+## What's New
 
-- **Remove `SupportedResponse.fee` field**: The `fee` field was a single value for multiple `kinds`, which is architecturally incorrect. Fee info is now exclusively provided per-request via the `/fee/quote` endpoint, aligning with the coinbase/x402 protocol design.
-- **Add missing fields to TS `FeeQuoteResponse`**: Added `scheme` and `asset` fields to the TypeScript `FeeQuoteResponse` interface.
-- **Fix `SettleResponse` error paths**: Include `network` field in error responses from both `X402Facilitator` and `X402Server`.
-- **Increase `FacilitatorClient` timeout**: HTTP timeout increased from 30s to 120s to accommodate GasFree settlement times (9-28s on-chain confirmation).
+- **GasFree activateFee in maxFee calculation**: When a TRON GasFree account has not been activated yet (`active: false`), the `activateFee` returned by the GasFree API is now automatically added to `maxFee`. This prevents transaction failures where the fee allowance was too low to cover both the transfer fee and the one-time account activation cost.
 
-## Breaking Changes
+## How It Works
 
-- `SupportedResponse` no longer includes a `fee` field (Python and TypeScript). If you were reading `fee` from the `/supported` endpoint, use `/fee/quote` instead.
-- `X402Facilitator.supported()` no longer accepts a `pricing` parameter.
+The GasFree API returns per-asset fee information including an optional `activateFee` field:
+```json
+{
+  "active": false,
+  "assets": [{
+    "tokenAddress": "TXYZop...",
+    "transferFee": "1000000",
+    "activateFee": "2050000"
+  }]
+}
+```
+
+When `active` is `false` and `activateFee > 0`:
+- `maxFee = max(transferFee, facilitatorFee) + activateFee`
+
+When `active` is `true` (account already activated):
+- `maxFee = max(transferFee, facilitatorFee)` (unchanged behavior)
+
+## Affected SDKs
+
+- **Python**: `bankofai-x402==0.4.2`
+- **TypeScript**: `@bankofai/x402@0.4.2`
+
+Both SDKs implement identical logic with full test coverage.
