@@ -6,7 +6,7 @@
  */
 
 export type NetworkMode = 'testnet' | 'mainnet';
-export type ProtocolFamily = 'evm' | 'svm' | 'aptos' | 'stellar';
+export type ProtocolFamily = 'evm' | 'svm' | 'aptos' | 'stellar' | 'tron';
 
 export type NetworkConfig = {
   name: string;
@@ -15,6 +15,7 @@ export type NetworkConfig = {
 };
 
 export type NetworkSet = {
+  tron?: NetworkConfig;
   evm: NetworkConfig;
   svm: NetworkConfig;
   aptos: NetworkConfig;
@@ -26,6 +27,11 @@ export type NetworkSet = {
  */
 const NETWORK_SETS: Record<NetworkMode, NetworkSet> = {
   testnet: {
+    tron: {
+      name: 'TRON Nile',
+      caip2: 'tron:nile',
+      rpcUrl: process.env.TRON_NILE_RPC_URL || 'https://nile.trongrid.io',
+    },
     evm: {
       name: 'BSC Testnet',
       caip2: 'eip155:97',
@@ -48,6 +54,11 @@ const NETWORK_SETS: Record<NetworkMode, NetworkSet> = {
     },
   },
   mainnet: {
+    tron: {
+      name: 'TRON Mainnet',
+      caip2: 'tron:mainnet',
+      rpcUrl: process.env.TRON_RPC_URL || 'https://api.trongrid.io',
+    },
     evm: {
       name: 'Base',
       caip2: 'eip155:8453',
@@ -91,7 +102,7 @@ export function getNetworkSet(mode: NetworkMode): NetworkSet {
 export function getNetworkForProtocol(
   mode: NetworkMode,
   protocolFamily: ProtocolFamily
-): NetworkConfig {
+): NetworkConfig | undefined {
   return NETWORK_SETS[mode][protocolFamily];
 }
 
@@ -103,6 +114,6 @@ export function getNetworkForProtocol(
  */
 export function getNetworkModeDescription(mode: NetworkMode): string {
   const set = NETWORK_SETS[mode];
-  const networks = [set.evm.name, set.svm.name, set.aptos.name, set.stellar.name];
+  const networks = [set.evm.name, set.svm.name, set.aptos.name, set.stellar.name, ...(set.tron ? [set.tron.name] : [])];
   return networks.join(' + ');
 }
