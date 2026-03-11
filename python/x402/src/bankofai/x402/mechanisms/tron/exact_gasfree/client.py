@@ -117,18 +117,18 @@ class ExactGasFreeClientMechanism(ClientMechanism):
         facilitator_fee = int(fee_info.fee_amount or "0") if fee_info else 0
         max_fee_val = max(transfer_fee, facilitator_fee)
 
+        # Fallback: if both are 0 and no facilitator fee, default to 1 token
+        if max_fee_val == 0 and not fee_info:
+            token_info = TokenRegistry.find_by_address(network, requirements.asset)
+            decimals = token_info.decimals if token_info else 6
+            max_fee_val = 10**decimals
+
         # If the account is not yet activated, add activateFee to maxFee
         if not is_active and activate_fee > 0:
             max_fee_val = max_fee_val + activate_fee
             self._logger.debug(
                 f"GasFree account not activated, adding activateFee {activate_fee} to maxFee"
             )
-
-        # Fallback: if both are 0 and no facilitator fee, default to 1 token
-        if max_fee_val == 0 and not fee_info:
-            token_info = TokenRegistry.find_by_address(network, requirements.asset)
-            decimals = token_info.decimals if token_info else 6
-            max_fee_val = 10**decimals
         max_fee = str(max_fee_val)
 
         # 4. Balance verification
