@@ -38,7 +38,9 @@ export const server = new x402ResourceServer(facilitatorClient);
 
 // Register server schemes
 server.register("eip155:*", new ExactEvmScheme());
-server.register("solana:*", new ExactSvmScheme());
+if (SVM_PAYEE_ADDRESS) {
+  server.register("solana:*", new ExactSvmScheme());
+}
 if (APTOS_PAYEE_ADDRESS) {
   server.register("aptos:*", new ExactAptosScheme());
 }
@@ -78,31 +80,35 @@ export const proxy = paymentProxy(
         }),
       },
     },
-    "/api/protected-svm-proxy": {
-      accepts: {
-        payTo: SVM_PAYEE_ADDRESS,
-        scheme: "exact",
-        price: "$0.001",
-        network: SVM_NETWORK,
-      },
-      extensions: {
-        ...declareDiscoveryExtension({
-          output: {
-            example: {
-              message: "Protected endpoint accessed successfully",
-              timestamp: "2024-01-01T00:00:00Z",
+    ...(SVM_PAYEE_ADDRESS
+      ? {
+          "/api/protected-svm-proxy": {
+            accepts: {
+              payTo: SVM_PAYEE_ADDRESS,
+              scheme: "exact",
+              price: "$0.001",
+              network: SVM_NETWORK,
             },
-            schema: {
-              properties: {
-                message: { type: "string" },
-                timestamp: { type: "string" },
-              },
-              required: ["message", "timestamp"],
+            extensions: {
+              ...declareDiscoveryExtension({
+                output: {
+                  example: {
+                    message: "Protected endpoint accessed successfully",
+                    timestamp: "2024-01-01T00:00:00Z",
+                  },
+                  schema: {
+                    properties: {
+                      message: { type: "string" },
+                      timestamp: { type: "string" },
+                    },
+                    required: ["message", "timestamp"],
+                  },
+                },
+              }),
             },
           },
-        }),
-      },
-    },
+        }
+      : {}),
     ...(APTOS_PAYEE_ADDRESS
       ? {
           "/api/protected-aptos-proxy": {

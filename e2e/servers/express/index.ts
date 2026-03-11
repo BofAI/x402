@@ -42,8 +42,7 @@ if (!EVM_PAYEE_ADDRESS) {
 }
 
 if (!SVM_PAYEE_ADDRESS) {
-  console.error("❌ SVM_PAYEE_ADDRESS environment variable is required");
-  process.exit(1);
+  console.warn("⚠️  SVM_PAYEE_ADDRESS not set — SVM payment endpoints disabled");
 }
 
 if (!facilitatorUrl) {
@@ -145,31 +144,35 @@ app.use(
           }),
         },
       },
-      "GET /protected-svm": {
-        accepts: {
-          payTo: SVM_PAYEE_ADDRESS,
-          scheme: "exact",
-          price: "$0.001",
-          network: SVM_NETWORK,
-        },
-        extensions: {
-          ...declareDiscoveryExtension({
-            output: {
-              example: {
-                message: "Protected endpoint accessed successfully",
-                timestamp: "2024-01-01T00:00:00Z",
+      ...(SVM_PAYEE_ADDRESS
+        ? {
+            "GET /protected-svm": {
+              accepts: {
+                payTo: SVM_PAYEE_ADDRESS,
+                scheme: "exact",
+                price: "$0.001",
+                network: SVM_NETWORK,
               },
-              schema: {
-                properties: {
-                  message: { type: "string" },
-                  timestamp: { type: "string" },
-                },
-                required: ["message", "timestamp"],
+              extensions: {
+                ...declareDiscoveryExtension({
+                  output: {
+                    example: {
+                      message: "Protected endpoint accessed successfully",
+                      timestamp: "2024-01-01T00:00:00Z",
+                    },
+                    schema: {
+                      properties: {
+                        message: { type: "string" },
+                        timestamp: { type: "string" },
+                      },
+                      required: ["message", "timestamp"],
+                    },
+                  },
+                }),
               },
             },
-          }),
-        },
-      },
+          }
+        : {}),
       ...(APTOS_PAYEE_ADDRESS
         ? {
             "GET /protected-aptos": {

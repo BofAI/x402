@@ -71,16 +71,17 @@ Environment variables required:
   }
 
   const account = privateKeyToAccount(privateKey as `0x${string}`);
+  const rpcUrl = process.env.BSC_TESTNET_RPC_URL || 'https://bsc-testnet-rpc.publicnode.com';
 
   const publicClient = createPublicClient({
     chain: bscTestnet,
-    transport: http(),
+    transport: http(rpcUrl),
   });
 
   const walletClient = createWalletClient({
     account,
     chain: bscTestnet,
-    transport: http(),
+    transport: http(rpcUrl),
   });
 
   console.log(`\n🔑 Wallet: ${account.address}`);

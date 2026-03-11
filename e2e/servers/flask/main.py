@@ -38,8 +38,7 @@ if not EVM_ADDRESS:
     sys.exit(1)
 
 if not SVM_ADDRESS:
-    print("Error: Missing required environment variable SVM_PAYEE_ADDRESS")
-    sys.exit(1)
+    print("Warning: SVM_PAYEE_ADDRESS not set - SVM payment endpoints disabled")
 
 # Network configurations (CAIP-2 format)
 EVM_NETWORK = "eip155:97"  # BSC Testnet
@@ -59,9 +58,10 @@ else:
 # Create resource server (sync for Flask)
 server = x402ResourceServerSync(facilitator)
 
-# Register EVM and SVM exact schemes
+# Register EVM exact scheme (always) and SVM exact scheme (if configured)
 register_exact_evm_server(server, EVM_NETWORK)
-register_exact_svm_server(server, SVM_NETWORK)
+if SVM_ADDRESS:
+    register_exact_svm_server(server, SVM_NETWORK)
 
 # Register Bazaar discovery extension
 server.register_extension(bazaar_resource_server_extension)
@@ -99,31 +99,37 @@ routes = {
             ),
         },
     },
-    "GET /protected-svm": {
-        "accepts": {
-            "scheme": "exact",
-            "payTo": SVM_ADDRESS,
-            "price": "$0.001",
-            "network": SVM_NETWORK,
-        },
-        "extensions": {
-            **declare_discovery_extension(
-                output=OutputConfig(
-                    example={
-                        "message": "Access granted to SVM protected resource",
-                        "timestamp": "2024-01-01T00:00:00Z",
-                    },
-                    schema={
-                        "properties": {
-                            "message": {"type": "string"},
-                            "timestamp": {"type": "string"},
-                        },
-                        "required": ["message", "timestamp"],
-                    },
-                )
-            ),
-        },
-    },
+    **(
+        {
+            "GET /protected-svm": {
+                "accepts": {
+                    "scheme": "exact",
+                    "payTo": SVM_ADDRESS,
+                    "price": "$0.001",
+                    "network": SVM_NETWORK,
+                },
+                "extensions": {
+                    **declare_discovery_extension(
+                        output=OutputConfig(
+                            example={
+                                "message": "Access granted to SVM protected resource",
+                                "timestamp": "2024-01-01T00:00:00Z",
+                            },
+                            schema={
+                                "properties": {
+                                    "message": {"type": "string"},
+                                    "timestamp": {"type": "string"},
+                                },
+                                "required": ["message", "timestamp"],
+                            },
+                        )
+                    ),
+                },
+            },
+        }
+        if SVM_ADDRESS
+        else {}
+    ),
 }
 
 # Apply payment middleware

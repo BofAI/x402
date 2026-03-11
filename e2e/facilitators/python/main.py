@@ -45,8 +45,7 @@ if not os.environ.get("EVM_PRIVATE_KEY"):
     sys.exit(1)
 
 if not os.environ.get("SVM_PRIVATE_KEY"):
-    print("❌ SVM_PRIVATE_KEY environment variable is required")
-    sys.exit(1)
+    print("⚠️  SVM_PRIVATE_KEY not set — SVM payment support disabled")
 
 # Initialize the EVM signer from private key
 evm_rpc_url = os.environ.get("EVM_RPC_URL") or "https://bsc-testnet-rpc.publicnode.com"
@@ -56,10 +55,12 @@ evm_signer = FacilitatorWeb3Signer(
 )
 print(f"EVM Facilitator account: {evm_signer.get_addresses()[0]}")
 
-# Initialize the SVM signer from private key
-svm_keypair = Keypair.from_base58_string(os.environ["SVM_PRIVATE_KEY"])
-svm_signer = FacilitatorKeypairSigner(svm_keypair)
-print(f"SVM Facilitator account: {svm_signer.get_addresses()[0]}")
+# Initialize the SVM signer from private key (optional)
+svm_signer = None
+if os.environ.get("SVM_PRIVATE_KEY"):
+    svm_keypair = Keypair.from_base58_string(os.environ["SVM_PRIVATE_KEY"])
+    svm_signer = FacilitatorKeypairSigner(svm_keypair)
+    print(f"SVM Facilitator account: {svm_signer.get_addresses()[0]}")
 
 
 def _handle_after_verify(ctx: Any) -> None:
@@ -122,12 +123,13 @@ register_exact_evm_facilitator(
     deploy_erc4337_with_eip6492=True,
 )
 
-# Register SVM schemes (V1 and V2)
-register_exact_svm_facilitator(
-    facilitator,
-    svm_signer,
-    networks="solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",  # Devnet
-)
+# Register SVM schemes (V1 and V2) if configured
+if svm_signer:
+    register_exact_svm_facilitator(
+        facilitator,
+        svm_signer,
+        networks="solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",  # Devnet
+    )
 
 
 # Pydantic models for request/response
