@@ -59,8 +59,12 @@ export const proxy = paymentProxy(
       accepts: {
         payTo: EVM_PAYEE_ADDRESS,
         scheme: "exact",
-        price: "$0.001",
         network: EVM_NETWORK,
+        price: {
+          amount: "1000",
+          asset: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
+          extra: { name: "DA HULU", version: "1" },
+        },
       },
       extensions: {
         ...declareDiscoveryExtension({
@@ -172,8 +176,15 @@ export const proxy = paymentProxy(
         payTo: EVM_PAYEE_ADDRESS,
         scheme: "exact",
         network: EVM_NETWORK,
-        price: "$0.001",
-        extra: { assetTransferMethod: "permit2" },
+        price: {
+          amount: "1000",
+          asset: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
+          extra: {
+            name: "DA HULU",
+            version: "1",
+            assetTransferMethod: "permit2",
+          },
+        },
       },
       extensions: {
         ...declareDiscoveryExtension({
@@ -203,7 +214,7 @@ export const proxy = paymentProxy(
         network: EVM_NETWORK,
         price: {
           amount: "1000",
-          asset: "0xeED520980fC7C7B4eB379B96d61CEdea2423005a",
+          asset: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
           extra: {
             assetTransferMethod: "permit2",
           },
