@@ -3,6 +3,7 @@ NETWORK_TO_ID = {
     "base": "8453",
     "avalanche-fuji": "43113",
     "avalanche": "43114",
+    "bsc": "56",
     "bsc-testnet": "97",
 }
 

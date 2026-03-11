@@ -5,7 +5,7 @@ import {
   decodeXPaymentResponse,
   MultiNetworkSigner,
   wrapFetchWithPayment,
-} from "x402-fetch";
+} from "@bankofai/x402-fetch-legacy";
 
 config();
 

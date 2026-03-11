@@ -20,6 +20,8 @@ export const EVM_NETWORK_CHAIN_ID_MAP = {
   "skale-base-sepolia": 324705682,
   megaeth: 4326,
   monad: 143,
+  bsc: 56,
+  "bsc-testnet": 97,
 } as const;
 
 export type EvmNetworkV1 = keyof typeof EVM_NETWORK_CHAIN_ID_MAP;

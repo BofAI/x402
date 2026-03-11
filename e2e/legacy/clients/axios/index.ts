@@ -6,7 +6,7 @@ import {
   decodeXPaymentResponse,
   createSigner,
   MultiNetworkSigner,
-} from "x402-axios";
+} from "@bankofai/x402-axios-legacy";
 
 config();
 
