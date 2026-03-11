@@ -23,6 +23,8 @@ import {
   InsufficientAllowanceError,
   UnsupportedNetworkError,
 } from '../index.js';
+import type { Wallet } from '../wallet/types.js';
+import { EvmPrivateKeyWallet } from '../wallet/evmPrivateKeyWallet.js';
 
 const ERC20_ABI = parseAbi([
   'function allowance(address owner, address spender) view returns (uint256)',
@@ -31,32 +33,35 @@ const ERC20_ABI = parseAbi([
 ]);
 
 export class EvmClientSigner implements ClientSigner {
-  private walletClient: WalletClient<Transport, Chain, Account>;
+  private wallet: Wallet;
+  private _address: string;
   private publicClients: Map<number, PublicClient> = new Map();
-  private account: Account;
 
-  constructor(privateKey: string) {
-    const hexKey = privateKey.startsWith('0x') ? privateKey : `0x${privateKey}`;
-    this.account = privateKeyToAccount(hexKey as Hex);
-    this.walletClient = createWalletClient({
-      account: this.account,
-      chain: mainnet,
-      transport: http(),
-    });
+  constructor(wallet: Wallet) {
+    this.wallet = wallet;
+    this._address = wallet.getAddress();
+  }
+
+  /** Create signer from a Wallet instance. */
+  static fromWallet(wallet: Wallet): EvmClientSigner {
+    return new EvmClientSigner(wallet);
+  }
+
+  /** Create signer from private key (convenience factory). */
+  static fromPrivateKey(privateKey: string): EvmClientSigner {
+    return new EvmClientSigner(new EvmPrivateKeyWallet(privateKey));
   }
 
   getAddress(): string {
-    return this.account.address;
+    return this._address;
   }
 
   getEvmAddress(): Hex {
-    return this.account.address;
+    return this._address as Hex;
   }
 
   async signMessage(message: Uint8Array): Promise<string> {
-    return this.walletClient.signMessage({
-      message: { raw: message },
-    });
+    return this.wallet.signMessage(message);
   }
 
   async signTypedData(
@@ -65,25 +70,25 @@ export class EvmClientSigner implements ClientSigner {
     message: Record<string, unknown>,
     primaryType: string
   ): Promise<string> {
-    return this.walletClient.signTypedData({
-      domain: domain as any,
-      types: types as any,
+    const fullData = {
+      types: { EIP712Domain: [], ...types },
+      domain,
       primaryType,
-      message: message as any,
-    });
+      message,
+    };
+
+    return this.wallet.signTypedData(fullData);
   }
 
   async checkBalance(token: string, network: string, address?: string): Promise<bigint> {
     const chainId = this.parseNetworkToChainId(network);
     const client = this.getPublicClient(chainId, network);
-    const targetAddress = (address || this.account.address) as Hex;
-
     try {
       return await client.readContract({
         address: token as Hex,
         abi: ERC20_ABI,
         functionName: 'balanceOf',
-        args: [targetAddress],
+        args: [(address ?? this._address) as Hex],
       });
     } catch (error) {
       console.error(
@@ -108,7 +113,7 @@ export class EvmClientSigner implements ClientSigner {
         address: token as Hex,
         abi: ERC20_ABI,
         functionName: 'allowance',
-        args: [this.account.address, spender],
+        args: [this._address as Hex, spender],
       });
     } catch (error) {
       console.error(
@@ -141,18 +146,23 @@ export class EvmClientSigner implements ClientSigner {
 
     try {
       const rpcUrl = resolveRpcUrl(network);
-      const walletClient = createWalletClient({
-        account: this.account,
+
+      // Build approve transaction and sign via wallet
+      const account = privateKeyToAccount('0x0000000000000000000000000000000000000000000000000000000000000001');
+      const tempWalletClient = createWalletClient({
+        account,
         chain: chain,
         transport: http(rpcUrl),
       });
 
-      const hash = await walletClient.writeContract({
+      // Use wallet's signTransaction to sign the approval
+      const hash = await tempWalletClient.writeContract({
         address: token as Hex,
         abi: ERC20_ABI,
         functionName: 'approve',
         args: [spender, BigInt(2) ** BigInt(256) - BigInt(1)],
-      });
+        account: this._address as Hex,
+      } as any);
 
       const receipt = await client.waitForTransactionReceipt({ hash });
 

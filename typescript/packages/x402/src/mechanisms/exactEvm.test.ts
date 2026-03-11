@@ -6,7 +6,7 @@ import { PermitValidationError } from '../errors.js';
 describe('ExactPermitEvmClientMechanism', () => {
   const privateKey =
     '0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
-  const signer = new EvmClientSigner(privateKey);
+  const signer = EvmClientSigner.fromPrivateKey(privateKey);
   const mechanism = new ExactPermitEvmClientMechanism(signer);
 
   const requirements = {

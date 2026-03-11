@@ -16,6 +16,8 @@ import {
 } from '../index.js';
 import { TronWeb as TronWebClass } from 'tronweb';
 import type { TronWeb, TypedDataDomain, TypedDataField } from './types.js';
+import type { Wallet } from '../wallet/types.js';
+import { TronPrivateKeyWallet } from '../wallet/tronPrivateKeyWallet.js';
 
 /** ERC20 function selectors */
 const ERC20_ALLOWANCE_SELECTOR = 'allowance(address,address)';
@@ -25,16 +27,23 @@ const ERC20_APPROVE_SELECTOR = 'approve(address,uint256)';
  * TRON client signer implementation using TronWeb's signTypedData
  */
 export class TronClientSigner implements ClientSigner {
-  private privateKey: string;
+  private wallet: Wallet;
   private address: string; // Base58 format
   private tronWebInstances: Map<string, TronWeb> = new Map();
 
-  constructor(privateKey: string) {
-    const cleanKey = privateKey.startsWith('0x') ? privateKey.slice(2) : privateKey;
-    this.privateKey = cleanKey;
-    // Derive address using a temporary TronWeb instance (pure crypto, no network needed)
-    const tw = this.createTronWeb('https://nile.trongrid.io');
-    this.address = tw.address.fromPrivateKey(cleanKey);
+  constructor(wallet: Wallet) {
+    this.wallet = wallet;
+    this.address = wallet.getAddress();
+  }
+
+  /** Create signer from a Wallet instance. */
+  static fromWallet(wallet: Wallet): TronClientSigner {
+    return new TronClientSigner(wallet);
+  }
+
+  /** Create signer from private key (convenience factory). */
+  static fromPrivateKey(privateKey: string): TronClientSigner {
+    return new TronClientSigner(new TronPrivateKeyWallet(privateKey));
   }
 
   /**
@@ -66,7 +75,9 @@ export class TronClientSigner implements ClientSigner {
   private createTronWeb(fullHost: string): TronWeb {
     const apiKey = typeof process !== 'undefined' ? process.env?.TRON_GRID_API_KEY : undefined;
     const headers = apiKey ? { 'TRON-PRO-API-KEY': apiKey } : undefined;
-    return new TronWebClass({ fullHost, privateKey: this.privateKey, headers }) as unknown as TronWeb;
+    // TronWeb needs a private key for initialization, use a dummy key for read-only operations
+    const dummyKey = '0000000000000000000000000000000000000000000000000000000000000001';
+    return new TronWebClass({ fullHost, privateKey: dummyKey, headers }) as unknown as TronWeb;
   }
 
   getAddress(): string {
@@ -78,16 +89,11 @@ export class TronClientSigner implements ClientSigner {
   }
 
   async signMessage(message: Uint8Array): Promise<string> {
-    const messageHex = Array.from(message)
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-    // Signing is pure crypto — any TronWeb instance works
-    const tw = this.getDefaultTronWeb();
-    return tw.trx.signMessageV2(messageHex, this.privateKey);
+    return this.wallet.signMessage(message);
   }
 
   /**
-   * Sign EIP-712 typed data using TronWeb's signTypedData (TIP-712)
+   * Sign EIP-712 typed data using Wallet abstraction
    */
   async signTypedData(
     domain: Record<string, unknown>,
@@ -95,22 +101,16 @@ export class TronClientSigner implements ClientSigner {
     message: Record<string, unknown>,
     _primaryType: string
   ): Promise<string> {
-    // Signing is pure crypto — any TronWeb instance works
-    const tw = this.getDefaultTronWeb();
-    // Use signTypedData (stable API) or fall back to _signTypedData (legacy)
-    const signFn = tw.trx.signTypedData || tw.trx._signTypedData;
-    if (!signFn) {
-      throw new SignatureCreationError('TronWeb does not support signTypedData. Please upgrade to TronWeb >= 5.0');
-    }
-
-    // Pure Passthrough: Let TronWeb handle the domain and types as-is.
-    return signFn.call(
-      tw.trx,
-      domain as any,
-      types as any,
+    const fullData = {
+      types: { EIP712Domain: [], ...types },
+      domain,
+      primaryType: types.PaymentPermitDetails
+        ? 'PaymentPermitDetails'
+        : Object.keys(types).pop(),
       message,
-      this.privateKey
-    );
+    };
+
+    return this.wallet.signTypedData(fullData);
   }
 
   async checkBalance(token: string, network: string, address?: string): Promise<bigint> {
@@ -216,8 +216,9 @@ export class TronClientSigner implements ClientSigner {
         throw new InsufficientAllowanceError('Failed to build approve transaction');
       }
 
-      // Sign transaction
-      const signedTx = await tw.trx.sign(tx.transaction, this.privateKey);
+      // Sign transaction via wallet (returns signature hex without 0x)
+      const sigHex = await this.wallet.signTransaction(tx.transaction as Record<string, unknown>);
+      const signedTx = { ...(tx.transaction as Record<string, unknown>), signature: [sigHex] };
 
       // Broadcast transaction
       const broadcast = await tw.trx.sendRawTransaction(signedTx);

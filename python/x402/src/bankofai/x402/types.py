@@ -80,6 +80,9 @@ class PaymentRequirementsExtra(BaseModel):
     version: Optional[str] = None
     fee: Optional[FeeInfo] = None
 
+    class Config:
+        extra = "allow"
+
 
 class PaymentRequirements(BaseModel):
     """Payment requirements from server"""

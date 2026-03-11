@@ -2,7 +2,6 @@
 TronClientSigner - TRON client signer implementation
 """
 
-import json
 import logging
 from typing import Any
 
@@ -10,6 +9,7 @@ from bankofai.x402.abi import ERC20_ABI
 from bankofai.x402.config import NetworkConfig
 from bankofai.x402.exceptions import InsufficientAllowanceError, SignatureCreationError
 from bankofai.x402.signers.client.base import ClientSigner
+from bankofai.x402.wallet import TronPrivateKeyWallet, Wallet
 
 logger = logging.getLogger(__name__)
 
@@ -17,24 +17,21 @@ logger = logging.getLogger(__name__)
 class TronClientSigner(ClientSigner):
     """TRON client signer implementation"""
 
-    def __init__(self, private_key: str) -> None:
-        clean_key = private_key[2:] if private_key.startswith("0x") else private_key
-        self._private_key = clean_key
-        self._address = self._derive_address(clean_key)
+    def __init__(self, wallet: Wallet) -> None:
+        self._wallet = wallet
+        self._address = wallet.get_address()
         self._async_tron_clients: dict[str, Any] = {}
         logger.info(f"TronClientSigner initialized: address={self._address}")
 
     @classmethod
+    def from_wallet(cls, wallet: Wallet) -> "TronClientSigner":
+        """Create signer from a Wallet instance."""
+        return cls(wallet)
+
+    @classmethod
     def from_private_key(cls, private_key: str) -> "TronClientSigner":
-        """Create signer from private key.
-
-        Args:
-            private_key: TRON private key (hex string)
-
-        Returns:
-            TronClientSigner instance
-        """
-        return cls(private_key)
+        """Create signer from private key (convenience factory)."""
+        return cls(TronPrivateKeyWallet(private_key))
 
     def _ensure_async_tron_client(self, network: str) -> Any:
         """Lazy initialize async tron_client for the given network.
@@ -54,30 +51,15 @@ class TronClientSigner(ClientSigner):
                 return None
         return self._async_tron_clients[network]
 
-    @staticmethod
-    def _derive_address(private_key: str) -> str:
-        """Derive TRON address from private key"""
-        try:
-            from tronpy.keys import PrivateKey
-
-            pk = PrivateKey(bytes.fromhex(private_key))
-            return pk.public_key.to_base58check_address()
-        except ImportError:
-            raise RuntimeError("tronpy is required to derive TRON addresses from private keys")
-
     def get_address(self) -> str:
         return self._address
 
     async def sign_message(self, message: bytes) -> str:
         """Sign raw message using ECDSA"""
         try:
-            from tronpy.keys import PrivateKey
-
-            pk = PrivateKey(bytes.fromhex(self._private_key))
-            signature = pk.sign_msg(message)
-            return signature.hex()
-        except ImportError:
-            raise SignatureCreationError("tronpy is required for signing")
+            return await self._wallet.sign_message(message)
+        except Exception as e:
+            raise SignatureCreationError(f"Failed to sign message: {e}")
 
     async def sign_typed_data(
         self,
@@ -91,9 +73,6 @@ class TronClientSigner(ClientSigner):
             f"Signing EIP-712 typed data: domain={domain.get('name')}, primaryType={primary_type}"
         )
         try:
-            from eth_account import Account
-            from eth_account.messages import encode_typed_data
-
             typed_data = {
                 "types": types,
                 "primaryType": primary_type,
@@ -115,17 +94,11 @@ class TronClientSigner(ClientSigner):
             logger.info(f"[SIGN] Domain: {json_module.dumps(domain)}")
             logger.info(f"[SIGN] Message: {json_module.dumps(message_for_log)}")
 
-            signable = encode_typed_data(full_message=typed_data)
-            private_key_bytes = bytes.fromhex(self._private_key)
-            signed_message = Account.sign_message(signable, private_key_bytes)
-
-            signature = signed_message.signature.hex()
+            signature = await self._wallet.sign_typed_data(typed_data)
             logger.info(f"[SIGN] Signature: 0x{signature}")
             return signature
-        except ImportError:
-            logger.warning("eth_account not available, using fallback signing")
-            data_str = json.dumps({"domain": domain, "types": types, "message": message})
-            return await self.sign_message(data_str.encode())
+        except Exception as e:
+            raise SignatureCreationError(f"Failed to sign typed data: {e}")
 
     async def check_balance(
         self,
@@ -229,8 +202,6 @@ class TronClientSigner(ClientSigner):
             raise InsufficientAllowanceError("AsyncTron client required for approval")
 
         try:
-            from tronpy.keys import PrivateKey
-
             spender = self._get_spender_address(network)
             # Use maxUint160 (2^160 - 1) to avoid repeated approvals
             max_uint160 = (2**160) - 1
@@ -241,7 +212,10 @@ class TronClientSigner(ClientSigner):
             txn_builder = await contract.functions.approve(spender, max_uint160)
             txn_builder = txn_builder.with_owner(self._address).fee_limit(100_000_000)
             txn = await txn_builder.build()
-            txn = txn.sign(PrivateKey(bytes.fromhex(self._private_key)))
+            # Sign the transaction via wallet
+            txn_dict = txn.to_json()
+            sig_hex = await self._wallet.sign_transaction(txn_dict)
+            txn._signature = [sig_hex]
             logger.info("Broadcasting approval transaction...")
             result = await txn.broadcast()
             result = await result.wait()

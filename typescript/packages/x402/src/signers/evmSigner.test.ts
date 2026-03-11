@@ -7,7 +7,7 @@ describe('EvmClientSigner', () => {
   const expectedAddress = '0xFCAd0B19bB29D4674531d6f115237E16AfCE377c';
 
   it('should initialize with a private key and derive the correct address', () => {
-    const signer = new EvmClientSigner(privateKey);
+    const signer = EvmClientSigner.fromPrivateKey(privateKey);
     expect(signer.getAddress().toLowerCase()).toBe(
       expectedAddress.toLowerCase(),
     );
@@ -15,14 +15,14 @@ describe('EvmClientSigner', () => {
 
   it('should initialize without 0x prefix', () => {
     const rawKey = privateKey.slice(2);
-    const signer = new EvmClientSigner(rawKey);
+    const signer = EvmClientSigner.fromPrivateKey(rawKey);
     expect(signer.getAddress().toLowerCase()).toBe(
       expectedAddress.toLowerCase(),
     );
   });
 
   it('should sign a message', async () => {
-    const signer = new EvmClientSigner(privateKey);
+    const signer = EvmClientSigner.fromPrivateKey(privateKey);
     const message = new TextEncoder().encode('hello world');
     const signature = await signer.signMessage(message);
 
@@ -31,7 +31,7 @@ describe('EvmClientSigner', () => {
   });
 
   it('should sign typed data', async () => {
-    const signer = new EvmClientSigner(privateKey);
+    const signer = EvmClientSigner.fromPrivateKey(privateKey);
     const domain = {
       name: 'Test',
       version: '1',
