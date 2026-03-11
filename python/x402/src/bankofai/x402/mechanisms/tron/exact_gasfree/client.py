@@ -101,19 +101,28 @@ class ExactGasFreeClientMechanism(ClientMechanism):
             service_provider_addr = random.choice(providers)["address"]
             self._logger.debug(f"Selected GasFree provider: {service_provider_addr}")
 
-        # Look up per-user transferFee from account info
+        # Look up per-user transferFee and activateFee from account info
         assets = account_info.get("assets", [])
         transfer_fee = 0
+        activate_fee = 0
         target_token = self._address_converter.normalize(requirements.asset)
 
         for asset in assets:
             if asset.get("tokenAddress") == target_token:
                 transfer_fee = int(asset.get("transferFee", 0))
+                activate_fee = int(asset.get("activateFee", 0))
                 break
 
         # Determine maxFee
         facilitator_fee = int(fee_info.fee_amount or "0") if fee_info else 0
         max_fee_val = max(transfer_fee, facilitator_fee)
+
+        # If the account is not yet activated, add activateFee to maxFee
+        if not is_active and activate_fee > 0:
+            max_fee_val = max_fee_val + activate_fee
+            self._logger.debug(
+                f"GasFree account not activated, adding activateFee {activate_fee} to maxFee"
+            )
 
         # Fallback: if both are 0 and no facilitator fee, default to 1 token
         if max_fee_val == 0 and not fee_info:
