@@ -21,8 +21,8 @@
     "llamaindex": "^0.10.2",
     "viem": "^2.28.3",
     "@bankofai/x402-legacy": "workspace:*",
-    "x402-axios": "workspace:*",
-    "x402-hono": "workspace:*",
+    "@bankofai/x402-axios-legacy": "workspace:*",
+    "@bankofai/x402-hono-legacy": "workspace:*",
     "zod": "^3.24.3"
   },
   "devDependencies": {

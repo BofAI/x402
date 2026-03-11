@@ -30,8 +30,8 @@
     "siwe": "^2.3.2",
     "viem": "^2.13.8",
     "@bankofai/x402-legacy": "workspace:*",
-    "x402-fetch": "workspace:*",
-    "x402-hono": "workspace:*"
+    "@bankofai/x402-fetch-legacy": "workspace:*",
+    "@bankofai/x402-hono-legacy": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.14.2",
