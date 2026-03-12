@@ -64,7 +64,8 @@
     "lint:check": "eslint . --ext .ts"
   },
   "dependencies": {
-    "@bankofai/x402-core": "workspace:*"
+    "@bankofai/x402-core": "workspace:*",
+    "viem": "^2.39.3"
   },
   "peerDependencies": {
     "tronweb": ">=6.0.0"

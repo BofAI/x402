@@ -20,8 +20,19 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
   readonly scheme = "exact";
   readonly caipFamily = "tron:*";
 
+  /**
+   * Initializes a new instance of ExactTronScheme.
+   *
+   * @param signer - The TRON signer.
+   */
   constructor(private readonly signer: FacilitatorTronSigner) {}
 
+  /**
+   * Gets extra configuration for the facilitator.
+   *
+   * @param network - The network identifier.
+   * @returns The extra configuration object.
+   */
   getExtra(network: string): Record<string, unknown> | undefined {
     const supportedMethods: string[] = ["tip712"];
     const signers = this.signer.getAddresses();
@@ -36,14 +47,28 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
     };
   }
 
+  /**
+   * Gets the list of signers for the given network.
+   *
+   * @param _ - The network identifier.
+   * @returns An array of signer addresses.
+   */
   getSigners(_: string): string[] {
     return [...this.signer.getAddresses()];
   }
 
+  /**
+   * Verifies the payment payload.
+   *
+   * @param payload - The payment payload to verify.
+   * @param requirements - The payment requirements.
+   * @param _ - The facilitator context.
+   * @returns The verification response.
+   */
   async verify(
     payload: PaymentPayload,
     requirements: PaymentRequirements,
-    _context?: FacilitatorContext,
+    _?: FacilitatorContext,
   ): Promise<VerifyResponse> {
     const rawPayload = payload.payload as ExactTronPayload;
 
@@ -54,10 +79,18 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
     return verifyTIP712(this.signer, payload, requirements, rawPayload as ExactTIP712Payload);
   }
 
+  /**
+   * Settles the payment.
+   *
+   * @param payload - The payment payload to settle.
+   * @param requirements - The payment requirements.
+   * @param _ - The facilitator context.
+   * @returns The settlement response.
+   */
   async settle(
     payload: PaymentPayload,
     requirements: PaymentRequirements,
-    _context?: FacilitatorContext,
+    _?: FacilitatorContext,
   ): Promise<SettleResponse> {
     const rawPayload = payload.payload as ExactTronPayload;
 

@@ -18,12 +18,22 @@ export class ExactTronScheme implements SchemeNetworkServer {
   /**
    * Register a custom money parser in the parser chain.
    * Parsers are tried in registration order; return null to fall through.
+   *
+   * @param parser - The money parser to register.
+   * @returns The ExactTronScheme instance for chaining.
    */
   registerMoneyParser(parser: MoneyParser): ExactTronScheme {
     this.moneyParsers.push(parser);
     return this;
   }
 
+  /**
+   * Parses the price into an asset amount.
+   *
+   * @param price - The price to parse.
+   * @param network - The network identifier.
+   * @returns The parsed asset amount.
+   */
   async parsePrice(price: Price, network: Network): Promise<AssetAmount> {
     // If already an AssetAmount, return it directly
     if (typeof price === "object" && price !== null && "amount" in price) {
@@ -52,6 +62,18 @@ export class ExactTronScheme implements SchemeNetworkServer {
     return this.defaultMoneyConversion(amount, network);
   }
 
+  /**
+   * Enhances the payment requirements based on supported kinds and extensions.
+   *
+   * @param paymentRequirements - The original payment requirements.
+   * @param supportedKind - The supported payment kind.
+   * @param supportedKind.x402Version - The x402 protocol version.
+   * @param supportedKind.scheme - The payment scheme.
+   * @param supportedKind.network - The network identifier.
+   * @param supportedKind.extra - Additional scheme-specific parameters.
+   * @param extensionKeys - List of extension keys to consider.
+   * @returns The enhanced payment requirements.
+   */
   enhancePaymentRequirements(
     paymentRequirements: PaymentRequirements,
     supportedKind: {
@@ -94,6 +116,12 @@ export class ExactTronScheme implements SchemeNetworkServer {
     });
   }
 
+  /**
+   * Parses money string or number to a decimal number.
+   *
+   * @param money - The money value to parse.
+   * @returns The parsed decimal number.
+   */
   private parseMoneyToDecimal(money: string | number): number {
     if (typeof money === "number") {
       return money;
@@ -106,6 +134,13 @@ export class ExactTronScheme implements SchemeNetworkServer {
     return amount;
   }
 
+  /**
+   * Performs default money conversion based on network.
+   *
+   * @param amount - The decimal amount.
+   * @param network - The network identifier.
+   * @returns The converted asset amount.
+   */
   private defaultMoneyConversion(amount: number, network: Network): AssetAmount {
     const assetInfo = this.getDefaultAsset(network);
     const tokenAmount = this.convertToTokenAmount(amount.toString(), assetInfo.decimals);
@@ -129,6 +164,13 @@ export class ExactTronScheme implements SchemeNetworkServer {
     };
   }
 
+  /**
+   * Converts a decimal amount string to a token amount string based on decimals.
+   *
+   * @param decimalAmount - The decimal amount string.
+   * @param decimals - The number of decimals.
+   * @returns The token amount string.
+   */
   private convertToTokenAmount(decimalAmount: string, decimals: number): string {
     const amount = parseFloat(decimalAmount);
     if (isNaN(amount)) {
@@ -140,6 +182,12 @@ export class ExactTronScheme implements SchemeNetworkServer {
     return tokenAmount;
   }
 
+  /**
+   * Gets the default asset information for a network.
+   *
+   * @param network - The network identifier.
+   * @returns The default asset info.
+   */
   private getDefaultAsset(network: Network): {
     address: string;
     name: string;

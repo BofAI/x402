@@ -29,6 +29,8 @@ export function getTronChainId(network: string): number {
 
 /**
  * Get the crypto object from the global scope.
+ *
+ * @returns The Crypto object.
  */
 function getCrypto(): Crypto {
   const cryptoObj = globalThis.crypto as Crypto | undefined;
@@ -40,6 +42,8 @@ function getCrypto(): Crypto {
 
 /**
  * Create a random 32-byte nonce for TIP-712 authorization.
+ *
+ * @returns A 32-byte hex-encoded nonce.
  */
 export function createNonce(): `0x${string}` {
   return toHex(getCrypto().getRandomValues(new Uint8Array(32)));
@@ -48,6 +52,9 @@ export function createNonce(): `0x${string}` {
 /**
  * Convert a TRON Base58Check address to EVM hex address (0x-prefixed).
  * TRON addresses are Base58Check-encoded with a 0x41 prefix.
+ *
+ * @param tronAddress - The TRON address in Base58Check format.
+ * @returns The EVM-compatible hex address.
  */
 export function tronAddressToEvm(tronAddress: string): `0x${string}` {
   if (tronAddress.startsWith("0x")) {
@@ -67,6 +74,9 @@ export function tronAddressToEvm(tronAddress: string): `0x${string}` {
 
 /**
  * Convert an EVM hex address to TRON Base58Check address.
+ *
+ * @param evmAddress - The hex address to convert.
+ * @returns The TRON Base58Check address.
  */
 export function evmAddressToTron(evmAddress: string): string {
   const cleanAddr = evmAddress.startsWith("0x") ? evmAddress.slice(2) : evmAddress;
@@ -76,6 +86,9 @@ export function evmAddressToTron(evmAddress: string): string {
 
 /**
  * Check if a string looks like a TRON Base58Check address.
+ *
+ * @param address - The address to check.
+ * @returns True if it looks like a TRON address.
  */
 export function isTronAddress(address: string): boolean {
   return address.startsWith("T") && address.length === 34;
@@ -83,6 +96,9 @@ export function isTronAddress(address: string): boolean {
 
 /**
  * Normalize an address for signing: TRON Base58 → EVM hex, or pass through hex.
+ *
+ * @param address - The address to normalize.
+ * @returns The normalized hex address.
  */
 export function normalizeAddressForSigning(address: string): `0x${string}` {
   if (isTronAddress(address)) {

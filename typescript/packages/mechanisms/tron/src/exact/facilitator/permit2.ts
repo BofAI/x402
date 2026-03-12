@@ -19,6 +19,12 @@ import * as errors from "./errors";
 
 /**
  * Verifies a Permit2 payment payload on TRON.
+ *
+ * @param signer - The TRON signer.
+ * @param payload - The payment payload.
+ * @param requirements - The payment requirements.
+ * @param permit2Payload - The Permit2 specific payload.
+ * @returns The verification response.
  */
 export async function verifyPermit2(
   signer: FacilitatorTronSigner,
@@ -170,6 +176,12 @@ export async function verifyPermit2(
 
 /**
  * Settles a Permit2 payment on TRON by calling x402Permit2Proxy.settle().
+ *
+ * @param signer - The TRON signer.
+ * @param payload - The payment payload.
+ * @param requirements - The payment requirements.
+ * @param permit2Payload - The Permit2 specific payload.
+ * @returns The settlement response.
  */
 export async function settlePermit2(
   signer: FacilitatorTronSigner,
