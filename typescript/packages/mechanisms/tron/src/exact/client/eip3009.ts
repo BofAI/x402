@@ -46,6 +46,14 @@ export async function createEIP3009Payload(
   };
 }
 
+/**
+ * Signs a TRON TransferWithAuthorization payload using TIP-712 typed data.
+ *
+ * @param signer - The client signer used to produce the authorization signature.
+ * @param authorization - The authorization payload to sign.
+ * @param requirements - The payment requirements containing token and domain data.
+ * @returns The signed authorization bytes.
+ */
 async function signEIP3009Authorization(
   signer: ClientTronSigner,
   authorization: ExactEIP3009Payload["authorization"],

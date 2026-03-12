@@ -13,10 +13,23 @@ import { createEIP3009Payload } from "../../client/eip3009";
  * V1 uses the EIP-3009-style TransferWithAuthorization flow only.
  */
 export class ExactTronSchemeV1 implements SchemeNetworkClient {
+  /** The payment scheme identifier. */
   readonly scheme = "exact";
 
+  /**
+   * Creates a V1 TRON exact scheme client.
+   *
+   * @param signer - The signer used to create payment payloads.
+   */
   constructor(private readonly signer: ClientTronSigner) {}
 
+  /**
+   * Creates a V1-compatible payment payload using the V2 EIP-3009 implementation.
+   *
+   * @param x402Version - The x402 protocol version requested by the server.
+   * @param paymentRequirements - The selected payment requirements to satisfy.
+   * @returns A V1-compatible payment payload envelope.
+   */
   async createPaymentPayload(
     x402Version: number,
     paymentRequirements: PaymentRequirements,

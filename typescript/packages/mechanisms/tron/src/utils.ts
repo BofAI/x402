@@ -1,11 +1,6 @@
 import { TronWeb } from "tronweb";
 import { TRON_CHAIN_IDS } from "./constants";
 
-// Dummy instance for address utilities
-const tronWeb = new TronWeb({
-  fullHost: "https://api.trongrid.io",
-});
-
 /**
  * Get the numeric chain ID for a TRON network identifier.
  *

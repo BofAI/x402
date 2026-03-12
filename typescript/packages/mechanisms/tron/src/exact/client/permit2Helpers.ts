@@ -6,6 +6,10 @@ const MAX_UINT256 = BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffff
 /**
  * Creates transaction data to approve Permit2 to spend TRC-20 tokens.
  * The user sends this transaction before using the Permit2 flow.
+ *
+ * @param tokenAddress - The TRC-20 token contract address.
+ * @param network - The CAIP-2 network identifier.
+ * @returns The transaction target and calldata for the approval.
  */
 export function createPermit2ApprovalTx(
   tokenAddress: string,
@@ -40,6 +44,9 @@ export interface Permit2AllowanceParams {
 
 /**
  * Returns contract read parameters for checking Permit2 allowance on TRON.
+ *
+ * @param params - The token, owner, and network parameters used to read allowance.
+ * @returns A readContract-compatible allowance query.
  */
 export function getPermit2AllowanceReadParams(params: Permit2AllowanceParams): {
   address: string;

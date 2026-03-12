@@ -89,13 +89,47 @@ export interface FacilitatorTronSigner {
 }
 
 type ReadContractCapable = Pick<ClientTronSigner, "readContract">;
+type TronContractAbi = Parameters<TronWeb["contract"]>[0];
+type TronContractMethod = (...args: readonly unknown[]) => {
+  call(): Promise<unknown>;
+  send(): Promise<string | { txid?: string }>;
+};
+type TronContract = {
+  methods: Record<string, TronContractMethod | undefined>;
+};
+type TronTxInfo = {
+  receipt?: {
+    result?: string;
+  };
+};
 
+/**
+ * Normalizes a TRON private key to the hex format expected by TronWeb helpers.
+ *
+ * @param privateKey - The private key, with or without a `0x` prefix.
+ * @returns The hex private key without a `0x` prefix.
+ */
+function normalizePrivateKey(privateKey: string): string {
+  return privateKey.replace(/^0x/, "");
+}
+
+/**
+ * Resolves the default TRON address for a TronWeb instance and private key.
+ *
+ * @param tronWeb - The TronWeb instance to inspect.
+ * @param privateKey - The facilitator or client private key.
+ * @returns The base58 TRON address associated with the signer.
+ */
 function resolveBase58Address(tronWeb: TronWeb, privateKey: string): string {
   const configuredAddress = tronWeb.defaultAddress?.base58;
   if (typeof configuredAddress === "string" && configuredAddress.length > 0) {
     return configuredAddress;
   }
-  return tronWeb.address.fromPrivateKey(privateKey) as string;
+  const resolved = tronWeb.address.fromPrivateKey(normalizePrivateKey(privateKey));
+  if (!resolved || typeof resolved !== "string") {
+    throw new Error("Unable to derive TRON address from private key.");
+  }
+  return resolved;
 }
 
 /**
@@ -103,6 +137,10 @@ function resolveBase58Address(tronWeb: TronWeb, privateKey: string): string {
  *
  * Use this when your signer can sign typed data but does not expose a contract read helper.
  * If `signer.readContract` is missing, `tronWeb` is required and will be used to satisfy reads.
+ *
+ * @param signer - The signer-like object to adapt.
+ * @param tronWeb - An optional TronWeb instance used to supply contract reads.
+ * @returns A fully-formed ClientTronSigner.
  */
 export function toClientTronSigner(
   signer: Omit<ClientTronSigner, "readContract"> & {
@@ -114,7 +152,10 @@ export function toClientTronSigner(
     signer.readContract ??
     (tronWeb
       ? async (args: Parameters<ReadContractCapable["readContract"]>[0]) => {
-          const contract = await tronWeb.contract(args.abi as any[], args.address);
+          const contract = (await tronWeb.contract(
+            args.abi as unknown as TronContractAbi,
+            args.address,
+          )) as unknown as TronContract;
           const method = contract.methods[args.functionName];
           if (!method) {
             throw new Error(`Method ${args.functionName} not found on contract ${args.address}`);
@@ -141,6 +182,9 @@ export function toClientTronSigner(
  *
  * This matches the EVM helper shape and is useful when your facilitator already
  * implements the TRON write/read/verify methods but exposes only `address`.
+ *
+ * @param signer - The facilitator-like signer to adapt.
+ * @returns A FacilitatorTronSigner with a `getAddresses()` implementation.
  */
 export function toFacilitatorTronSigner(
   signer: Omit<FacilitatorTronSigner, "getAddresses"> & { address: string },
@@ -153,6 +197,10 @@ export function toFacilitatorTronSigner(
 
 /**
  * Creates a ClientTronSigner directly from a TronWeb instance and private key.
+ *
+ * @param tronWeb - The TronWeb instance used for signing and reads.
+ * @param privateKey - The private key used to sign typed data.
+ * @returns A ClientTronSigner backed by TronWeb.
  */
 export function createClientTronSigner(tronWeb: TronWeb, privateKey: string): ClientTronSigner {
   const address = resolveBase58Address(tronWeb, privateKey);
@@ -161,7 +209,7 @@ export function createClientTronSigner(tronWeb: TronWeb, privateKey: string): Cl
     {
       address,
       async signTypedData(args) {
-        const cleanKey = privateKey.replace(/^0x/, "");
+        const cleanKey = normalizePrivateKey(privateKey);
         const signature = await tronWeb.trx._signTypedData(
           args.domain,
           args.types,
@@ -177,6 +225,10 @@ export function createClientTronSigner(tronWeb: TronWeb, privateKey: string): Cl
 
 /**
  * Creates a FacilitatorTronSigner directly from a TronWeb instance and private key.
+ *
+ * @param tronWeb - The TronWeb instance used for reads, verification, and writes.
+ * @param privateKey - The private key whose address is used as the facilitator identity.
+ * @returns A FacilitatorTronSigner backed by TronWeb.
  */
 export function createFacilitatorTronSigner(
   tronWeb: TronWeb,
@@ -187,7 +239,10 @@ export function createFacilitatorTronSigner(
   return toFacilitatorTronSigner({
     address,
     async readContract(args) {
-      const contract = await tronWeb.contract(args.abi as any[], args.address);
+      const contract = (await tronWeb.contract(
+        args.abi as unknown as TronContractAbi,
+        args.address,
+      )) as unknown as TronContract;
       const method = contract.methods[args.functionName];
       if (!method) {
         throw new Error(`Method ${args.functionName} not found on contract ${args.address}`);
@@ -196,16 +251,19 @@ export function createFacilitatorTronSigner(
     },
     async verifyTypedData(args) {
       const recovered = tronUtils.typedData.verifyTypedData(
-        args.domain as any,
-        args.types as any,
-        args.message as Record<string, any>,
+        args.domain,
+        args.types,
+        args.message,
         args.signature,
       );
 
       return tronAddressToEvm(args.address) === tronAddressToEvm(recovered);
     },
     async writeContract(args) {
-      const contract = await tronWeb.contract(args.abi as any[], args.address);
+      const contract = (await tronWeb.contract(
+        args.abi as unknown as TronContractAbi,
+        args.address,
+      )) as unknown as TronContract;
       const method = contract.methods[args.functionName];
       if (!method) {
         throw new Error(`Method ${args.functionName} not found on contract ${args.address}`);
@@ -214,8 +272,24 @@ export function createFacilitatorTronSigner(
       return typeof txId === "string" ? txId : ((txId as { txid?: string }).txid ?? String(txId));
     },
     async waitForTransactionReceipt(args) {
-      const receipt = await tronWeb.trx.getTransactionInfo(args.hash);
-      return { status: receipt?.receipt?.result === "SUCCESS" ? "success" : "reverted" };
+      const maxAttempts = 30;
+      const delayMs = 1000;
+
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        const receipt = (await tronWeb.trx.getTransactionInfo(args.hash)) as TronTxInfo | null;
+        const result = receipt?.receipt?.result;
+
+        if (result === "SUCCESS") {
+          return { status: "success" };
+        }
+        if (result && result !== "SUCCESS") {
+          return { status: "reverted" };
+        }
+
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+
+      return { status: "pending" };
     },
   });
 }

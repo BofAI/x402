@@ -1344,9 +1344,6 @@ importers:
       tronweb:
         specifier: ^6.1.0
         version: 6.2.2(bufferutil@4.1.0)(utf-8-validate@6.0.6)
-      viem:
-        specifier: ^2.39.3
-        version: 2.47.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.3.6)
     devDependencies:
       '@eslint/js':
         specifier: ^9.24.0

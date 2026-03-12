@@ -81,6 +81,9 @@ export function isPermit2Payload(payload: ExactTronPayload): payload is ExactPer
 /**
  * Type guard to check if a payload is a TransferWithAuthorization payload.
  * EIP-3009-style payloads have an `authorization` field.
+ *
+ * @param payload - The payload to check.
+ * @returns True if the payload is an ExactEIP3009Payload.
  */
 export function isEIP3009Payload(payload: ExactTronPayload): payload is ExactEIP3009Payload {
   return "authorization" in payload;
