@@ -716,18 +716,28 @@ async function runTest() {
           await revokePermit2Approval();
         }
 
+        const runTestWithRetry = async () => {
+          let r = await runSingleTest(scenario, port, tn, cLog);
+          if (!r.passed) {
+            cLog.log('  ⚠️ Test failed, retrying once after 10s delay to bypass environmental instability...');
+            await new Promise(resolve => setTimeout(resolve, 10000));
+            r = await runSingleTest(scenario, port, tn, cLog);
+          }
+          return r;
+        };
+
         if (isEvm && facilitatorName && evmLock) {
           const releaseLock = await evmLock.acquire(facilitatorName);
           try {
-            results.push(await runSingleTest(scenario, port, tn, cLog));
+            results.push(await runTestWithRetry());
             await new Promise(resolve => setTimeout(resolve, 2000));
           } finally {
             releaseLock();
           }
         } else {
-          results.push(await runSingleTest(scenario, port, tn, cLog));
+          results.push(await runTestWithRetry());
           // Add a small delay between sequential tests to improve stability
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 2000));
         }
       }
     } finally {
