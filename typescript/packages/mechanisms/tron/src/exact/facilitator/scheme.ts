@@ -20,8 +20,19 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
   readonly scheme = "exact";
   readonly caipFamily = "tron:*";
 
+  /**
+   * Creates a new ExactTronScheme facilitator instance.
+   *
+   * @param signer - The TRON signer for facilitator operations
+   */
   constructor(private readonly signer: FacilitatorTronSigner) {}
 
+  /**
+   * Gets extra configuration for the facilitator.
+   *
+   * @param network - The network identifier
+   * @returns The extra configuration object
+   */
   getExtra(network: string): Record<string, unknown> | undefined {
     const supportedMethods: string[] = ["tip712"];
     const signers = this.signer.getAddresses();
@@ -36,15 +47,32 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
     };
   }
 
+  /**
+   * Returns facilitator wallet addresses for the supported response.
+   *
+   * @param _ - The network identifier (unused, addresses are network-agnostic)
+   * @returns Array of facilitator wallet addresses
+   */
   getSigners(_: string): string[] {
     return [...this.signer.getAddresses()];
   }
 
+  /**
+   * Verifies a payment payload. Routes to Permit2 or TIP-712 based on payload type.
+   *
+   * @param payload - The payment payload to verify
+   * @param requirements - The payment requirements
+   * @param context - Optional facilitator context for extension capabilities
+   * @returns Promise resolving to verification response
+   */
   async verify(
     payload: PaymentPayload,
     requirements: PaymentRequirements,
-    _context?: FacilitatorContext,
+    context?: FacilitatorContext,
   ): Promise<VerifyResponse> {
+    // Mark unused parameters to satisfy linter
+    void context;
+
     const rawPayload = payload.payload as ExactTronPayload;
 
     if (isPermit2Payload(rawPayload)) {
@@ -54,11 +82,22 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
     return verifyTIP712(this.signer, payload, requirements, rawPayload as ExactTIP712Payload);
   }
 
+  /**
+   * Settles a payment. Routes to Permit2 or TIP-712 based on payload type.
+   *
+   * @param payload - The payment payload to settle
+   * @param requirements - The payment requirements
+   * @param context - Optional facilitator context for extension capabilities
+   * @returns Promise resolving to settlement response
+   */
   async settle(
     payload: PaymentPayload,
     requirements: PaymentRequirements,
-    _context?: FacilitatorContext,
+    context?: FacilitatorContext,
   ): Promise<SettleResponse> {
+    // Mark unused parameters to satisfy linter
+    void context;
+
     const rawPayload = payload.payload as ExactTronPayload;
 
     if (isPermit2Payload(rawPayload)) {

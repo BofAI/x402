@@ -19,6 +19,12 @@ import * as errors from "./errors";
 
 /**
  * Verifies a Permit2 payment payload on TRON.
+ *
+ * @param signer - The TRON signer.
+ * @param payload - The payment payload.
+ * @param requirements - The payment requirements.
+ * @param permit2Payload - The Permit2 specific payload.
+ * @returns The verification response.
  */
 export async function verifyPermit2(
   signer: FacilitatorTronSigner,
@@ -27,9 +33,9 @@ export async function verifyPermit2(
   permit2Payload: ExactPermit2Payload,
 ): Promise<VerifyResponse> {
   const payer = permit2Payload.permit2Authorization.from;
-  const facilitatorAddresses = signer.getAddresses().map((address) =>
-    normalizeAddressForSigning(address),
-  );
+  const facilitatorAddresses = signer
+    .getAddresses()
+    .map(address => normalizeAddressForSigning(address));
 
   if (payload.accepted.scheme !== "exact" || requirements.scheme !== "exact") {
     return { isValid: false, invalidReason: errors.INVALID_SCHEME, payer };
@@ -80,14 +86,15 @@ export async function verifyPermit2(
   }
 
   // Verify amount
-  if (BigInt(permit2Payload.permit2Authorization.permitted.amount) !== BigInt(requirements.amount)) {
+  if (
+    BigInt(permit2Payload.permit2Authorization.permitted.amount) !== BigInt(requirements.amount)
+  ) {
     return { isValid: false, invalidReason: errors.PERMIT2_AMOUNT_MISMATCH, payer };
   }
 
   // Verify token
   if (
-    normalizeAddressForSigning(permit2Payload.permit2Authorization.permitted.token) !==
-    tokenAddress
+    normalizeAddressForSigning(permit2Payload.permit2Authorization.permitted.token) !== tokenAddress
   ) {
     return { isValid: false, invalidReason: errors.PERMIT2_TOKEN_MISMATCH, payer };
   }
@@ -169,6 +176,12 @@ export async function verifyPermit2(
 
 /**
  * Settles a Permit2 payment on TRON by calling x402Permit2Proxy.settle().
+ *
+ * @param signer - The TRON signer.
+ * @param payload - The payment payload.
+ * @param requirements - The payment requirements.
+ * @param permit2Payload - The Permit2 specific payload.
+ * @returns The settlement response.
  */
 export async function settlePermit2(
   signer: FacilitatorTronSigner,
@@ -211,12 +224,7 @@ export async function settlePermit2(
       address: proxyAddress,
       abi: x402ExactPermit2ProxyABI as unknown as readonly Record<string, unknown>[],
       functionName: "settle",
-      args: [
-        permitTuple,
-        payer,
-        witnessTuple,
-        permit2Payload.signature,
-      ],
+      args: [permitTuple, payer, witnessTuple, permit2Payload.signature],
     });
 
     const receipt = await signer.waitForTransactionReceipt({ hash: tx });

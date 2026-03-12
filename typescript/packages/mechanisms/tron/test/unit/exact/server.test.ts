@@ -17,7 +17,11 @@ describe("ExactTronScheme (Server)", () => {
   describe("parsePrice", () => {
     it("should pass through AssetAmount directly", async () => {
       const result = await server.parsePrice(
-        { amount: "1000000", asset: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf", extra: { custom: "data" } },
+        {
+          amount: "1000000",
+          asset: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
+          extra: { custom: "data" },
+        },
         "tron:nile",
       );
 
@@ -51,11 +55,15 @@ describe("ExactTronScheme (Server)", () => {
     });
 
     it("should throw on invalid money format", async () => {
-      await expect(server.parsePrice("invalid", "tron:nile")).rejects.toThrow("Invalid money format");
+      await expect(server.parsePrice("invalid", "tron:nile")).rejects.toThrow(
+        "Invalid money format",
+      );
     });
 
     it("should throw on unsupported network", async () => {
-      await expect(server.parsePrice(1.0, "tron:unknown")).rejects.toThrow("No default asset configured");
+      await expect(server.parsePrice(1.0, "tron:unknown")).rejects.toThrow(
+        "No default asset configured",
+      );
     });
 
     it("should use Shasta USDT for tron:shasta", async () => {
@@ -156,9 +164,7 @@ describe("ExactTronScheme (Server)", () => {
       );
 
       expect(result.extra?.assetTransferMethod).toBe("permit2");
-      expect(result.extra?.permit2FacilitatorAddress).toBe(
-        "TSForFRqxmZdJ6Yfx2rNaFykhuQLc9cTMR",
-      );
+      expect(result.extra?.permit2FacilitatorAddress).toBe("TSForFRqxmZdJ6Yfx2rNaFykhuQLc9cTMR");
     });
 
     it("should use first method if tip712 not in supported list", async () => {
@@ -176,9 +182,7 @@ describe("ExactTronScheme (Server)", () => {
         [],
       );
       expect(result.extra?.assetTransferMethod).toBe("permit2");
-      expect(result.extra?.permit2FacilitatorAddress).toBe(
-        "TSForFRqxmZdJ6Yfx2rNaFykhuQLc9cTMR",
-      );
+      expect(result.extra?.permit2FacilitatorAddress).toBe("TSForFRqxmZdJ6Yfx2rNaFykhuQLc9cTMR");
     });
 
     it("should pass through when supportedAssetTransferMethods is empty", async () => {
@@ -210,9 +214,7 @@ describe("ExactTronScheme (Server)", () => {
         },
         [],
       );
-      expect(result.extra?.permit2FacilitatorAddress).toBe(
-        "TSForFRqxmZdJ6Yfx2rNaFykhuQLc9cTMR",
-      );
+      expect(result.extra?.permit2FacilitatorAddress).toBe("TSForFRqxmZdJ6Yfx2rNaFykhuQLc9cTMR");
     });
   });
 

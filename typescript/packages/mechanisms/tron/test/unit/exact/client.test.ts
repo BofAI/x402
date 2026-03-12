@@ -56,7 +56,10 @@ describe("ExactTronScheme (Client)", () => {
     });
 
     it("should create TIP-712 payload with tip712 method", async () => {
-      const reqs = { ...tip712Requirements, extra: { ...tip712Requirements.extra, assetTransferMethod: "tip712" } };
+      const reqs = {
+        ...tip712Requirements,
+        extra: { ...tip712Requirements.extra, assetTransferMethod: "tip712" },
+      };
       const client = new ExactTronScheme(mockSigner);
       const result = await client.createPaymentPayload(2, reqs);
 
@@ -110,7 +113,9 @@ describe("ExactTronScheme (Client)", () => {
       const reqs = { ...tip712Requirements, extra: {} };
       const client = new ExactTronScheme(mockSigner);
 
-      await expect(client.createPaymentPayload(2, reqs)).rejects.toThrow("TIP-712 domain parameters");
+      await expect(client.createPaymentPayload(2, reqs)).rejects.toThrow(
+        "TIP-712 domain parameters",
+      );
     });
   });
 

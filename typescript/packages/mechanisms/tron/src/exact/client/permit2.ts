@@ -12,6 +12,11 @@ import { createNonce, getTronChainId, normalizeAddressForSigning } from "../../u
  * Creates a Permit2 payload using the x402Permit2Proxy witness pattern on TRON.
  * The spender is set to x402Permit2Proxy, which enforces that funds
  * can only be sent to the witness.to address.
+ *
+ * @param signer - The TRON signer to sign the payload.
+ * @param x402Version - The version of the x402 protocol.
+ * @param paymentRequirements - The requirements for the payment.
+ * @returns The generated payment payload.
  */
 export async function createPermit2Payload(
   signer: ClientTronSigner,
@@ -82,6 +87,14 @@ export async function createPermit2Payload(
   };
 }
 
+/**
+ * Signs the Permit2 authorization.
+ *
+ * @param signer - The TRON signer.
+ * @param permit2Authorization - The authorization details.
+ * @param requirements - The payment requirements.
+ * @returns The signature.
+ */
 async function signPermit2Authorization(
   signer: ClientTronSigner,
   permit2Authorization: ExactPermit2Payload["permit2Authorization"],

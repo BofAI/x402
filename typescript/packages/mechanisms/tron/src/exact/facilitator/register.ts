@@ -13,6 +13,10 @@ export interface TronFacilitatorConfig {
 
 /**
  * Registers TRON exact payment scheme to an x402Facilitator instance.
+ *
+ * @param facilitator - The x402 facilitator instance.
+ * @param config - The configuration for TRON facilitator.
+ * @returns The facilitator instance.
  */
 export function registerExactTronScheme(
   facilitator: x402Facilitator,

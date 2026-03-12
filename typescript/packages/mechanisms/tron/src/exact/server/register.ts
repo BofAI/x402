@@ -11,6 +11,10 @@ export interface TronResourceServerConfig {
 
 /**
  * Registers TRON exact payment scheme to an x402ResourceServer instance.
+ *
+ * @param server - The x402 resource server instance.
+ * @param config - The configuration for TRON resource server.
+ * @returns The resource server instance.
  */
 export function registerExactTronScheme(
   server: x402ResourceServer,

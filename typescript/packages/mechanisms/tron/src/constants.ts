@@ -76,6 +76,7 @@ export const permit2WitnessTypes = {
  * Permit2 contract addresses per TRON network.
  */
 export const PERMIT2_ADDRESSES: Record<string, string> = {
+  "tron:mainnet": "TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9",
   "tron:nile": "TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h",
 };
 
@@ -84,7 +85,16 @@ export const PERMIT2_ADDRESSES: Record<string, string> = {
  * Enforces that Permit2 transfers can only go to the witness.to address.
  */
 export const X402_PERMIT2_PROXY_ADDRESSES: Record<string, string> = {
+  "tron:mainnet": "TSm6MSWHHBeABh22uqX7SU7QUweav4Cyy6",
   "tron:nile": "TCd2ZSwbJBAdgFfP5d3gkhKcGs47WNZLLi",
+};
+
+/**
+ * x402UptoPermit2Proxy contract addresses per TRON network.
+ * Used by variable-amount settlement flows.
+ */
+export const X402_UPTO_PERMIT2_PROXY_ADDRESSES: Record<string, string> = {
+  "tron:mainnet": "TGHEYAovw8fZz1bgnVgRtgrdGLbagFZYq5",
 };
 
 /**

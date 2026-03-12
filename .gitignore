@@ -215,6 +215,8 @@ __marimo__/
 # TypeScript build output
 dist/
 *.tsbuildinfo
+*.tgz
+.env-local
 
 # Agent / AI tool config
 CLAUDE.md
