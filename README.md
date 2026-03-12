@@ -14,7 +14,7 @@ x402 currently supports the **TRON** and **BSC** networks, with plans to expand 
 
 - **Protocol Native**: Restores the HTTP `402` status code to its intended purpose.
 - **AI Ready**: First-class support for AI Agents via specialized x402 skills.
-- **Trust Minimized**: Uses **TIP-712/EIP-712** structured data signing. Facilitators cannot modify payment terms.
+- **Trust Minimized**: Uses structured-data signing for `eip3009`-style authorizations and `permit2` witness flows. Facilitators cannot modify payment terms.
 - **Stateless & Accountless**: No user accounts or session management required. Payments are verified per request.
 - **Framework Integrations**: 
     - **Python**: FastAPI, Flask, httpx
@@ -35,10 +35,10 @@ pip install -e .[all]
 ```
 
 ### TypeScript
-The TypeScript SDK provides client-side integration tools.
+The current TypeScript SDK is split into focused v2 packages.
 
 ```bash
-npm install @bankofai/x402
+npm install @bankofai/x402-core @bankofai/x402-fetch @bankofai/x402-tron @bankofai/x402-evm
 ```
 
 ## AI Agent Integration
@@ -48,158 +48,80 @@ x402 is designed for the Agentic Web. AI agents can autonomously negotiate and p
 This skill enables agents to:
 
 1. Detect `402 Payment Required` responses.
-2. Sign TIP-712/EIP-712 payment authorizations automatically.
+2. Sign x402 payment payloads automatically on TRON and EVM.
 3. Manage wallet balances and handle the challenge-response loop.
 
 ## Quick Start
 
 ### 1. Facilitator
-The Facilitator is responsible for verifying TIP-712/EIP-712 signatures and executing on-chain settlements.
+The Facilitator verifies payment payloads and executes on-chain settlements.
 
 - **Self-Hosted**: Deploy and manage your own Facilitator instance for full control over fee policies and settlement strategies. See the [**demo repository quick start**](https://github.com/BofAI/x402-demo/tree/main?tab=readme-ov-file#quick-start) for deployment instructions.
 - **Official Facilitator**: An [officially hosted Facilitator](https://github.com/BofAI/x402-facilitator) service is available, allowing you to use x402 without deploying infrastructure yourself.
 
 ### 2. Server (Seller)
-Protect your FastAPI endpoints with a single decorator.
+The current TypeScript v2 server path uses `x402ResourceServer` from `@bankofai/x402-core`
+with chain-specific `exact` schemes.
 
-**TRON Example:**
-```python
-from fastapi import FastAPI
-from bankofai.x402.server import X402Server
-from bankofai.x402.fastapi import x402_protected
-from bankofai.x402.facilitator import FacilitatorClient
-from bankofai.x402.config import NetworkConfig
+```typescript
+import { HTTPFacilitatorClient, x402ResourceServer } from "@bankofai/x402-core/server";
+import { ExactTronScheme } from "@bankofai/x402-tron/exact/server";
 
-app = FastAPI()
-server = X402Server()
-server.set_facilitator(FacilitatorClient("http://localhost:8001"))
+const facilitator = new HTTPFacilitatorClient({ url: "http://localhost:8011" });
+const server = new x402ResourceServer(facilitator);
 
-@app.get("/protected")
-@x402_protected(
-    server=server,
-    prices=["0.0001 USDT"],
-    schemes=["exact_permit"],
-    network=NetworkConfig.TRON_NILE,
-    pay_to="<YOUR_TRON_WALLET_ADDRESS>",
-)
-async def protected_endpoint():
-    return {"data": "This is premium content!"}
-```
+server.register("tron:nile", new ExactTronScheme());
+await server.initialize();
 
-**EVM (BSC) Example:**
-```python
-from fastapi import FastAPI
-from bankofai.x402.server import X402Server
-from bankofai.x402.fastapi import x402_protected
-from bankofai.x402.facilitator import FacilitatorClient
-from bankofai.x402.config import NetworkConfig
-from bankofai.x402.mechanisms.evm.exact_permit import ExactPermitEvmServerMechanism
-from bankofai.x402.mechanisms.evm.exact import ExactEvmServerMechanism
-
-app = FastAPI()
-server = X402Server()
-server.register(NetworkConfig.BSC_TESTNET, ExactPermitEvmServerMechanism())
-server.register(NetworkConfig.BSC_TESTNET, ExactEvmServerMechanism())
-server.set_facilitator(FacilitatorClient("http://localhost:8001"))
-
-@app.get("/protected")
-@x402_protected(
-    server=server,
-    prices=["0.0001 USDT"],
-    schemes=["exact_permit"],
-    network=NetworkConfig.BSC_TESTNET,
-    pay_to="<YOUR_BSC_WALLET_ADDRESS>",
-)
-async def protected_endpoint():
-    return {"data": "This is premium content!"}
+const accepts = await server.buildPaymentRequirements({
+  scheme: "exact",
+  network: "tron:nile",
+  price: "$0.0001",
+  payTo: "<YOUR_TRON_WALLET_ADDRESS>",
+});
 ```
 
 ### 3. Client (Buyer)
-Clients handle the `402` challenge-response loop automatically using the SDK.
+Clients handle the `402` challenge-response loop automatically using the v2 SDK.
 
-**TRON — TypeScript Example:**
+**TRON — TypeScript Example**
 ```typescript
-import 'dotenv/config'
-import {
-  X402Client, X402FetchClient,
-  ExactPermitTronClientMechanism, ExactGasFreeClientMechanism,
-  TronClientSigner, SufficientBalancePolicy,
-  GasFreeAPIClient, getGasFreeApiBaseUrl,
-} from '@bankofai/x402'
+import "dotenv/config";
+import { TronWeb } from "tronweb";
+import { x402Client, wrapFetchWithPayment } from "@bankofai/x402-fetch";
+import { ExactTronScheme, createClientTronSigner } from "@bankofai/x402-tron";
 
-const signer = new TronClientSigner(process.env.TRON_PRIVATE_KEY!)
+const tronWeb = new TronWeb({
+  fullHost: "https://nile.trongrid.io",
+  privateKey: process.env.TRON_PRIVATE_KEY!,
+});
 
-const x402 = new X402Client()
+const signer = createClientTronSigner(tronWeb, process.env.TRON_PRIVATE_KEY!);
+const client = new x402Client().register("tron:nile", new ExactTronScheme(signer));
+const fetchWithPayment = wrapFetchWithPayment(fetch, client);
 
-// Register both exact_permit and exact_gasfree mechanisms
-x402.register('tron:*', new ExactPermitTronClientMechanism(signer))
-x402.register('tron:*', new ExactGasFreeClientMechanism(signer, {
-  'tron:nile': new GasFreeAPIClient(getGasFreeApiBaseUrl('tron:nile')),
-  'tron:mainnet': new GasFreeAPIClient(getGasFreeApiBaseUrl('tron:mainnet')),
-}))
-x402.registerPolicy(SufficientBalancePolicy)
-
-const client = new X402FetchClient(x402)
-
-// The SDK handles the 402 flow automatically
-// Demo service: https://x402-demo.bankofai.io/protected-nile
-const response = await client.get('http://localhost:8000/protected')
-const data = await response.json()
+const response = await fetchWithPayment("http://localhost:8010/protected-nile");
+console.log(await response.json());
 ```
 
-**TRON — Python Example:**
-```python
-import asyncio, httpx
-from bankofai.x402.clients import X402Client, X402HttpClient, SufficientBalancePolicy
-from bankofai.x402.mechanisms.tron.exact_permit import ExactPermitTronClientMechanism
-from bankofai.x402.mechanisms.tron.exact_gasfree.client import ExactGasFreeClientMechanism
-from bankofai.x402.signers.client import TronClientSigner
-from bankofai.x402.utils.gasfree import GasFreeAPIClient
-from bankofai.x402.config import NetworkConfig
-
-signer = TronClientSigner.from_private_key("YOUR_TRON_PRIVATE_KEY")
-
-gasfree_clients = {
-    "tron:nile": GasFreeAPIClient(NetworkConfig.get_gasfree_api_base_url("tron:nile")),
-    "tron:mainnet": GasFreeAPIClient(NetworkConfig.get_gasfree_api_base_url("tron:mainnet")),
-}
-
-x402 = X402Client()
-x402.register("tron:*", ExactPermitTronClientMechanism(signer))
-x402.register("tron:*", ExactGasFreeClientMechanism(signer, clients=gasfree_clients))
-x402.register_policy(SufficientBalancePolicy)
-
-async def main():
-    async with httpx.AsyncClient(timeout=120) as http:
-        client = X402HttpClient(http, x402)
-        response = await client.get("http://localhost:8000/protected")
-        print(response.json())
-
-asyncio.run(main())
-```
-
-**EVM (BSC) — TypeScript Example:**
+**BSC — TypeScript Example**
 ```typescript
-import 'dotenv/config'
-import {
-  X402Client, X402FetchClient,
-  ExactPermitEvmClientMechanism, ExactEvmClientMechanism,
-  EvmClientSigner, SufficientBalancePolicy,
-} from '@bankofai/x402'
+import "dotenv/config";
+import { createPublicClient, http } from "viem";
+import { bscTestnet } from "viem/chains";
+import { privateKeyToAccount } from "viem/accounts";
+import { x402Client, wrapFetchWithPayment } from "@bankofai/x402-fetch";
+import { ExactEvmScheme, toClientEvmSigner } from "@bankofai/x402-evm";
 
-const signer = new EvmClientSigner(process.env.BSC_PRIVATE_KEY!)
+const account = privateKeyToAccount(process.env.BSC_PRIVATE_KEY! as `0x${string}`);
+const publicClient = createPublicClient({ chain: bscTestnet, transport: http(process.env.BSC_TESTNET_RPC_URL) });
+const signer = toClientEvmSigner(account, publicClient);
 
-const x402 = new X402Client()
-x402.register('eip155:*', new ExactPermitEvmClientMechanism(signer))
-x402.register('eip155:*', new ExactEvmClientMechanism(signer))
-x402.registerPolicy(SufficientBalancePolicy)
+const client = new x402Client().register("eip155:97", new ExactEvmScheme(signer));
+const fetchWithPayment = wrapFetchWithPayment(fetch, client);
 
-const client = new X402FetchClient(x402)
-
-// The SDK handles the 402 flow automatically
-// Demo service: https://x402-demo.bankofai.io/protected-bsc-testnet
-const response = await client.get('http://localhost:8000/protected')
-const data = await response.json()
+const response = await fetchWithPayment("http://localhost:8010/protected-bsc-testnet");
+console.log(await response.json());
 ```
 
 ### 4. Agent (Buyer)
@@ -287,7 +209,7 @@ The x402 protocol supports multiple payment schemes to accommodate different use
 | Scheme | Chain | Transfer Methods | Description |
 |--------|-------|-----------------|-------------|
 | **`exact`** | EVM | `eip3009`, `permit2` | Native direct payment using ERC-3009 (`TransferWithAuthorization`) or Uniswap Permit2 with witness. |
-| **`exact`** | TRON | `tip712`, `permit2` | Native direct payment using TIP-712 (`TransferWithAuthorization`) or Permit2 with witness. |
+| **`exact`** | TRON | `eip3009`, `permit2` | Native direct payment using TRON `TransferWithAuthorization` (`eip3009`-style) or Permit2 with witness. |
 | **`exact_permit`** | TRON, EVM | — | Standard x402 scheme using TIP-712/EIP-712 permits. Requires a `PaymentPermit` contract. |
 | **`exact_gasfree`**| TRON | — | Allows users to pay with USDT/USDD without holding TRX for gas. Settled via the official GasFree Proxy. |
 ## Development

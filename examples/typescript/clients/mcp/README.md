@@ -41,7 +41,7 @@ Then run the client:
 
 ### Simple Mode (Recommended)
 
-Uses the `createX402MCPClient` factory function for easy setup:
+Uses the `createx402MCPClient` factory function for easy setup:
 
 ```bash
 pnpm dev
