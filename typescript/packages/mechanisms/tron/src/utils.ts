@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { TRON_CHAIN_IDS } from "./constants";
 
 /**
@@ -23,8 +24,8 @@ export function getTronChainId(network: string): number {
 /**
  * Get the crypto object from the global scope.
  */
-function getCrypto(): typeof globalThis.crypto {
-  const cryptoObj = globalThis.crypto;
+function getCrypto(): any {
+  const cryptoObj = (globalThis as any).crypto;
   if (!cryptoObj) {
     throw new Error("Crypto API not available");
   }
@@ -36,8 +37,8 @@ function getCrypto(): typeof globalThis.crypto {
  */
 export function createNonce(): `0x${string}` {
   const bytes = getCrypto().getRandomValues(new Uint8Array(32));
-  return `0x${Array.from(bytes)
-    .map((b: number) => b.toString(16).padStart(2, "0"))
+  return `0x${Array.from(bytes as Iterable<number>)
+    .map(b => b.toString(16).padStart(2, "0"))
     .join("")}` as `0x${string}`;
 }
 
@@ -131,9 +132,7 @@ function hexToBytes(hex: string): Uint8Array {
 }
 
 function sha256(data: Uint8Array): Uint8Array {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const crypto = require("crypto");
-  return new Uint8Array(crypto.createHash("sha256").update(data).digest());
+  return new Uint8Array(createHash("sha256").update(data).digest());
 }
 
 function base58Encode(bytes: Uint8Array): string {
