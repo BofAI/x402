@@ -16,6 +16,82 @@ npm install @bankofai/x402-evm @bankofai/x402-tron
 
 The examples in this repository use SSE transport and `createPaymentWrapper()` on the server side.
 
+## CLI
+
+This package also ships an `x402` command for Coinbase-style paid HTTP requests.
+
+Install globally:
+
+```bash
+npm install -g @bankofai/x402-mcp
+```
+
+Or run from a local project:
+
+```bash
+npx -y -p @bankofai/x402-mcp x402 status
+npx -y -p @bankofai/x402-mcp x402 balance
+npx -y -p @bankofai/x402-mcp x402 pay https://example.com/api/weather
+```
+
+Common options:
+
+```bash
+x402 pay <url> \
+  -X POST \
+  -d '{"prompt":"hello"}' \
+  -q '{"verbose":"true"}' \
+  -h '{"X-App":"demo"}' \
+  --network nile \
+  --asset USDT \
+  --pair tron:nile:USDT \
+  --max-amount 100000
+```
+
+Selection priority when an endpoint returns multiple `accepts` options:
+
+1. `network + pair/asset`
+2. `network`
+3. first available option
+
+`x402 balance` shows native balances and, when known, the default payment token for that network. To inspect a specific payment token balance, pass `--network` and `--asset` (or `--pair`).
+
+## MCP Server Quick Start
+
+This package also ships a stdio MCP server so MCP hosts can install it directly.
+
+Claude Desktop:
+
+```bash
+claude mcp add -e TRON_PRIVATE_KEY=xxx -e EVM_PRIVATE_KEY=xxx x402 -- npx -y @bankofai/x402-mcp
+```
+
+Cursor (`.cursor/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "x402": {
+      "command": "npx",
+      "args": ["-y", "@bankofai/x402-mcp"],
+      "env": {
+        "TRON_PRIVATE_KEY": "YOUR_TRON_KEY",
+        "EVM_PRIVATE_KEY": "YOUR_EVM_KEY",
+        "TRON_GRID_API_KEY": "OPTIONAL_TRONGRID_KEY",
+        "BSC_TESTNET_RPC_URL": "OPTIONAL_RPC",
+        "BSC_MAINNET_RPC_URL": "OPTIONAL_RPC"
+      }
+    }
+  }
+}
+```
+
+Provided tools:
+
+- `x402_status`
+- `x402_balance`
+- `x402_pay`
+
 ## Quick Start (Recommended)
 
 ### Server - Using Payment Wrapper
