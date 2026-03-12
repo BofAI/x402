@@ -20,7 +20,7 @@
   "license": "Apache-2.0",
   "author": "bankofai",
   "repository": "https://github.com/bankofai/x402",
-  "description": "x402 Payment Protocol",
+  "description": "Client-first MCP payment SDK for the x402 protocol",
   "devDependencies": {
     "@eslint/js": "^9.24.0",
     "@types/node": "^22.13.4",

@@ -7,9 +7,9 @@ import {
   VerifyResponse,
 } from "@bankofai/x402-core/types";
 import { FacilitatorTronSigner } from "../../signer";
-import { ExactTronPayload, ExactTIP712Payload, isPermit2Payload } from "../../types";
+import { ExactEIP3009Payload, ExactTronPayload, isPermit2Payload } from "../../types";
 import { X402_PERMIT2_PROXY_ADDRESSES } from "../../constants";
-import { verifyTIP712, settleTIP712 } from "./tip712";
+import { verifyEIP3009, settleEIP3009 } from "./eip3009";
 import { verifyPermit2, settlePermit2 } from "./permit2";
 
 /**
@@ -34,7 +34,7 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
    * @returns The extra configuration object
    */
   getExtra(network: string): Record<string, unknown> | undefined {
-    const supportedMethods: string[] = ["tip712"];
+    const supportedMethods: string[] = ["eip3009"];
     const signers = this.signer.getAddresses();
     if (X402_PERMIT2_PROXY_ADDRESSES[network]) {
       supportedMethods.push("permit2");
@@ -79,7 +79,7 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
       return verifyPermit2(this.signer, payload, requirements, rawPayload);
     }
 
-    return verifyTIP712(this.signer, payload, requirements, rawPayload as ExactTIP712Payload);
+    return verifyEIP3009(this.signer, payload, requirements, rawPayload as ExactEIP3009Payload);
   }
 
   /**
@@ -104,6 +104,6 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
       return settlePermit2(this.signer, payload, requirements, rawPayload);
     }
 
-    return settleTIP712(this.signer, payload, requirements, rawPayload as ExactTIP712Payload);
+    return settleEIP3009(this.signer, payload, requirements, rawPayload as ExactEIP3009Payload);
   }
 }

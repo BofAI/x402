@@ -1,7 +1,7 @@
 import { PaymentRequirements, PaymentPayloadResult } from "@bankofai/x402-core/types";
 import { authorizationTypes } from "../../constants";
 import { ClientTronSigner } from "../../signer";
-import { ExactTIP712Payload } from "../../types";
+import { ExactEIP3009Payload } from "../../types";
 import { createNonce, getTronChainId, normalizeAddressForSigning } from "../../utils";
 
 /**
@@ -13,7 +13,7 @@ import { createNonce, getTronChainId, normalizeAddressForSigning } from "../../u
  * @param paymentRequirements - The requirements for the payment.
  * @returns The generated payment payload.
  */
-export async function createTIP712Payload(
+export async function createEIP3009Payload(
   signer: ClientTronSigner,
   x402Version: number,
   paymentRequirements: PaymentRequirements,
@@ -24,7 +24,7 @@ export async function createTIP712Payload(
   const fromAddress = normalizeAddressForSigning(signer.address);
   const toAddress = normalizeAddressForSigning(paymentRequirements.payTo);
 
-  const authorization: ExactTIP712Payload["authorization"] = {
+  const authorization: ExactEIP3009Payload["authorization"] = {
     from: fromAddress,
     to: toAddress,
     value: paymentRequirements.amount,
@@ -33,9 +33,9 @@ export async function createTIP712Payload(
     nonce,
   };
 
-  const signature = await signTIP712Authorization(signer, authorization, paymentRequirements);
+  const signature = await signEIP3009Authorization(signer, authorization, paymentRequirements);
 
-  const payload: ExactTIP712Payload = {
+  const payload: ExactEIP3009Payload = {
     authorization,
     signature,
   };
@@ -46,17 +46,9 @@ export async function createTIP712Payload(
   };
 }
 
-/**
- * Signs the TIP-712 authorization.
- *
- * @param signer - The TRON signer.
- * @param authorization - The authorization details.
- * @param requirements - The payment requirements.
- * @returns The signature.
- */
-async function signTIP712Authorization(
+async function signEIP3009Authorization(
   signer: ClientTronSigner,
-  authorization: ExactTIP712Payload["authorization"],
+  authorization: ExactEIP3009Payload["authorization"],
   requirements: PaymentRequirements,
 ): Promise<`0x${string}`> {
   const chainId = getTronChainId(requirements.network);

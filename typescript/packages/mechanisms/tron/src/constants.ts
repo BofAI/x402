@@ -154,6 +154,22 @@ export const erc20AllowanceAbi = [
   },
 ] as const;
 
+/**
+ * ABI for TRC-20 approve used by Permit2 setup flows.
+ */
+export const erc20ApproveAbi = [
+  {
+    type: "function",
+    name: "approve",
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "value", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+    stateMutability: "nonpayable",
+  },
+] as const;
+
 // --- Shared constants ---
 
 /**

@@ -6,7 +6,7 @@ import {
 } from "@bankofai/x402-core/types";
 import { authorizationTypes, transferWithAuthorizationABI } from "../../constants";
 import { FacilitatorTronSigner } from "../../signer";
-import { ExactTIP712Payload } from "../../types";
+import { ExactEIP3009Payload } from "../../types";
 import { getTronChainId, normalizeAddressForSigning } from "../../utils";
 import * as errors from "./errors";
 
@@ -19,11 +19,11 @@ import * as errors from "./errors";
  * @param tronPayload - The TIP-712 specific payload.
  * @returns The verification response.
  */
-export async function verifyTIP712(
+export async function verifyEIP3009(
   signer: FacilitatorTronSigner,
   payload: PaymentPayload,
   requirements: PaymentRequirements,
-  tronPayload: ExactTIP712Payload,
+  tronPayload: ExactEIP3009Payload,
 ): Promise<VerifyResponse> {
   const payer = tronPayload.authorization.from;
 
@@ -119,15 +119,15 @@ export async function verifyTIP712(
  * @param tronPayload - The TIP-712 specific payload.
  * @returns The settlement response.
  */
-export async function settleTIP712(
+export async function settleEIP3009(
   signer: FacilitatorTronSigner,
   payload: PaymentPayload,
   requirements: PaymentRequirements,
-  tronPayload: ExactTIP712Payload,
+  tronPayload: ExactEIP3009Payload,
 ): Promise<SettleResponse> {
   const payer = tronPayload.authorization.from;
 
-  const valid = await verifyTIP712(signer, payload, requirements, tronPayload);
+  const valid = await verifyEIP3009(signer, payload, requirements, tronPayload);
   if (!valid.isValid) {
     return {
       success: false,
