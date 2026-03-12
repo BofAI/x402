@@ -29,9 +29,9 @@ npm install -g @bankofai/x402-mcp
 Or run from a local project:
 
 ```bash
-npx @bankofai/x402-mcp status
-npx @bankofai/x402-mcp balance
-npx @bankofai/x402-mcp pay https://example.com/api/weather
+npx -y -p @bankofai/x402-mcp x402 status
+npx -y -p @bankofai/x402-mcp x402 balance
+npx -y -p @bankofai/x402-mcp x402 pay https://example.com/api/weather
 ```
 
 Common options:
@@ -53,6 +53,8 @@ Selection priority when an endpoint returns multiple `accepts` options:
 1. `network + pair/asset`
 2. `network`
 3. first available option
+
+`x402 balance` shows native balances and, when known, the default payment token for that network. To inspect a specific payment token balance, pass `--network` and `--asset` (or `--pair`).
 
 ## MCP Server Quick Start
 

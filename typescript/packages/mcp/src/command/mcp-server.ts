@@ -59,9 +59,24 @@ async function main(): Promise<void> {
     return toTextResult(runCli(["status"]));
   });
 
-  server.tool("x402_balance", "Show configured x402 wallet balances.", {}, async () => {
-    return toTextResult(runCli(["balance"]));
-  });
+  server.tool(
+    "x402_balance",
+    "Show configured x402 wallet balances.",
+    {
+      network: z.string().optional(),
+      asset: z.string().optional(),
+      token: z.string().optional(),
+      pair: z.string().optional(),
+    },
+    async args => {
+      const commandArgs = ["balance"];
+      if (args.network) commandArgs.push("--network", args.network);
+      if (args.asset) commandArgs.push("--asset", args.asset);
+      if (args.token) commandArgs.push("--token", args.token);
+      if (args.pair) commandArgs.push("--pair", args.pair);
+      return toTextResult(runCli(commandArgs));
+    },
+  );
 
   server.tool(
     "x402_pay",

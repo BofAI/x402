@@ -8,7 +8,7 @@ function printHelp(): void {
       "",
       "Usage:",
       "  x402 status",
-      "  x402 balance",
+      "  x402 balance [--network <network>] [--asset <asset>] [--pair <pair>]",
       "  x402 pay <url> [-X <method>] [-d <json>] [-q <params>] [-h <json>]",
       "           [--network <network>] [--asset <asset>] [--pair <pair>]",
       "           [--max-amount <atomic-units>] [--correlation-id <id>] [--json]",
@@ -34,7 +34,7 @@ async function main(): Promise<void> {
   }
 
   if (command === "balance") {
-    await runBalance();
+    await runBalance(parseCliOptions(rest));
     return;
   }
 

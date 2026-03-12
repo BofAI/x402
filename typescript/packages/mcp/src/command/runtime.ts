@@ -12,8 +12,12 @@ import {
   type SelectPaymentRequirements,
 } from "@bankofai/x402-core/client";
 import { wrapFetchWithPayment } from "@bankofai/x402-fetch";
-import { ExactEvmScheme, toClientEvmSigner } from "@bankofai/x402-evm";
-import { ExactTronScheme, createClientTronSigner } from "@bankofai/x402-tron";
+import { ExactEvmScheme, toClientEvmSigner, eip3009ABI } from "@bankofai/x402-evm";
+import {
+  ExactTronScheme,
+  createClientTronSigner,
+  transferWithAuthorizationABI,
+} from "@bankofai/x402-tron";
 
 type NetworkName = "mainnet" | "nile" | "shasta" | "bsc" | "bsc-testnet";
 
@@ -36,6 +40,32 @@ const EVM_NETWORKS = {
   },
 } as const;
 
+type CliBalanceOptions = Pick<ParsedCliOptions, "network" | "asset" | "token" | "pair">;
+type SupportedNetwork = keyof typeof TRON_RPC_URLS | keyof typeof EVM_NETWORKS;
+
+const DEFAULT_PAYMENT_ASSETS: Partial<
+  Record<
+    SupportedNetwork,
+    {
+      asset: string;
+      symbol: string;
+    }
+  >
+> = {
+  mainnet: {
+    asset: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+    symbol: "USDT",
+  },
+  nile: {
+    asset: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
+    symbol: "USDT",
+  },
+  shasta: {
+    asset: "TG3XXyExBkPp9nzdajDZsozEu4BkaSJozs",
+    symbol: "USDT",
+  },
+};
+
 export type ParsedCliOptions = Record<string, string>;
 
 function readJsonFile(file: string): Record<string, unknown> | undefined {
@@ -55,6 +85,31 @@ function getConfigFiles(): string[] {
     path.join(process.cwd(), "x402-config.json"),
     path.join(os.homedir(), ".x402-config.json"),
   ];
+}
+
+function findConfigValue(keys: string[]): string | undefined {
+  for (const key of keys) {
+    const envValue = process.env[key];
+    if (typeof envValue === "string" && envValue.length > 0) {
+      return envValue;
+    }
+  }
+
+  for (const file of getConfigFiles()) {
+    const config = readJsonFile(file);
+    if (!config) {
+      continue;
+    }
+    for (const key of keys) {
+      const configKey = key.toLowerCase();
+      const value = config[configKey] ?? config[key];
+      if (typeof value === "string" && value.length > 0) {
+        return value;
+      }
+    }
+  }
+
+  return undefined;
 }
 
 export function parseCliOptions(argv: string[]): ParsedCliOptions {
@@ -234,6 +289,38 @@ function normalizeSelectorValue(value?: string): string | undefined {
   }
 
   return value.trim().toLowerCase();
+}
+
+function parsePairSelector(pair?: string): { network?: string; asset?: string } {
+  if (!pair) {
+    return {};
+  }
+
+  if (pair.includes("/")) {
+    const [network, asset] = pair.split("/", 2);
+    return {
+      network: resolvePreferredNetwork(network) ?? network,
+      asset,
+    };
+  }
+
+  const parts = pair.split(":");
+  if (parts.length >= 3) {
+    return {
+      network:
+        resolvePreferredNetwork(parts.slice(0, -1).join(":")) ?? parts.slice(0, -1).join(":"),
+      asset: parts.at(-1),
+    };
+  }
+
+  if (parts.length === 2) {
+    return {
+      network: resolvePreferredNetwork(parts[0]) ?? parts[0],
+      asset: parts[1],
+    };
+  }
+
+  return {};
 }
 
 function matchesAssetSelector(assetSelector: string | undefined, asset: string): boolean {
@@ -461,38 +548,127 @@ async function resolveKeys() {
 
 export async function runStatus(): Promise<void> {
   const { tronKey, evmKey } = await resolveKeys();
+  const result: Record<string, unknown> = {
+    configured: {
+      tron: Boolean(tronKey),
+      evm: Boolean(evmKey),
+    },
+  };
 
   if (tronKey) {
     const tronWeb = buildTronWeb(TRON_RPC_URLS.nile, tronKey, process.env.TRON_GRID_API_KEY);
     const signer = createClientTronSigner(tronWeb, tronKey);
-    console.error(`[OK] TRON Wallet: ${signer.address}`);
-  } else {
-    console.error("[--] TRON wallet not configured.");
+    result.tron = {
+      address: signer.address,
+      network: "tron:nile",
+    };
   }
 
   if (evmKey) {
     const account = privateKeyToAccount(normalizeHexPrivateKey(evmKey));
-    console.error(`[OK] EVM Wallet: ${account.address}`);
-  } else {
-    console.error("[--] EVM wallet not configured.");
+    result.evm = {
+      address: account.address,
+      networks: Object.values(EVM_NETWORKS).map(network => network.chainId),
+    };
   }
+
+  process.stdout.write(JSON.stringify(result, null, 2) + "\n");
 }
 
-export async function runBalance(): Promise<void> {
+function getPreferredAsset(options: CliBalanceOptions): string | undefined {
+  return parsePairSelector(options.pair).asset ?? options.asset ?? options.token;
+}
+
+function getDefaultPaymentAsset(
+  network: SupportedNetwork,
+): { asset: string; symbol?: string } | undefined {
+  if (network === "bsc") {
+    const asset =
+      findConfigValue(["BSC_MAINNET_ASSET", "BSC_PAYMENT_ASSET"]) ??
+      findConfigValue(["EVM_MAINNET_ASSET", "EVM_PAYMENT_ASSET"]);
+    if (asset) {
+      return { asset, symbol: "PAYMENT_TOKEN" };
+    }
+  }
+
+  if (network === "bsc-testnet") {
+    const asset =
+      findConfigValue(["BSC_TEST_ASSET", "BSC_TESTNET_ASSET", "BSC_PAYMENT_ASSET"]) ??
+      findConfigValue(["EVM_TEST_ASSET", "EVM_PAYMENT_ASSET"]);
+    if (asset) {
+      return { asset, symbol: "PAYMENT_TOKEN" };
+    }
+  }
+
+  return DEFAULT_PAYMENT_ASSETS[network];
+}
+
+async function readTronTokenBalance(
+  tronWeb: TronWeb,
+  tokenAddress: string,
+  owner: string,
+): Promise<string> {
+  const contract = await tronWeb.contract(transferWithAuthorizationABI, tokenAddress);
+  const balance = await contract.balanceOf(owner).call();
+  return balance.toString();
+}
+
+async function readEvmTokenBalance(
+  networkName: keyof typeof EVM_NETWORKS,
+  owner: `0x${string}`,
+  tokenAddress: `0x${string}`,
+): Promise<string> {
+  const publicClient = createPublicClient({
+    chain: EVM_NETWORKS[networkName].chain,
+    transport: http(getBscRpcUrl(networkName)),
+  });
+  const balance = await publicClient.readContract({
+    address: tokenAddress,
+    abi: eip3009ABI,
+    functionName: "balanceOf",
+    args: [owner],
+  });
+  return balance.toString();
+}
+
+export async function runBalance(options: CliBalanceOptions = {}): Promise<void> {
   const { tronKey, evmKey, tronGridApiKey } = await resolveKeys();
   const result: Record<string, unknown> = {};
+  const pairSelector = parsePairSelector(options.pair);
+  const preferredNetwork = resolvePreferredNetwork(options.network) ?? pairSelector.network;
+  const preferredAsset = getPreferredAsset(options);
 
   if (tronKey) {
     const tronWeb = buildTronWeb(TRON_RPC_URLS.nile, tronKey, tronGridApiKey);
     const signer = createClientTronSigner(tronWeb, tronKey);
     const trxSun = await tronWeb.trx.getBalance(signer.address);
+    const tronNetwork =
+      preferredNetwork && preferredNetwork.startsWith("tron:")
+        ? (preferredNetwork.slice("tron:".length) as keyof typeof TRON_RPC_URLS)
+        : "nile";
+    const tokenInfo =
+      preferredAsset && (!preferredNetwork || preferredNetwork.startsWith("tron:"))
+        ? { asset: preferredAsset }
+        : getDefaultPaymentAsset(tronNetwork);
     result.tron = {
       address: signer.address,
-      network: "tron:nile",
+      network: `tron:${tronNetwork}`,
       nativeSymbol: "TRX",
       nativeBalanceSun: String(trxSun),
       nativeBalance: (Number(trxSun) / 1_000_000).toString(),
     };
+
+    if (tokenInfo?.asset) {
+      const tokenTronWeb = buildTronWeb(TRON_RPC_URLS[tronNetwork], tronKey, tronGridApiKey);
+      result.tron = {
+        ...(result.tron as Record<string, unknown>),
+        token: {
+          asset: tokenInfo.asset,
+          ...(tokenInfo.symbol ? { symbol: tokenInfo.symbol } : {}),
+          balance: await readTronTokenBalance(tokenTronWeb, tokenInfo.asset, signer.address),
+        },
+      };
+    }
   }
 
   if (evmKey) {
@@ -500,17 +676,39 @@ export async function runBalance(): Promise<void> {
     const balances: Record<string, unknown> = {};
 
     for (const [networkName, networkConfig] of Object.entries(EVM_NETWORKS)) {
+      if (preferredNetwork && preferredNetwork !== networkConfig.chainId) {
+        continue;
+      }
+
       const publicClient = createPublicClient({
         chain: networkConfig.chain,
         transport: http(getBscRpcUrl(networkName as keyof typeof EVM_NETWORKS)),
       });
       const balance = await publicClient.getBalance({ address: account.address });
-      balances[networkConfig.chainId] = {
+      const entry: Record<string, unknown> = {
         address: account.address,
         nativeSymbol: networkName === "bsc" ? "BNB" : "tBNB",
         nativeBalanceWei: balance.toString(),
         nativeBalance: balance.toString(),
       };
+
+      const tokenInfo = preferredAsset
+        ? { asset: preferredAsset }
+        : getDefaultPaymentAsset(networkName as keyof typeof EVM_NETWORKS);
+
+      if (tokenInfo?.asset) {
+        entry.token = {
+          asset: tokenInfo.asset,
+          ...(tokenInfo.symbol ? { symbol: tokenInfo.symbol } : {}),
+          balance: await readEvmTokenBalance(
+            networkName as keyof typeof EVM_NETWORKS,
+            account.address,
+            tokenInfo.asset as `0x${string}`,
+          ),
+        };
+      }
+
+      balances[networkConfig.chainId] = entry;
     }
 
     result.evm = balances;
