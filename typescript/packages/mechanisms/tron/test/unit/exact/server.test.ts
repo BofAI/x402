@@ -74,6 +74,7 @@ describe("ExactTronScheme (Server)", () => {
     it("should use mainnet USDT for tron:mainnet", async () => {
       const result = await server.parsePrice(1.0, "tron:mainnet");
       expect(result.asset).toBe("TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t");
+      expect(result.extra).toEqual({ assetTransferMethod: "permit2" });
     });
 
     it("should use custom money parser when registered", async () => {
@@ -127,11 +128,11 @@ describe("ExactTronScheme (Server)", () => {
           x402Version: 2,
           scheme: "exact",
           network: "tron:nile",
-          extra: { supportedAssetTransferMethods: ["tip712", "permit2"] },
+          extra: { supportedAssetTransferMethods: ["eip3009", "permit2"] },
         },
         [],
       );
-      expect(result.extra?.assetTransferMethod).toBe("tip712");
+      expect(result.extra?.assetTransferMethod).toBe("eip3009");
     });
 
     it("should not override existing assetTransferMethod", async () => {
@@ -141,7 +142,7 @@ describe("ExactTronScheme (Server)", () => {
           x402Version: 2,
           scheme: "exact",
           network: "tron:nile",
-          extra: { supportedAssetTransferMethods: ["tip712", "permit2"] },
+          extra: { supportedAssetTransferMethods: ["eip3009", "permit2"] },
         },
         [],
       );
@@ -156,7 +157,7 @@ describe("ExactTronScheme (Server)", () => {
           scheme: "exact",
           network: "tron:nile",
           extra: {
-            supportedAssetTransferMethods: ["tip712", "permit2"],
+            supportedAssetTransferMethods: ["eip3009", "permit2"],
             permit2FacilitatorAddress: "TSForFRqxmZdJ6Yfx2rNaFykhuQLc9cTMR",
           },
         },
@@ -167,7 +168,7 @@ describe("ExactTronScheme (Server)", () => {
       expect(result.extra?.permit2FacilitatorAddress).toBe("TSForFRqxmZdJ6Yfx2rNaFykhuQLc9cTMR");
     });
 
-    it("should use first method if tip712 not in supported list", async () => {
+    it("should use first method if eip3009 not in supported list", async () => {
       const result = await server.enhancePaymentRequirements(
         baseRequirements,
         {

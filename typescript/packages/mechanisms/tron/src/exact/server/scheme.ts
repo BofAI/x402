@@ -71,8 +71,8 @@ export class ExactTronScheme implements SchemeNetworkServer {
     const method =
       existingMethod ??
       (supportedMethods && supportedMethods.length > 0
-        ? supportedMethods.includes("tip712")
-          ? "tip712"
+        ? supportedMethods.includes("eip3009")
+          ? "eip3009"
           : supportedMethods[0]
         : undefined);
 
@@ -175,6 +175,7 @@ export class ExactTronScheme implements SchemeNetworkServer {
         name: "Tether USD",
         version: "1",
         decimals: 6,
+        assetTransferMethod: "permit2",
       },
     };
 

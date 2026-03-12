@@ -1,14 +1,14 @@
 import { PaymentRequirements, PaymentPayloadResult } from "@bankofai/x402-core/types";
 import { authorizationTypes } from "../../constants";
 import { ClientTronSigner } from "../../signer";
-import { ExactTIP712Payload } from "../../types";
+import { ExactEIP3009Payload } from "../../types";
 import { createNonce, getTronChainId, normalizeAddressForSigning } from "../../utils";
 
 /**
  * Creates a TIP-712 TransferWithAuthorization payload for TRON.
  * Equivalent to EIP-3009 on EVM networks.
  */
-export async function createTIP712Payload(
+export async function createEIP3009Payload(
   signer: ClientTronSigner,
   x402Version: number,
   paymentRequirements: PaymentRequirements,
@@ -19,7 +19,7 @@ export async function createTIP712Payload(
   const fromAddress = normalizeAddressForSigning(signer.address);
   const toAddress = normalizeAddressForSigning(paymentRequirements.payTo);
 
-  const authorization: ExactTIP712Payload["authorization"] = {
+  const authorization: ExactEIP3009Payload["authorization"] = {
     from: fromAddress,
     to: toAddress,
     value: paymentRequirements.amount,
@@ -28,9 +28,9 @@ export async function createTIP712Payload(
     nonce,
   };
 
-  const signature = await signTIP712Authorization(signer, authorization, paymentRequirements);
+  const signature = await signEIP3009Authorization(signer, authorization, paymentRequirements);
 
-  const payload: ExactTIP712Payload = {
+  const payload: ExactEIP3009Payload = {
     authorization,
     signature,
   };
@@ -41,9 +41,9 @@ export async function createTIP712Payload(
   };
 }
 
-async function signTIP712Authorization(
+async function signEIP3009Authorization(
   signer: ClientTronSigner,
-  authorization: ExactTIP712Payload["authorization"],
+  authorization: ExactEIP3009Payload["authorization"],
   requirements: PaymentRequirements,
 ): Promise<`0x${string}`> {
   const chainId = getTronChainId(requirements.network);

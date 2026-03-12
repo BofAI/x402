@@ -1342,7 +1342,7 @@ importers:
         specifier: workspace:*
         version: link:../../core
       tronweb:
-        specifier: '>=6.0.0'
+        specifier: ^6.1.0
         version: 6.2.2(bufferutil@4.1.0)(utf-8-validate@6.0.6)
     devDependencies:
       '@eslint/js':

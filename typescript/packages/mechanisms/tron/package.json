@@ -1,7 +1,7 @@
 {
   "name": "@bankofai/x402-tron",
   "version": "2.6.0",
-  "description": "x402 payment mechanism for TRON (TRC-20 tokens via TIP-712 and Permit2)",
+  "description": "x402 payment mechanism for TRON (TRC-20 tokens via eip3009-style TransferWithAuthorization and Permit2)",
   "license": "Apache-2.0",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.mjs",
@@ -15,6 +15,16 @@
       "require": {
         "types": "./dist/cjs/index.d.ts",
         "default": "./dist/cjs/index.js"
+      }
+    },
+    "./v1": {
+      "import": {
+        "types": "./dist/esm/v1/index.d.mts",
+        "default": "./dist/esm/v1/index.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/v1/index.d.ts",
+        "default": "./dist/cjs/v1/index.js"
       }
     },
     "./exact/client": {
@@ -46,6 +56,26 @@
         "types": "./dist/cjs/exact/facilitator/index.d.ts",
         "default": "./dist/cjs/exact/facilitator/index.js"
       }
+    },
+    "./exact/v1/client": {
+      "import": {
+        "types": "./dist/esm/exact/v1/client/index.d.mts",
+        "default": "./dist/esm/exact/v1/client/index.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/exact/v1/client/index.d.ts",
+        "default": "./dist/cjs/exact/v1/client/index.js"
+      }
+    },
+    "./exact/v1/facilitator": {
+      "import": {
+        "types": "./dist/esm/exact/v1/facilitator/index.d.mts",
+        "default": "./dist/esm/exact/v1/facilitator/index.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/exact/v1/facilitator/index.d.ts",
+        "default": "./dist/cjs/exact/v1/facilitator/index.js"
+      }
     }
   },
   "files": [
@@ -56,6 +86,7 @@
     "start": "tsx --env-file=.env index.ts",
     "build": "tsup",
     "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:watch": "vitest",
     "watch": "tsc --watch",
     "format": "prettier -c .prettierrc --write \"**/*.{ts,js,cjs,json,md}\"",
@@ -64,15 +95,8 @@
     "lint:check": "eslint . --ext .ts"
   },
   "dependencies": {
-    "@bankofai/x402-core": "workspace:*"
-  },
-  "peerDependencies": {
-    "tronweb": ">=6.0.0"
-  },
-  "peerDependenciesMeta": {
-    "tronweb": {
-      "optional": true
-    }
+    "@bankofai/x402-core": "workspace:*",
+    "tronweb": "^6.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.24.0",

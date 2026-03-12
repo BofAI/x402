@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isPermit2Payload, isTIP712Payload } from "../../src/types";
+import { isEIP3009Payload, isPermit2Payload } from "../../src/types";
 
 describe("Type Guards", () => {
   const tip712Payload = {
@@ -40,13 +40,13 @@ describe("Type Guards", () => {
     });
   });
 
-  describe("isTIP712Payload", () => {
-    it("should return true for TIP-712 payload", () => {
-      expect(isTIP712Payload(tip712Payload)).toBe(true);
+  describe("isEIP3009Payload", () => {
+    it("should return true for TransferWithAuthorization payload", () => {
+      expect(isEIP3009Payload(tip712Payload)).toBe(true);
     });
 
     it("should return false for permit2 payload", () => {
-      expect(isTIP712Payload(permit2Payload)).toBe(false);
+      expect(isEIP3009Payload(permit2Payload)).toBe(false);
     });
   });
 });

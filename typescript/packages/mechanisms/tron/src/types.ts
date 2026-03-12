@@ -1,17 +1,17 @@
 /**
  * Asset transfer methods for the exact TRON scheme.
- * - tip712: Uses TransferWithAuthorization via TIP-712 (equivalent to EIP-3009)
+ * - eip3009: Uses TransferWithAuthorization via TIP-712 (TRON equivalent of EIP-3009)
  * - permit2: Uses Permit2 + x402Permit2Proxy — universal fallback for any TRC-20
  */
-export type AssetTransferMethod = "tip712" | "permit2";
+export type AssetTransferMethod = "eip3009" | "permit2";
 
 // --- TIP-712 (TransferWithAuthorization) types ---
 
 /**
- * TIP-712 TransferWithAuthorization payload for TRON.
+ * TransferWithAuthorization payload for TRON.
  * Equivalent to EIP-3009 on EVM networks.
  */
-export type ExactTIP712Payload = {
+export type ExactEIP3009Payload = {
   signature?: `0x${string}`;
   authorization: {
     from: `0x${string}`;
@@ -65,7 +65,7 @@ export type ExactPermit2Payload = {
 /**
  * Union of all exact TRON payload types.
  */
-export type ExactTronPayload = ExactTIP712Payload | ExactPermit2Payload;
+export type ExactTronPayload = ExactEIP3009Payload | ExactPermit2Payload;
 
 /**
  * Type guard to check if a payload is a Permit2 payload.
@@ -76,9 +76,9 @@ export function isPermit2Payload(payload: ExactTronPayload): payload is ExactPer
 }
 
 /**
- * Type guard to check if a payload is a TIP-712 (TransferWithAuthorization) payload.
- * TIP-712 payloads have an `authorization` field.
+ * Type guard to check if a payload is a TransferWithAuthorization payload.
+ * EIP-3009-style payloads have an `authorization` field.
  */
-export function isTIP712Payload(payload: ExactTronPayload): payload is ExactTIP712Payload {
+export function isEIP3009Payload(payload: ExactTronPayload): payload is ExactEIP3009Payload {
   return "authorization" in payload;
 }
