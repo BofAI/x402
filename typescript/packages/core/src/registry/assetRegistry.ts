@@ -211,6 +211,7 @@ export class AssetRegistry {
         name: "Decentralized USD",
         version: "1",
         supportsEip2612: true,
+        assetTransferMethod: "permit2",
       },
     });
     this.defaults.set("tron:mainnet", "USDT");
@@ -240,6 +241,7 @@ export class AssetRegistry {
         name: "Decentralized USD",
         version: "1",
         supportsEip2612: true,
+        assetTransferMethod: "permit2",
       },
     });
     this.defaults.set("tron:nile", "USDT");
