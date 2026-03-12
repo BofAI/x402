@@ -1,5 +1,5 @@
 import { Address } from "viem";
-import { paymentMiddleware, Network, Resource, FacilitatorConfig } from "x402-next";
+import { paymentMiddleware, Network, Resource, FacilitatorConfig } from "@bankofai/x402-next-legacy";
 
 const payTo = process.env.EVM_PAYEE_ADDRESS as Address;
 const network = process.env.EVM_NETWORK as Network;
@@ -20,7 +20,17 @@ export const middleware = paymentMiddleware(
   payTo,
   {
     "/api/protected": {
-      price: "$0.001",
+      price: {
+        amount: "1000",
+        asset: {
+          address: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
+          decimals: 6,
+          eip712: {
+            name: "DA HULU",
+            version: "1",
+          },
+        },
+      },
       network,
       config: {
         description: "Protected API endpoint",
@@ -39,4 +49,3 @@ export const config = {
   matcher: ["/api/protected"],
   runtime: 'nodejs', // TEMPORARY: Only needed until Edge runtime support is added
 };
-
