@@ -1620,18 +1620,6 @@ importers:
 
   coinbase/facilitators/typescript:
     dependencies:
-      '@aptos-labs/ts-sdk':
-        specifier: ^5.2.1
-        version: 5.2.1(got@11.8.6)
-      '@scure/base':
-        specifier: ^1.2.6
-        version: 1.2.6
-      '@solana/kit':
-        specifier: ^6.1.0
-        version: 6.1.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)(utf-8-validate@5.0.10)
-      '@x402/aptos':
-        specifier: ^2.6.0
-        version: 2.6.0(got@11.8.6)
       '@x402/core':
         specifier: ^2.6.0
         version: 2.6.0
@@ -1641,12 +1629,6 @@ importers:
       '@x402/extensions':
         specifier: ^2.6.0
         version: 2.6.0(bufferutil@4.0.9)(ethers@6.16.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(typescript@5.8.3)(utf-8-validate@5.0.10)
-      '@x402/stellar':
-        specifier: ^2.6.0
-        version: 2.6.0
-      '@x402/svm':
-        specifier: ^2.6.0
-        version: 2.6.0(@solana/kit@6.1.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)(utf-8-validate@5.0.10))(@solana/sysvars@6.1.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3))
       dotenv:
         specifier: ^16.4.5
         version: 16.6.1
@@ -1678,9 +1660,6 @@ importers:
 
   coinbase/servers/express:
     dependencies:
-      '@x402/aptos':
-        specifier: ^2.6.0
-        version: 2.6.0(got@11.8.6)
       '@x402/core':
         specifier: ^2.6.0
         version: 2.6.0
@@ -1693,12 +1672,6 @@ importers:
       '@x402/extensions':
         specifier: ^2.6.0
         version: 2.6.0(bufferutil@4.0.9)(ethers@6.16.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(typescript@5.8.3)(utf-8-validate@5.0.10)
-      '@x402/stellar':
-        specifier: ^2.6.0
-        version: 2.6.0
-      '@x402/svm':
-        specifier: ^2.6.0
-        version: 2.6.0(@solana/kit@6.1.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)(utf-8-validate@5.0.10))(@solana/sysvars@6.1.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3))
       dotenv:
         specifier: ^16.6.1
         version: 16.6.1
@@ -6147,9 +6120,6 @@ packages:
   '@walletconnect/window-metadata@1.0.1':
     resolution: {integrity: sha512-9koTqyGrM2cqFRW517BPY/iEtUDx2r1+Pwwu5m7sJ7ka79wi3EyqhqcICk/yDmv6jAS1rjKgTKXlEhanYjijcA==}
 
-  '@x402/aptos@2.6.0':
-    resolution: {integrity: sha512-VzraKAoPk7ZeLK8onQEp3zIHqJSVC1CmcWkV/8u8pY/QqdYUZiJlI2jT3E14dafE3hVywILE6CjphgnfmA4Kcw==}
-
   '@x402/core@2.6.0':
     resolution: {integrity: sha512-ISC/JeVss6xlKvor2rp18tJf9K5OQlIDDfZW1VZJQGDI2F4gy+HWxxkFfcQalCsPp4YUlwqh0YOkUxP+LTZWVg==}
 
@@ -6167,14 +6137,6 @@ packages:
 
   '@x402/extensions@2.6.0':
     resolution: {integrity: sha512-aLY9xAOOiRLKDN9HT2r9TYUXbD+IsoBces9qPZNVJGO2TBi2rfmbIBc3pcKCtWKn3iTvG2QFr3gpOFdpJRzqww==}
-
-  '@x402/stellar@2.6.0':
-    resolution: {integrity: sha512-KqoOhdQrbEqGpa+HNx5W4Bqh7YWdIQgwDMaQt2c1H67gfEIu48ygbzqMMYNjIG5vZVURg3BDuMIu3hs4TQNB/A==}
-
-  '@x402/svm@2.6.0':
-    resolution: {integrity: sha512-SayKQSpN82XQ3qq46d1p348z+nPrYa9SyJ2MXfhwqmGE6JeEd2d0tSUpmghUKjucG8HZ1H4Man9yp/b/9cQZxg==}
-    peerDependencies:
-      '@solana/kit': '>=5.1.0'
 
   abitype@1.0.6:
     resolution: {integrity: sha512-MMSqYh4+C/aVqI2RQaWqbvI4Kxo5cQV40WQ4QFtDnNzCkqChm8MuENhElmynZlO0qUy/ObkEUaXtKqYnx1Kp3A==}
@@ -12818,10 +12780,6 @@ snapshots:
     dependencies:
       '@solana/kit': 5.3.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)(utf-8-validate@5.0.10)
 
-  '@solana-program/compute-budget@0.11.0(@solana/kit@6.1.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)(utf-8-validate@5.0.10))':
-    dependencies:
-      '@solana/kit': 6.1.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)(utf-8-validate@5.0.10)
-
   '@solana-program/compute-budget@0.8.0(@solana/kit@6.1.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)(utf-8-validate@5.0.10))':
     dependencies:
       '@solana/kit': 6.1.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)(utf-8-validate@5.0.10)
@@ -12845,11 +12803,6 @@ snapshots:
       '@solana/kit': 5.3.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)(utf-8-validate@5.0.10)
       '@solana/sysvars': 6.1.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)
 
-  '@solana-program/token-2022@0.6.1(@solana/kit@6.1.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)(utf-8-validate@5.0.10))(@solana/sysvars@6.1.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3))':
-    dependencies:
-      '@solana/kit': 6.1.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)(utf-8-validate@5.0.10)
-      '@solana/sysvars': 6.1.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)
-
   '@solana-program/token@0.5.1(@solana/kit@6.1.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)(utf-8-validate@5.0.10))':
     dependencies:
       '@solana/kit': 6.1.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)(utf-8-validate@5.0.10)
@@ -12865,10 +12818,6 @@ snapshots:
   '@solana-program/token@0.9.0(@solana/kit@5.3.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)(utf-8-validate@5.0.10))':
     dependencies:
       '@solana/kit': 5.3.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)(utf-8-validate@5.0.10)
-
-  '@solana-program/token@0.9.0(@solana/kit@6.1.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)(utf-8-validate@5.0.10))':
-    dependencies:
-      '@solana/kit': 6.1.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)(utf-8-validate@5.0.10)
 
   '@solana/accounts@3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)':
     dependencies:
@@ -16238,13 +16187,6 @@ snapshots:
       '@walletconnect/window-getters': 1.0.1
       tslib: 1.14.1
 
-  '@x402/aptos@2.6.0(got@11.8.6)':
-    dependencies:
-      '@aptos-labs/ts-sdk': 5.2.1(got@11.8.6)
-      '@x402/core': 2.6.0
-    transitivePeerDependencies:
-      - got
-
   '@x402/core@2.6.0':
     dependencies:
       zod: 3.25.71
@@ -16288,23 +16230,6 @@ snapshots:
       - ethers
       - typescript
       - utf-8-validate
-
-  '@x402/stellar@2.6.0':
-    dependencies:
-      '@stellar/stellar-sdk': 14.5.0
-      '@x402/core': 2.6.0
-    transitivePeerDependencies:
-      - debug
-
-  '@x402/svm@2.6.0(@solana/kit@6.1.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)(utf-8-validate@5.0.10))(@solana/sysvars@6.1.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3))':
-    dependencies:
-      '@solana-program/compute-budget': 0.11.0(@solana/kit@6.1.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)(utf-8-validate@5.0.10))
-      '@solana-program/token': 0.9.0(@solana/kit@6.1.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)(utf-8-validate@5.0.10))
-      '@solana-program/token-2022': 0.6.1(@solana/kit@6.1.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)(utf-8-validate@5.0.10))(@solana/sysvars@6.1.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3))
-      '@solana/kit': 6.1.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)(utf-8-validate@5.0.10)
-      '@x402/core': 2.6.0
-    transitivePeerDependencies:
-      - '@solana/sysvars'
 
   abitype@1.0.6(typescript@5.8.3)(zod@3.25.71):
     optionalDependencies:
