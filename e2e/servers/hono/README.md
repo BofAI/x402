@@ -98,8 +98,8 @@ app.get("/protected-stellar", (req, res) => {
 ## Test Scenarios
 
 This server is tested with:
-- **Clients:** TypeScript Fetch, Go HTTP
-- **Facilitators:** TypeScript, Go
+- **Clients:** TypeScript Fetch, Axios, Python httpx, requests
+- **Facilitators:** TypeScript, Python
 - **Payment Types:** EVM (Base Sepolia), SVM (Solana Devnet), Stellar (Stellar Testnet)
 - **Protocols:** V2 (primary), V1 (via client negotiation)
 

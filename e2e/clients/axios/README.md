@@ -60,8 +60,8 @@ const response = await axiosWithPayment.get(url);
 ## Test Scenarios
 
 This client is tested against:
-- **Servers:** Express (TypeScript), Gin (Go)
-- **Facilitators:** TypeScript, Go
+- **Servers:** Express (TypeScript), Hono, Next.js, FastAPI, Flask
+- **Facilitators:** TypeScript, Python
 - **Endpoints:** `/protected` (EVM), `/protected-svm` (SVM), `/protected-stellar` (Stellar)
 - **Networks:** Base Sepolia (EVM), Solana Devnet (SVM), Stellar Testnet (Stellar)
 

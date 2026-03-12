@@ -32,7 +32,7 @@ async def main() -> dict:
     """Run the MCP client and call the paid tool. Returns the e2e result dict."""
     from eth_account import Account
 
-    from bankofai.x402 import bankofai.x402Client
+    from bankofai.x402 import x402Client
     from bankofai.x402.mcp import create_x402_mcp_client
     from bankofai.x402.mechanisms.evm.exact import register_exact_evm_client
     from bankofai.x402.mechanisms.evm.signers import EthAccountSigner

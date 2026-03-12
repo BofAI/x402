@@ -19,10 +19,10 @@
   "environment": {
     "required": [
       "PORT",
-      "EVM_PRIVATE_KEY",
-      "SVM_PRIVATE_KEY"
+      "EVM_PRIVATE_KEY"
     ],
     "optional": [
+      "SVM_PRIVATE_KEY",
       "EVM_NETWORK",
       "SVM_NETWORK",
       "EVM_RPC_URL"

@@ -4,7 +4,7 @@ FastAPI-based facilitator service that verifies and settles payments
 on-chain for the x402 protocol.
 
 Supports:
-- EVM networks (Base Sepolia) via web3.py
+- EVM networks (BSC Testnet) via web3.py
 - SVM networks (Solana Devnet) via solders
 - Bazaar discovery extension for resource cataloging
 - V1 and V2 protocol versions
@@ -14,14 +14,15 @@ Run with: uv run uvicorn main:app --port 4022
 
 import os
 import sys
-from typing import Any
+from typing import Any, AsyncGenerator
+from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from solders.keypair import Keypair
 
-from bankofai.x402 import bankofai.x402Facilitator
+from bankofai.x402 import x402Facilitator
 from bankofai.x402.extensions.bazaar import extract_discovery_info
 from bankofai.x402.mechanisms.evm import FacilitatorWeb3Signer
 from bankofai.x402.mechanisms.evm.exact import register_exact_evm_facilitator
@@ -45,21 +46,22 @@ if not os.environ.get("EVM_PRIVATE_KEY"):
     sys.exit(1)
 
 if not os.environ.get("SVM_PRIVATE_KEY"):
-    print("❌ SVM_PRIVATE_KEY environment variable is required")
-    sys.exit(1)
+    print("⚠️  SVM_PRIVATE_KEY not set — SVM payment support disabled")
 
 # Initialize the EVM signer from private key
-evm_rpc_url = os.environ.get("EVM_RPC_URL") or "https://sepolia.base.org"
+evm_rpc_url = os.environ.get("EVM_RPC_URL") or "https://bsc-testnet-rpc.publicnode.com"
 evm_signer = FacilitatorWeb3Signer(
     private_key=os.environ["EVM_PRIVATE_KEY"],
     rpc_url=evm_rpc_url,
 )
 print(f"EVM Facilitator account: {evm_signer.get_addresses()[0]}")
 
-# Initialize the SVM signer from private key
-svm_keypair = Keypair.from_base58_string(os.environ["SVM_PRIVATE_KEY"])
-svm_signer = FacilitatorKeypairSigner(svm_keypair)
-print(f"SVM Facilitator account: {svm_signer.get_addresses()[0]}")
+# Initialize the SVM signer from private key (optional)
+svm_signer = None
+if os.environ.get("SVM_PRIVATE_KEY"):
+    svm_keypair = Keypair.from_base58_string(os.environ["SVM_PRIVATE_KEY"])
+    svm_signer = FacilitatorKeypairSigner(svm_keypair)
+    print(f"SVM Facilitator account: {svm_signer.get_addresses()[0]}")
 
 
 def _handle_after_verify(ctx: Any) -> None:
@@ -118,16 +120,17 @@ facilitator = (
 register_exact_evm_facilitator(
     facilitator,
     evm_signer,
-    networks="eip155:84532",  # Base Sepolia
+    networks="eip155:97",  # BSC Testnet
     deploy_erc4337_with_eip6492=True,
 )
 
-# Register SVM schemes (V1 and V2)
-register_exact_svm_facilitator(
-    facilitator,
-    svm_signer,
-    networks="solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",  # Devnet
-)
+# Register SVM schemes (V1 and V2) if configured
+if svm_signer:
+    register_exact_svm_facilitator(
+        facilitator,
+        svm_signer,
+        networks="solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",  # Devnet
+    )
 
 
 # Pydantic models for request/response
@@ -145,11 +148,21 @@ class SettleRequest(BaseModel):
     paymentRequirements: dict
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Facilitator lifespan manager."""
+    # This message signals to the E2E framework that the server is ready.
+    # By placing it in the lifespan, we ensure the web server is actually up.
+    print("Facilitator listening")
+    yield
+
+
 # Initialize FastAPI app
 app = FastAPI(
     title="x402 Python Facilitator (E2E)",
     description="Verifies and settles x402 payments on-chain for e2e testing",
     version="2.0.0",
+    lifespan=lifespan,
 )
 
 
@@ -289,7 +302,7 @@ async def health():
     """Health check endpoint."""
     return {
         "status": "ok",
-        "network": "eip155:84532",
+        "network": "eip155:97",
         "facilitator": "python",
         "version": "2.0.0",
         "extensions": ["bazaar"],
@@ -320,7 +333,7 @@ if __name__ == "__main__":
 ║           x402 Python Facilitator (E2E)                ║
 ╠════════════════════════════════════════════════════════╣
 ║  Server:     http://localhost:{PORT}                       ║
-║  Network:    eip155:84532                              ║
+║  Network:    eip155:97                              ║
 ║  Address:    {evm_signer.get_addresses()[0]}  ║
 ║  Extensions: bazaar                                    ║
 ║                                                        ║
@@ -335,6 +348,6 @@ if __name__ == "__main__":
     """)
 
     # Log that facilitator is ready (needed for e2e test discovery)
-    print("Facilitator listening")
+    # Note: "Facilitator listening" is now handled via lifespan
 
     uvicorn.run(app, host="0.0.0.0", port=PORT, log_level="warning")

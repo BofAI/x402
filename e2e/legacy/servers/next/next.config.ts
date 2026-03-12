@@ -4,6 +4,10 @@ const nextConfig: NextConfig = {
   experimental: {
     nodeMiddleware: true, // TEMPORARY: Only needed until Edge runtime support is added
   },
+  serverExternalPackages: [
+    "@bankofai/x402-legacy",
+    "@bankofai/x402-next-legacy",
+  ],
   env: {
     EVM_PAYEE_ADDRESS: process.env.EVM_PAYEE_ADDRESS,
     EVM_NETWORK: process.env.EVM_NETWORK,

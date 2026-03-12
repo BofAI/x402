@@ -33,9 +33,9 @@ const NETWORK_SETS: Record<NetworkMode, NetworkSet> = {
       rpcUrl: process.env.TRON_NILE_RPC_URL || 'https://nile.trongrid.io',
     },
     evm: {
-      name: 'Base Sepolia',
-      caip2: 'eip155:84532',
-      rpcUrl: process.env.BASE_SEPOLIA_RPC_URL || 'https://sepolia.base.org',
+      name: 'BSC Testnet',
+      caip2: 'eip155:97',
+      rpcUrl: process.env.BSC_TESTNET_RPC_URL || 'https://bsc-testnet-rpc.publicnode.com',
     },
     svm: {
       name: 'Solana Devnet',

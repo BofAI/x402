@@ -18,7 +18,7 @@ import {
   PrivateKeyVariants,
 } from "@aptos-labs/ts-sdk";
 import { base58 } from "@scure/base";
-import { createKeyPairSignerFromBytes } from "@solana/kit";
+import { createKeyPairSignerFromBytes, type KeyPairSigner } from "@solana/kit";
 import { toFacilitatorAptosSigner } from "@bankofai/x402-aptos";
 import { ExactAptosScheme } from "@bankofai/x402-aptos/exact/facilitator";
 import { x402Facilitator } from "@bankofai/x402-core/facilitator";
@@ -49,14 +49,14 @@ import dotenv from "dotenv";
 import express from "express";
 import { createWalletClient, http, publicActions, Chain } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { baseSepolia, base } from "viem/chains";
+import { bscTestnet, base } from "viem/chains";
 import { BazaarCatalog } from "./bazaar.js";
 
 dotenv.config();
 
 // Configuration
 const PORT = process.env.PORT || "4022";
-const EVM_NETWORK = process.env.EVM_NETWORK || "eip155:84532";
+const EVM_NETWORK = process.env.EVM_NETWORK || "eip155:97";
 const SVM_NETWORK =
   process.env.SVM_NETWORK || "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1";
 const APTOS_NETWORK = process.env.APTOS_NETWORK || "aptos:2";
@@ -71,9 +71,9 @@ function getEvmChain(network: string): Chain {
   switch (network) {
     case "eip155:8453":
       return base;
-    case "eip155:84532":
+    case "eip155:97":
     default:
-      return baseSepolia;
+      return bscTestnet;
   }
 }
 
@@ -93,8 +93,7 @@ if (!process.env.EVM_PRIVATE_KEY) {
 }
 
 if (!process.env.SVM_PRIVATE_KEY) {
-  console.error("❌ SVM_PRIVATE_KEY environment variable is required");
-  process.exit(1);
+  console.warn("⚠️  SVM_PRIVATE_KEY not set — SVM payment support disabled");
 }
 
 // Initialize the EVM account from private key
@@ -103,11 +102,14 @@ const evmAccount = privateKeyToAccount(
 );
 console.info(`EVM Facilitator account: ${evmAccount.address}`);
 
-// Initialize the SVM account from private key
-const svmAccount = await createKeyPairSignerFromBytes(
-  base58.decode(process.env.SVM_PRIVATE_KEY as string),
-);
-console.info(`SVM Facilitator account: ${svmAccount.address}`);
+// Initialize the SVM account from private key (optional)
+let svmAccount: KeyPairSigner | undefined;
+if (process.env.SVM_PRIVATE_KEY) {
+  svmAccount = await createKeyPairSignerFromBytes(
+    base58.decode(process.env.SVM_PRIVATE_KEY as string),
+  );
+  console.info(`SVM Facilitator account: ${svmAccount.address}`);
+}
 
 // Initialize the Aptos account from private key (format to AIP-80 compliant format) if provided
 let aptosAccount: Account | undefined;
@@ -179,10 +181,12 @@ const evmSigner = toFacilitatorEvmSigner({
 
 // Facilitator can now handle all Solana networks with automatic RPC creation
 // Pass custom RPC URL if provided
-const svmSigner = toFacilitatorSvmSigner(
-  svmAccount,
-  SVM_RPC_URL ? { defaultRpcUrl: SVM_RPC_URL } : undefined,
-);
+const svmSigner = svmAccount
+  ? toFacilitatorSvmSigner(
+      svmAccount,
+      SVM_RPC_URL ? { defaultRpcUrl: SVM_RPC_URL } : undefined,
+    )
+  : undefined;
 
 // Facilitator can handle all Aptos networks with automatic RPC creation
 // Pass custom RPC URL if provided
@@ -208,9 +212,12 @@ const facilitator = new x402Facilitator();
 // Register EVM, SVM, and Aptos schemes (v2 + v1)
 facilitator
   .register(EVM_NETWORK as Network, new ExactEvmScheme(evmSigner))
-  .registerV1(EVM_V1_NETWORKS as Network[], new ExactEvmSchemeV1(evmSigner))
-  .register(SVM_NETWORK as Network, new ExactSvmScheme(svmSigner))
-  .registerV1(SVM_V1_NETWORKS as Network[], new ExactSvmSchemeV1(svmSigner));
+  .registerV1(EVM_V1_NETWORKS as Network[], new ExactEvmSchemeV1(evmSigner));
+if (svmSigner) {
+  facilitator
+    .register(SVM_NETWORK as Network, new ExactSvmScheme(svmSigner))
+    .registerV1(SVM_V1_NETWORKS as Network[], new ExactSvmSchemeV1(svmSigner));
+}
 if (aptosSigner) {
   facilitator.register(
     APTOS_NETWORK as Network,

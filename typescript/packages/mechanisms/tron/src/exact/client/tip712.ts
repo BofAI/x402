@@ -7,6 +7,11 @@ import { createNonce, getTronChainId, normalizeAddressForSigning } from "../../u
 /**
  * Creates a TIP-712 TransferWithAuthorization payload for TRON.
  * Equivalent to EIP-3009 on EVM networks.
+ *
+ * @param signer - The TRON signer to sign the payload.
+ * @param x402Version - The version of the x402 protocol.
+ * @param paymentRequirements - The requirements for the payment.
+ * @returns The generated payment payload.
  */
 export async function createTIP712Payload(
   signer: ClientTronSigner,
@@ -41,6 +46,14 @@ export async function createTIP712Payload(
   };
 }
 
+/**
+ * Signs the TIP-712 authorization.
+ *
+ * @param signer - The TRON signer.
+ * @param authorization - The authorization details.
+ * @param requirements - The payment requirements.
+ * @returns The signature.
+ */
 async function signTIP712Authorization(
   signer: ClientTronSigner,
   authorization: ExactTIP712Payload["authorization"],

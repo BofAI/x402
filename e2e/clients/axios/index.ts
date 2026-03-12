@@ -3,7 +3,7 @@ import axios from "axios";
 import { wrapAxiosWithPayment, decodePaymentResponseHeader } from "@bankofai/x402-axios";
 import { createPublicClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { baseSepolia } from "viem/chains";
+import { bscTestnet } from "viem/chains";
 import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
 import { ExactEvmSchemeV1 } from "@bankofai/x402-evm/v1";
 import { toClientEvmSigner } from "@bankofai/x402-evm";
@@ -14,7 +14,7 @@ import { Account, Ed25519PrivateKey, PrivateKey, PrivateKeyVariants } from "@apt
 import { ExactStellarScheme } from "@bankofai/x402-stellar/exact/client";
 import { createEd25519Signer, type Ed25519Signer } from "@bankofai/x402-stellar";
 import { base58 } from "@scure/base";
-import { createKeyPairSignerFromBytes } from "@solana/kit";
+import { createKeyPairSignerFromBytes, type KeyPairSigner } from "@solana/kit";
 import { x402Client } from "@bankofai/x402-core/client";
 
 config();
@@ -23,13 +23,14 @@ const baseURL = process.env.RESOURCE_SERVER_URL as string;
 const endpointPath = process.env.ENDPOINT_PATH as string;
 const url = `${baseURL}${endpointPath}`;
 const evmAccount = privateKeyToAccount(process.env.EVM_PRIVATE_KEY as `0x${string}`);
-const svmSigner = await createKeyPairSignerFromBytes(
-  base58.decode(process.env.SVM_PRIVATE_KEY as string),
-);
+let svmSigner: KeyPairSigner | undefined;
+if (process.env.SVM_PRIVATE_KEY) {
+  svmSigner = await createKeyPairSignerFromBytes(base58.decode(process.env.SVM_PRIVATE_KEY as string));
+}
 
 const publicClient = createPublicClient({
-  chain: baseSepolia,
-  transport: http(),
+  chain: bscTestnet,
+  transport: http(process.env.EVM_RPC_URL || undefined),
 });
 
 const evmSigner = toClientEvmSigner(evmAccount, publicClient);
@@ -53,11 +54,16 @@ if (process.env.STELLAR_PRIVATE_KEY) {
 
 const client = new x402Client()
   .register("eip155:*", new ExactEvmScheme(evmSigner))
+  .registerV1("bsc-testnet", new ExactEvmSchemeV1(evmSigner))
   .registerV1("base-sepolia", new ExactEvmSchemeV1(evmSigner))
-  .registerV1("base", new ExactEvmSchemeV1(evmSigner))
-  .register("solana:*", new ExactSvmScheme(svmSigner))
-  .registerV1("solana-devnet", new ExactSvmSchemeV1(svmSigner))
-  .registerV1("solana", new ExactSvmSchemeV1(svmSigner));
+  .registerV1("base", new ExactEvmSchemeV1(evmSigner));
+
+if (svmSigner) {
+  client
+    .register("solana:*", new ExactSvmScheme(svmSigner))
+    .registerV1("solana-devnet", new ExactSvmSchemeV1(svmSigner))
+    .registerV1("solana", new ExactSvmSchemeV1(svmSigner));
+}
 if (aptosAccount) {
   client.register("aptos:*", new ExactAptosScheme(aptosAccount));
 }
@@ -69,7 +75,7 @@ const axiosWithPayment = wrapAxiosWithPayment(axios.create(), client);
 
 axiosWithPayment
   .get(url)
-  .then(async (response) => {
+  .then(async response => {
     const data = response.data;
     // Check both v2 (PAYMENT-RESPONSE) and v1 (X-PAYMENT-RESPONSE) headers
     const paymentResponse =
@@ -100,11 +106,13 @@ axiosWithPayment
     console.log(JSON.stringify(result));
     process.exit(0);
   })
-  .catch((error) => {
-    console.error(JSON.stringify({
-      success: false,
-      error: error.message || "Request failed",
-      status_code: error.response?.status || 500,
-    }));
+  .catch(error => {
+    console.error(
+      JSON.stringify({
+        success: false,
+        error: error.message || "Request failed",
+        status_code: error.response?.status || 500,
+      }),
+    );
     process.exit(1);
   });

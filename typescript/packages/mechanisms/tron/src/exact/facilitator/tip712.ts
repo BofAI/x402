@@ -12,6 +12,12 @@ import * as errors from "./errors";
 
 /**
  * Verifies a TIP-712 TransferWithAuthorization payment payload on TRON.
+ *
+ * @param signer - The TRON signer.
+ * @param payload - The payment payload.
+ * @param requirements - The payment requirements.
+ * @param tronPayload - The TIP-712 specific payload.
+ * @returns The verification response.
  */
 export async function verifyTIP712(
   signer: FacilitatorTronSigner,
@@ -106,6 +112,12 @@ export async function verifyTIP712(
 
 /**
  * Settles a TIP-712 TransferWithAuthorization payment on TRON.
+ *
+ * @param signer - The TRON signer.
+ * @param payload - The payment payload.
+ * @param requirements - The payment requirements.
+ * @param tronPayload - The TIP-712 specific payload.
+ * @returns The settlement response.
  */
 export async function settleTIP712(
   signer: FacilitatorTronSigner,

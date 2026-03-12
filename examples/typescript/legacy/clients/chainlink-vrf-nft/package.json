@@ -15,7 +15,7 @@
     "viem": "^2.23.5",
     "@bankofai/x402-legacy": "workspace:*",
     "axios": "^1.7.9",
-    "x402-axios": "workspace:*"
+    "@bankofai/x402-axios-legacy": "workspace:*"
   },
   "devDependencies": {
     "tsx": "^4.19.3",

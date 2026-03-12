@@ -1,9 +1,16 @@
 """Unit tests for x402Client and x402ClientSync - manual registration and policies."""
 
+import pytest
+
 from bankofai.x402 import (
     prefer_network,
     x402Client,
     x402ClientSync,
+)
+from bankofai.x402.schemas.v1 import (
+    PaymentPayloadV1,
+    PaymentRequiredV1,
+    PaymentRequirementsV1,
 )
 
 # =============================================================================
@@ -297,3 +304,260 @@ class TestGetRegisteredSchemes:
         assert len(registered[1]) == 1
         assert registered[2][0]["network"] == "eip155:8453"
         assert registered[1][0]["network"] == "base-sepolia"
+
+
+# =============================================================================
+# V1 Payload Creation Tests
+# =============================================================================
+
+
+class TestX402ClientV1PayloadCreation:
+    """Tests for v1 payment payload creation via x402Client."""
+
+    @pytest.mark.asyncio
+    async def test_v1_create_payment_payload_async(self):
+        """Test creating V1 payment payload through async client."""
+        client = x402Client()
+        mock_v1 = MockSchemeClientV1()
+        client.register_v1("base-sepolia", mock_v1)
+
+        payment_required = PaymentRequiredV1(
+            x402_version=1,
+            accepts=[
+                PaymentRequirementsV1(
+                    scheme="mock-v1",
+                    network="base-sepolia",
+                    max_amount_required="500000",
+                    resource="https://example.com",
+                    pay_to="0x1234567890123456789012345678901234567890",
+                    max_timeout_seconds=300,
+                    asset="0x0000000000000000000000000000000000000000",
+                ),
+            ],
+        )
+
+        result = await client.create_payment_payload(payment_required)
+
+        assert isinstance(result, PaymentPayloadV1)
+        assert result.x402_version == 1
+        assert result.scheme == "mock-v1"
+        assert result.network == "base-sepolia"
+        assert result.payload["mock"] == "v1-payload"
+
+    def test_v1_create_payment_payload_sync(self):
+        """Test creating V1 payment payload through sync client."""
+        client = x402ClientSync()
+        mock_v1 = MockSchemeClientV1()
+        client.register_v1("base-sepolia", mock_v1)
+
+        payment_required = PaymentRequiredV1(
+            x402_version=1,
+            accepts=[
+                PaymentRequirementsV1(
+                    scheme="mock-v1",
+                    network="base-sepolia",
+                    max_amount_required="500000",
+                    resource="https://example.com",
+                    pay_to="0x1234567890123456789012345678901234567890",
+                    max_timeout_seconds=300,
+                    asset="0x0000000000000000000000000000000000000000",
+                ),
+            ],
+        )
+
+        result = client.create_payment_payload(payment_required)
+
+        assert isinstance(result, PaymentPayloadV1)
+        assert result.x402_version == 1
+        assert result.scheme == "mock-v1"
+        assert result.network == "base-sepolia"
+
+
+class TestX402ClientAutoAdaptive:
+    """Tests for auto-adaptive v1/v2 routing."""
+
+    @pytest.mark.asyncio
+    async def test_auto_adaptive_v1_response(self):
+        """Client with both v1+v2 schemes routes v1 request to v1 scheme."""
+        client = x402Client()
+        mock_v2 = MockSchemeClient("mock")
+        mock_v1 = MockSchemeClientV1("mock-v1")
+        client.register("eip155:8453", mock_v2)
+        client.register_v1("base-sepolia", mock_v1)
+
+        v1_required = PaymentRequiredV1(
+            x402_version=1,
+            accepts=[
+                PaymentRequirementsV1(
+                    scheme="mock-v1",
+                    network="base-sepolia",
+                    max_amount_required="500000",
+                    resource="https://example.com",
+                    pay_to="0x1234567890123456789012345678901234567890",
+                    max_timeout_seconds=300,
+                    asset="0x0000000000000000000000000000000000000000",
+                ),
+            ],
+        )
+
+        result = await client.create_payment_payload(v1_required)
+
+        assert isinstance(result, PaymentPayloadV1)
+        assert result.x402_version == 1
+        assert result.scheme == "mock-v1"
+        # V2 mock should not have been called
+        assert len(mock_v2.create_calls) == 0
+
+    @pytest.mark.asyncio
+    async def test_auto_adaptive_v2_response(self):
+        """Same client routes v2 request to v2 scheme."""
+        from bankofai.x402.schemas import PaymentPayload, PaymentRequired, PaymentRequirements
+
+        client = x402Client()
+        mock_v2 = MockSchemeClient("mock")
+        mock_v1 = MockSchemeClientV1("mock-v1")
+        client.register("eip155:8453", mock_v2)
+        client.register_v1("base-sepolia", mock_v1)
+
+        v2_required = PaymentRequired(
+            x402_version=2,
+            accepts=[
+                PaymentRequirements(
+                    scheme="mock",
+                    network="eip155:8453",
+                    asset="0x0000000000000000000000000000000000000000",
+                    amount="1000000",
+                    pay_to="0x1234567890123456789012345678901234567890",
+                    max_timeout_seconds=300,
+                ),
+            ],
+        )
+
+        result = await client.create_payment_payload(v2_required)
+
+        assert isinstance(result, PaymentPayload)
+        assert result.x402_version == 2
+        assert len(mock_v2.create_calls) == 1
+
+    def test_auto_adaptive_sync_v1_then_v2(self):
+        """Sync client auto-adapts: v1 request -> v1, v2 request -> v2."""
+        from bankofai.x402.schemas import PaymentPayload, PaymentRequired, PaymentRequirements
+
+        client = x402ClientSync()
+        mock_v2 = MockSchemeClient("mock")
+        mock_v1 = MockSchemeClientV1("mock-v1")
+        client.register("eip155:8453", mock_v2)
+        client.register_v1("base-sepolia", mock_v1)
+
+        # V1 request
+        v1_required = PaymentRequiredV1(
+            x402_version=1,
+            accepts=[
+                PaymentRequirementsV1(
+                    scheme="mock-v1",
+                    network="base-sepolia",
+                    max_amount_required="500000",
+                    resource="https://example.com",
+                    pay_to="0x1234567890123456789012345678901234567890",
+                    max_timeout_seconds=300,
+                    asset="0x0000000000000000000000000000000000000000",
+                ),
+            ],
+        )
+        result_v1 = client.create_payment_payload(v1_required)
+        assert isinstance(result_v1, PaymentPayloadV1)
+        assert result_v1.x402_version == 1
+
+        # V2 request through same client
+        v2_required = PaymentRequired(
+            x402_version=2,
+            accepts=[
+                PaymentRequirements(
+                    scheme="mock",
+                    network="eip155:8453",
+                    asset="0x0000000000000000000000000000000000000000",
+                    amount="1000000",
+                    pay_to="0x1234567890123456789012345678901234567890",
+                    max_timeout_seconds=300,
+                ),
+            ],
+        )
+        result_v2 = client.create_payment_payload(v2_required)
+        assert isinstance(result_v2, PaymentPayload)
+        assert result_v2.x402_version == 2
+
+
+class TestX402ClientV1Hooks:
+    """Tests for hook execution on v1 path."""
+
+    @pytest.mark.asyncio
+    async def test_v1_before_hook_executes(self):
+        """Verify before_payment_creation hooks fire for v1 path."""
+        hook_called = False
+        received_version = None
+
+        def before_hook(ctx):
+            nonlocal hook_called, received_version
+            hook_called = True
+            received_version = ctx.payment_required.x402_version
+            return None
+
+        client = x402Client()
+        client.register_v1("base-sepolia", MockSchemeClientV1())
+        client.on_before_payment_creation(before_hook)
+
+        payment_required = PaymentRequiredV1(
+            x402_version=1,
+            accepts=[
+                PaymentRequirementsV1(
+                    scheme="mock-v1",
+                    network="base-sepolia",
+                    max_amount_required="500000",
+                    resource="https://example.com",
+                    pay_to="0x1234567890123456789012345678901234567890",
+                    max_timeout_seconds=300,
+                    asset="0x0000000000000000000000000000000000000000",
+                ),
+            ],
+        )
+
+        await client.create_payment_payload(payment_required)
+
+        assert hook_called is True
+        assert received_version == 1
+
+    @pytest.mark.asyncio
+    async def test_v1_after_hook_executes(self):
+        """Verify after_payment_creation hooks fire for v1 path."""
+        hook_called = False
+        received_payload = None
+
+        def after_hook(ctx):
+            nonlocal hook_called, received_payload
+            hook_called = True
+            received_payload = ctx.payment_payload
+
+        client = x402Client()
+        client.register_v1("base-sepolia", MockSchemeClientV1())
+        client.on_after_payment_creation(after_hook)
+
+        payment_required = PaymentRequiredV1(
+            x402_version=1,
+            accepts=[
+                PaymentRequirementsV1(
+                    scheme="mock-v1",
+                    network="base-sepolia",
+                    max_amount_required="500000",
+                    resource="https://example.com",
+                    pay_to="0x1234567890123456789012345678901234567890",
+                    max_timeout_seconds=300,
+                    asset="0x0000000000000000000000000000000000000000",
+                ),
+            ],
+        )
+
+        await client.create_payment_payload(payment_required)
+
+        assert hook_called is True
+        assert received_payload is not None
+        assert received_payload.x402_version == 1

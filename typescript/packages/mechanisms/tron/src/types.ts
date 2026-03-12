@@ -70,6 +70,9 @@ export type ExactTronPayload = ExactTIP712Payload | ExactPermit2Payload;
 /**
  * Type guard to check if a payload is a Permit2 payload.
  * Permit2 payloads have a `permit2Authorization` field.
+ *
+ * @param payload - The payload to check.
+ * @returns True if the payload is an ExactPermit2Payload.
  */
 export function isPermit2Payload(payload: ExactTronPayload): payload is ExactPermit2Payload {
   return "permit2Authorization" in payload;
@@ -78,6 +81,9 @@ export function isPermit2Payload(payload: ExactTronPayload): payload is ExactPer
 /**
  * Type guard to check if a payload is a TIP-712 (TransferWithAuthorization) payload.
  * TIP-712 payloads have an `authorization` field.
+ *
+ * @param payload - The payload to check.
+ * @returns True if the payload is an ExactTIP712Payload.
  */
 export function isTIP712Payload(payload: ExactTronPayload): payload is ExactTIP712Payload {
   return "authorization" in payload;

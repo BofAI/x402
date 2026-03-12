@@ -19,8 +19,8 @@
     "viem": "^2.31.3",
     "axios": "^1.10.0",
     "uuid": "^11.0.6",
-    "x402-axios": "workspace:*",
-    "x402-hono": "workspace:*"
+    "@bankofai/x402-axios-legacy": "workspace:*",
+    "@bankofai/x402-hono-legacy": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.15.3",

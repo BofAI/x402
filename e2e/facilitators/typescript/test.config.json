@@ -23,10 +23,10 @@
   "environment": {
     "required": [
       "PORT",
-      "EVM_PRIVATE_KEY",
-      "SVM_PRIVATE_KEY"
+      "EVM_PRIVATE_KEY"
     ],
     "optional": [
+      "SVM_PRIVATE_KEY",
       "APTOS_PRIVATE_KEY",
       "STELLAR_PRIVATE_KEY",
       "EVM_NETWORK",

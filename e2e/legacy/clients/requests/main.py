@@ -2,7 +2,7 @@ import os
 import json
 from dotenv import load_dotenv
 from eth_account import Account
-from bankofai.x402.clients.requests import bankofai.x402_http_adapter
+from bankofai.x402.clients.requests import x402_http_adapter
 from bankofai.x402.clients.base import decode_x_payment_response
 import requests
 

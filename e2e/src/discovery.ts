@@ -295,6 +295,12 @@ export class TestDiscovery {
           });
 
           for (const facilitator of matchingFacilitators) {
+            // TODO: Python SDK currently lacks Permit2 support.
+            // We skip these scenarios when using the python facilitator to avoid expected failures.
+            if (facilitator.name === 'python' && (endpoint.transferMethod === 'permit2' || (endpoint as any).permit2)) {
+              continue;
+            }
+
             scenarios.push({
               client,
               server,

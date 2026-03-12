@@ -25,11 +25,11 @@
   "environment": {
     "required": [
       "EVM_PRIVATE_KEY",
-      "SVM_PRIVATE_KEY",
       "RESOURCE_SERVER_URL",
       "ENDPOINT_PATH"
     ],
     "optional": [
+      "SVM_PRIVATE_KEY",
       "APTOS_PRIVATE_KEY",
       "STELLAR_PRIVATE_KEY"
     ]

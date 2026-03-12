@@ -62,6 +62,8 @@ V1_NETWORKS = [
     "skale-base-sepolia",
     "megaeth",
     "monad",
+    "bsc",
+    "bsc-testnet",
 ]
 
 # V1 network name to chain ID mapping
@@ -84,4 +86,6 @@ V1_NETWORK_CHAIN_IDS: dict[str, int] = {
     "skale-base-sepolia": 1444673419,
     "megaeth": 4326,
     "monad": 143,
+    "bsc": 56,
+    "bsc-testnet": 97,
 }

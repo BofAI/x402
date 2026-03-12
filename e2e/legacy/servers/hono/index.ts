@@ -1,7 +1,7 @@
 import { config } from "dotenv";
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
-import { paymentMiddleware, Network, Resource, FacilitatorConfig } from "x402-hono";
+import { paymentMiddleware, Network, Resource, FacilitatorConfig } from "@bankofai/x402-hono-legacy";
 
 config();
 
@@ -30,11 +30,22 @@ const app = new Hono();
 
 // Apply payment middleware to protected endpoint
 app.use(
+  "*",
   paymentMiddleware(
     payTo,
     {
       "/protected": {
-        price: "$0.001",
+        price: {
+          amount: "1000",
+          asset: {
+            address: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
+            decimals: 6,
+            eip712: {
+              name: "DA HULU",
+              version: "1",
+            },
+          },
+        },
         network,
       },
     },

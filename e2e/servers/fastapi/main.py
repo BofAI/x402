@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 
 # Import from new x402 package
-from bankofai.x402 import bankofai.x402ResourceServer
+from bankofai.x402 import x402ResourceServer
 from bankofai.x402.http import FacilitatorConfig, HTTPFacilitatorClient
 from bankofai.x402.http.middleware.fastapi import payment_middleware
 from bankofai.x402.mechanisms.evm.exact import (
@@ -37,11 +37,10 @@ if not EVM_ADDRESS:
     sys.exit(1)
 
 if not SVM_ADDRESS:
-    print("Error: Missing required environment variable SVM_PAYEE_ADDRESS")
-    sys.exit(1)
+    print("Warning: SVM_PAYEE_ADDRESS not set - SVM payment endpoints disabled")
 
 # Network configurations (CAIP-2 format)
-EVM_NETWORK = "eip155:84532"  # Base Sepolia
+EVM_NETWORK = "eip155:97"  # BSC Testnet
 SVM_NETWORK = "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1"  # Solana Devnet
 
 app = FastAPI()
@@ -58,9 +57,23 @@ else:
 # Create resource server
 server = x402ResourceServer(facilitator)
 
-# Register EVM and SVM exact schemes
+# Register DHLU token for BSC Testnet
+server.asset_registry.register(
+    EVM_NETWORK,
+    "DHLU",
+    {
+        "address": "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
+        "decimals": 6,
+        "name": "DA HULU",
+        "version": "1",
+        "supports_eip2612": True,
+    },
+)
+
+# Register EVM exact scheme (always) and SVM exact scheme (if configured)
 register_exact_evm_server(server, EVM_NETWORK)
-register_exact_svm_server(server, SVM_NETWORK)
+if SVM_ADDRESS:
+    register_exact_svm_server(server, SVM_NETWORK)
 
 # Register Bazaar discovery extension
 server.register_extension(bazaar_resource_server_extension)
@@ -71,7 +84,12 @@ routes = {
         "accepts": {
             "scheme": "exact",
             "payTo": EVM_ADDRESS,
-            "price": "$0.001",
+            "assets": ["DHLU"],
+            "price": {
+                "amount": "1000",
+                "asset": "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
+                "extra": {"name": "DA HULU", "version": "1"},
+            },
             "network": EVM_NETWORK,
         },
         "extensions": {
@@ -96,7 +114,12 @@ routes = {
         "accepts": {
             "scheme": "exact",
             "payTo": EVM_ADDRESS,
-            "price": "$0.001",  # 0.001 USDC
+            "assets": ["DHLU"],
+            "price": {
+                "amount": "1000",
+                "asset": "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
+                "extra": {"name": "DA HULU", "version": "1"},
+            },
             "network": EVM_NETWORK,
         },
         "extensions": {
@@ -117,31 +140,37 @@ routes = {
             ),
         },
     },
-    "GET /protected-svm": {
-        "accepts": {
-            "scheme": "exact",
-            "payTo": SVM_ADDRESS,
-            "price": "$0.001",
-            "network": SVM_NETWORK,
-        },
-        "extensions": {
-            **declare_discovery_extension(
-                output=OutputConfig(
-                    example={
-                        "message": "Access granted to SVM protected resource",
-                        "timestamp": "2024-01-01T00:00:00Z",
-                    },
-                    schema={
-                        "properties": {
-                            "message": {"type": "string"},
-                            "timestamp": {"type": "string"},
-                        },
-                        "required": ["message", "timestamp"],
-                    },
-                )
-            ),
-        },
-    },
+    **(
+        {
+            "GET /protected-svm": {
+                "accepts": {
+                    "scheme": "exact",
+                    "payTo": SVM_ADDRESS,
+                    "price": "$0.001",
+                    "network": SVM_NETWORK,
+                },
+                "extensions": {
+                    **declare_discovery_extension(
+                        output=OutputConfig(
+                            example={
+                                "message": "Access granted to SVM protected resource",
+                                "timestamp": "2024-01-01T00:00:00Z",
+                            },
+                            schema={
+                                "properties": {
+                                    "message": {"type": "string"},
+                                    "timestamp": {"type": "string"},
+                                },
+                                "required": ["message", "timestamp"],
+                            },
+                        )
+                    ),
+                },
+            },
+        }
+        if SVM_ADDRESS
+        else {}
+    ),
 }
 
 

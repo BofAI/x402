@@ -7,9 +7,9 @@ from dotenv import load_dotenv
 from eth_account import Account
 
 # Import from new x402 package
-from bankofai.x402 import bankofai.x402Client
+from bankofai.x402 import x402Client
 from bankofai.x402.http import decode_payment_response_header
-from bankofai.x402.http.clients import bankofai.x402_httpx_transport
+from bankofai.x402.http.clients import x402_httpx_transport
 from bankofai.x402.mechanisms.evm import EthAccountSigner
 from bankofai.x402.mechanisms.evm.exact import register_exact_evm_client
 from bankofai.x402.mechanisms.svm import KeypairSigner
@@ -30,10 +30,10 @@ if not base_url or not endpoint_path:
     print(json.dumps(error_result))
     exit(1)
 
-if not evm_private_key and not svm_private_key:
+if not evm_private_key:
     error_result = {
         "success": False,
-        "error": "At least one of EVM_PRIVATE_KEY or SVM_PRIVATE_KEY must be set",
+        "error": "EVM_PRIVATE_KEY must be set",
     }
     print(json.dumps(error_result))
     exit(1)

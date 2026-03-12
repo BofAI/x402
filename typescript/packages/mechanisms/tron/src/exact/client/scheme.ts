@@ -20,13 +20,30 @@ import { createPermit2Payload } from "./permit2";
 export class ExactTronScheme implements SchemeNetworkClient {
   readonly scheme = "exact";
 
+  /**
+   * Creates a new ExactTronScheme instance.
+   *
+   * @param signer - The TRON signer for client operations.
+   */
   constructor(private readonly signer: ClientTronSigner) {}
 
+  /**
+   * Creates a payment payload for the Exact scheme.
+   * Routes to TIP-712 or Permit2 based on requirements.extra.assetTransferMethod.
+   *
+   * @param x402Version - The x402 protocol version
+   * @param paymentRequirements - The payment requirements
+   * @param context - Optional context with server-declared extensions
+   * @returns Promise resolving to a payment payload result
+   */
   async createPaymentPayload(
     x402Version: number,
     paymentRequirements: PaymentRequirements,
-    _context?: PaymentPayloadContext,
+    context?: PaymentPayloadContext,
   ): Promise<PaymentPayloadResult> {
+    // Mark unused parameters to satisfy linter
+    void context;
+
     const assetTransferMethod =
       (paymentRequirements.extra?.assetTransferMethod as AssetTransferMethod) ?? "tip712";
 

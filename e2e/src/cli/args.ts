@@ -118,7 +118,7 @@ export function printHelp(): void {
   console.log('  pnpm test -v               Interactive with verbose logging');
   console.log('');
   console.log('Network Selection:');
-  console.log('  --testnet                  Use testnet networks (Base Sepolia + Solana Devnet)');
+  console.log('  --testnet                  Use testnet networks (BSC Testnet + Solana Devnet)');
   console.log('  --mainnet                  Use mainnet networks (Base + Solana) ⚠️  Real funds!');
   console.log('  (If not specified, will prompt in interactive mode)');
   console.log('');
@@ -146,7 +146,7 @@ export function printHelp(): void {
   console.log('  pnpm test --mainnet                                 # Use mainnet (real funds!)');
   console.log('  pnpm test --min -v                                  # Minimize with verbose');
   console.log('  pnpm test --transport=mcp                                # MCP transport only');
-  console.log('  pnpm test --mainnet --facilitators=go --servers=express  # Mainnet programmatic');
+  console.log('  pnpm test --mainnet --facilitators=typescript --servers=express  # Mainnet programmatic');
   console.log('  pnpm test --testnet --min --parallel -v                   # Parallel mode');
   console.log('  pnpm test --testnet --min --parallel --concurrency=2 -v   # Limited concurrency');
   console.log('');

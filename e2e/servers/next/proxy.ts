@@ -4,7 +4,10 @@ import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
 import { ExactSvmScheme } from "@bankofai/x402-svm/exact/server";
 import { ExactAptosScheme } from "@bankofai/x402-aptos/exact/server";
 import { ExactStellarScheme } from "@bankofai/x402-stellar/exact/server";
-import { bazaarResourceServerExtension, declareDiscoveryExtension } from "@bankofai/x402-extensions/bazaar";
+import {
+  bazaarResourceServerExtension,
+  declareDiscoveryExtension,
+} from "@bankofai/x402-extensions/bazaar";
 import {
   declareEip2612GasSponsoringExtension,
   declareErc20ApprovalGasSponsoringExtension,
@@ -14,7 +17,7 @@ export const EVM_PAYEE_ADDRESS = process.env.EVM_PAYEE_ADDRESS as `0x${string}`;
 export const SVM_PAYEE_ADDRESS = process.env.SVM_PAYEE_ADDRESS as string;
 export const APTOS_PAYEE_ADDRESS = process.env.APTOS_PAYEE_ADDRESS as string;
 export const STELLAR_PAYEE_ADDRESS = process.env.STELLAR_PAYEE_ADDRESS as string | undefined;
-export const EVM_NETWORK = (process.env.EVM_NETWORK || "eip155:84532") as `${string}:${string}`;
+export const EVM_NETWORK = (process.env.EVM_NETWORK || "eip155:97") as `${string}:${string}`;
 export const SVM_NETWORK = (process.env.SVM_NETWORK ||
   "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1") as `${string}:${string}`;
 export const APTOS_NETWORK = (process.env.APTOS_NETWORK || "aptos:2") as `${string}:${string}`;
@@ -33,9 +36,21 @@ const facilitatorClient = new HTTPFacilitatorClient({ url: facilitatorUrl });
 // Create x402 resource server with builder pattern (cleaner!)
 export const server = new x402ResourceServer(facilitatorClient);
 
+// Register DHLU token for BSC Testnet in the AssetRegistry for E2E testing.
+// DHLU supports EIP-3009, EIP-2612, and standard ERC-20.
+server.assetRegistry.register(EVM_NETWORK, "DHLU", {
+  address: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
+  decimals: 6,
+  name: "DA HULU",
+  version: "1",
+  supportsEip2612: true,
+});
+
 // Register server schemes
 server.register("eip155:*", new ExactEvmScheme());
-server.register("solana:*", new ExactSvmScheme());
+if (SVM_PAYEE_ADDRESS) {
+  server.register("solana:*", new ExactSvmScheme());
+}
 if (APTOS_PAYEE_ADDRESS) {
   server.register("aptos:*", new ExactAptosScheme());
 }
@@ -54,8 +69,13 @@ export const proxy = paymentProxy(
       accepts: {
         payTo: EVM_PAYEE_ADDRESS,
         scheme: "exact",
-        price: "$0.001",
         network: EVM_NETWORK,
+        assets: ["DHLU"],
+        price: {
+          amount: "1000",
+          asset: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
+          extra: { name: "DA HULU", version: "1" },
+        },
       },
       extensions: {
         ...declareDiscoveryExtension({
@@ -75,31 +95,35 @@ export const proxy = paymentProxy(
         }),
       },
     },
-    "/api/protected-svm-proxy": {
-      accepts: {
-        payTo: SVM_PAYEE_ADDRESS,
-        scheme: "exact",
-        price: "$0.001",
-        network: SVM_NETWORK,
-      },
-      extensions: {
-        ...declareDiscoveryExtension({
-          output: {
-            example: {
-              message: "Protected endpoint accessed successfully",
-              timestamp: "2024-01-01T00:00:00Z",
+    ...(SVM_PAYEE_ADDRESS
+      ? {
+          "/api/protected-svm-proxy": {
+            accepts: {
+              payTo: SVM_PAYEE_ADDRESS,
+              scheme: "exact",
+              price: "$0.001",
+              network: SVM_NETWORK,
             },
-            schema: {
-              properties: {
-                message: { type: "string" },
-                timestamp: { type: "string" },
-              },
-              required: ["message", "timestamp"],
+            extensions: {
+              ...declareDiscoveryExtension({
+                output: {
+                  example: {
+                    message: "Protected endpoint accessed successfully",
+                    timestamp: "2024-01-01T00:00:00Z",
+                  },
+                  schema: {
+                    properties: {
+                      message: { type: "string" },
+                      timestamp: { type: "string" },
+                    },
+                    required: ["message", "timestamp"],
+                  },
+                },
+              }),
             },
           },
-        }),
-      },
-    },
+        }
+      : {}),
     ...(APTOS_PAYEE_ADDRESS
       ? {
           "/api/protected-aptos-proxy": {
@@ -163,8 +187,16 @@ export const proxy = paymentProxy(
         payTo: EVM_PAYEE_ADDRESS,
         scheme: "exact",
         network: EVM_NETWORK,
-        price: "$0.001",
-        extra: { assetTransferMethod: "permit2" },
+        assets: ["DHLU"],
+        price: {
+          amount: "1000",
+          asset: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
+          extra: {
+            name: "DA HULU",
+            version: "1",
+            assetTransferMethod: "permit2",
+          },
+        },
       },
       extensions: {
         ...declareDiscoveryExtension({
@@ -192,9 +224,10 @@ export const proxy = paymentProxy(
         payTo: EVM_PAYEE_ADDRESS,
         scheme: "exact",
         network: EVM_NETWORK,
+        assets: ["DHLU"],
         price: {
           amount: "1000",
-          asset: "0xeED520980fC7C7B4eB379B96d61CEdea2423005a",
+          asset: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
           extra: {
             assetTransferMethod: "permit2",
           },

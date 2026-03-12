@@ -5,6 +5,7 @@ import logging
 from flask import Flask, jsonify
 from dotenv import load_dotenv
 from bankofai.x402.flask.middleware import PaymentMiddleware
+from bankofai.x402.types import EIP712Domain, TokenAmount, TokenAsset
 
 # Configure logging to reduce verbosity
 logging.getLogger("werkzeug").setLevel(logging.ERROR)
@@ -14,7 +15,7 @@ logging.getLogger("flask").setLevel(logging.ERROR)
 load_dotenv()
 
 # Get configuration from environment
-NETWORK = os.getenv("EVM_NETWORK", "base-sepolia")
+NETWORK = os.getenv("EVM_NETWORK", "bsc-testnet")
 ADDRESS = os.getenv("EVM_PAYEE_ADDRESS")
 PORT = int(os.getenv("PORT", "4021"))
 FACILITATOR_URL = os.getenv("FACILITATOR_URL")
@@ -22,6 +23,13 @@ FACILITATOR_URL = os.getenv("FACILITATOR_URL")
 if not ADDRESS:
     print("Error: Missing required environment variable ADDRESS")
     sys.exit(1)
+
+# Explicitly define DHLU token info for BSC Testnet to avoid SDK lookup errors
+# (SDK's KNOWN_TOKENS is missing bsc-testnet)
+DHLU_ADDRESS = "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816"
+DHLU_DECIMALS = 6
+DHLU_NAME = "DA HULU"
+DHLU_VERSION = "1"
 
 app = Flask(__name__)
 
@@ -39,7 +47,17 @@ payment_middleware = PaymentMiddleware(app)
 # Apply payment middleware to protected endpoint
 payment_middleware.add(
     path="/protected",
-    price="$0.001",
+    price=TokenAmount(
+        amount="1000",
+        asset=TokenAsset(
+            address=DHLU_ADDRESS,
+            decimals=DHLU_DECIMALS,
+            eip712=EIP712Domain(
+                name=DHLU_NAME,
+                version=DHLU_VERSION,
+            ),
+        ),
+    ),
     pay_to_address=ADDRESS,
     network=NETWORK,
     facilitator_config=facilitator_config,
