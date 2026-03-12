@@ -1,11 +1,5 @@
-import { toHex } from "viem";
 import { TronWeb } from "tronweb";
 import { TRON_CHAIN_IDS } from "./constants";
-
-// Dummy instance for address utilities
-const tronWeb = new TronWeb({
-  fullHost: "https://api.trongrid.io",
-});
 
 /**
  * Get the numeric chain ID for a TRON network identifier.
@@ -46,7 +40,10 @@ function getCrypto(): Crypto {
  * @returns A 32-byte hex-encoded nonce.
  */
 export function createNonce(): `0x${string}` {
-  return toHex(getCrypto().getRandomValues(new Uint8Array(32)));
+  const bytes = getCrypto().getRandomValues(new Uint8Array(32));
+  return `0x${Array.from(bytes as Iterable<number>)
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("")}` as `0x${string}`;
 }
 
 /**
@@ -66,10 +63,7 @@ export function tronAddressToEvm(tronAddress: string): `0x${string}` {
     return `0x${tronAddress.slice(2).toLowerCase()}` as `0x${string}`;
   }
 
-  // Use TronWeb for Base58Check decoding
-  const hex = tronWeb.address.toHex(tronAddress);
-  // tronWeb.address.toHex returns '41...'
-  return `0x${hex.slice(2).toLowerCase()}` as `0x${string}`;
+  return TronWeb.address.toHex(tronAddress).toLowerCase().replace(/^41/, "0x") as `0x${string}`;
 }
 
 /**
@@ -80,8 +74,10 @@ export function tronAddressToEvm(tronAddress: string): `0x${string}` {
  */
 export function evmAddressToTron(evmAddress: string): string {
   const cleanAddr = evmAddress.startsWith("0x") ? evmAddress.slice(2) : evmAddress;
-  // TronWeb expects '41...' for fromHex
-  return tronWeb.address.fromHex("41" + cleanAddr.toLowerCase());
+  const tronHex = cleanAddr.startsWith("41")
+    ? cleanAddr.toLowerCase()
+    : `41${cleanAddr.toLowerCase()}`;
+  return TronWeb.address.fromHex(tronHex);
 }
 
 /**

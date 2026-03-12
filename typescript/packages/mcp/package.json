@@ -5,7 +5,6 @@
   "module": "./dist/esm/index.js",
   "types": "./dist/cjs/index.d.ts",
   "scripts": {
-    "start": "tsx --env-file=.env index.ts",
     "test": "vitest run",
     "test:integration": "vitest run --dir test/integration",
     "test:watch": "vitest",

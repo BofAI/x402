@@ -3,7 +3,7 @@ import { ExactTronScheme } from "../../../src/exact/facilitator/scheme";
 import * as errors from "../../../src/exact/facilitator/errors";
 import type { FacilitatorTronSigner } from "../../../src/signer";
 import { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
-import { ExactTIP712Payload, ExactPermit2Payload } from "../../../src/types";
+import { ExactEIP3009Payload, ExactPermit2Payload } from "../../../src/types";
 import { X402_PERMIT2_PROXY_ADDRESSES } from "../../../src/constants";
 import { normalizeAddressForSigning } from "../../../src/utils";
 
@@ -20,7 +20,7 @@ describe("ExactTronScheme (Facilitator)", () => {
   const tokenAddress = "0x5678567856785678567856785678567856785678" as `0x${string}`;
 
   // --- TIP-712 test data ---
-  const mockTIP712Payload: ExactTIP712Payload = {
+  const mockTIP712Payload: ExactEIP3009Payload = {
     signature: ("0x" + "ab".repeat(32) + "cd".repeat(32) + "1b") as `0x${string}`,
     authorization: {
       from: buyerAddress,
@@ -112,10 +112,10 @@ describe("ExactTronScheme (Facilitator)", () => {
   });
 
   describe("getExtra", () => {
-    it("should return supportedAssetTransferMethods including tip712", () => {
+    it("should return supportedAssetTransferMethods including eip3009", () => {
       const extra = facilitator.getExtra("tron:nile");
       expect(extra).toBeDefined();
-      expect(extra!.supportedAssetTransferMethods).toContain("tip712");
+      expect(extra!.supportedAssetTransferMethods).toContain("eip3009");
     });
 
     it("should include permit2 when proxy address exists for network", () => {
@@ -127,7 +127,7 @@ describe("ExactTronScheme (Facilitator)", () => {
     it("should not include permit2 for unknown network without proxy", () => {
       const extra = facilitator.getExtra("tron:unknown");
       const methods = extra!.supportedAssetTransferMethods as string[];
-      expect(methods).toContain("tip712");
+      expect(methods).toContain("eip3009");
       expect(methods).not.toContain("permit2");
     });
   });

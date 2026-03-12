@@ -40,7 +40,7 @@ await resourceServer.initialize();
 const accepts = await resourceServer.buildPaymentRequirements({
   scheme: "exact",
   network: "eip155:84532",
-  payTo: "0x...", // Your wallet address
+  payTo: "0x...",
   price: "$0.10",
 });
 
@@ -55,9 +55,8 @@ mcpServer.tool(
   "Advanced AI-powered financial analysis. Costs $0.10.",
   { ticker: z.string() },
   paid(async (args) => {
-    const analysis = await performAnalysis(args.ticker);
-    return { content: [{ type: "text", text: analysis }] };
-  })
+    return { content: [{ type: "text", text: `analysis for ${args.ticker}` }] };
+  }),
 );
 
 // Register free tools - no wrapper needed
@@ -107,7 +106,6 @@ if (result.paymentMade) {
 Add hooks for logging, rate limiting, receipts, and more:
 
 ```typescript
-// Build payment requirements
 const accepts = await resourceServer.buildPaymentRequirements({
   scheme: "exact",
   network: "eip155:84532",
@@ -118,29 +116,17 @@ const accepts = await resourceServer.buildPaymentRequirements({
 const paid = createPaymentWrapper(resourceServer, {
   accepts,
   hooks: {
-    // Called after payment verification, before tool execution
-    // Return false to abort execution
-    onBeforeExecution: async ({ toolName, paymentPayload, paymentRequirements }) => {
+    onBeforeExecution: async ({ toolName, paymentPayload }) => {
       console.log(`Executing ${toolName} for ${paymentPayload.payer}`);
-      
-      // Rate limiting example
       if (await isRateLimited(paymentPayload.payer)) {
-        console.log("Rate limit exceeded");
-        return false; // Abort execution, don't charge
+        return false;
       }
-      
-      return true; // Continue
+      return true;
     },
-
-    // Called after tool execution, before settlement
-    onAfterExecution: async ({ toolName, result, paymentPayload }) => {
-      // Log metrics
+    onAfterExecution: async ({ toolName, result }) => {
       await metrics.record(toolName, result.isError);
     },
-
-    // Called after successful settlement
     onAfterSettlement: async ({ toolName, settlement, paymentPayload }) => {
-      // Send receipt to user
       await sendReceipt(paymentPayload.payer, {
         tool: toolName,
         transaction: settlement.transaction,
@@ -150,18 +136,14 @@ const paid = createPaymentWrapper(resourceServer, {
   },
 });
 
-// All tools using this wrapper inherit the hooks
-mcpServer.tool("search", "Premium search", { query: z.string() },
-  paid(async (args) => ({ content: [...] }))
-);
+mcpServer.tool("search", "Premium search", { query: z.string() }, paid(async () => ({
+  content: [{ type: "text", text: "ok" }],
+})));
 ```
 
 ### Multiple Wrappers with Different Prices
 
-Create separate wrappers for different payment tiers:
-
 ```typescript
-// Build requirements for different price points
 const basicAccepts = await resourceServer.buildPaymentRequirements({
   scheme: "exact",
   network: "eip155:84532",
@@ -176,21 +158,16 @@ const premiumAccepts = await resourceServer.buildPaymentRequirements({
   price: "$0.50",
 });
 
-// Create wrappers with different prices
 const paidBasic = createPaymentWrapper(resourceServer, { accepts: basicAccepts });
 const paidPremium = createPaymentWrapper(resourceServer, { accepts: premiumAccepts });
 
-// Register tools with appropriate pricing
-mcpServer.tool("basic_search", "...", {}, paidBasic(async (args) => ({ content: [...] })));
-mcpServer.tool("premium_search", "...", {}, paidPremium(async (args) => ({ content: [...] })));
+mcpServer.tool("basic_search", "...", {}, paidBasic(async () => ({ content: [] })));
+mcpServer.tool("premium_search", "...", {}, paidPremium(async () => ({ content: [] })));
 ```
 
 ### Multiple Payment Options
 
-Support multiple payment methods by including multiple requirements:
-
 ```typescript
-// Build requirements for different payment schemes
 const exactPayment = await resourceServer.buildPaymentRequirements({
   scheme: "exact",
   network: "eip155:84532",
@@ -202,10 +179,9 @@ const subscriptionPayment = await resourceServer.buildPaymentRequirements({
   scheme: "subscription",
   network: "eip155:1",
   payTo: "0x...",
-  price: "$50", // Monthly subscription
+  price: "$50",
 });
 
-// Client can choose either payment method
 const paid = createPaymentWrapper(resourceServer, {
   accepts: [exactPayment[0], subscriptionPayment[0]],
 });
@@ -234,6 +210,25 @@ const x402Mcp = wrapMCPClientWithPayment(mcpClient, paymentClient, {
 // Option 2: Wrap existing client with config
 const x402Mcp2 = wrapMCPClientWithPaymentFromConfig(mcpClient, {
   schemes: [{ network: "eip155:84532", client: new ExactEvmScheme(walletAccount) }],
+});
+```
+
+### Client Hooks
+
+```typescript
+const client = createx402MCPClient({...});
+
+client.onPaymentRequired(async ({ toolName, paymentRequired }) => {
+  const cached = await cache.get(toolName);
+  if (cached) return { payment: cached };
+});
+
+client.onBeforePayment(async ({ paymentRequired }) => {
+  await logPaymentAttempt(paymentRequired);
+});
+
+client.onAfterPayment(async ({ paymentPayload, settleResponse }) => {
+  await saveReceipt(settleResponse?.transaction);
 });
 ```
 
@@ -274,62 +269,13 @@ The client parses this structure to extract PaymentRequired data. This is a prag
 | `autoPayment` | `boolean` | `true` | Automatically retry with payment on 402 |
 | `onPaymentRequested` | `function` | `() => true` | Hook for human-in-the-loop approval when payment is requested |
 
-### PaymentWrapperConfig (for createPaymentWrapper)
+### PaymentWrapperConfig
 
 | Option | Type | Required | Description |
 |--------|------|----------|-------------|
 | `accepts` | `PaymentRequirements[]` | Yes | One or more payment requirements built by `x402ResourceServer.buildPaymentRequirements()` |
 | `resource` | `object` | No | Optional MCP resource metadata |
 | `hooks` | `object` | No | Optional lifecycle hooks for verification, execution, and settlement |
-
-## Hooks
-
-### Client Hooks
-
-```typescript
-const client = createx402MCPClient({...});
-
-// Called when a 402 is received (before payment)
-// Return { payment } to use custom payment, { abort: true } to stop
-client.onPaymentRequired(async ({ toolName, paymentRequired }) => {
-  const cached = await cache.get(toolName);
-  if (cached) return { payment: cached };
-});
-
-// Called before payment is created
-client.onBeforePayment(async ({ paymentRequired }) => {
-  await logPaymentAttempt(paymentRequired);
-});
-
-// Called after payment is submitted
-client.onAfterPayment(async ({ paymentPayload, settleResponse }) => {
-  await saveReceipt(settleResponse.transaction);
-});
-```
-
-### Server Hooks
-
-```typescript
-const server = createX402MCPServer({...});
-
-// Called after verification, before tool execution
-// Return false to abort and return 402
-server.onBeforeExecution(async ({ toolName, paymentPayload }) => {
-  if (isBlocked(paymentPayload.signer)) {
-    return false; // Aborts execution
-  }
-});
-
-// Called after tool execution, before settlement
-server.onAfterExecution(async ({ toolName, result }) => {
-  metrics.recordExecution(toolName, result.isError);
-});
-
-// Called after successful settlement
-server.onAfterSettlement(async ({ toolName, settlement }) => {
-  await logTransaction(toolName, settlement.transaction);
-});
-```
 
 ## Notes
 
