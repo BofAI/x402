@@ -21,17 +21,17 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
   readonly caipFamily = "tron:*";
 
   /**
-   * Initializes a new instance of ExactTronScheme.
+   * Creates a new ExactTronScheme facilitator instance.
    *
-   * @param signer - The TRON signer.
+   * @param signer - The TRON signer for facilitator operations
    */
   constructor(private readonly signer: FacilitatorTronSigner) {}
 
   /**
    * Gets extra configuration for the facilitator.
    *
-   * @param network - The network identifier.
-   * @returns The extra configuration object.
+   * @param network - The network identifier
+   * @returns The extra configuration object
    */
   getExtra(network: string): Record<string, unknown> | undefined {
     const supportedMethods: string[] = ["tip712"];
@@ -48,28 +48,31 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
   }
 
   /**
-   * Gets the list of signers for the given network.
+   * Returns facilitator wallet addresses for the supported response.
    *
-   * @param _ - The network identifier.
-   * @returns An array of signer addresses.
+   * @param _ - The network identifier (unused, addresses are network-agnostic)
+   * @returns Array of facilitator wallet addresses
    */
   getSigners(_: string): string[] {
     return [...this.signer.getAddresses()];
   }
 
   /**
-   * Verifies the payment payload.
+   * Verifies a payment payload. Routes to Permit2 or TIP-712 based on payload type.
    *
-   * @param payload - The payment payload to verify.
-   * @param requirements - The payment requirements.
-   * @param _ - The facilitator context.
-   * @returns The verification response.
+   * @param payload - The payment payload to verify
+   * @param requirements - The payment requirements
+   * @param context - Optional facilitator context for extension capabilities
+   * @returns Promise resolving to verification response
    */
   async verify(
     payload: PaymentPayload,
     requirements: PaymentRequirements,
-    _?: FacilitatorContext,
+    context?: FacilitatorContext,
   ): Promise<VerifyResponse> {
+    // Mark unused parameters to satisfy linter
+    void context;
+
     const rawPayload = payload.payload as ExactTronPayload;
 
     if (isPermit2Payload(rawPayload)) {
@@ -80,18 +83,21 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
   }
 
   /**
-   * Settles the payment.
+   * Settles a payment. Routes to Permit2 or TIP-712 based on payload type.
    *
-   * @param payload - The payment payload to settle.
-   * @param requirements - The payment requirements.
-   * @param _ - The facilitator context.
-   * @returns The settlement response.
+   * @param payload - The payment payload to settle
+   * @param requirements - The payment requirements
+   * @param context - Optional facilitator context for extension capabilities
+   * @returns Promise resolving to settlement response
    */
   async settle(
     payload: PaymentPayload,
     requirements: PaymentRequirements,
-    _?: FacilitatorContext,
+    context?: FacilitatorContext,
   ): Promise<SettleResponse> {
+    // Mark unused parameters to satisfy linter
+    void context;
+
     const rawPayload = payload.payload as ExactTronPayload;
 
     if (isPermit2Payload(rawPayload)) {
