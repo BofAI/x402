@@ -85,7 +85,7 @@ The server will start on `http://localhost:4022` with:
 
 ## Testing
 
-Use the MCP client example (`@x402/mcp-client-example`) to connect and test:
+Use the MCP client example in this repository to connect and test:
 
 ```bash
 cd ../../../clients/mcp

@@ -1,12 +1,20 @@
-# @x402/mcp
+# @bankofai/x402-mcp
 
 MCP (Model Context Protocol) integration for the x402 payment protocol. This package enables paid tool calls in MCP servers and automatic payment handling in MCP clients.
 
 ## Installation
 
 ```bash
-npm install @x402/mcp @x402/core @modelcontextprotocol/sdk
+npm install @bankofai/x402-mcp @bankofai/x402-core @modelcontextprotocol/sdk
 ```
+
+Related packages typically used with this package:
+
+```bash
+npm install @bankofai/x402-evm @bankofai/x402-tron
+```
+
+The examples in this repository use SSE transport and `createPaymentWrapper()` on the server side.
 
 ## Quick Start (Recommended)
 
@@ -14,9 +22,9 @@ npm install @x402/mcp @x402/core @modelcontextprotocol/sdk
 
 ```typescript
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { createPaymentWrapper, x402ResourceServer } from "@x402/mcp";
-import { HTTPFacilitatorClient } from "@x402/core/server";
-import { ExactEvmScheme } from "@x402/evm/exact/server";
+import { createPaymentWrapper, x402ResourceServer } from "@bankofai/x402-mcp";
+import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
 import { z } from "zod";
 
 // Create standard MCP server
@@ -64,12 +72,12 @@ await mcpServer.connect(transport);
 ### Client - Using Factory Function
 
 ```typescript
-import { createX402MCPClient } from "@x402/mcp";
-import { ExactEvmScheme } from "@x402/evm/exact/client";
+import { createx402MCPClient } from "@bankofai/x402-mcp";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 
 // Create client with factory (simplest approach)
-const client = createX402MCPClient({
+const client = createx402MCPClient({
   name: "my-agent",
   version: "1.0.0",
   schemes: [{ network: "eip155:84532", client: new ExactEvmScheme(walletAccount) }],
@@ -207,9 +215,12 @@ const paid = createPaymentWrapper(resourceServer, {
 
 ```typescript
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { wrapMCPClientWithPayment, wrapMCPClientWithPaymentFromConfig } from "@x402/mcp";
-import { x402Client } from "@x402/core/client";
-import { ExactEvmScheme } from "@x402/evm/exact/client";
+import {
+  wrapMCPClientWithPayment,
+  wrapMCPClientWithPaymentFromConfig,
+} from "@bankofai/x402-mcp";
+import { x402Client } from "@bankofai/x402-core/client";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
 
 // Option 1: Wrap existing client with existing payment client
 const mcpClient = new Client({ name: "my-agent", version: "1.0.0" });
@@ -263,46 +274,20 @@ The client parses this structure to extract PaymentRequired data. This is a prag
 | `autoPayment` | `boolean` | `true` | Automatically retry with payment on 402 |
 | `onPaymentRequested` | `function` | `() => true` | Hook for human-in-the-loop approval when payment is requested |
 
-### X402MCPServerConfig (Factory)
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `name` | `string` | Required | MCP server name |
-| `version` | `string` | Required | MCP server version |
-| `facilitator` | `string \| FacilitatorClient` | Default facilitator | Facilitator for payment processing |
-| `schemes` | `SchemeRegistration[]` | `[]` | Payment scheme registrations |
-| `syncFacilitatorOnStart` | `boolean` | `true` | Initialize facilitator immediately |
-
-### MCPToolPaymentConfig
-
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `scheme` | `string` | Yes | Payment scheme (e.g., "exact") |
-| `network` | `Network` | Yes | CAIP-2 network ID (e.g., "eip155:84532") |
-| `price` | `Price` | Yes | Price (e.g., "$0.10" or "1000000") |
-| `payTo` | `string` | Yes | Recipient wallet address |
-| `maxTimeoutSeconds` | `number` | No | Payment timeout (default: 60) |
-| `extra` | `object` | No | Scheme-specific parameters (e.g., EIP-712 domain) |
-| `resource` | `object` | No | Resource metadata |
-
 ### PaymentWrapperConfig (for createPaymentWrapper)
 
 | Option | Type | Required | Description |
 |--------|------|----------|-------------|
-| `scheme` | `string` | Yes | Payment scheme (e.g., "exact") |
-| `network` | `Network` | Yes | CAIP-2 network ID (e.g., "eip155:84532") |
-| `payTo` | `string` | Yes | Recipient wallet address |
-| `price` | `Price` | No | Price - omit to specify per-tool |
-| `maxTimeoutSeconds` | `number` | No | Payment timeout (default: 60) |
-| `extra` | `object` | No | Scheme-specific parameters |
-| `resource` | `object` | No | Resource metadata |
+| `accepts` | `PaymentRequirements[]` | Yes | One or more payment requirements built by `x402ResourceServer.buildPaymentRequirements()` |
+| `resource` | `object` | No | Optional MCP resource metadata |
+| `hooks` | `object` | No | Optional lifecycle hooks for verification, execution, and settlement |
 
 ## Hooks
 
 ### Client Hooks
 
 ```typescript
-const client = createX402MCPClient({...});
+const client = createx402MCPClient({...});
 
 // Called when a 402 is received (before payment)
 // Return { payment } to use custom payment, { abort: true } to stop
@@ -345,6 +330,11 @@ server.onAfterSettlement(async ({ toolName, settlement }) => {
   await logTransaction(toolName, settlement.transaction);
 });
 ```
+
+## Notes
+
+- The currently documented and tested server pattern is: native `McpServer` + `x402ResourceServer` + `createPaymentWrapper()`.
+- The examples in this repository are SSE-based. The client itself is transport-agnostic because it forwards `connect()` to the underlying MCP SDK client, but SSE is the path covered by examples and integration tests.
 
 ## License
 

@@ -89,9 +89,7 @@ export class ExactTronScheme implements SchemeNetworkServer {
       extra: {
         ...paymentRequirements.extra,
         assetTransferMethod: method,
-        ...(method === "permit2" && permit2FacilitatorAddress
-          ? { permit2FacilitatorAddress }
-          : {}),
+        ...(method === "permit2" && permit2FacilitatorAddress ? { permit2FacilitatorAddress } : {}),
       },
     });
   }
@@ -151,7 +149,13 @@ export class ExactTronScheme implements SchemeNetworkServer {
   } {
     const stablecoins: Record<
       string,
-      { address: string; name: string; version: string; decimals: number; assetTransferMethod?: string }
+      {
+        address: string;
+        name: string;
+        version: string;
+        decimals: number;
+        assetTransferMethod?: string;
+      }
     > = {
       "tron:nile": {
         address: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",

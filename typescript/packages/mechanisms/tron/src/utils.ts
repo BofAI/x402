@@ -1,6 +1,7 @@
+import { createHash } from "crypto";
 import { TRON_CHAIN_IDS } from "./constants";
 
-declare var require: any;/**
+/**
  * Get the numeric chain ID for a TRON network identifier.
  *
  * @param network - The network identifier in CAIP-2 format (e.g., "tron:nile")
@@ -37,7 +38,7 @@ function getCrypto(): any {
 export function createNonce(): `0x${string}` {
   const bytes = getCrypto().getRandomValues(new Uint8Array(32));
   return `0x${Array.from(bytes as Iterable<number>)
-    .map((b) => b.toString(16).padStart(2, "0"))
+    .map(b => b.toString(16).padStart(2, "0"))
     .join("")}` as `0x${string}`;
 }
 
@@ -131,9 +132,7 @@ function hexToBytes(hex: string): Uint8Array {
 }
 
 function sha256(data: Uint8Array): Uint8Array {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const crypto = require("crypto");
-  return new Uint8Array(crypto.createHash("sha256").update(data).digest());
+  return new Uint8Array(createHash("sha256").update(data).digest());
 }
 
 function base58Encode(bytes: Uint8Array): string {

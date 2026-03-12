@@ -1,4 +1,4 @@
-# @x402/mcp Changelog
+# @bankofai/x402-mcp Changelog
 
 ## 2.6.0
 
@@ -35,4 +35,4 @@
 
 ## 2.3.0-alpha
 
-- Initial alpha prerelease of @x402/mcp package for Model Context Protocol integration with x402 payment protocol.
+- Initial alpha prerelease of @bankofai/x402-mcp package for Model Context Protocol integration with x402 payment protocol.
