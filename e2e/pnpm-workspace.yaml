@@ -7,6 +7,8 @@ packages:
   - "clients/external/*"
   - "legacy/servers/*"
   - "legacy/clients/*"
+  - "coinbase/servers/*"
+  - "coinbase/facilitators/*"
   - "../typescript/packages/*"
   - "../typescript/packages/http/*"
   - "../typescript/packages/mechanisms/*"

@@ -3,12 +3,17 @@ set -e
 
 # Parse command line arguments
 INCLUDE_LEGACY=false
+INCLUDE_COINBASE=false
 VERBOSE=false
 
 for arg in "$@"; do
   case $arg in
     --legacy)
       INCLUDE_LEGACY=true
+      shift
+      ;;
+    --coinbase)
+      INCLUDE_COINBASE=true
       shift
       ;;
     -v|--verbose)
@@ -22,12 +27,14 @@ for arg in "$@"; do
       echo ""
       echo "Options:"
       echo "  --legacy         Include legacy (v1) implementations"
+      echo "  --coinbase       Include coinbase implementations"
       echo "  -v, --verbose    Show detailed output"
       echo "  -h, --help       Show this help message"
       echo ""
       echo "Examples:"
       echo "  ./setup.sh                  # Setup v2 implementations only"
       echo "  ./setup.sh --legacy         # Setup v2 and legacy"
+      echo "  ./setup.sh --coinbase       # Setup v2 and coinbase"
       echo "  ./setup.sh --legacy -v      # Setup with verbose output"
       exit 0
       ;;
@@ -40,6 +47,11 @@ echo ""
 
 if [ "$INCLUDE_LEGACY" = true ]; then
   echo "📚 Including legacy (v1) implementations"
+  echo ""
+fi
+
+if [ "$INCLUDE_COINBASE" = true ]; then
+  echo "📚 Including coinbase implementations"
   echo ""
 fi
 
@@ -157,6 +169,13 @@ if [ "$INCLUDE_LEGACY" = true ]; then
   process_directory "legacy/servers" "server"
   process_directory "legacy/clients" "client"
   process_directory "legacy/facilitators" "facilitator"
+fi
+
+# Setup coinbase if requested
+if [ "$INCLUDE_COINBASE" = true ]; then
+  process_directory "coinbase/servers" "server"
+  process_directory "coinbase/clients" "client"
+  process_directory "coinbase/facilitators" "facilitator"
 fi
 
 # Print summary
