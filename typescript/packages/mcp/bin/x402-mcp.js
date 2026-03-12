@@ -4,10 +4,14 @@ const path = require("node:path");
 
 const entryPath = path.resolve(__dirname, "../src/command/mcp-server.ts");
 
-const result = spawnSync(process.execPath, ["--import", "tsx", entryPath, ...process.argv.slice(2)], {
-  stdio: "inherit",
-  env: process.env,
-});
+const result = spawnSync(
+  process.execPath,
+  ["--import", "tsx", entryPath, ...process.argv.slice(2)],
+  {
+    stdio: "inherit",
+    env: process.env,
+  },
+);
 
 if (result.error) {
   throw result.error;
