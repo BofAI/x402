@@ -1,0 +1,50 @@
+{
+  "name": "coinbase-express",
+  "type": "server",
+  "language": "typescript",
+  "x402Version": 2,
+  "extensions": ["bazaar", "eip2612GasSponsoring", "erc20ApprovalGasSponsoring"],
+  "endpoints": [
+    {
+      "path": "/protected",
+      "method": "GET",
+      "description": "Protected endpoint requiring EIP-3009 payment",
+      "requiresPayment": true,
+      "protocolFamily": "evm",
+      "transferMethod": "eip3009"
+    },
+    {
+      "path": "/protected-permit2",
+      "method": "GET",
+      "description": "Protected endpoint requiring Permit2 payment",
+      "requiresPayment": true,
+      "protocolFamily": "evm",
+      "transferMethod": "permit2"
+    },
+    {
+      "path": "/protected-permit2-erc20",
+      "method": "GET",
+      "description": "Protected endpoint requiring Permit2 payment with ERC-20 approval gas sponsoring",
+      "requiresPayment": true,
+      "protocolFamily": "evm",
+      "transferMethod": "permit2",
+      "extensions": ["erc20ApprovalGasSponsoring"]
+    },
+    {
+      "path": "/health",
+      "method": "GET",
+      "description": "Health check endpoint",
+      "health": true
+    },
+    {
+      "path": "/close",
+      "method": "POST",
+      "description": "Graceful shutdown endpoint",
+      "close": true
+    }
+  ],
+  "environment": {
+    "required": ["PORT", "EVM_PAYEE_ADDRESS", "FACILITATOR_URL"],
+    "optional": []
+  }
+}

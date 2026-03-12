@@ -16,10 +16,12 @@ import {
 export class TestDiscovery {
   private baseDir: string;
   private includeLegacy: boolean;
+  private includeCoinbase: boolean;
 
-  constructor(baseDir: string = '.', includeLegacy: boolean = false) {
+  constructor(baseDir: string = '.', includeLegacy: boolean = false, includeCoinbase: boolean = true) {
     this.baseDir = baseDir;
     this.includeLegacy = includeLegacy;
+    this.includeCoinbase = includeCoinbase;
   }
 
   /**
@@ -39,6 +41,14 @@ export class TestDiscovery {
       const legacyServersDir = join(this.baseDir, 'legacy', 'servers');
       if (existsSync(legacyServersDir)) {
         this.discoverServersInDirectory(legacyServersDir, servers, 'legacy-');
+      }
+    }
+
+    // Discover servers from coinbase directory if flag is set
+    if (this.includeCoinbase) {
+      const coinbaseServersDir = join(this.baseDir, 'coinbase', 'servers');
+      if (existsSync(coinbaseServersDir)) {
+        this.discoverServersInDirectory(coinbaseServersDir, servers, 'coinbase-');
       }
     }
 
@@ -97,6 +107,14 @@ export class TestDiscovery {
       }
     }
 
+    // Discover clients from coinbase directory if flag is set
+    if (this.includeCoinbase) {
+      const coinbaseClientsDir = join(this.baseDir, 'coinbase', 'clients');
+      if (existsSync(coinbaseClientsDir)) {
+        this.discoverClientsInDirectory(coinbaseClientsDir, clients, 'coinbase-');
+      }
+    }
+
     return clients;
   }
 
@@ -117,6 +135,14 @@ export class TestDiscovery {
       const legacyFacilitatorsDir = join(this.baseDir, 'legacy', 'facilitators');
       if (existsSync(legacyFacilitatorsDir)) {
         this.discoverFacilitatorsInDirectory(legacyFacilitatorsDir, facilitators, 'legacy-');
+      }
+    }
+
+    // Discover facilitators from coinbase directory if flag is set
+    if (this.includeCoinbase) {
+      const coinbaseFacilitatorsDir = join(this.baseDir, 'coinbase', 'facilitators');
+      if (existsSync(coinbaseFacilitatorsDir)) {
+        this.discoverFacilitatorsInDirectory(coinbaseFacilitatorsDir, facilitators, 'coinbase-');
       }
     }
 
@@ -329,6 +355,9 @@ export class TestDiscovery {
     log('========================');
     if (this.includeLegacy) {
       log('🔄 Legacy mode enabled - including legacy implementations');
+    }
+    if (this.includeCoinbase) {
+      log('🔄 Coinbase mode enabled - including coinbase implementations');
     }
     log(`📡 Servers found: ${servers.length}`);
     servers.forEach(server => {

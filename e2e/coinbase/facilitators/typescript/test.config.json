@@ -1,0 +1,28 @@
+{
+  "name": "coinbase-typescript",
+  "type": "facilitator",
+  "language": "typescript",
+  "protocolFamilies": [
+    "evm"
+  ],
+  "x402Versions": [
+    2
+  ],
+  "extensions": [
+    "bazaar",
+    "eip2612GasSponsoring",
+    "erc20ApprovalGasSponsoring"
+  ],
+  "evm": {
+    "transferMethods": ["eip3009", "permit2"]
+  },
+  "environment": {
+    "required": [
+      "PORT",
+      "EVM_PRIVATE_KEY"
+    ],
+    "optional": [
+      "EVM_NETWORK"
+    ]
+  }
+}

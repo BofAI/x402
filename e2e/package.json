@@ -8,6 +8,7 @@
     "test:watch": "tsc --watch",
     "setup": "./setup.sh",
     "setup:legacy": "./setup.sh --legacy",
+    "setup:coinbase": "./setup.sh --coinbase",
     "install:all": "pnpm install && ./setup.sh",
     "install:all:legacy": "pnpm install && ./setup.sh --legacy",
     "clean": "rm -rf dist",
