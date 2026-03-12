@@ -27,9 +27,9 @@ export async function verifyPermit2(
   permit2Payload: ExactPermit2Payload,
 ): Promise<VerifyResponse> {
   const payer = permit2Payload.permit2Authorization.from;
-  const facilitatorAddresses = signer.getAddresses().map((address) =>
-    normalizeAddressForSigning(address),
-  );
+  const facilitatorAddresses = signer
+    .getAddresses()
+    .map(address => normalizeAddressForSigning(address));
 
   if (payload.accepted.scheme !== "exact" || requirements.scheme !== "exact") {
     return { isValid: false, invalidReason: errors.INVALID_SCHEME, payer };
@@ -80,14 +80,15 @@ export async function verifyPermit2(
   }
 
   // Verify amount
-  if (BigInt(permit2Payload.permit2Authorization.permitted.amount) !== BigInt(requirements.amount)) {
+  if (
+    BigInt(permit2Payload.permit2Authorization.permitted.amount) !== BigInt(requirements.amount)
+  ) {
     return { isValid: false, invalidReason: errors.PERMIT2_AMOUNT_MISMATCH, payer };
   }
 
   // Verify token
   if (
-    normalizeAddressForSigning(permit2Payload.permit2Authorization.permitted.token) !==
-    tokenAddress
+    normalizeAddressForSigning(permit2Payload.permit2Authorization.permitted.token) !== tokenAddress
   ) {
     return { isValid: false, invalidReason: errors.PERMIT2_TOKEN_MISMATCH, payer };
   }
@@ -211,12 +212,7 @@ export async function settlePermit2(
       address: proxyAddress,
       abi: x402ExactPermit2ProxyABI as unknown as readonly Record<string, unknown>[],
       functionName: "settle",
-      args: [
-        permitTuple,
-        payer,
-        witnessTuple,
-        permit2Payload.signature,
-      ],
+      args: [permitTuple, payer, witnessTuple, permit2Payload.signature],
     });
 
     const receipt = await signer.waitForTransactionReceipt({ hash: tx });

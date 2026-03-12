@@ -141,7 +141,10 @@ describe("ExactTronScheme (Facilitator)", () => {
     });
 
     it("should reject wrong scheme", async () => {
-      const badPayload = { ...mockTIP712PaymentPayload, accepted: { scheme: "wrong", network: "tron:nile" } };
+      const badPayload = {
+        ...mockTIP712PaymentPayload,
+        accepted: { scheme: "wrong", network: "tron:nile" },
+      };
       const result = await facilitator.verify(badPayload, mockTIP712Requirements);
       expect(result.isValid).toBe(false);
       expect(result.invalidReason).toBe(errors.INVALID_SCHEME);
@@ -155,7 +158,10 @@ describe("ExactTronScheme (Facilitator)", () => {
     });
 
     it("should reject network mismatch", async () => {
-      const badPayload = { ...mockTIP712PaymentPayload, accepted: { scheme: "exact", network: "tron:shasta" } };
+      const badPayload = {
+        ...mockTIP712PaymentPayload,
+        accepted: { scheme: "exact", network: "tron:shasta" },
+      };
       const result = await facilitator.verify(badPayload, mockTIP712Requirements);
       expect(result.isValid).toBe(false);
       expect(result.invalidReason).toBe(errors.NETWORK_MISMATCH);
@@ -211,7 +217,9 @@ describe("ExactTronScheme (Facilitator)", () => {
     });
 
     it("should fail when writeContract throws", async () => {
-      (mockSigner.writeContract as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("tx fail"));
+      (mockSigner.writeContract as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error("tx fail"),
+      );
       const result = await facilitator.settle(mockTIP712PaymentPayload, mockTIP712Requirements);
       expect(result.success).toBe(false);
       expect(result.errorReason).toBe(errors.TRANSACTION_FAILED);
@@ -227,14 +235,20 @@ describe("ExactTronScheme (Facilitator)", () => {
     });
 
     it("should reject wrong scheme", async () => {
-      const badPayload = { ...mockPermit2PaymentPayload, accepted: { scheme: "wrong", network: "tron:nile" } };
+      const badPayload = {
+        ...mockPermit2PaymentPayload,
+        accepted: { scheme: "wrong", network: "tron:nile" },
+      };
       const result = await facilitator.verify(badPayload, mockPermit2Requirements);
       expect(result.isValid).toBe(false);
       expect(result.invalidReason).toBe(errors.INVALID_SCHEME);
     });
 
     it("should reject network mismatch", async () => {
-      const badPayload = { ...mockPermit2PaymentPayload, accepted: { scheme: "exact", network: "tron:shasta" } };
+      const badPayload = {
+        ...mockPermit2PaymentPayload,
+        accepted: { scheme: "exact", network: "tron:shasta" },
+      };
       const result = await facilitator.verify(badPayload, mockPermit2Requirements);
       expect(result.isValid).toBe(false);
       expect(result.invalidReason).toBe(errors.NETWORK_MISMATCH);
@@ -242,7 +256,10 @@ describe("ExactTronScheme (Facilitator)", () => {
 
     it("should reject missing permit2 address", async () => {
       const badReqs = { ...mockPermit2Requirements, network: "tron:unknown" };
-      const badPayload = { ...mockPermit2PaymentPayload, accepted: { scheme: "exact", network: "tron:unknown" } };
+      const badPayload = {
+        ...mockPermit2PaymentPayload,
+        accepted: { scheme: "exact", network: "tron:unknown" },
+      };
       const result = await facilitator.verify(badPayload, badReqs);
       expect(result.isValid).toBe(false);
       expect(result.invalidReason).toBe(errors.MISSING_PERMIT2_ADDRESS);
@@ -267,7 +284,10 @@ describe("ExactTronScheme (Facilitator)", () => {
         ...mockPermit2Payload,
         permit2Authorization: {
           ...mockPermit2Payload.permit2Authorization,
-          witness: { ...mockPermit2Payload.permit2Authorization.witness, to: "0x0000000000000000000000000000000000000bad" as `0x${string}` },
+          witness: {
+            ...mockPermit2Payload.permit2Authorization.witness,
+            to: "0x0000000000000000000000000000000000000bad" as `0x${string}`,
+          },
         },
       };
       const badPayload = { ...mockPermit2PaymentPayload, payload: badPermit2 };
@@ -355,7 +375,9 @@ describe("ExactTronScheme (Facilitator)", () => {
     });
 
     it("should fail when writeContract throws", async () => {
-      (mockSigner.writeContract as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("tx fail"));
+      (mockSigner.writeContract as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error("tx fail"),
+      );
       const result = await facilitator.settle(mockPermit2PaymentPayload, mockPermit2Requirements);
       expect(result.success).toBe(false);
       expect(result.errorReason).toBe(errors.TRANSACTION_FAILED);

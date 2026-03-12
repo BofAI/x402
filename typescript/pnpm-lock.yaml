@@ -1344,22 +1344,52 @@ importers:
       tronweb:
         specifier: '>=6.0.0'
         version: 6.2.2(bufferutil@4.1.0)(utf-8-validate@6.0.6)
-      viem:
-        specifier: ^2.39.3
-        version: 2.47.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.3.6)
     devDependencies:
+      '@eslint/js':
+        specifier: ^9.24.0
+        version: 9.39.4
       '@types/node':
         specifier: ^22.13.4
         version: 22.19.15
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^8.29.1
+        version: 8.56.1(@typescript-eslint/parser@8.56.1(eslint@9.39.4)(typescript@5.9.3))(eslint@9.39.4)(typescript@5.9.3)
+      '@typescript-eslint/parser':
+        specifier: ^8.29.1
+        version: 8.56.1(eslint@9.39.4)(typescript@5.9.3)
+      eslint:
+        specifier: ^9.24.0
+        version: 9.39.4
+      eslint-plugin-import:
+        specifier: ^2.31.0
+        version: 2.32.0(@typescript-eslint/parser@8.56.1(eslint@9.39.4)(typescript@5.9.3))(eslint@9.39.4)
+      eslint-plugin-jsdoc:
+        specifier: ^50.6.9
+        version: 50.8.0(eslint@9.39.4)
+      eslint-plugin-prettier:
+        specifier: ^5.2.6
+        version: 5.5.5(eslint@9.39.4)(prettier@3.5.2)
+      prettier:
+        specifier: 3.5.2
+        version: 3.5.2
       tsup:
-        specifier: ^8.0.0
+        specifier: ^8.4.0
         version: 8.5.1(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)
+      tsx:
+        specifier: ^4.19.2
+        version: 4.21.0
       typescript:
-        specifier: ^5.0.0
+        specifier: ^5.7.3
         version: 5.9.3
+      vite:
+        specifier: ^6.2.6
+        version: 6.4.1(@types/node@22.19.15)(tsx@4.21.0)
+      vite-tsconfig-paths:
+        specifier: ^5.1.4
+        version: 5.1.4(typescript@5.9.3)(vite@6.4.1(@types/node@22.19.15)(tsx@4.21.0))
       vitest:
-        specifier: ^1.0.0
-        version: 1.6.1(@types/node@22.19.15)(jsdom@26.1.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))
+        specifier: ^3.0.5
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@22.19.15)(jsdom@26.1.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))(tsx@4.21.0)
 
   packages/x402-deprecated:
     dependencies:
@@ -15299,24 +15329,6 @@ snapshots:
       - supports-color
       - terser
 
-  vite-node@1.6.1(@types/node@22.19.15):
-    dependencies:
-      cac: 6.7.14
-      debug: 4.4.3
-      pathe: 1.1.2
-      picocolors: 1.1.1
-      vite: 5.4.21(@types/node@22.19.15)
-    transitivePeerDependencies:
-      - '@types/node'
-      - less
-      - lightningcss
-      - sass
-      - sass-embedded
-      - stylus
-      - sugarss
-      - supports-color
-      - terser
-
   vite-node@3.2.4(@types/node@22.19.15)(tsx@4.21.0):
     dependencies:
       cac: 6.7.14
@@ -15358,15 +15370,6 @@ snapshots:
       '@types/node': 20.19.37
       fsevents: 2.3.3
 
-  vite@5.4.21(@types/node@22.19.15):
-    dependencies:
-      esbuild: 0.21.5
-      postcss: 8.5.8
-      rollup: 4.59.0
-    optionalDependencies:
-      '@types/node': 22.19.15
-      fsevents: 2.3.3
-
   vite@6.4.1(@types/node@22.19.15)(tsx@4.21.0):
     dependencies:
       esbuild: 0.25.12
@@ -15404,41 +15407,6 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 20.19.37
-      jsdom: 26.1.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
-    transitivePeerDependencies:
-      - less
-      - lightningcss
-      - sass
-      - sass-embedded
-      - stylus
-      - sugarss
-      - supports-color
-      - terser
-
-  vitest@1.6.1(@types/node@22.19.15)(jsdom@26.1.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)):
-    dependencies:
-      '@vitest/expect': 1.6.1
-      '@vitest/runner': 1.6.1
-      '@vitest/snapshot': 1.6.1
-      '@vitest/spy': 1.6.1
-      '@vitest/utils': 1.6.1
-      acorn-walk: 8.3.5
-      chai: 4.5.0
-      debug: 4.4.3
-      execa: 8.0.1
-      local-pkg: 0.5.1
-      magic-string: 0.30.21
-      pathe: 1.1.2
-      picocolors: 1.1.1
-      std-env: 3.10.0
-      strip-literal: 2.1.1
-      tinybench: 2.9.0
-      tinypool: 0.8.4
-      vite: 5.4.21(@types/node@22.19.15)
-      vite-node: 1.6.1(@types/node@22.19.15)
-      why-is-node-running: 2.3.0
-    optionalDependencies:
-      '@types/node': 22.19.15
       jsdom: 26.1.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
     transitivePeerDependencies:
       - less

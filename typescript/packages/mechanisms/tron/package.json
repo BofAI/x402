@@ -3,15 +3,14 @@
   "version": "2.6.0",
   "description": "x402 payment mechanism for TRON (TRC-20 tokens via TIP-712 and Permit2)",
   "license": "Apache-2.0",
-  "type": "module",
   "main": "dist/cjs/index.js",
-  "module": "dist/esm/index.js",
-  "types": "dist/esm/index.d.ts",
+  "module": "dist/esm/index.mjs",
+  "types": "dist/esm/index.d.mts",
   "exports": {
     ".": {
       "import": {
-        "types": "./dist/esm/index.d.ts",
-        "default": "./dist/esm/index.js"
+        "types": "./dist/esm/index.d.mts",
+        "default": "./dist/esm/index.mjs"
       },
       "require": {
         "types": "./dist/cjs/index.d.ts",
@@ -20,8 +19,8 @@
     },
     "./exact/client": {
       "import": {
-        "types": "./dist/esm/exact/client/index.d.ts",
-        "default": "./dist/esm/exact/client/index.js"
+        "types": "./dist/esm/exact/client/index.d.mts",
+        "default": "./dist/esm/exact/client/index.mjs"
       },
       "require": {
         "types": "./dist/cjs/exact/client/index.d.ts",
@@ -30,8 +29,8 @@
     },
     "./exact/server": {
       "import": {
-        "types": "./dist/esm/exact/server/index.d.ts",
-        "default": "./dist/esm/exact/server/index.js"
+        "types": "./dist/esm/exact/server/index.d.mts",
+        "default": "./dist/esm/exact/server/index.mjs"
       },
       "require": {
         "types": "./dist/cjs/exact/server/index.d.ts",
@@ -40,8 +39,8 @@
     },
     "./exact/facilitator": {
       "import": {
-        "types": "./dist/esm/exact/facilitator/index.d.ts",
-        "default": "./dist/esm/exact/facilitator/index.js"
+        "types": "./dist/esm/exact/facilitator/index.d.mts",
+        "default": "./dist/esm/exact/facilitator/index.mjs"
       },
       "require": {
         "types": "./dist/cjs/exact/facilitator/index.d.ts",
@@ -54,15 +53,18 @@
     "src"
   ],
   "scripts": {
+    "start": "tsx --env-file=.env index.ts",
     "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",
-    "format": "prettier --write .",
-    "lint": "eslint --fix ."
+    "watch": "tsc --watch",
+    "format": "prettier -c .prettierrc --write \"**/*.{ts,js,cjs,json,md}\"",
+    "format:check": "prettier -c .prettierrc --check \"**/*.{ts,js,cjs,json,md}\"",
+    "lint": "eslint . --ext .ts --fix",
+    "lint:check": "eslint . --ext .ts"
   },
   "dependencies": {
-    "@bankofai/x402-core": "workspace:*",
-    "viem": "^2.39.3"
+    "@bankofai/x402-core": "workspace:*"
   },
   "peerDependencies": {
     "tronweb": ">=6.0.0"
@@ -73,9 +75,20 @@
     }
   },
   "devDependencies": {
+    "@eslint/js": "^9.24.0",
     "@types/node": "^22.13.4",
-    "tsup": "^8.0.0",
-    "typescript": "^5.0.0",
-    "vitest": "^1.0.0"
+    "@typescript-eslint/eslint-plugin": "^8.29.1",
+    "@typescript-eslint/parser": "^8.29.1",
+    "eslint": "^9.24.0",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-jsdoc": "^50.6.9",
+    "eslint-plugin-prettier": "^5.2.6",
+    "prettier": "3.5.2",
+    "tsup": "^8.4.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vite": "^6.2.6",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.0.5"
   }
 }
