@@ -726,6 +726,8 @@ async function runTest() {
           }
         } else {
           results.push(await runSingleTest(scenario, port, tn, cLog));
+          // Add a small delay between sequential tests to improve stability
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
     } finally {

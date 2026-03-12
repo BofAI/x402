@@ -8,13 +8,6 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from bankofai.x402.fastapi.middleware import require_payment
 from bankofai.x402.types import EIP712Domain, TokenAmount, TokenAsset
-from bankofai.x402.chains import (
-    get_chain_id,
-    get_token_decimals,
-    get_token_name,
-    get_token_version,
-    get_default_token_address,
-)
 
 # Load environment variables
 load_dotenv()
@@ -29,8 +22,12 @@ if not ADDRESS:
     print("Error: Missing required environment variable ADDRESS")
     sys.exit(1)
 
-chain_id = get_chain_id(NETWORK)
-address = get_default_token_address(chain_id)
+# Explicitly define DHLU token info for BSC Testnet to avoid SDK lookup errors
+# (SDK's KNOWN_TOKENS is missing bsc-testnet)
+DHLU_ADDRESS = "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816"
+DHLU_DECIMALS = 6
+DHLU_NAME = "DA HULU"
+DHLU_VERSION = "1"
 
 app = FastAPI()
 
@@ -46,7 +43,17 @@ else:
 app.middleware("http")(
     require_payment(
         path="/protected",
-        price="$0.001",
+        price=TokenAmount(
+            amount="1000",
+            asset=TokenAsset(
+                address=DHLU_ADDRESS,
+                decimals=DHLU_DECIMALS,
+                eip712=EIP712Domain(
+                    name=DHLU_NAME,
+                    version=DHLU_VERSION,
+                ),
+            ),
+        ),
         pay_to_address=ADDRESS,
         network=NETWORK,
         facilitator_config=facilitator_config,
@@ -58,13 +65,13 @@ app.middleware("http")(
     require_payment(
         path="/protected-2",
         price=TokenAmount(
-            amount="1000",  # 1000 USDC units (0.001 USDC)
+            amount="1000",
             asset=TokenAsset(
-                address=address,
-                decimals=get_token_decimals(chain_id, address),
+                address=DHLU_ADDRESS,
+                decimals=DHLU_DECIMALS,
                 eip712=EIP712Domain(
-                    name=get_token_name(chain_id, address),
-                    version=get_token_version(chain_id, address),
+                    name=DHLU_NAME,
+                    version=DHLU_VERSION,
                 ),
             ),
         ),
