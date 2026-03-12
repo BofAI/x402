@@ -45,7 +45,7 @@ describe("AssetRegistry", () => {
       const usdd = registry.resolve("tron:mainnet" as Network, "USDD");
       expect(usdd.decimals).toBe(18);
       expect(usdd.supportsEip2612).toBe(true);
-      expect(usdd.assetTransferMethod).toBeUndefined();
+      expect(usdd.assetTransferMethod).toBe("permit2");
     });
 
     it("should have TRON testnet tokens", () => {

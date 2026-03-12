@@ -197,6 +197,7 @@ class AssetRegistry:
                     name="Decentralized USD",
                     version="1",
                     supports_eip2612=True,
+                    asset_transfer_method="permit2",
                 ),
             },
         )
@@ -233,6 +234,7 @@ class AssetRegistry:
                     name="Decentralized USD",
                     version="1",
                     supports_eip2612=True,
+                    asset_transfer_method="permit2",
                 ),
             },
         )

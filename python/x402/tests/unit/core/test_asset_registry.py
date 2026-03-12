@@ -113,7 +113,7 @@ class TestAssetRegistry:
         usdd = registry.resolve("tron:mainnet", "USDD")
         assert usdd.decimals == 18
         assert usdd.supports_eip2612 is True
-        assert usdd.asset_transfer_method is None
+        assert usdd.asset_transfer_method == "permit2"
 
     def test_builtin_tron_testnet_tokens(self) -> None:
         registry = AssetRegistry()
