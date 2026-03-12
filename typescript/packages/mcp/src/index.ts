@@ -1,6 +1,6 @@
 // @bankofai/x402-mcp - MCP (Model Context Protocol) integration for x402 payment protocol
 //
-// This package primarily provides client-side payment handling for MCP hosts.
+// This package provides MCP-native payment handling for AI agents and MCP servers.
 // It enables paid tool calls following the x402 protocol over MCP transport.
 
 // Client exports
@@ -18,7 +18,7 @@ export type {
   MCPContentItem,
 } from "./client";
 
-// Optional server exports
+// Server exports
 export { createPaymentWrapper } from "./server";
 export type {
   PaymentWrapperConfig,

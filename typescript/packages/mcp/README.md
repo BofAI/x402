@@ -1,6 +1,6 @@
 # @bankofai/x402-mcp
 
-Client-first MCP integration for the x402 payment protocol. Use this package in an MCP host or application client to detect `payment required`, create x402 payments locally, and retry tool calls automatically.
+MCP (Model Context Protocol) integration for the x402 payment protocol. This package enables paid tool calls in MCP servers and automatic payment handling in MCP clients.
 
 ## Installation
 
@@ -14,9 +14,59 @@ Related packages typically used with this package:
 npm install @bankofai/x402-evm @bankofai/x402-tron
 ```
 
-The primary use case is a local MCP client talking to a remote MCP server that already supports x402.
+The examples in this repository use SSE transport and `createPaymentWrapper()` on the server side.
 
 ## Quick Start (Recommended)
+
+### Server - Using Payment Wrapper
+
+```typescript
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { createPaymentWrapper, x402ResourceServer } from "@bankofai/x402-mcp";
+import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
+import { z } from "zod";
+
+// Create standard MCP server
+const mcpServer = new McpServer({ name: "premium-api", version: "1.0.0" });
+
+// Set up x402 for payment handling
+const facilitatorClient = new HTTPFacilitatorClient({ url: "https://x402.org/facilitator" });
+const resourceServer = new x402ResourceServer(facilitatorClient);
+resourceServer.register("eip155:84532", new ExactEvmScheme());
+await resourceServer.initialize();
+
+// Build payment requirements
+const accepts = await resourceServer.buildPaymentRequirements({
+  scheme: "exact",
+  network: "eip155:84532",
+  payTo: "0x...",
+  price: "$0.10",
+});
+
+// Create payment wrapper with accepts array
+const paid = createPaymentWrapper(resourceServer, {
+  accepts,
+});
+
+// Register paid tools - wrap handler
+mcpServer.tool(
+  "financial_analysis",
+  "Advanced AI-powered financial analysis. Costs $0.10.",
+  { ticker: z.string() },
+  paid(async (args) => {
+    return { content: [{ type: "text", text: `analysis for ${args.ticker}` }] };
+  }),
+);
+
+// Register free tools - no wrapper needed
+mcpServer.tool("ping", "Health check", {}, async () => ({
+  content: [{ type: "text", text: "pong" }],
+}));
+
+// Connect to transport
+await mcpServer.connect(transport);
+```
 
 ### Client - Using Factory Function
 
@@ -49,18 +99,95 @@ if (result.paymentMade) {
 }
 ```
 
-### Remote Server Assumption
+## Advanced Features
 
-The remote MCP server is expected to already implement x402 on the server side. This package does not need a local bridge to work. Payment happens in the client:
+### Production Hooks
 
-1. Remote MCP server returns `payment required`
-2. Local `x402MCPClient` selects requirements
-3. Local signer creates the payment payload
-4. Client retries the tool call with payment attached
+Add hooks for logging, rate limiting, receipts, and more:
 
-## Client Integration
+```typescript
+const accepts = await resourceServer.buildPaymentRequirements({
+  scheme: "exact",
+  network: "eip155:84532",
+  payTo: "0x...",
+  price: "$0.10",
+});
 
-### Wrapper Functions
+const paid = createPaymentWrapper(resourceServer, {
+  accepts,
+  hooks: {
+    onBeforeExecution: async ({ toolName, paymentPayload }) => {
+      console.log(`Executing ${toolName} for ${paymentPayload.payer}`);
+      if (await isRateLimited(paymentPayload.payer)) {
+        return false;
+      }
+      return true;
+    },
+    onAfterExecution: async ({ toolName, result }) => {
+      await metrics.record(toolName, result.isError);
+    },
+    onAfterSettlement: async ({ toolName, settlement, paymentPayload }) => {
+      await sendReceipt(paymentPayload.payer, {
+        tool: toolName,
+        transaction: settlement.transaction,
+        network: settlement.network,
+      });
+    },
+  },
+});
+
+mcpServer.tool("search", "Premium search", { query: z.string() }, paid(async () => ({
+  content: [{ type: "text", text: "ok" }],
+})));
+```
+
+### Multiple Wrappers with Different Prices
+
+```typescript
+const basicAccepts = await resourceServer.buildPaymentRequirements({
+  scheme: "exact",
+  network: "eip155:84532",
+  payTo: "0x...",
+  price: "$0.05",
+});
+
+const premiumAccepts = await resourceServer.buildPaymentRequirements({
+  scheme: "exact",
+  network: "eip155:84532",
+  payTo: "0x...",
+  price: "$0.50",
+});
+
+const paidBasic = createPaymentWrapper(resourceServer, { accepts: basicAccepts });
+const paidPremium = createPaymentWrapper(resourceServer, { accepts: premiumAccepts });
+
+mcpServer.tool("basic_search", "...", {}, paidBasic(async () => ({ content: [] })));
+mcpServer.tool("premium_search", "...", {}, paidPremium(async () => ({ content: [] })));
+```
+
+### Multiple Payment Options
+
+```typescript
+const exactPayment = await resourceServer.buildPaymentRequirements({
+  scheme: "exact",
+  network: "eip155:84532",
+  payTo: "0x...",
+  price: "$0.10",
+});
+
+const subscriptionPayment = await resourceServer.buildPaymentRequirements({
+  scheme: "subscription",
+  network: "eip155:1",
+  payTo: "0x...",
+  price: "$50",
+});
+
+const paid = createPaymentWrapper(resourceServer, {
+  accepts: [exactPayment[0], subscriptionPayment[0]],
+});
+```
+
+### Client - Wrapper Functions
 
 ```typescript
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -142,7 +269,7 @@ The client parses this structure to extract PaymentRequired data. This is a prag
 | `autoPayment` | `boolean` | `true` | Automatically retry with payment on 402 |
 | `onPaymentRequested` | `function` | `() => true` | Hook for human-in-the-loop approval when payment is requested |
 
-### PaymentWrapperConfig (optional server-side helper)
+### PaymentWrapperConfig
 
 | Option | Type | Required | Description |
 |--------|------|----------|-------------|
@@ -150,45 +277,9 @@ The client parses this structure to extract PaymentRequired data. This is a prag
 | `resource` | `object` | No | Optional MCP resource metadata |
 | `hooks` | `object` | No | Optional lifecycle hooks for verification, execution, and settlement |
 
-## Optional Server Integration
-
-If you are building the remote MCP server yourself, the supported server pattern is:
-
-`McpServer + x402ResourceServer + createPaymentWrapper()`
-
-### Server - Using Payment Wrapper
-
-```typescript
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { createPaymentWrapper, x402ResourceServer } from "@bankofai/x402-mcp";
-import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
-import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
-import { z } from "zod";
-
-const mcpServer = new McpServer({ name: "premium-api", version: "1.0.0" });
-const facilitatorClient = new HTTPFacilitatorClient({ url: "https://x402.org/facilitator" });
-const resourceServer = new x402ResourceServer(facilitatorClient);
-resourceServer.register("eip155:84532", new ExactEvmScheme());
-await resourceServer.initialize();
-
-const accepts = await resourceServer.buildPaymentRequirements({
-  scheme: "exact",
-  network: "eip155:84532",
-  payTo: "0x...",
-  price: "$0.10",
-});
-
-const paid = createPaymentWrapper(resourceServer, { accepts });
-
-mcpServer.tool("financial_analysis", "Premium tool", { ticker: z.string() }, paid(async (args) => {
-  return { content: [{ type: "text", text: `analysis for ${args.ticker}` }] };
-}));
-```
-
 ## Notes
 
-- `@bankofai/x402-mcp` is intended to be used primarily on the client side.
-- No local bridge is required if your MCP host can instantiate and use an MCP client in code.
+- The currently documented and tested server pattern is: native `McpServer` + `x402ResourceServer` + `createPaymentWrapper()`.
 - The examples in this repository are SSE-based. The client itself is transport-agnostic because it forwards `connect()` to the underlying MCP SDK client, but SSE is the path covered by examples and integration tests.
 
 ## License
