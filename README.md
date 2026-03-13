@@ -38,7 +38,7 @@ pip install -e .[all]
 The current TypeScript SDK is split into focused v2 packages.
 
 ```bash
-npm install @bankofai/x402-core @bankofai/x402-fetch @bankofai/x402-tron @bankofai/x402-evm
+npm install @bankofai/x402-core @bankofai/x402-fetch @bankofai/x402-tvm @bankofai/x402-evm
 ```
 
 ## AI Agent Integration
@@ -65,7 +65,7 @@ with chain-specific `exact` schemes.
 
 ```typescript
 import { HTTPFacilitatorClient, x402ResourceServer } from "@bankofai/x402-core/server";
-import { ExactTronScheme } from "@bankofai/x402-tron/exact/server";
+import { ExactTronScheme } from "@bankofai/x402-tvm/exact/server";
 
 const facilitator = new HTTPFacilitatorClient({ url: "http://localhost:8011" });
 const server = new x402ResourceServer(facilitator);
@@ -89,7 +89,7 @@ Clients handle the `402` challenge-response loop automatically using the v2 SDK.
 import "dotenv/config";
 import { TronWeb } from "tronweb";
 import { x402Client, wrapFetchWithPayment } from "@bankofai/x402-fetch";
-import { ExactTronScheme, createClientTronSigner } from "@bankofai/x402-tron";
+import { ExactTronScheme, createClientTronSigner } from "@bankofai/x402-tvm";
 
 const tronWeb = new TronWeb({
   fullHost: "https://nile.trongrid.io",

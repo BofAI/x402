@@ -17,7 +17,7 @@ import {
   ExactTronScheme,
   createClientTronSigner,
   transferWithAuthorizationABI,
-} from "@bankofai/x402-tron";
+} from "@bankofai/x402-tvm";
 
 type NetworkName = "mainnet" | "nile" | "shasta" | "bsc" | "bsc-testnet";
 

@@ -11,7 +11,7 @@ npm install @bankofai/x402-mcp @bankofai/x402-core @modelcontextprotocol/sdk
 Related packages typically used with this package:
 
 ```bash
-npm install @bankofai/x402-evm @bankofai/x402-tron
+npm install @bankofai/x402-evm @bankofai/x402-tvm
 ```
 
 The examples in this repository use SSE transport and `createPaymentWrapper()` on the server side.

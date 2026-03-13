@@ -1,6 +1,6 @@
 {
   "name": "@bankofai/x402-mcp",
-  "version": "2.6.0-beta.1",
+  "version": "2.6.0-beta.2",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/cjs/index.d.ts",
@@ -49,7 +49,7 @@
     "@bankofai/x402-core": "2.6.0-beta.1",
     "@bankofai/x402-evm": "2.6.0-beta.1",
     "@bankofai/x402-fetch": "2.6.0-beta.1",
-    "@bankofai/x402-tron": "2.6.0-beta.1",
+    "@bankofai/x402-tvm": "2.6.0-beta.1",
     "@modelcontextprotocol/sdk": "^1.12.1",
     "tronweb": "^6.0.0",
     "tsx": "^4.19.2",
