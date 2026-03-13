@@ -133,7 +133,7 @@ export class AssetRegistry {
 
   /**
    * Register built-in known assets.
-   * Data sourced from EVM mechanism's getDefaultAsset() and x402-deprecated token registry.
+   * Data sourced from mechanism defaults and built-in registry.
    */
   private registerBuiltins(): void {
     // ── EVM Networks ──────────────────────────────────────────────
