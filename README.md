@@ -23,7 +23,7 @@ x402 currently supports the **TRON** and **BSC** networks, with plans to expand 
 ## Installation
 
 ### Python
-The Python SDK includes support for Server (FastAPI/Flask), Client, and Facilitator.
+The Python SDK requires **Python 3.10+** and includes support for Server (FastAPI/Flask), Client, and Facilitator.
 
 ```bash
 # Clone the repository
@@ -31,7 +31,7 @@ git clone https://github.com/BofAI/x402.git
 cd x402/python/x402
 
 # Install with all dependencies
-pip install -e .[all]
+pip install -e ".[all]"
 ```
 
 ### TypeScript
