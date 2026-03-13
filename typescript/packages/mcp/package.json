@@ -1,6 +1,6 @@
 {
   "name": "@bankofai/x402-mcp",
-  "version": "2.6.0",
+  "version": "2.6.1-beta.0",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/cjs/index.d.ts",
@@ -19,11 +19,14 @@
   "keywords": [],
   "license": "Apache-2.0",
   "author": "bankofai",
-  "repository": "https://github.com/bankofai/x402",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bankofai/x402.git"
+  },
   "description": "x402 Payment Protocol",
   "bin": {
-    "x402": "./bin/x402.js",
-    "x402-mcp": "./bin/x402-mcp.js"
+    "x402": "bin/x402.js",
+    "x402-mcp": "bin/x402-mcp.js"
   },
   "devDependencies": {
     "@eslint/js": "^9.24.0",
@@ -43,10 +46,10 @@
     "vite": "^6.2.6"
   },
   "dependencies": {
-    "@bankofai/x402-core": "workspace:~",
-    "@bankofai/x402-evm": "workspace:~",
-    "@bankofai/x402-fetch": "workspace:~",
-    "@bankofai/x402-tron": "workspace:~",
+    "@bankofai/x402-core": "2.6.0",
+    "@bankofai/x402-evm": "2.6.0",
+    "@bankofai/x402-fetch": "2.6.0",
+    "@bankofai/x402-tron": "2.6.0",
     "@modelcontextprotocol/sdk": "^1.12.1",
     "tronweb": "^6.0.0",
     "tsx": "^4.19.2",
