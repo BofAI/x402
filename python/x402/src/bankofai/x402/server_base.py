@@ -349,6 +349,8 @@ class x402ResourceServerBase:
                     max_timeout_seconds=config.max_timeout_seconds or 300,
                     extra=extra,
                 )
+                if config.extra:
+                    base_req.extra.update(config.extra)
 
                 enhanced = server.enhance_payment_requirements(
                     base_req,
@@ -371,6 +373,8 @@ class x402ResourceServerBase:
             max_timeout_seconds=config.max_timeout_seconds or 300,
             extra=asset_amount.extra or {},
         )
+        if config.extra:
+            requirements.extra.update(config.extra)
 
         # Enhance with scheme-specific details
         enhanced = server.enhance_payment_requirements(

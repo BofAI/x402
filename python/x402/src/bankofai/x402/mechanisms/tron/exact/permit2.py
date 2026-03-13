@@ -122,7 +122,7 @@ def verify_permit2(
                 "amount": int(str(permitted.get("amount", 0))),
             },
             "spender": str(auth.get("spender", "")),
-            "nonce": int(str(auth.get("nonce", 0))),
+            "nonce": int(str(auth.get("nonce", 0)), 0),
             "deadline": int(str(auth.get("deadline", 0))),
             "witness": {
                 "to": str(witness.get("to", "")),
@@ -213,7 +213,7 @@ def settle_permit2(
     # Build tuple args as per x402ExactPermit2ProxyABI
     permit_tuple = [
         [str(permitted.get("token", "")), int(str(permitted.get("amount", 0)))],
-        int(str(auth.get("nonce", 0))),
+        int(str(auth.get("nonce", 0)), 0),
         int(str(auth.get("deadline", 0))),
     ]
     witness_tuple = [

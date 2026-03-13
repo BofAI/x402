@@ -114,6 +114,26 @@ class ExactTronServerScheme:
             if "version" not in requirements.extra:
                 requirements.extra["version"] = asset_info["version"]
 
+        facilitator_extra = supported_kind.extra or {}
+        if (
+            "assetTransferMethod" not in requirements.extra
+            and facilitator_extra.get("supportedAssetTransferMethods")
+        ):
+            supported_methods = facilitator_extra["supportedAssetTransferMethods"]
+            if "permit2" in supported_methods:
+                requirements.extra["assetTransferMethod"] = "permit2"
+            elif "eip3009" in supported_methods:
+                requirements.extra["assetTransferMethod"] = "eip3009"
+
+        if (
+            requirements.extra.get("assetTransferMethod") == "permit2"
+            and "permit2FacilitatorAddress" not in requirements.extra
+            and facilitator_extra.get("permit2FacilitatorAddress")
+        ):
+            requirements.extra["permit2FacilitatorAddress"] = facilitator_extra[
+                "permit2FacilitatorAddress"
+            ]
+
         return requirements
 
     def _parse_money_to_decimal(self, money: Any) -> float:
