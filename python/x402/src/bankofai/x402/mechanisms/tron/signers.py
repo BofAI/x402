@@ -211,18 +211,29 @@ class FacilitatorTronSigner:
         if not func_abi:
             raise ValueError(f"Function {function_name} not found in ABI")
 
-        # Encode the function call
-        parameter = trx_abi.encode_single(
-            f"({','.join(inp['type'] for inp in func_abi['inputs'])})",
-            tuple(args)
-        ).hex()
+        def _get_type_string(param: dict[str, Any]) -> str:
+            if param.get("type", "").startswith("tuple"):
+                components = param.get("components", [])
+                inner = ",".join(_get_type_string(c) for c in components)
+                # handle tuple[] or tuple[2]
+                suffix = param["type"][5:]
+                return f"({inner}){suffix}"
+            return str(param["type"])
+
+        # Format function signature like: settle(((address,uint256),uint256,uint256),address,(address,address,uint256),bytes)
+        type_strings = [_get_type_string(inp) for inp in func_abi.get("inputs", [])]
+        signature = f"({','.join(type_strings)})"
+        func_selector = f"{function_name}{signature}"
+
+        # Encode the function call args
+        parameter = trx_abi.encode_single(signature, tuple(args)).hex()
 
         # Build transaction using triggersmartcontract
         txn = (
             self._client.trx.trigger_smart_contract(
                 owner_address=self._address,
                 contract_address=address,
-                function_selector=f"{function_name}({','.join(inp['type'] for inp in func_abi['inputs'])})",
+                function_selector=func_selector,
                 parameter=parameter,
                 fee_limit=fee_limit,
             )

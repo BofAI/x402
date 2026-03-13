@@ -210,29 +210,72 @@ def settle_permit2(
     permitted = auth.get("permitted", {})
     witness = auth.get("witness", {})
 
-    # Build tuple args as per x402ExactPermit2ProxyABI
-    permit_tuple = [
-        [str(permitted.get("token", "")), int(str(permitted.get("amount", 0)))],
+    # Build tuple args as actual Python tuples so TronPy's encode_single doesn't complain
+    permit_tuple = (
+        (str(permitted.get("token", "")), int(str(permitted.get("amount", 0)))),
         int(str(auth.get("nonce", 0)), 0),
         int(str(auth.get("deadline", 0))),
-    ]
-    witness_tuple = [
+    )
+    witness_tuple = (
         str(witness.get("to", "")),
         str(witness.get("facilitator", "")),
         int(str(witness.get("validAfter", 0))),
-    ]
+    )
     signature_hex = str(permit2_payload.get("signature", ""))
     signature_bytes = bytes.fromhex(signature_hex.removeprefix("0x"))
 
+    # We have to manually encode this because TronPy's `trx_abi` doesn't
+    # currently recursively parse tuple structures perfectly without throwing "ABIEncoderV2 used."
+    # We bypass TronPy's trx_abi completely because it lacks proper ABIEncoderV2 tuple support
     try:
-        # Use write_contract_with_abi to handle ABIEncoderV2
-        tx = signer.write_contract_with_abi(
-            address=proxy_address,
-            function_name="settle",
-            args=[permit_tuple, payer, witness_tuple, signature_bytes],
-            abi=_get_permit2_proxy_abi(),
-            fee_limit=1_000_000_000,
+        from eth_abi import encode
+        from eth_utils import keccak
+        # TRON addresses must be converted to 0x-prefixed hex for eth_abi
+        def evm_addr(addr: str) -> str:
+            return normalize_address_for_signing(addr)
+
+        permit_evm = (
+            (evm_addr(permitted.get("token", "")), int(str(permitted.get("amount", 0)))),
+            int(str(auth.get("nonce", 0)), 0),
+            int(str(auth.get("deadline", 0))),
         )
+        witness_evm = (
+            evm_addr(witness.get("to", "")),
+            evm_addr(witness.get("facilitator", "")),
+            int(str(witness.get("validAfter", 0))),
+        )
+        payer_evm = evm_addr(payer)
+
+        signature = "settle(((address,uint256),uint256,uint256),address,(address,address,uint256),bytes)"
+        selector = keccak(text=signature)[:4].hex()
+
+        types = [
+            "((address,uint256),uint256,uint256)",
+            "address",
+            "(address,address,uint256)",
+            "bytes"
+        ]
+        encoded_args = encode(types, [permit_evm, payer_evm, witness_evm, signature_bytes]).hex()
+
+        from tronpy.keys import to_hex_address
+
+        txn = (
+            signer._client.trx._build_transaction(
+                "TriggerSmartContract",
+                {
+                    "owner_address": to_hex_address(signer._address),
+                    "contract_address": to_hex_address(proxy_address),
+                    "data": selector + encoded_args,
+                    "call_value": 0,
+                }
+            )
+        )
+        # Apply fee limit
+        txn = txn.fee_limit(1_000_000_000)
+        # Build, sign and broadcast
+        signed_txn = txn.build().sign(signer._pk)
+        result = signed_txn.broadcast()
+        tx = str(result.txid)
 
         receipt = signer.wait_for_transaction_receipt(tx)
         if receipt.status != "success":
@@ -247,9 +290,11 @@ def settle_permit2(
         return SettleResponse(success=True, transaction=tx, network=network, payer=payer)
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return SettleResponse(
             success=False,
-            error_reason=ERR_TRANSACTION_FAILED,
+            error_reason="transaction_failed",
             error_message=str(e),
             transaction="",
             network=network,
