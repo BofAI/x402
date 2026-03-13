@@ -23,6 +23,7 @@ class ResourceConfig(BaseX402Model):
     network: Network
     max_timeout_seconds: int | None = None
     assets: list[str] | None = None
+    extra: dict[str, Any] | None = None
 
 
 class FacilitatorConfig(TypedDict, total=False):

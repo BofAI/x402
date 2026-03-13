@@ -6,7 +6,13 @@ import time
 from typing import Any
 
 from ....schemas import PaymentRequirements
-from ..constants import AUTHORIZATION_TYPES, SCHEME_EXACT
+from ..constants import (
+    AUTHORIZATION_TYPES,
+    PERMIT2_ADDRESSES,
+    PERMIT2_WITNESS_TYPES,
+    SCHEME_EXACT,
+    X402_PERMIT2_PROXY_ADDRESSES,
+)
 from ..signers import ClientTronSigner
 from ..utils import create_nonce, get_tron_chain_id, normalize_address_for_signing
 
@@ -103,6 +109,84 @@ class ExactTronClientScheme:
 
     def _create_permit2_payload(self, requirements: PaymentRequirements) -> dict[str, Any]:
         """Create TIP-712 Permit2 payload."""
-        # For now, we reuse EIP-3009 logic as it's the primary demo method.
-        # True Permit2 support can be added if required by specific TRON contracts.
-        return self._create_eip3009_payload(requirements)
+        now = int(time.time())
+        nonce = create_nonce()
+        network = str(requirements.network)
+
+        permit2_address = PERMIT2_ADDRESSES.get(network)
+        if not permit2_address:
+            raise ValueError(f"No Permit2 contract address configured for network {network}")
+
+        proxy_address = X402_PERMIT2_PROXY_ADDRESSES.get(network)
+        if not proxy_address:
+            raise ValueError(
+                f"No x402Permit2Proxy contract address configured for network {network}"
+            )
+
+        facilitator_address = (requirements.extra or {}).get("permit2FacilitatorAddress") or (
+            requirements.extra or {}
+        ).get("facilitatorAddress")
+        if not facilitator_address:
+            raise ValueError(
+                "Permit2 facilitator address is required in payment requirements extra"
+            )
+
+        permit2_authorization = {
+            "from": normalize_address_for_signing(self._signer.address),
+            "permitted": {
+                "token": normalize_address_for_signing(requirements.asset),
+                "amount": str(requirements.amount),
+            },
+            "spender": normalize_address_for_signing(proxy_address),
+            "nonce": nonce,
+            "deadline": str(now + (requirements.max_timeout_seconds or 3600)),
+            "witness": {
+                "to": normalize_address_for_signing(requirements.pay_to),
+                "facilitator": normalize_address_for_signing(str(facilitator_address)),
+                "validAfter": str(now - 600),
+            },
+        }
+
+        signature = self._sign_permit2(permit2_authorization, requirements)
+
+        return {
+            "permit2Authorization": permit2_authorization,
+            "signature": signature,
+        }
+
+    def _sign_permit2(
+        self, permit2_authorization: dict[str, Any], requirements: PaymentRequirements
+    ) -> str:
+        """Sign a PermitWitnessTransferFrom payload."""
+        network = str(requirements.network)
+        permit2_address = PERMIT2_ADDRESSES.get(network)
+        if not permit2_address:
+            raise ValueError(f"No Permit2 contract address configured for network {network}")
+
+        domain = {
+            "name": "Permit2",
+            "chainId": get_tron_chain_id(network),
+            "verifyingContract": normalize_address_for_signing(permit2_address),
+        }
+
+        message = {
+            "permitted": {
+                "token": permit2_authorization["permitted"]["token"],
+                "amount": int(permit2_authorization["permitted"]["amount"]),
+            },
+            "spender": permit2_authorization["spender"],
+            "nonce": int(str(permit2_authorization["nonce"]), 0),
+            "deadline": int(permit2_authorization["deadline"]),
+            "witness": {
+                "to": permit2_authorization["witness"]["to"],
+                "facilitator": permit2_authorization["witness"]["facilitator"],
+                "validAfter": int(permit2_authorization["witness"]["validAfter"]),
+            },
+        }
+
+        return self._signer.sign_typed_data(
+            domain=domain,
+            types=PERMIT2_WITNESS_TYPES,
+            primary_type="PermitWitnessTransferFrom",
+            message=message,
+        )

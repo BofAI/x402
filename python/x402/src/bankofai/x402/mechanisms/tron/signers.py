@@ -2,8 +2,8 @@
 
 Faithfully mirrors the TypeScript FacilitatorTronSigner / ClientTronSigner
 behaviour:
-  - verifyTypedData uses the same hash path as tronUtils.typedData.verifyTypedData
-    (EIP-712 struct hash, no EIP-191 prefix) and compares normalised EVM addresses.
+  - verifyTypedData uses the same encoded typed-data path as the signer and
+    compares normalised EVM addresses.
   - signTypedData uses the same key bytes via eth_account's sign_typed_data.
   - writeContract avoids the broken Python *args-after-default-arg pattern.
 """
@@ -32,11 +32,6 @@ class TronTransactionReceipt:
     tx_hash: str
 
 
-# ---------------------------------------------------------------------------
-# TIP-712 / EIP-712 helpers
-# ---------------------------------------------------------------------------
-
-
 def _normalize_message_for_signing(message: dict[str, Any]) -> dict[str, Any]:
     """Normalize a TIP-712 message dict for eth_account.
 
@@ -52,47 +47,41 @@ def _normalize_message_for_signing(message: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def _compute_tip712_digest(
+def _build_eip712_domain_types(domain: dict[str, Any]) -> list[dict[str, str]]:
+    """Construct an EIP712Domain type list from the provided domain fields."""
+    field_types: dict[str, str] = {
+        "name": "string",
+        "version": "string",
+        "chainId": "uint256",
+        "verifyingContract": "address",
+        "salt": "bytes32",
+    }
+    return [
+        {"name": field_name, "type": field_types[field_name]}
+        for field_name in field_types
+        if field_name in domain
+    ]
+
+
+def _build_typed_data_payload(
     domain: dict[str, Any],
     types: dict[str, list[dict[str, str]]],
     primary_type: str,
     message: dict[str, Any],
-) -> bytes:
-    """Compute the TIP-712 struct hash the same way TronWeb does.
-
-    TronWeb's tronUtils.typedData.verifyTypedData internally uses the standard
-    EIP-712 encoding (domainSeparator || structHash), so we replicate it with
-    eth_account._utils.typed_data.hash_typed_data.
-    """
-    from eth_account._utils.typed_data import hash_typed_data  # type: ignore
-
-    # eth_account needs "EIP712Domain" in types
-    full_types = {
-        "EIP712Domain": [
-            {"name": "name", "type": "string"},
-            {"name": "version", "type": "string"},
-            {"name": "chainId", "type": "uint256"},
-            {"name": "verifyingContract", "type": "address"},
-        ],
-        **types,
-    }
-
+) -> dict[str, Any]:
+    """Build a canonical typed-data payload for eth_account helpers."""
     domain_norm = {
         **domain,
         "verifyingContract": normalize_address_for_signing(
             domain.get("verifyingContract", "0x" + "00" * 20)
         ),
     }
-
-    msg_norm = _normalize_message_for_signing(message)
-
-    full_typed_data = {
-        "types": full_types,
+    return {
+        "types": {"EIP712Domain": _build_eip712_domain_types(domain_norm), **types},
         "primaryType": primary_type,
         "domain": domain_norm,
-        "message": msg_norm,
+        "message": _normalize_message_for_signing(message),
     }
-    return bytes(hash_typed_data(full_typed_data))
 
 
 # ---------------------------------------------------------------------------
@@ -136,19 +125,17 @@ class FacilitatorTronSigner:
     ) -> bool:
         """Verify a TIP-712 signature.
 
-        Mirrors tronUtils.typedData.verifyTypedData:
-          1. Compute standard EIP-712 digest (same bytes as TronWeb).
-          2. ecrecover the signer.
-          3. Compare normalised EVM addresses.
+        Mirrors the client signer path by rebuilding the exact typed-data
+        payload and recovering the signer from the encoded message.
         """
         try:
             from eth_account import Account
+            from eth_account.messages import encode_typed_data
 
-            digest = _compute_tip712_digest(domain, types, primary_type, message)
-            sig_bytes = bytes.fromhex(signature.removeprefix("0x"))
-
-            # eth_account.Account._recover_hash accepts the raw 32-byte hash
-            recovered = str(Account._recover_hash(digest, signature=sig_bytes))
+            signable = encode_typed_data(
+                full_message=_build_typed_data_payload(domain, types, primary_type, message)
+            )
+            recovered = str(Account.recover_message(signable, signature=signature))
             return bool(normalize_address_for_signing(address) == recovered.lower())
         except Exception:
             return False
@@ -247,21 +234,9 @@ class ClientTronSigner:
         """
         from eth_account import Account
 
-        full_types = {**types}
-
-        domain_norm = {
-            **domain,
-            "verifyingContract": normalize_address_for_signing(
-                domain.get("verifyingContract", "0x" + "00" * 20)
-            ),
-        }
-        msg_norm = _normalize_message_for_signing(message)
-
         account = Account.from_key("0x" + self._pk.hex())
         signed = account.sign_typed_data(
-            domain_data=domain_norm,
-            message_types=full_types,
-            message_data=msg_norm,
+            full_message=_build_typed_data_payload(domain, types, primary_type, message),
         )
         return str("0x" + signed.signature.hex())
 
