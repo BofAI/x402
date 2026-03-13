@@ -72,6 +72,9 @@ from .interfaces import (
     SchemeNetworkFacilitatorV1,
     SchemeNetworkServer,
 )
+
+# Mechanisms
+from .mechanisms import evm, tron
 from .registry import AssetInfo, AssetRegistry, convert_money, global_asset_registry
 
 # Types (re-export commonly used types)
@@ -137,9 +140,6 @@ from .server import (
     x402ResourceServer,
     x402ResourceServerSync,
 )
-
-# Mechanisms
-from .mechanisms import evm, tron
 
 __version__ = "0.1.0"
 

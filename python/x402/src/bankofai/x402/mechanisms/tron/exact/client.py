@@ -71,7 +71,9 @@ class ExactTronClientScheme:
             "signature": signature,
         }
 
-    def _sign_eip3009(self, authorization: dict[str, Any], requirements: PaymentRequirements) -> str:
+    def _sign_eip3009(
+        self, authorization: dict[str, Any], requirements: PaymentRequirements
+    ) -> str:
         """Sign TIP-712 domain and message."""
         extra = requirements.extra or {}
         chain_id = get_tron_chain_id(str(requirements.network))
