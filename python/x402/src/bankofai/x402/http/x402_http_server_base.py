@@ -390,6 +390,7 @@ class x402HTTPServerBase:
 
         except Exception as e:
             import traceback
+
             print(f"Exception during verify_payment yield: {e}", flush=True)
             traceback.print_exc()
             return HTTPProcessResult(

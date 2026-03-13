@@ -229,14 +229,12 @@ class FacilitatorTronSigner:
         parameter = trx_abi.encode_single(signature, tuple(args)).hex()
 
         # Build transaction using triggersmartcontract
-        txn = (
-            self._client.trx.trigger_smart_contract(
-                owner_address=self._address,
-                contract_address=address,
-                function_selector=func_selector,
-                parameter=parameter,
-                fee_limit=fee_limit,
-            )
+        txn = self._client.trx.trigger_smart_contract(
+            owner_address=self._address,
+            contract_address=address,
+            function_selector=func_selector,
+            parameter=parameter,
+            fee_limit=fee_limit,
         )
 
         # Sign and broadcast

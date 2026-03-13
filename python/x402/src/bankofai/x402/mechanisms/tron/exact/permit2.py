@@ -22,6 +22,7 @@ from ..constants import (
     ERR_PERMIT2_NOT_YET_VALID,
     ERR_PERMIT2_RECIPIENT_MISMATCH,
     ERR_PERMIT2_TOKEN_MISMATCH,
+    ERR_TRANSACTION_FAILED,
     PERMIT2_ADDRESSES,
     PERMIT2_WITNESS_TYPES,
     X402_PERMIT2_PROXY_ADDRESSES,
@@ -209,7 +210,6 @@ def settle_permit2(
     permitted = auth.get("permitted", {})
     witness = auth.get("witness", {})
 
-    # Build tuple args as actual Python tuples so TronPy's encode_single doesn't complain
     signature_hex = str(permit2_payload.get("signature", ""))
     signature_bytes = bytes.fromhex(signature_hex.removeprefix("0x"))
 
@@ -219,6 +219,7 @@ def settle_permit2(
     try:
         from eth_abi import encode
         from eth_utils import keccak
+
         # TRON addresses must be converted to 0x-prefixed hex for eth_abi
         def evm_addr(addr: str) -> str:
             return normalize_address_for_signing(addr)
@@ -235,29 +236,29 @@ def settle_permit2(
         )
         payer_evm = evm_addr(payer)
 
-        signature = "settle(((address,uint256),uint256,uint256),address,(address,address,uint256),bytes)"
+        signature = (
+            "settle(((address,uint256),uint256,uint256),address,(address,address,uint256),bytes)"
+        )
         selector = keccak(text=signature)[:4].hex()
 
         types = [
             "((address,uint256),uint256,uint256)",
             "address",
             "(address,address,uint256)",
-            "bytes"
+            "bytes",
         ]
         encoded_args = encode(types, [permit_evm, payer_evm, witness_evm, signature_bytes]).hex()
 
         from tronpy.keys import to_hex_address
 
-        txn = (
-            signer._client.trx._build_transaction(
-                "TriggerSmartContract",
-                {
-                    "owner_address": to_hex_address(signer._address),
-                    "contract_address": to_hex_address(proxy_address),
-                    "data": selector + encoded_args,
-                    "call_value": 0,
-                }
-            )
+        txn = signer._client.trx._build_transaction(
+            "TriggerSmartContract",
+            {
+                "owner_address": to_hex_address(signer._address),
+                "contract_address": to_hex_address(proxy_address),
+                "data": selector + encoded_args,
+                "call_value": 0,
+            },
         )
         # Apply fee limit
         txn = txn.fee_limit(1_000_000_000)
@@ -280,16 +281,16 @@ def settle_permit2(
 
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         return SettleResponse(
             success=False,
-            error_reason="transaction_failed",
+            error_reason=ERR_TRANSACTION_FAILED,
             error_message=str(e),
             transaction="",
             network=network,
             payer=payer,
         )
-
 
 
 def _get_permit2_proxy_abi() -> list[dict[str, Any]]:
