@@ -33,12 +33,12 @@ uv add "bankofai.x402[all]"
 
 ```python
 from bankofai.x402 import x402Client
-from bankofai.x402.mechanisms.tron.exact import ExactTronScheme
+from bankofai.x402.mechanisms.tron.exact import ExactTronClientScheme
 from bankofai.x402.mechanisms.evm.exact import ExactEvmScheme
 
 client = x402Client()
 # Register TRON and EVM handlers
-client.register("tron:*", ExactTronScheme(signer=my_tron_signer))
+client.register("tron:*", ExactTronClientScheme(signer=my_tron_signer))
 client.register("eip155:*", ExactEvmScheme(signer=my_evm_signer))
 
 # Create payment from 402 response
@@ -49,10 +49,10 @@ payload = await client.create_payment_payload(payment_required)
 
 ```python
 from bankofai.x402 import x402ClientSync
-from bankofai.x402.mechanisms.tron.exact import ExactTronScheme
+from bankofai.x402.mechanisms.tron.exact import ExactTronClientScheme
 
 client = x402ClientSync()
-client.register("tron:*", ExactTronScheme(signer=my_tron_signer))
+client.register("tron:*", ExactTronClientScheme(signer=my_tron_signer))
 
 payload = client.create_payment_payload(payment_required)
 ```
