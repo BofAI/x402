@@ -32,7 +32,7 @@ def detect_version(data: bytes | dict[str, Any]) -> int:
     if version not in (1, 2):
         raise ValueError(f"Invalid x402Version: {version}")
 
-    return version
+    return int(version)
 
 
 def get_scheme_and_network(
@@ -89,25 +89,21 @@ def match_payload_to_requirements(
     Returns:
         True if payload matches requirements.
     """
-    if isinstance(payload, bytes):
-        payload = json.loads(payload)
-    if isinstance(requirements, bytes):
-        requirements = json.loads(requirements)
+    p: dict[str, Any] = payload if isinstance(payload, dict) else json.loads(payload)
+    r: dict[str, Any] = requirements if isinstance(requirements, dict) else json.loads(requirements)
 
     if version == 1:
         # V1: Compare scheme and network
-        return payload.get("scheme") == requirements.get("scheme") and payload.get(
-            "network"
-        ) == requirements.get("network")
+        return bool(p.get("scheme") == r.get("scheme") and p.get("network") == r.get("network"))
     else:
         # V2: Compare scheme, network, amount, asset, payTo
-        accepted = payload.get("accepted", {})
-        return (
-            accepted.get("scheme") == requirements.get("scheme")
-            and accepted.get("network") == requirements.get("network")
-            and accepted.get("amount") == requirements.get("amount")
-            and accepted.get("asset") == requirements.get("asset")
-            and accepted.get("payTo") == requirements.get("payTo")
+        accepted = p.get("accepted", {})
+        return bool(
+            accepted.get("scheme") == r.get("scheme")
+            and accepted.get("network") == r.get("network")
+            and accepted.get("amount") == r.get("amount")
+            and accepted.get("asset") == r.get("asset")
+            and accepted.get("payTo") == r.get("payTo")
         )
 
 
