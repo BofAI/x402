@@ -156,23 +156,15 @@ export const PERMIT2_ADDRESS = "0x000000000022D473030F116dDEE9F6B43aC78BA3" as c
 
 /**
  * x402ExactPermit2Proxy contract address.
- * Vanity address: 0x4020...0001 for easy recognition.
- * This address is deterministic based on:
- * - Arachnid's deterministic deployer (0x4e59b44847b379578588920cA78FbF26c0B4956C)
- * - Vanity-mined salt for prefix 0x4020 and suffix 0001
- * - Contract bytecode + constructor args (PERMIT2_ADDRESS)
+ * Current deployed address on BSC mainnet and BSC testnet.
  */
-export const x402ExactPermit2ProxyAddress = "0x402085c248EeA27D92E8b30b2C58ed07f9E20001" as const;
+export const x402ExactPermit2ProxyAddress = "0xEe38Ec718255fe78e9D16aCC0e1183C731679b23" as const;
 
 /**
  * x402UptoPermit2Proxy contract address.
- * Vanity address: 0x4020...0002 for easy recognition.
- * This address is deterministic based on:
- * - Arachnid's deterministic deployer (0x4e59b44847b379578588920cA78FbF26c0B4956C)
- * - Vanity-mined salt for prefix 0x4020 and suffix 0002
- * - Contract bytecode + constructor args (PERMIT2_ADDRESS)
+ * Current deployed address on BSC mainnet and BSC testnet.
  */
-export const x402UptoPermit2ProxyAddress = "0x402039b3d6E6BEC5A02c2C9fd937ac17A6940002" as const;
+export const x402UptoPermit2ProxyAddress = "0x2b30Ed9F37c7C21ae8779c5753B1cCf264DfD63C" as const;
 
 /**
  * Shared ABI components for the Permit2 witness tuple.

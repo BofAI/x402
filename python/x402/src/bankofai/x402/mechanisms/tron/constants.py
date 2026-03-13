@@ -84,6 +84,12 @@ X402_PERMIT2_PROXY_ADDRESSES: dict[str, str] = {
     "tron:nile": "TCd2ZSwbJBAdgFfP5d3gkhKcGs47WNZLLi",
 }
 
+# x402UptoPermit2Proxy contract addresses
+X402_UPTO_PERMIT2_PROXY_ADDRESSES: dict[str, str] = {
+    "tron:mainnet": "TGHEYAovw8fZz1bgnVgRtgrdGLbagFZYq5",
+    "tron:nile": "TSForFRqxmZdJ6Yfx2rNaFykhuQLc9cTMR",
+}
+
 # TIP-712 type definitions for Permit2 PermitWitnessTransferFrom
 PERMIT2_WITNESS_TYPES: dict[str, list[dict[str, str]]] = {
     "PermitWitnessTransferFrom": [

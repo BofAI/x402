@@ -95,6 +95,7 @@ export const X402_PERMIT2_PROXY_ADDRESSES: Record<string, string> = {
  */
 export const X402_UPTO_PERMIT2_PROXY_ADDRESSES: Record<string, string> = {
   "tron:mainnet": "TGHEYAovw8fZz1bgnVgRtgrdGLbagFZYq5",
+  "tron:nile": "TSForFRqxmZdJ6Yfx2rNaFykhuQLc9cTMR",
 };
 
 /**
