@@ -1,14 +1,21 @@
 """TRON exact mechanism package exports."""
 
+from .client import ExactTronClientScheme
 from .eip3009 import settle_eip3009, verify_eip3009
 from .facilitator import ExactTronScheme as ExactTronFacilitatorScheme
 from .permit2 import settle_permit2, verify_permit2
-from .register import register_exact_tron_facilitator, register_exact_tron_server
+from .register import (
+    register_exact_tron_client,
+    register_exact_tron_facilitator,
+    register_exact_tron_server,
+)
 from .server import ExactTronServerScheme
 
 __all__ = [
+    "ExactTronClientScheme",
     "ExactTronFacilitatorScheme",
     "ExactTronServerScheme",
+    "register_exact_tron_client",
     "register_exact_tron_facilitator",
     "register_exact_tron_server",
     "verify_eip3009",

@@ -72,6 +72,15 @@ from .interfaces import (
     SchemeNetworkFacilitatorV1,
     SchemeNetworkServer,
 )
+
+# Mechanisms
+from .mechanisms import evm
+
+try:
+    from .mechanisms import tron
+except ImportError:
+    # TRON support is optional and depends on tronpy being installed.
+    tron = None  # type: ignore[assignment]
 from .registry import AssetInfo, AssetRegistry, convert_money, global_asset_registry
 
 # Types (re-export commonly used types)
@@ -227,4 +236,9 @@ __all__ = [
     "find_schemes_by_network",
     "parse_payment_required",
     "parse_payment_payload",
+    # Mechanisms
+    "evm",
 ]
+
+if tron is not None:
+    __all__.append("tron")
