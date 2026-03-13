@@ -24,7 +24,10 @@
   ],
   "license": "Apache-2.0",
   "author": "Aptos Labs",
-  "repository": "https://github.com/bankofai/x402",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BofAI/x402.git"
+  },
   "description": "x402 Payment Protocol Aptos Implementation",
   "devDependencies": {
     "@eslint/js": "^9.24.0",

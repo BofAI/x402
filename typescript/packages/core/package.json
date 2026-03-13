@@ -1,6 +1,6 @@
 {
   "name": "@bankofai/x402-core",
-  "version": "2.6.0",
+  "version": "2.6.0-beta.1",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/cjs/index.d.ts",
@@ -19,7 +19,10 @@
   "keywords": [],
   "license": "Apache-2.0",
   "author": "bankofai",
-  "repository": "https://github.com/bankofai/x402",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BofAI/x402.git"
+  },
   "description": "x402 Payment Protocol",
   "devDependencies": {
     "@eslint/js": "^9.24.0",
