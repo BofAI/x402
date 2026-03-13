@@ -3,6 +3,10 @@
   "version": "2.6.0-beta.1",
   "description": "x402 payment mechanism for TRON (TRC-20 tokens via eip3009-style TransferWithAuthorization and Permit2)",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BofAI/x402.git"
+  },
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.mjs",
   "types": "dist/esm/index.d.mts",

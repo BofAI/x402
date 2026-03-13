@@ -21,7 +21,7 @@
   "author": "bankofai",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bankofai/x402.git"
+    "url": "git+https://github.com/BofAI/x402.git"
   },
   "description": "x402 Payment Protocol",
   "bin": {

@@ -18,7 +18,10 @@
   "keywords": [],
   "license": "Apache-2.0",
   "author": "bankofai",
-  "repository": "https://github.com/bankofai/x402",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BofAI/x402.git"
+  },
   "description": "x402 Payment Protocol",
   "devDependencies": {
     "@types/node": "^22.13.4",
