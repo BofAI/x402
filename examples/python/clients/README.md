@@ -47,9 +47,9 @@ uv run python main.py
 Both examples follow the same pattern:
 
 ```python
-from x402 import x402Client
-from x402.mechanisms.evm.exact.register import register_exact_evm_client
-from x402.mechanisms.evm.signers import EthAccountSigner
+from bankofai.x402 import x402Client
+from bankofai.x402.mechanisms.evm.exact.register import register_exact_evm_client
+from bankofai.x402.mechanisms.evm.signers import EthAccountSigner
 
 # 1. Create account
 account = Account.from_key(private_key)

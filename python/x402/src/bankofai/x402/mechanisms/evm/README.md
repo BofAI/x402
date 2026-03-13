@@ -5,7 +5,7 @@ EVM implementation of the x402 payment protocol using the **Exact** payment sche
 ## Installation
 
 ```bash
-uv add x402[evm]
+uv add bankofai.x402[evm]
 ```
 
 ## Overview
@@ -21,9 +21,9 @@ Three components for handling x402 payments on EVM-compatible blockchains:
 ### Client
 
 ```python
-from x402 import x402Client
-from x402.mechanisms.evm.exact import ExactEvmScheme
-from x402.mechanisms.evm import EthAccountSigner
+from bankofai.x402 import x402Client
+from bankofai.x402.mechanisms.evm.exact import ExactEvmScheme
+from bankofai.x402.mechanisms.evm import EthAccountSigner
 from eth_account import Account
 
 account = Account.from_key("0x...")
@@ -38,8 +38,8 @@ payload = await client.create_payment_payload(payment_required)
 ### Server
 
 ```python
-from x402 import x402ResourceServer
-from x402.mechanisms.evm.exact import ExactEvmServerScheme
+from bankofai.x402 import x402ResourceServer
+from bankofai.x402.mechanisms.evm.exact import ExactEvmServerScheme
 
 server = x402ResourceServer(facilitator_client)
 server.register("eip155:*", ExactEvmServerScheme())
@@ -48,9 +48,9 @@ server.register("eip155:*", ExactEvmServerScheme())
 ### Facilitator
 
 ```python
-from x402 import x402Facilitator
-from x402.mechanisms.evm.exact import ExactEvmFacilitatorScheme
-from x402.mechanisms.evm import FacilitatorWeb3Signer
+from bankofai.x402 import x402Facilitator
+from bankofai.x402.mechanisms.evm.exact import ExactEvmFacilitatorScheme
+from bankofai.x402.mechanisms.evm import FacilitatorWeb3Signer
 
 signer = FacilitatorWeb3Signer(web3_instance, account)
 

@@ -5,7 +5,7 @@ Python package for the x402 payments protocol.
 ## Installation
 
 ```bash
-pip install x402
+pip install bankofai.x402
 ```
 
 ## Overview
@@ -23,7 +23,7 @@ The simplest way to add x402 payment protection to your FastAPI application:
 
 ```py
 from fastapi import FastAPI
-from x402.fastapi.middleware import require_payment
+from bankofai.x402.fastapi.middleware import require_payment
 
 app = FastAPI()
 app.middleware("http")(
@@ -51,7 +51,7 @@ The simplest way to add x402 payment protection to your Flask application:
 
 ```py
 from flask import Flask
-from x402.flask.middleware import PaymentMiddleware
+from bankofai.x402.flask.middleware import PaymentMiddleware
 
 app = Flask(__name__)
 
@@ -87,7 +87,7 @@ payment_middleware.add(
 #### Httpx Client
 ```py
 from eth_account import Account
-from x402.clients.httpx import x402HttpxClient
+from bankofai.x402.clients.httpx import x402HttpxClient
 
 # Initialize account
 account = Account.from_key("your_private_key")
@@ -101,7 +101,7 @@ async with x402HttpxClient(account=account, base_url="https://api.example.com") 
 #### Requests Session Client
 ```py
 from eth_account import Account
-from x402.clients.requests import x402_requests
+from bankofai.x402.clients.requests import x402_requests
 
 # Initialize account
 account = Account.from_key("your_private_key")
@@ -118,7 +118,7 @@ print(response.content)
 ```py
 import httpx
 from eth_account import Account
-from x402.clients.httpx import x402_payment_hooks
+from bankofai.x402.clients.httpx import x402_payment_hooks
 
 # Initialize account
 account = Account.from_key("your_private_key")
@@ -137,7 +137,7 @@ async with httpx.AsyncClient(base_url="https://api.example.com") as client:
 ```py
 import requests
 from eth_account import Account
-from x402.clients.requests import x402_http_adapter
+from bankofai.x402.clients.requests import x402_http_adapter
 
 # Initialize account
 account = Account.from_key("your_private_key")
@@ -171,9 +171,9 @@ import base64
 import json
 from typing import Annotated
 from fastapi import FastAPI, Request, Response, JSONResponse
-from x402.types import PaymentRequiredResponse, PaymentRequirements, PaymentPayload
-from x402.encoding import safe_base64_decode
-from x402.facilitator import FacilitatorClient
+from bankofai.x402.types import PaymentRequiredResponse, PaymentRequirements, PaymentPayload
+from bankofai.x402.encoding import safe_base64_decode
+from bankofai.x402.facilitator import FacilitatorClient
 
 payment_requirements = PaymentRequirements(...)
 facilitator = FacilitatorClient(facilitator_url)

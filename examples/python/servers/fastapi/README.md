@@ -4,12 +4,12 @@ FastAPI server demonstrating how to protect API endpoints with a paywall using t
 
 ```python
 from fastapi import FastAPI
-from x402.http.middleware.fastapi import PaymentMiddlewareASGI
-from x402.http import HTTPFacilitatorClient, FacilitatorConfig, PaymentOption
-from x402.http.types import RouteConfig
-from x402.server import x402ResourceServer
-from x402.mechanisms.evm.exact import ExactEvmServerScheme
-from x402.mechanisms.svm.exact import ExactSvmServerScheme
+from bankofai.x402.http.middleware.fastapi import PaymentMiddlewareASGI
+from bankofai.x402.http import HTTPFacilitatorClient, FacilitatorConfig, PaymentOption
+from bankofai.x402.http.types import RouteConfig
+from bankofai.x402.server import x402ResourceServer
+from bankofai.x402.mechanisms.evm.exact import ExactEvmServerScheme
+from bankofai.x402.mechanisms.svm.exact import ExactSvmServerScheme
 
 app = FastAPI()
 

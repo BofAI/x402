@@ -20,24 +20,20 @@ The examples are organized into several categories:
 
 Examples of different client implementations for interacting with X402 services:
 
-- `clients/axios/` - Axios client with x402 payment interceptor from `x402-axios`.
-- `clients/fetch/` - Client using the `x402-fetch` wrapper around the native fetch API.
-- `clients/cdp-sdk/` - Client that uses CDP Server Wallets as the signer with `x402-axios`.
-- `clients/chainlink-vrf-nft/` - Example using [Chainlink](docs.chain.link) to mint a randomized NFT (see them on [Opensea](https://testnets.opensea.io/collection/vrfnft-1)). Demonstrates verify/settle flow with `x402-axios`.
-
-### Agents
-
-- `agent/` - Anthropic agent that pays via a Go proxy using `x402-fetch`.
-- `dynamic_agent/` - Agent that discovers tools dynamically and pays per-request using x402.
-
-### Discovery
-
-- `discovery/` - Uses the facilitator to list available x402-protected resources (Bazaar).
+- `clients/axios/` - Axios client with x402 payment interceptor from `@bankofai/x402-axios`.
+- `clients/fetch/` - Client using the `@bankofai/x402-fetch` wrapper around the native fetch API.
+- `clients/advanced/` - Advanced client patterns: hooks, preferred networks, and builder pattern.
+- `clients/custom/` - Demonstration of a custom x402 client implementation.
+- `clients/payment-identifier/` - Example using the Payment-Identifier extension for payment correlation.
+- `clients/sign-in-with-x/` - Integration of Sign-In-With-X (SIWX) with x402 payments.
 
 ### MCP
 
-- `mcp/` - MCP server that makes paid API requests via `x402-axios` (Claude Desktop compatible).
-- `mcp-embedded-wallet/` - Electron-based MCP server with an embedded wallet that signs requests via IPC.
+- `legacy/mcp/` - MCP server that makes paid API requests via `@bankofai/x402-axios` (Claude Desktop compatible).
+- `legacy/mcp-embedded-wallet/` - Electron-based MCP server with an embedded wallet that signs requests via IPC.
+- `clients/mcp/` - Client that uses MCP tools with x402 payment support.
+- `clients/mcp-chatbot/` - OpenAI-powered chatbot using MCP tools and x402 payments.
+- `servers/mcp/` - MCP server that provides paid tools via x402.
 
 ### Facilitator
 
@@ -45,21 +41,20 @@ Examples of different client implementations for interacting with X402 services:
 
 ### Fullstack
 
-- `fullstack/next/` - Next.js app demonstrating route protection with `x402-next` middleware.
-- `fullstack/mainnet/` - Next.js app configured for Base mainnet using the Coinbase hosted facilitator.
-- `fullstack/next-advanced/` - [WIP] Deep Next.js integration using a paywall + session cookie after verify/settle.
-- `fullstack/browser-wallet-example/` - Browser wallet template: Hono server + React client with session and one-time payments.
-- `fullstack/farcaster-miniapp/` - Farcaster Mini App template with x402-protected APIs using [MiniKit](https://www.base.org/build/mini-apps).
-- `fullstack/auth_based_pricing/` - SIWE + JWT with conditional pricing ($0.01 with JWT vs $0.10 without) using x402.
+- `fullstack/next/` - Next.js app demonstrating route protection with `@bankofai/x402-next` middleware.
+- `fullstack/miniapp/` - Farcaster Mini App template with x402-protected APIs using MiniKit.
 
 ### Servers
 
 Examples of different server implementations:
 
-- `servers/express/` - Express.js server using `x402-express` middleware.
-- `servers/hono/` - Hono server using `x402-hono` middleware.
-- `servers/advanced/` - Express server without middleware: delayed settlement, dynamic pricing, multiple requirements.
-- `servers/mainnet/` - Server example for accepting real USDC on Base mainnet using the Coinbase hosted facilitator.
+- `servers/express/` - Express.js server using `@bankofai/x402-express` middleware.
+- `servers/hono/` - Hono server using `@bankofai/x402-hono` middleware.
+- `servers/advanced/` - Advanced Express patterns: dynamic pricing, gas sponsoring, and custom money definitions.
+- `servers/cloudfront-lambda-edge/` - x402 implementation for AWS CloudFront using Lambda@Edge.
+- `servers/custom/` - Custom server implementation using `@bankofai/x402-core`.
+- `servers/payment-identifier/` - Server-side support for Payment-Identifier correlation.
+- `servers/sign-in-with-x/` - Server-side SIWX session management with paid endpoints.
 
 ## Running Examples
 

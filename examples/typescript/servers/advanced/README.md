@@ -1,12 +1,12 @@
-# @x402/express Advanced Examples
+# @bankofai/x402-express Advanced Examples
 
 Express.js server demonstrating advanced x402 patterns including dynamic pricing, payment routing, lifecycle hooks and API discoverability.
 
 ```typescript
-import { paymentMiddleware, x402ResourceServer } from "@x402/express";
-import { ExactEvmScheme } from "@x402/evm/exact/server";
-import { ExactStellarScheme } from "@x402/stellar/exact/server";
-import { HTTPFacilitatorClient } from "@x402/core/server";
+import { paymentMiddleware, x402ResourceServer } from "@bankofai/x402-express";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
+import { ExactStellarScheme } from "@bankofai/x402-stellar/exact/server";
+import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
 
 const resourceServer = new x402ResourceServer(new HTTPFacilitatorClient({ url: facilitatorUrl }))
   .register("eip155:84532", new ExactEvmScheme())
@@ -122,7 +122,7 @@ pnpm dev
 Adding the discovery extension to make your API discoverable:
 
 ```typescript
-import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
+import { declareDiscoveryExtension } from "@bankofai/x402-extensions/bazaar";
 
 app.use(
   paymentMiddleware(
@@ -257,7 +257,7 @@ Available hooks:
 Accept payments in custom tokens. Register a money parser on the scheme to support alternative tokens for specific networks.
 
 ```typescript
-import { ExactEvmScheme } from "@x402/evm/exact/server";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
 
 const resourceServer = new x402ResourceServer(facilitatorClient).register(
   "eip155:84532",

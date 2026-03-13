@@ -189,8 +189,8 @@ Response (failure):
 Register additional schemes for other networks:
 
 ```typescript
-import { registerExactEvmScheme } from "@x402/evm/exact/facilitator";
-import { registerExactSvmScheme } from "@x402/svm/exact/facilitator";
+import { registerExactEvmScheme } from "@bankofai/x402-evm/exact/facilitator";
+import { registerExactSvmScheme } from "@bankofai/x402-svm/exact/facilitator";
 
 const facilitator = new x402Facilitator();
 

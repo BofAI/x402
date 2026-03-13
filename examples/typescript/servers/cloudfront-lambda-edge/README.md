@@ -72,8 +72,8 @@ Copy `lambda/src/` into your project and adapt the build to your tooling.
 
 > **Note**: Replace `workspace:*` dependencies with specific versions:
 > ```json
-> "@x402/core": "^2.2.0",
-> "@x402/evm": "^2.2.0"
+> "@bankofai/x402-core": "^2.2.0",
+> "@bankofai/x402-evm": "^2.2.0"
 > ```
 
 ### 2. Configure Payment Settings
@@ -187,7 +187,7 @@ cloudfront-lambda-edge/
 
 ## Middleware Pattern
 
-The `lib/` folder follows the same pattern as `@x402/express`, `@x402/hono`, etc.:
+The `lib/` folder follows the same pattern as `@bankofai/x402-express`, `@bankofai/x402-hono`, etc.:
 
 ```typescript
 import { createX402Middleware, MiddlewareResultType } from './lib';

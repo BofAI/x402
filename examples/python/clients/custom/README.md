@@ -76,8 +76,8 @@ uv run python main.py
 ### 1. Client Setup
 
 ```python
-from x402 import x402Client
-from x402.mechanisms.evm.exact.register import register_exact_evm_client
+from bankofai.x402 import x402Client
+from bankofai.x402.mechanisms.evm.exact.register import register_exact_evm_client
 
 client = x402Client()
 register_exact_evm_client(client, EthAccountSigner(account))

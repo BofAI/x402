@@ -1,11 +1,11 @@
-# @x402/stellar
+# @bankofai/x402-stellar
 
 Stellar implementation of the x402 payment protocol using the **Exact** payment scheme with [Soroban token](https://stellar.org/protocol/sep-41) transfers.
 
 ## Installation
 
 ```bash
-npm install @x402/stellar
+npm install @bankofai/x402-stellar
 ```
 
 ## Overview
@@ -24,7 +24,7 @@ This package provides three main components for handling x402 payments on Stella
 
 ## Package Exports
 
-### Main Package (`@x402/stellar`)
+### Main Package (`@bankofai/x402-stellar`)
 
 **V2 Protocol Support** - x402 v2 protocol with CAIP-2 network identifiers
 
@@ -66,9 +66,9 @@ This package provides three main components for handling x402 payments on Stella
 
 ### Subpath Exports
 
-- `@x402/stellar/exact/client` - `ExactStellarScheme` (client)
-- `@x402/stellar/exact/server` - `ExactStellarScheme` (server)
-- `@x402/stellar/exact/facilitator` - `ExactStellarScheme` (facilitator)
+- `@bankofai/x402-stellar/exact/client` - `ExactStellarScheme` (client)
+- `@bankofai/x402-stellar/exact/server` - `ExactStellarScheme` (server)
+- `@bankofai/x402-stellar/exact/facilitator` - `ExactStellarScheme` (facilitator)
 
 ## Supported Networks
 
@@ -92,9 +92,9 @@ Supports Soroban tokens implementing [SEP-41](https://github.com/stellar/stellar
 ### 1. Direct Registration (Recommended)
 
 ```typescript
-import { x402Client } from "@x402/core/client";
-import { createEd25519Signer } from "@x402/stellar";
-import { ExactStellarScheme } from "@x402/stellar/exact/client";
+import { x402Client } from "@bankofai/x402-core/client";
+import { createEd25519Signer } from "@bankofai/x402-stellar";
+import { ExactStellarScheme } from "@bankofai/x402-stellar/exact/client";
 
 const signer = createEd25519Signer(privateKey, "stellar:testnet");
 const client = new x402Client().register("stellar:*", new ExactStellarScheme(signer));
@@ -162,7 +162,7 @@ RESOURCE_SERVER_ADDRESS=G...      # Resource server's public address
 
 ## Related Packages
 
-- `@x402/core` - Core protocol types and client
-- `@x402/fetch` - HTTP wrapper with automatic payment handling
-- `@x402/evm` - EVM/Ethereum implementation
-- `@x402/svm` - Solana/SVM implementation
+- `@bankofai/x402-core` - Core protocol types and client
+- `@bankofai/x402-fetch` - HTTP wrapper with automatic payment handling
+- `@bankofai/x402-evm` - EVM/Ethereum implementation
+- `@bankofai/x402-svm` - Solana/SVM implementation

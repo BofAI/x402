@@ -1,6 +1,6 @@
 # x402-next Example App
 
-Next.js application demonstrating how to protect routes with a paywall using the `@x402/next` middleware.
+Next.js application demonstrating how to protect routes with a paywall using the `@bankofai/x402-next` middleware.
 
 ## Prerequisites
 
@@ -45,13 +45,13 @@ The `/protected` route is protected using `paymentProxy`. Page routes are protec
 
 ```typescript
 // proxy.ts
-import { paymentProxy } from "@x402/next";
-import { x402ResourceServer, HTTPFacilitatorClient } from "@x402/core/server";
-import { registerExactEvmScheme } from "@x402/evm/exact/server";
-import { registerExactSvmScheme } from "@x402/svm/exact/server";
-import { createPaywall } from "@x402/paywall";
-import { evmPaywall } from "@x402/paywall/evm";
-import { svmPaywall } from "@x402/paywall/svm";
+import { paymentProxy } from "@bankofai/x402-next";
+import { x402ResourceServer, HTTPFacilitatorClient } from "@bankofai/x402-core/server";
+import { registerExactEvmScheme } from "@bankofai/x402-evm/exact/server";
+import { registerExactSvmScheme } from "@bankofai/x402-svm/exact/server";
+import { createPaywall } from "@bankofai/x402-paywall";
+import { evmPaywall } from "@bankofai/x402-paywall/evm";
+import { svmPaywall } from "@bankofai/x402-paywall/svm";
 
 const facilitatorClient = new HTTPFacilitatorClient({ url: facilitatorUrl });
 const server = new x402ResourceServer(facilitatorClient);
@@ -109,7 +109,7 @@ The `/api/weather` route demonstrates the `withX402` wrapper for individual API 
 ```typescript
 // app/api/weather/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { withX402 } from "@x402/next";
+import { withX402 } from "@bankofai/x402-next";
 import { server, paywall, evmAddress, svmAddress } from "../../../proxy";
 
 const handler = async (_: NextRequest) => {

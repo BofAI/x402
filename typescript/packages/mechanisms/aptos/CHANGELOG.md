@@ -1,4 +1,4 @@
-# @x402/aptos
+# @bankofai/x402-aptos
 
 ## 2.6.0
 
@@ -9,7 +9,7 @@
 - Updated dependencies [2564781]
 - Updated dependencies [b341973]
 - Updated dependencies [29fe09a]
-  - @x402/core@2.6.0
+  - @bankofai/x402-core@2.6.0
 
 ## 2.5.0
 
@@ -18,7 +18,7 @@
 - Updated dependencies [96a9db0]
 - Updated dependencies [d0a2b11]
 - Updated dependencies
-  - @x402/core@2.5.0
+  - @bankofai/x402-core@2.5.0
 
 ## 2.4.0
 
@@ -26,7 +26,7 @@
 
 - 57a5488: Add Aptos blockchain support to x402 payment protocol
 
-  - Introduces new `@x402/aptos` package with full client, server, and facilitator scheme implementations
+  - Introduces new `@bankofai/x402-aptos` package with full client, server, and facilitator scheme implementations
   - Supports exact payment mechanism for Aptos using native APT and fungible assets
   - Includes sponsored transaction support where facilitator pays gas fees
   - Provides `registerExactAptosScheme` helpers for easy client and server integration
@@ -38,4 +38,4 @@
 - Updated dependencies [57a5488]
 - Updated dependencies [018181b]
 - Updated dependencies [3fb55d7]
-  - @x402/core@2.4.0
+  - @bankofai/x402-core@2.4.0

@@ -5,25 +5,21 @@ A utility package that extends the native `fetch` API to automatically handle 40
 ## Installation
 
 ```bash
-pnpm install @x402/fetch
+pnpm install @bankofai/x402-fetch
 ```
 
 ## Quick Start
 
 ```typescript
-import { wrapFetchWithPaymentFromConfig } from "@x402/fetch";
-import { ExactEvmScheme } from "@x402/evm";
-import { privateKeyToAccount } from "viem/accounts";
-
-// Create an account
-const account = privateKeyToAccount("0xYourPrivateKey");
+import { wrapFetchWithPaymentFromConfig } from "@bankofai/x402-fetch";
+import { ExactTronScheme } from "@bankofai/x402-tron/exact/client";
 
 // Wrap the fetch function with payment handling
 const fetchWithPayment = wrapFetchWithPaymentFromConfig(fetch, {
   schemes: [
     {
-      network: "eip155:8453", // Base Mainnet
-      client: new ExactEvmScheme(account),
+      network: "tron:mainnet", // TRON Mainnet
+      client: new ExactTronScheme(tronSigner),
     },
   ],
 });
@@ -75,9 +71,9 @@ A wrapped fetch function that automatically handles 402 responses by:
 
 ```typescript
 import { config } from "dotenv";
-import { wrapFetchWithPaymentFromConfig, decodePaymentResponseHeader } from "@x402/fetch";
+import { wrapFetchWithPaymentFromConfig, decodePaymentResponseHeader } from "@bankofai/x402-fetch";
 import { privateKeyToAccount } from "viem/accounts";
-import { ExactEvmScheme } from "@x402/evm";
+import { ExactEvmScheme } from "@bankofai/x402-evm";
 
 config();
 
@@ -120,9 +116,9 @@ fetchWithPayment(API_URL, {
 For more control, you can use the builder pattern to register multiple schemes:
 
 ```typescript
-import { wrapFetchWithPayment, x402Client } from "@x402/fetch";
-import { ExactEvmScheme } from "@x402/evm/exact/client";
-import { ExactSvmScheme } from "@x402/svm/exact/client";
+import { wrapFetchWithPayment, x402Client } from "@bankofai/x402-fetch";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
+import { ExactSvmScheme } from "@bankofai/x402-svm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 import { createKeyPairSignerFromBytes } from "@solana/kit";
 import { base58 } from "@scure/base";
@@ -143,21 +139,21 @@ const fetchWithPayment = wrapFetchWithPayment(fetch, client);
 ### Multi-Chain Support
 
 ```typescript
-import { wrapFetchWithPaymentFromConfig } from "@x402/fetch";
-import { ExactEvmScheme } from "@x402/evm";
-import { ExactSvmScheme } from "@x402/svm";
+import { wrapFetchWithPaymentFromConfig } from "@bankofai/x402-fetch";
+import { ExactTronScheme } from "@bankofai/x402-tron";
+import { ExactEvmScheme } from "@bankofai/x402-evm";
 
 const fetchWithPayment = wrapFetchWithPaymentFromConfig(fetch, {
   schemes: [
+    // TRON chains
+    {
+      network: "tron:mainnet", // TRON Mainnet
+      client: new ExactTronScheme(tronSigner),
+    },
     // EVM chains
     {
       network: "eip155:8453", // Base Sepolia
       client: new ExactEvmScheme(evmAccount),
-    },
-    // SVM chains
-    {
-      network: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1", // Solana devnet
-      client: new ExactSvmScheme(svmSigner),
     },
   ],
 });
@@ -166,8 +162,8 @@ const fetchWithPayment = wrapFetchWithPaymentFromConfig(fetch, {
 ### Custom Payment Requirements Selector
 
 ```typescript
-import { wrapFetchWithPaymentFromConfig, type SelectPaymentRequirements } from "@x402/fetch";
-import { ExactEvmScheme } from "@x402/evm";
+import { wrapFetchWithPaymentFromConfig, type SelectPaymentRequirements } from "@bankofai/x402-fetch";
+import { ExactEvmScheme } from "@bankofai/x402-evm";
 
 // Custom selector that prefers the cheapest option
 const selectCheapestOption: SelectPaymentRequirements = (version, accepts) => {

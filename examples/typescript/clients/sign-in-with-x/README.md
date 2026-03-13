@@ -3,10 +3,10 @@
 Client demonstrating how to use Sign-In-With-X authentication with x402, allowing wallet signatures to prove prior payment and skip re-payment on subsequent requests.
 
 ```typescript
-import { x402Client, x402HTTPClient, wrapFetchWithPayment } from "@x402/fetch";
-import { registerExactEvmScheme } from "@x402/evm/exact/client";
-import { registerExactSvmScheme } from "@x402/svm/exact/client";
-import { createSIWxClientHook } from "@x402/extensions/sign-in-with-x";
+import { x402Client, x402HTTPClient, wrapFetchWithPayment } from "@bankofai/x402-fetch";
+import { registerExactEvmScheme } from "@bankofai/x402-evm/exact/client";
+import { registerExactSvmScheme } from "@bankofai/x402-svm/exact/client";
+import { createSIWxClientHook } from "@bankofai/x402-extensions/sign-in-with-x";
 import { privateKeyToAccount } from "viem/accounts";
 import { createKeyPairSignerFromBytes } from "@solana/kit";
 

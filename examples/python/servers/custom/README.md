@@ -3,9 +3,9 @@
 Demonstrates how to implement x402 payment handling manually without using pre-built middleware packages like `x402-fastapi`.
 
 ```python
-from x402.http import HTTPFacilitatorClient, FacilitatorConfig
-from x402.mechanisms.evm.exact import ExactEvmServerScheme
-from x402.server import x402ResourceServer
+from bankofai.x402.http import HTTPFacilitatorClient, FacilitatorConfig
+from bankofai.x402.mechanisms.evm.exact import ExactEvmServerScheme
+from bankofai.x402.server import x402ResourceServer
 
 resource_server = x402ResourceServer(
     HTTPFacilitatorClient(FacilitatorConfig(url=facilitator_url))
@@ -217,7 +217,7 @@ The custom implementation demonstrates each step of the x402 payment flow:
 
 ```python
 from dataclasses import dataclass
-from x402.schemas import Network
+from bankofai.x402.schemas import Network
 
 @dataclass
 class RoutePaymentConfig:

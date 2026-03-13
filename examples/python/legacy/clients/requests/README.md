@@ -31,7 +31,7 @@ python extensible.py
 The simple approach uses `x402_requests`, which returns a pre-configured session that handles payments automatically:
 
 ```python
-from x402.clients import x402_requests
+from bankofai.x402.clients import x402_requests
 
 session = x402_requests(account)
 response = session.get(url)
@@ -42,7 +42,7 @@ response = session.get(url)
 The extensible approach uses `x402_http_adapter` with your own requests session:
 
 ```python
-from x402.clients import x402_http_adapter
+from bankofai.x402.clients import x402_http_adapter
 import requests
 
 session = requests.Session()

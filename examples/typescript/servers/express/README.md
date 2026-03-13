@@ -1,12 +1,12 @@
-# @x402/express Example Server
+# @bankofai/x402-express Example Server
 
-Express.js server demonstrating how to protect API endpoints with a paywall using the `@x402/express` middleware.
+Express.js server demonstrating how to protect API endpoints with a paywall using the `@bankofai/x402-express` middleware.
 
 ```typescript
 import express from "express";
-import { paymentMiddleware, x402ResourceServer } from "@x402/express";
-import { ExactEvmScheme } from "@x402/evm/exact/server";
-import { HTTPFacilitatorClient } from "@x402/core/server";
+import { paymentMiddleware, x402ResourceServer } from "@bankofai/x402-express";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
+import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
 
 const app = express();
 
@@ -14,13 +14,13 @@ app.use(
   paymentMiddleware(
     {
       "GET /weather": {
-        accepts: { scheme: "exact", price: "$0.001", network: "eip155:84532", payTo: evmAddress },
+        accepts: { scheme: "exact", price: "$0.001", network: "eip155:97", payTo: evmAddress },
         description: "Weather data",
         mimeType: "application/json",
       },
     },
     new x402ResourceServer(new HTTPFacilitatorClient({ url: facilitatorUrl }))
-      .register("eip155:84532", new ExactEvmScheme()),
+      .register("eip155:97", new ExactEvmScheme()),
   ),
 );
 
@@ -85,7 +85,7 @@ These clients will demonstrate how to:
 
 ## Example Endpoint
 
-The server includes a single example endpoint at `/weather` that requires a payment of 0.001 USDC on Base Sepolia or Solana Devnet to access. The endpoint returns a simple weather report.
+The server includes a single example endpoint at `/weather` that requires a payment of 0.001 USDC on BSC Testnet or Solana Devnet to access. The endpoint returns a simple weather report.
 
 ## Response Format
 
@@ -114,10 +114,10 @@ Note: `amount` is in atomic units (e.g., 1000 = 0.001 USDC, since USDC has 6 dec
   "accepts": [
     {
       "scheme": "exact",
-      "network": "eip155:84532",
+      "network": "eip155:97",
       "amount": "1000",
-      "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
-      "payTo": "0x1c47E9C085c2B7458F5b6C16cCBD65A65255a9f6",
+      "asset": "0x...",
+      "payTo": "0x...",
       "maxTimeoutSeconds": 300,
       "extra": {
         "name": "USDC",
@@ -157,13 +157,13 @@ The `PAYMENT-RESPONSE` header contains base64-encoded JSON with the settlement d
 {
   "success": true,
   "transaction": "0x...",
-  "network": "eip155:84532",
+  "network": "eip155:97",
   "payer": "0x...",
   "requirements": {
     "scheme": "exact",
-    "network": "eip155:84532",
+    "network": "eip155:97",
     "amount": "1000",
-    "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "asset": "0x...",
     "payTo": "0x...",
     "maxTimeoutSeconds": 300,
     "extra": {
@@ -188,7 +188,7 @@ app.use(
         accepts: {
           scheme: "exact",
           price: "$0.10",
-          network: "eip155:84532",
+          network: "eip155:97",
           payTo: evmAddress,
         },
         description: "Your endpoint description",
@@ -208,10 +208,10 @@ app.get("/your-endpoint", (req, res) => {
 ```
 
 **Network identifiers** use [CAIP-2](https://github.com/ChainAgnostic/CAIPs/blob/main/CAIPs/caip-2.md) format, for example:
+- `eip155:97` — BSC Testnet
+- `eip155:56` — BSC Mainnet
 - `eip155:84532` — Base Sepolia
 - `eip155:8453` — Base Mainnet
-- `solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1` — Solana Devnet
-- `solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp` — Solana Mainnet
 
 ## x402ResourceServer Config
 
@@ -219,8 +219,7 @@ The `x402ResourceServer` uses a builder pattern to register payment schemes that
 
 ```typescript
 const resourceServer = new x402ResourceServer(facilitatorClient)
-  .register("eip155:*", new ExactEvmScheme())   // All EVM chains
-  .register("solana:*", new ExactSvmScheme())   // All SVM chains
+  .register("eip155:*", new ExactEvmScheme())     // All EVM chains (BSC, Base, etc.)
 ```
 
 ## Facilitator Config

@@ -109,14 +109,14 @@ const mcpServer = new McpServer({ name: "premium-api", version: "1.0.0" });
 // Set up x402 for payment handling
 const facilitatorClient = new HTTPFacilitatorClient({ url: "https://x402.org/facilitator" });
 const resourceServer = new x402ResourceServer(facilitatorClient);
-resourceServer.register("eip155:84532", new ExactEvmScheme());
+resourceServer.register("tron:mainnet", new ExactTronScheme());
 await resourceServer.initialize();
 
 // Build payment requirements
 const accepts = await resourceServer.buildPaymentRequirements({
   scheme: "exact",
-  network: "eip155:84532",
-  payTo: "0x...",
+  network: "tron:mainnet",
+  payTo: "TYourTronAddress",
   price: "$0.10",
 });
 
@@ -148,6 +148,7 @@ await mcpServer.connect(transport);
 
 ```typescript
 import { createx402MCPClient } from "@bankofai/x402-mcp";
+import { ExactTronScheme } from "@bankofai/x402-tron/exact/client";
 import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 
@@ -155,25 +156,18 @@ import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 const client = createx402MCPClient({
   name: "my-agent",
   version: "1.0.0",
-  schemes: [{ network: "eip155:84532", client: new ExactEvmScheme(walletAccount) }],
+  schemes: [
+    { network: "tron:mainnet", client: new ExactTronScheme(tronSigner) },
+    { network: "eip155:84532", client: new ExactEvmScheme(evmAccount) }
+  ],
   autoPayment: true,
   onPaymentRequested: async ({ paymentRequired }) => {
     console.log(`Tool requires payment: ${paymentRequired.accepts[0].amount}`);
     return true; // Return false to deny payment
   },
 });
-
-// Connect and use
-const transport = new SSEClientTransport(new URL("http://localhost:4022/sse"));
-await client.connect(transport);
-
-const result = await client.callTool("financial_analysis", { ticker: "AAPL" });
-console.log(result.content);
-
-if (result.paymentMade) {
-  console.log("Payment settled:", result.paymentResponse?.transaction);
-}
 ```
+
 
 ## Advanced Features
 
@@ -277,7 +271,8 @@ import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
 // Option 1: Wrap existing client with existing payment client
 const mcpClient = new Client({ name: "my-agent", version: "1.0.0" });
 const paymentClient = new x402Client()
-  .register("eip155:84532", new ExactEvmScheme(walletAccount));
+  .register("tron:mainnet", new ExactTronScheme(tronSigner))
+  .register("eip155:84532", new ExactEvmScheme(evmAccount));
 
 const x402Mcp = wrapMCPClientWithPayment(mcpClient, paymentClient, {
   autoPayment: true,
@@ -285,7 +280,10 @@ const x402Mcp = wrapMCPClientWithPayment(mcpClient, paymentClient, {
 
 // Option 2: Wrap existing client with config
 const x402Mcp2 = wrapMCPClientWithPaymentFromConfig(mcpClient, {
-  schemes: [{ network: "eip155:84532", client: new ExactEvmScheme(walletAccount) }],
+  schemes: [
+    { network: "tron:mainnet", client: new ExactTronScheme(tronSigner) },
+    { network: "eip155:84532", client: new ExactEvmScheme(evmAccount) }
+  ],
 });
 ```
 

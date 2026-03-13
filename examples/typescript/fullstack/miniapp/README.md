@@ -1,6 +1,6 @@
 # x402 Farcaster Mini App Example (v2 SDK)
 
-This is a [Next.js](https://nextjs.org) project demonstrating how to build a [Farcaster Mini App](https://miniapps.farcaster.xyz/) with x402 payment-protected API endpoints using the `@x402/next`, `@x402/fetch` and `@x402/evm` packages.
+This is a [Next.js](https://nextjs.org) project demonstrating how to build a [Farcaster Mini App](https://miniapps.farcaster.xyz/) with x402 payment-protected API endpoints using the `@bankofai/x402-next`, `@bankofai/x402-fetch` and `@bankofai/x402-evm` packages.
 
 ## Prerequisites
 
@@ -71,9 +71,9 @@ The `/api/protected` endpoint uses the `withX402` wrapper for payment protection
 
 ```typescript
 // app/api/protected/route.ts
-import { withX402 } from "@x402/next";
-import { x402ResourceServer, HTTPFacilitatorClient } from "@x402/core/server";
-import { registerExactEvmScheme } from "@x402/evm/exact/server";
+import { withX402 } from "@bankofai/x402-next";
+import { x402ResourceServer, HTTPFacilitatorClient } from "@bankofai/x402-core/server";
+import { registerExactEvmScheme } from "@bankofai/x402-evm/exact/server";
 
 const facilitatorClient = new HTTPFacilitatorClient({
   url: process.env.FACILITATOR_URL,
@@ -101,11 +101,11 @@ export const GET = withX402(
 
 ### Client-Side Payment Handling
 
-The frontend uses `@x402/fetch` to handle payments:
+The frontend uses `@bankofai/x402-fetch` to handle payments:
 
 ```typescript
-import { x402Client, wrapFetchWithPayment } from "@x402/fetch";
-import { registerExactEvmScheme } from "@x402/evm/exact/client";
+import { x402Client, wrapFetchWithPayment } from "@bankofai/x402-fetch";
+import { registerExactEvmScheme } from "@bankofai/x402-evm/exact/client";
 
 // Create client and register EVM scheme
 const client = new x402Client();
@@ -216,9 +216,9 @@ Create a new route file (e.g., `app/api/premium/route.ts`) and use the `withX402
 ```typescript
 // app/api/premium/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { withX402 } from "@x402/next";
-import { x402ResourceServer, HTTPFacilitatorClient } from "@x402/core/server";
-import { registerExactEvmScheme } from "@x402/evm/exact/server";
+import { withX402 } from "@bankofai/x402-next";
+import { x402ResourceServer, HTTPFacilitatorClient } from "@bankofai/x402-core/server";
+import { registerExactEvmScheme } from "@bankofai/x402-evm/exact/server";
 
 const facilitatorClient = new HTTPFacilitatorClient({
   url: process.env.FACILITATOR_URL,

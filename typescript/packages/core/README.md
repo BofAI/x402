@@ -1,11 +1,11 @@
-# @x402/core
+# @bankofai/x402-core
 
 Core implementation of the x402 payment protocol for TypeScript/JavaScript applications. Provides transport-agnostic client, server and facilitator components.
 
 ## Installation
 
 ```bash
-pnpm install @x402/core
+pnpm install @bankofai/x402-core
 ```
 
 ## Quick Start
@@ -13,12 +13,14 @@ pnpm install @x402/core
 ### Client Usage
 
 ```typescript
-import { x402Client } from '@x402/core/client';
-import { x402HTTPClient } from '@x402/core/http';
-import { ExactEvmScheme } from '@x402/evm/exact/client';
+import { x402Client } from '@bankofai/x402-core/client';
+import { x402HTTPClient } from '@bankofai/x402-core/http';
+import { ExactTronScheme } from '@bankofai/x402-tron/exact/client';
+import { ExactEvmScheme } from '@bankofai/x402-evm/exact/client';
 
 // Create core client and register payment schemes
 const coreClient = new x402Client()
+  .register('tron:*', new ExactTronScheme(tronSigner))
   .register('eip155:*', new ExactEvmScheme(evmSigner));
 
 // Wrap with HTTP client for header encoding/decoding
@@ -52,9 +54,9 @@ if (response.status === 402) {
 ### Server Usage
 
 ```typescript
-import { x402ResourceServer, HTTPFacilitatorClient } from '@x402/core/server';
-import { x402HTTPResourceServer } from '@x402/core/http';
-import { ExactEvmScheme } from '@x402/evm/exact/server';
+import { x402ResourceServer, HTTPFacilitatorClient } from '@bankofai/x402-core/server';
+import { x402HTTPResourceServer } from '@bankofai/x402-core/http';
+import { ExactTronScheme } from '@bankofai/x402-tron/exact/server';
 
 // Connect to facilitator
 const facilitatorClient = new HTTPFacilitatorClient({
@@ -63,7 +65,7 @@ const facilitatorClient = new HTTPFacilitatorClient({
 
 // Create resource server with payment schemes
 const resourceServer = new x402ResourceServer(facilitatorClient)
-  .register('eip155:*', new ExactEvmScheme());
+  .register('tron:*', new ExactTronScheme());
 
 // Initialize (fetches supported kinds from facilitator)
 await resourceServer.initialize();
@@ -73,8 +75,8 @@ const routes = {
   'GET /api/data': {
     accepts: {
       scheme: 'exact',
-      network: 'eip155:8453',
-      payTo: '0xYourAddress',
+      network: 'tron:mainnet',
+      payTo: 'TYourTronAddress',
       price: '$0.01',
     },
     description: 'Premium data access',
@@ -89,15 +91,15 @@ const httpServer = new x402HTTPResourceServer(resourceServer, routes);
 ### Facilitator Usage
 
 ```typescript
-import { x402Facilitator } from '@x402/core/facilitator';
-import { registerExactEvmScheme } from '@x402/evm/exact/facilitator';
+import { x402Facilitator } from '@bankofai/x402-core/facilitator';
+import { registerExactTronScheme } from '@bankofai/x402-tron/exact/facilitator';
 
 const facilitator = new x402Facilitator();
 
 // Register scheme implementations using helper
-registerExactEvmScheme(facilitator, {
-  signer: evmSigner,
-  networks: 'eip155:84532',
+registerExactTronScheme(facilitator, {
+  signer: tronSigner,
+  networks: 'tron:mainnet',
 });
 
 // Verify payment
@@ -155,8 +157,8 @@ Use `fromConfig()` for declarative setup:
 ```typescript
 const client = x402Client.fromConfig({
   schemes: [
+    { network: 'tron:mainnet', client: new ExactTronScheme(tronSigner) },
     { network: 'eip155:8453', client: new ExactEvmScheme(evmSigner) },
-    { network: 'solana:mainnet', client: new ExactSvmScheme(svmSigner) },
   ],
   policies: [
     // Filter by max price
@@ -271,18 +273,21 @@ type PaymentRequired = {
 
 For framework-specific middleware, use:
 
-- `@x402/express` - Express.js middleware
-- `@x402/hono` - Hono middleware  
-- `@x402/next` - Next.js integration
-- `@x402/axios` - Axios interceptor
-- `@x402/fetch` - Fetch wrapper
+- `@bankofai/x402-express` - Express.js middleware
+- `@bankofai/x402-hono` - Hono middleware  
+- `@bankofai/x402-next` - Next.js integration
+- `@bankofai/x402-axios` - Axios interceptor
+- `@bankofai/x402-fetch` - Fetch wrapper
 
 ## Implementation Packages
 
 For blockchain-specific implementations:
 
-- `@x402/evm` - Ethereum and EVM-compatible chains
-- `@x402/svm` - Solana blockchain
+- `@bankofai/x402-tron` - TRON blockchain
+- `@bankofai/x402-evm` - Ethereum and EVM-compatible chains
+- `@bankofai/x402-svm` - Solana blockchain
+- `@bankofai/x402-aptos` - Aptos blockchain
+- `@bankofai/x402-stellar` - Stellar blockchain
 
 ## Examples
 

@@ -42,13 +42,13 @@ The example demonstrates the complete x402 payment flow:
 ## Code Overview
 
 ```python
-from x402 import x402ClientSync
-from x402.http import x402HTTPClientSync
-from x402.http.clients import x402_requests
-from x402.mechanisms.evm import EthAccountSigner
-from x402.mechanisms.evm.exact.register import register_exact_evm_client
-from x402.mechanisms.svm import KeypairSigner
-from x402.mechanisms.svm.exact.register import register_exact_svm_client
+from bankofai.x402 import x402ClientSync
+from bankofai.x402.http import x402HTTPClientSync
+from bankofai.x402.http.clients import x402_requests
+from bankofai.x402.mechanisms.evm import EthAccountSigner
+from bankofai.x402.mechanisms.evm.exact.register import register_exact_evm_client
+from bankofai.x402.mechanisms.svm import KeypairSigner
+from bankofai.x402.mechanisms.svm.exact.register import register_exact_svm_client
 
 # Setup
 client = x402ClientSync()

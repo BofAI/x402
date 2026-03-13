@@ -1,4 +1,4 @@
-# @x402/evm Changelog
+# @bankofai/x402-evm Changelog
 
 ## 2.6.0
 
@@ -10,7 +10,7 @@
 - Updated dependencies [2564781]
 - Updated dependencies [b341973]
 - Updated dependencies [29fe09a]
-  - @x402/core@2.6.0
+  - @bankofai/x402-core@2.6.0
 
 ## 2.5.0
 
@@ -27,8 +27,8 @@
 - Updated dependencies [1ab1c86]
 - Updated dependencies [d0a2b11]
 - Updated dependencies
-  - @x402/core@2.5.0
-  - @x402/extensions@2.5.0
+  - @bankofai/x402-core@2.5.0
+  - @bankofai/x402-extensions@2.5.0
 
 ## 2.4.0
 
@@ -43,8 +43,8 @@
 - Updated dependencies [57a5488]
 - Updated dependencies [018181b]
 - Updated dependencies [3fb55d7]
-  - @x402/core@2.4.0
-  - @x402/extensions@2.4.0
+  - @bankofai/x402-core@2.4.0
+  - @bankofai/x402-extensions@2.4.0
 
 ## 2.3.1
 
@@ -52,13 +52,13 @@
 
 - 0c6064d: Add MegaETH mainnet (chain ID 4326) support with USDM as the default stablecoin
 - Updated dependencies [9ec9f15]
-  - @x402/core@2.3.1
+  - @bankofai/x402-core@2.3.1
 
 ## 2.3.0
 
 ### Minor Changes
 
-- 51b8445: Bumped @x402/core dependency to 2.3.0
+- 51b8445: Bumped @bankofai/x402-core dependency to 2.3.0
 - 51b8445: Upgraded exact evm to support permit2 payments
 
 ### Patch Changes
@@ -66,7 +66,7 @@
 - adb1b55: Improved error messages for insufficient funds. The `invalidMessage` field now includes the required amount, available balance, asset denomination, and actionable guidance when payment fails due to insufficient funds.
 - Updated dependencies [51b8445]
 - Updated dependencies [51b8445]
-  - @x402/core@2.3.0
+  - @bankofai/x402-core@2.3.0
 
 ## 2.0.0
 

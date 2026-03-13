@@ -5,7 +5,7 @@ Solana implementation of the x402 payment protocol using the **Exact** payment s
 ## Installation
 
 ```bash
-uv add x402[svm]
+uv add bankofai.x402[svm]
 ```
 
 ## Overview
@@ -21,9 +21,9 @@ Three components for handling x402 payments on Solana:
 ### Client
 
 ```python
-from x402 import x402Client
-from x402.mechanisms.svm.exact import ExactSvmScheme
-from x402.mechanisms.svm import KeypairSigner
+from bankofai.x402 import x402Client
+from bankofai.x402.mechanisms.svm.exact import ExactSvmScheme
+from bankofai.x402.mechanisms.svm import KeypairSigner
 from solders.keypair import Keypair
 
 keypair = Keypair.from_base58_string("...")
@@ -38,8 +38,8 @@ payload = await client.create_payment_payload(payment_required)
 ### Server
 
 ```python
-from x402 import x402ResourceServer
-from x402.mechanisms.svm.exact import ExactSvmServerScheme
+from bankofai.x402 import x402ResourceServer
+from bankofai.x402.mechanisms.svm.exact import ExactSvmServerScheme
 
 server = x402ResourceServer(facilitator_client)
 server.register("solana:*", ExactSvmServerScheme())
@@ -48,9 +48,9 @@ server.register("solana:*", ExactSvmServerScheme())
 ### Facilitator
 
 ```python
-from x402 import x402Facilitator
-from x402.mechanisms.svm.exact import ExactSvmFacilitatorScheme
-from x402.mechanisms.svm import FacilitatorKeypairSigner
+from bankofai.x402 import x402Facilitator
+from bankofai.x402.mechanisms.svm.exact import ExactSvmFacilitatorScheme
+from bankofai.x402.mechanisms.svm import FacilitatorKeypairSigner
 
 signer = FacilitatorKeypairSigner(keypair, rpc_client)
 

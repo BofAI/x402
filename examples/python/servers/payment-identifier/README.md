@@ -10,12 +10,12 @@ Example server demonstrating how to implement the `payment-identifier` extension
 4. Duplicate requests with the same payment ID return cached response without payment processing
 
 ```python
-from x402.extensions.payment_identifier import (
+from bankofai.x402.extensions.payment_identifier import (
     PAYMENT_IDENTIFIER,
     declare_payment_identifier_extension,
     extract_payment_identifier,
 )
-from x402.server import x402ResourceServer
+from bankofai.x402.server import x402ResourceServer
 
 server = x402ResourceServer(facilitator)
 

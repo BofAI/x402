@@ -5,15 +5,15 @@ HTTP client wrappers with automatic 402 payment handling.
 ## httpx (Async)
 
 ```bash
-uv add x402[httpx]
+uv add bankofai.x402[httpx]
 ```
 
 ### Transport Wrapper
 
 ```python
-from x402 import x402Client
-from x402.http.clients import x402_httpx_transport
-from x402.mechanisms.evm.exact import ExactEvmScheme
+from bankofai.x402 import x402Client
+from bankofai.x402.http.clients import x402_httpx_transport
+from bankofai.x402.mechanisms.evm.exact import ExactEvmScheme
 import httpx
 
 client = x402Client()
@@ -28,7 +28,7 @@ async with httpx.AsyncClient(
 ### Convenience Wrapper
 
 ```python
-from x402.http.clients import wrapHttpxWithPayment
+from bankofai.x402.http.clients import wrapHttpxWithPayment
 
 async with wrapHttpxWithPayment(client) as http:
     response = await http.get("https://api.example.com/paid")
@@ -37,8 +37,8 @@ async with wrapHttpxWithPayment(client) as http:
 ### From Config
 
 ```python
-from x402 import x402ClientConfig, SchemeRegistration
-from x402.http.clients import wrapHttpxWithPaymentFromConfig
+from bankofai.x402 import x402ClientConfig, SchemeRegistration
+from bankofai.x402.http.clients import wrapHttpxWithPaymentFromConfig
 
 config = x402ClientConfig(
     schemes=[
@@ -56,7 +56,7 @@ async with wrapHttpxWithPaymentFromConfig(config) as http:
 ### Client Class
 
 ```python
-from x402.http.clients import x402HttpxClient
+from bankofai.x402.http.clients import x402HttpxClient
 
 async with x402HttpxClient(client) as http:
     response = await http.get("https://api.example.com/paid")
@@ -65,15 +65,15 @@ async with x402HttpxClient(client) as http:
 ## requests (Sync)
 
 ```bash
-uv add x402[requests]
+uv add bankofai.x402[requests]
 ```
 
 ### Session Wrapper
 
 ```python
-from x402 import x402ClientSync
-from x402.http.clients import wrapRequestsWithPayment
-from x402.mechanisms.evm.exact import ExactEvmScheme
+from bankofai.x402 import x402ClientSync
+from bankofai.x402.http.clients import wrapRequestsWithPayment
+from bankofai.x402.mechanisms.evm.exact import ExactEvmScheme
 import requests
 
 client = x402ClientSync()
@@ -86,7 +86,7 @@ response = session.get("https://api.example.com/paid")
 ### HTTP Adapter
 
 ```python
-from x402.http.clients import x402_http_adapter
+from bankofai.x402.http.clients import x402_http_adapter
 import requests
 
 session = requests.Session()
@@ -100,7 +100,7 @@ response = session.get("https://api.example.com/paid")
 ### Convenience Function
 
 ```python
-from x402.http.clients import x402_requests
+from bankofai.x402.http.clients import x402_requests
 
 session = x402_requests(client)
 response = session.get("https://api.example.com/paid")
@@ -109,7 +109,7 @@ response = session.get("https://api.example.com/paid")
 ### From Config
 
 ```python
-from x402.http.clients import wrapRequestsWithPaymentFromConfig
+from bankofai.x402.http.clients import wrapRequestsWithPaymentFromConfig
 
 session = wrapRequestsWithPaymentFromConfig(requests.Session(), config)
 ```

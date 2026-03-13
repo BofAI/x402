@@ -173,9 +173,9 @@ Response (failure):
 Register additional schemes for other networks:
 
 ```python
-from x402 import x402Facilitator
-from x402.mechanisms.evm.exact import register_exact_evm_facilitator
-from x402.mechanisms.svm.exact import register_exact_svm_facilitator
+from bankofai.x402 import x402Facilitator
+from bankofai.x402.mechanisms.evm.exact import register_exact_evm_facilitator
+from bankofai.x402.mechanisms.svm.exact import register_exact_svm_facilitator
 
 facilitator = x402Facilitator()
 
@@ -197,8 +197,8 @@ register_exact_svm_facilitator(
 Add custom logic before/after verify and settle operations:
 
 ```python
-from x402 import x402Facilitator
-from x402.schemas import AbortResult
+from bankofai.x402 import x402Facilitator
+from bankofai.x402.schemas import AbortResult
 
 facilitator = (
     x402Facilitator()
@@ -219,8 +219,8 @@ facilitator = (
 Create a custom signer for different providers:
 
 ```python
-from x402.mechanisms.evm.signer import FacilitatorEvmSigner
-from x402.mechanisms.evm.types import TransactionReceipt
+from bankofai.x402.mechanisms.evm.signer import FacilitatorEvmSigner
+from bankofai.x402.mechanisms.evm.types import TransactionReceipt
 
 class MyCustomSigner:
     """Implement FacilitatorEvmSigner protocol."""

@@ -1,10 +1,10 @@
-# @x402/axios Example Client
+# @bankofai/x402-axios Example Client
 
-Example client demonstrating how to use `@x402/axios` to make HTTP requests to endpoints protected by the x402 payment protocol.
+Example client demonstrating how to use `@bankofai/x402-axios` to make HTTP requests to endpoints protected by the x402 payment protocol.
 
 ```typescript
-import { x402Client, wrapAxiosWithPayment } from "@x402/axios";
-import { registerExactEvmScheme } from "@x402/evm/exact/client";
+import { x402Client, wrapAxiosWithPayment } from "@bankofai/x402-axios";
+import { registerExactEvmScheme } from "@bankofai/x402-evm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 import axios from "axios";
 

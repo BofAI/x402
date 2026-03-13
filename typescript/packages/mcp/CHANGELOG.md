@@ -5,7 +5,7 @@
 ### Minor Changes
 
 - Updated dependencies
-  - @x402/core@2.6.0
+  - @bankofai/x402-core@2.6.0
 
 ## 2.5.0
 
@@ -14,7 +14,7 @@
 - Updated dependencies [96a9db0]
 - Updated dependencies [d0a2b11]
 - Updated dependencies
-  - @x402/core@2.5.0
+  - @bankofai/x402-core@2.5.0
 
 ## 2.4.0
 
@@ -23,7 +23,7 @@
 - Updated dependencies [57a5488]
 - Updated dependencies [018181b]
 - Updated dependencies [3fb55d7]
-  - @x402/core@2.4.0
+  - @bankofai/x402-core@2.4.0
 
 ## 2.3.0
 
@@ -31,7 +31,7 @@
 
 - 9ec9f15: Fixed select payment requirements
 - Updated dependencies [9ec9f15]
-  - @x402/core@2.3.1
+  - @bankofai/x402-core@2.3.1
 
 ## 2.3.0-alpha
 

@@ -10,12 +10,12 @@ Example client demonstrating how to use the `payment-identifier` extension to en
 4. Retry requests with the same payment ID return cached responses without re-processing payment
 
 ```python
-from x402 import x402Client
-from x402.extensions.payment_identifier import (
+from bankofai.x402 import x402Client
+from bankofai.x402.extensions.payment_identifier import (
     append_payment_identifier_to_extensions,
     generate_payment_id,
 )
-from x402.http.clients import x402HttpxClient
+from bankofai.x402.http.clients import x402HttpxClient
 
 client = x402Client()
 # ... register schemes ...
