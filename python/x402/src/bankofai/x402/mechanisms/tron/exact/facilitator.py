@@ -150,7 +150,7 @@ class ExactTronScheme:
             balance = self._signer.read_contract(
                 address=requirements.asset,
                 function_name="balanceOf",
-                *[auth.get("from", "")],
+                args=[auth.get("from", "")],
             )
             if int(balance) < int(requirements.amount):
                 return VerifyResponse(
@@ -200,29 +200,31 @@ class ExactTronScheme:
                 payer=payer,
             )
 
-        # Parse signature into v, r, s
+        # Parse signature into v, r, s  (same as TS: cleanSig.slice(0,64) etc.)
         signature = raw.get("signature", "")
-        clean_sig = signature.lstrip("0x")
-        r = "0x" + clean_sig[:64]
-        s = "0x" + clean_sig[64:128]
-        v = int(clean_sig[128:130], 16)
+        clean_sig = signature.removeprefix("0x")
+        r = bytes.fromhex(clean_sig[:64])   # bytes32
+        s = bytes.fromhex(clean_sig[64:128])  # bytes32
+        v = int(clean_sig[128:130], 16)     # uint8
+        nonce_hex = auth.get("nonce", "0x" + "00" * 32)
+        nonce_bytes = bytes.fromhex(nonce_hex.removeprefix("0x"))  # bytes32
 
         try:
             tx = self._signer.write_contract(
                 address=requirements.asset,
                 function_name="transferWithAuthorization",
-                fee_limit=1_000_000_000,
-                *[
+                args=[
                     auth.get("from", ""),
                     auth.get("to", ""),
                     int(auth.get("value", 0)),
                     int(auth.get("validAfter", 0)),
                     int(auth.get("validBefore", 0)),
-                    auth.get("nonce", "0x" + "00" * 32),
+                    nonce_bytes,
                     v,
                     r,
                     s,
                 ],
+                fee_limit=1_000_000_000,
             )
 
             receipt = self._signer.wait_for_transaction_receipt(tx)
