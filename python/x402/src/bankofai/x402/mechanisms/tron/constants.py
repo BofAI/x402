@@ -57,3 +57,47 @@ ERR_INSUFFICIENT_FUNDS = "insufficient_funds"
 ERR_TRANSACTION_FAILED = "transaction_failed"
 ERR_INVALID_TRANSACTION_STATE = "invalid_transaction_state"
 ERR_UNKNOWN_NETWORK = "unknown_network"
+
+# Permit2-specific errors
+ERR_MISSING_PERMIT2_ADDRESS = "missing_permit2_address"
+ERR_INVALID_PERMIT2_SPENDER = "invalid_permit2_spender"
+ERR_PERMIT2_RECIPIENT_MISMATCH = "permit2_recipient_mismatch"
+ERR_INVALID_PERMIT2_FACILITATOR = "invalid_permit2_facilitator"
+ERR_PERMIT2_DEADLINE_EXPIRED = "permit2_deadline_expired"
+ERR_PERMIT2_NOT_YET_VALID = "permit2_not_yet_valid"
+ERR_PERMIT2_AMOUNT_MISMATCH = "permit2_amount_mismatch"
+ERR_PERMIT2_TOKEN_MISMATCH = "permit2_token_mismatch"
+ERR_PERMIT2_INVALID_SIGNATURE = "permit2_invalid_signature"
+ERR_PERMIT2_ALLOWANCE_REQUIRED = "permit2_allowance_required"
+
+# Permit2 contract addresses per TRON network
+PERMIT2_ADDRESSES: dict[str, str] = {
+    "tron:mainnet": "TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9",
+    "tron:nile": "TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h",
+}
+
+# x402ExactPermit2Proxy contract addresses
+X402_PERMIT2_PROXY_ADDRESSES: dict[str, str] = {
+    "tron:mainnet": "TSm6MSWHHBeABh22uqX7SU7QUweav4Cyy6",
+    "tron:nile": "TCd2ZSwbJBAdgFfP5d3gkhKcGs47WNZLLi",
+}
+
+# TIP-712 type definitions for Permit2 PermitWitnessTransferFrom
+PERMIT2_WITNESS_TYPES: dict = {
+    "PermitWitnessTransferFrom": [
+        {"name": "permitted", "type": "TokenPermissions"},
+        {"name": "spender", "type": "address"},
+        {"name": "nonce", "type": "uint256"},
+        {"name": "deadline", "type": "uint256"},
+        {"name": "witness", "type": "Witness"},
+    ],
+    "TokenPermissions": [
+        {"name": "token", "type": "address"},
+        {"name": "amount", "type": "uint256"},
+    ],
+    "Witness": [
+        {"name": "to", "type": "address"},
+        {"name": "facilitator", "type": "address"},
+        {"name": "validAfter", "type": "uint256"},
+    ],
+}
