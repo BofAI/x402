@@ -22,7 +22,6 @@ from ..constants import (
     ERR_PERMIT2_NOT_YET_VALID,
     ERR_PERMIT2_RECIPIENT_MISMATCH,
     ERR_PERMIT2_TOKEN_MISMATCH,
-    ERR_TRANSACTION_FAILED,
     PERMIT2_ADDRESSES,
     PERMIT2_WITNESS_TYPES,
     X402_PERMIT2_PROXY_ADDRESSES,
@@ -211,16 +210,6 @@ def settle_permit2(
     witness = auth.get("witness", {})
 
     # Build tuple args as actual Python tuples so TronPy's encode_single doesn't complain
-    permit_tuple = (
-        (str(permitted.get("token", "")), int(str(permitted.get("amount", 0)))),
-        int(str(auth.get("nonce", 0)), 0),
-        int(str(auth.get("deadline", 0))),
-    )
-    witness_tuple = (
-        str(witness.get("to", "")),
-        str(witness.get("facilitator", "")),
-        int(str(witness.get("validAfter", 0))),
-    )
     signature_hex = str(permit2_payload.get("signature", ""))
     signature_bytes = bytes.fromhex(signature_hex.removeprefix("0x"))
 
