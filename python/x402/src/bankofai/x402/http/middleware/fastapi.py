@@ -270,10 +270,14 @@ def payment_middleware(
 
         # Check if route requires payment (before initialization)
         if not http_server.requires_payment(context):
+            print(f"DEBUG: ROUTE {context.method} {context.path} DOES NOT REQUIRE PAYMENT. SKIPPING.", flush=True)
             return await call_next(request)
+
+        print(f"DEBUG: Middleware intercepted {context.method} {context.path}. Has header? {bool(context.payment_header)}", flush=True)
 
         # Initialize on first protected request
         if sync_facilitator_on_start and not init_done:
+            print("DEBUG: Initializing http_server...", flush=True)
             http_server.initialize()
             init_done = True
 
@@ -285,6 +289,7 @@ def payment_middleware(
 
         if result.type == "payment-error":
             # Return 402 response
+            print(f"DEBUG PAYMENT ERROR: {getattr(result.response, 'body', 'No Body') if result.response else 'No Response Object'}", flush=True)
             response = result.response
             if response is None:
                 return JSONResponse(
@@ -360,7 +365,10 @@ def payment_middleware(
                     media_type=response.media_type,
                 )
 
-            except Exception:
+            except Exception as _settle_exc:
+                import traceback
+                print(f"Middleware settlement threw an exception: {_settle_exc}", flush=True)
+                traceback.print_exc()
                 return JSONResponse(content={}, status_code=402)
 
         # Fallthrough - should not happen
