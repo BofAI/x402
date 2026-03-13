@@ -225,10 +225,12 @@ def settle_permit2(
     signature_bytes = bytes.fromhex(signature_hex.removeprefix("0x"))
 
     try:
-        tx = signer.write_contract(
+        # Use write_contract_with_abi to handle ABIEncoderV2
+        tx = signer.write_contract_with_abi(
             address=proxy_address,
             function_name="settle",
             args=[permit_tuple, payer, witness_tuple, signature_bytes],
+            abi=_get_permit2_proxy_abi(),
             fee_limit=1_000_000_000,
         )
 
@@ -253,3 +255,45 @@ def settle_permit2(
             network=network,
             payer=payer,
         )
+
+
+
+def _get_permit2_proxy_abi() -> list[dict[str, Any]]:
+    """Return the x402Permit2Proxy ABI for the settle function."""
+    return [
+        {
+            "type": "function",
+            "name": "settle",
+            "inputs": [
+                {
+                    "name": "permit",
+                    "type": "tuple",
+                    "components": [
+                        {
+                            "name": "permitted",
+                            "type": "tuple",
+                            "components": [
+                                {"name": "token", "type": "address"},
+                                {"name": "amount", "type": "uint256"},
+                            ],
+                        },
+                        {"name": "nonce", "type": "uint256"},
+                        {"name": "deadline", "type": "uint256"},
+                    ],
+                },
+                {"name": "owner", "type": "address"},
+                {
+                    "name": "witness",
+                    "type": "tuple",
+                    "components": [
+                        {"name": "to", "type": "address"},
+                        {"name": "facilitator", "type": "address"},
+                        {"name": "validAfter", "type": "uint256"},
+                    ],
+                },
+                {"name": "signature", "type": "bytes"},
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable",
+        }
+    ]

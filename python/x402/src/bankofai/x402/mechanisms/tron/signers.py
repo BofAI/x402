@@ -175,6 +175,64 @@ class FacilitatorTronSigner:
         result = txn.broadcast()
         return str(result.txid)
 
+    def write_contract_with_abi(
+        self,
+        address: str,
+        function_name: str,
+        args: list[Any],
+        abi: list[dict[str, Any]],
+        fee_limit: int = 1_000_000_000,
+    ) -> str:
+        """Execute a contract write call with explicit ABI and return the txid.
+
+        This method is needed for contracts using ABIEncoderV2 with complex types.
+
+        Args:
+            address: Contract address (Base58 or hex).
+            function_name: Function name to call.
+            args: List of function arguments.
+            abi: Contract ABI (list of function definitions).
+            fee_limit: Max fee in SUN (default 1000 TRX).
+
+        Returns:
+            Transaction hash string (txid).
+        """
+        # For ABIEncoderV2 contracts, we need to manually encode the function call
+        # and use triggersmartcontract directly
+        from tronpy.abi import trx_abi
+
+        # Find the function ABI
+        func_abi = None
+        for item in abi:
+            if item.get("name") == function_name and item.get("type") == "function":
+                func_abi = item
+                break
+
+        if not func_abi:
+            raise ValueError(f"Function {function_name} not found in ABI")
+
+        # Encode the function call
+        parameter = trx_abi.encode_single(
+            f"({','.join(inp['type'] for inp in func_abi['inputs'])})",
+            tuple(args)
+        ).hex()
+
+        # Build transaction using triggersmartcontract
+        txn = (
+            self._client.trx.trigger_smart_contract(
+                owner_address=self._address,
+                contract_address=address,
+                function_selector=f"{function_name}({','.join(inp['type'] for inp in func_abi['inputs'])})",
+                parameter=parameter,
+                fee_limit=fee_limit,
+            )
+        )
+
+        # Sign and broadcast
+        signed_txn = txn.sign(self._pk)
+        result = signed_txn.broadcast()
+        return str(result.txid)
+
     def wait_for_transaction_receipt(
         self, tx_hash: str, max_attempts: int = 30
     ) -> TronTransactionReceipt:
