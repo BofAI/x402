@@ -35,6 +35,10 @@ flask = ["flask>=3.0.0"]
 fastapi = ["fastapi[standard]>=0.115.0", "starlette>=0.27.0"]
 
 # Blockchain mechanisms - install based on which chains you need
+tron = [
+    "base58>=2.1.1",
+    "tronpy>=0.4.0",
+]
 evm = [
     "eth-abi>=5.0.0",
     "eth-keys>=0.5.0",
@@ -56,8 +60,8 @@ extensions = ["jsonschema>=4.0.0"]
 # Convenience bundles
 clients = ["bankofai.x402[httpx,requests]"]
 servers = ["bankofai.x402[flask,fastapi]"]
-mechanisms = ["bankofai.x402[evm,svm]"]
-all = ["bankofai.x402[httpx,requests,flask,fastapi,evm,svm,mcp,extensions]"]
+mechanisms = ["bankofai.x402[tron,evm,svm]"]
+all = ["bankofai.x402[httpx,requests,flask,fastapi,tron,evm,svm,mcp,extensions]"]
 
 [dependency-groups]
 dev = [
