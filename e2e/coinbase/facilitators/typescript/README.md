@@ -71,12 +71,12 @@ const facilitator = new x402Facilitator()
 ### Facilitator Setup
 
 ```typescript
-import { x402Facilitator } from "@x402/core/facilitator";
-import { ExactEvmFacilitator } from "@x402/evm";
-import { ExactEvmFacilitatorV1, NETWORKS as EVM_NETWORKS } from "@x402/evm/v1";
-import { ExactSvmFacilitator } from "@x402/svm";
-import { ExactSvmFacilitatorV1, NETWORKS as SVM_NETWORKS } from "@x402/svm/v1";
-import { ExactStellarFacilitator } from "@x402/stellar";
+import { x402Facilitator } from "@bankofai/x402-core/facilitator";
+import { ExactEvmFacilitator } from "@bankofai/x402-evm";
+import { ExactEvmFacilitatorV1, NETWORKS as EVM_NETWORKS } from "@bankofai/x402-evm/v1";
+import { ExactSvmFacilitator } from "@bankofai/x402-svm";
+import { ExactSvmFacilitatorV1, NETWORKS as SVM_NETWORKS } from "@bankofai/x402-svm/v1";
+import { ExactStellarFacilitator } from "@bankofai/x402-stellar";
 
 // Create facilitator with bazaar extension
 const facilitator = new x402Facilitator()
@@ -105,7 +105,7 @@ EVM_NETWORKS.forEach(network => {
 
 ```typescript
 import express from "express";
-import { createFacilitatorRouter } from "@x402/server/facilitator";
+import { createFacilitatorRouter } from "@bankofai/x402-server/facilitator";
 
 const app = express();
 app.use(express.json());
@@ -123,7 +123,7 @@ app.listen(port, () => {
 1. **Extension Registration** - Bazaar discovery
 2. **Comprehensive Network Support** - All EVM V1 networks, all SVM V1 networks
 3. **Wildcard Schemes** - Efficient V2 registration with `eip155:*`, `solana:*`, and `stellar:*`
-4. **HTTP Router Integration** - `@x402/server/facilitator` for Express
+4. **HTTP Router Integration** - `@bankofai/x402-server/facilitator` for Express
 5. **Real Signers** - Actual blockchain transaction submission
 6. **Multi-Protocol** - V1 and V2 side-by-side
 
@@ -177,13 +177,13 @@ pnpm start
 
 ## Package Dependencies
 
-- `@x402/core` - Core facilitator
-- `@x402/server` - Facilitator HTTP router
-- `@x402/evm` - EVM facilitator (V2)
-- `@x402/evm/v1` - EVM facilitator (V1) + NETWORKS
-- `@x402/svm` - SVM facilitator (V2)
-- `@x402/svm/v1` - SVM facilitator (V1) + NETWORKS
-- `@x402/stellar` - Stellar facilitator (V2, SEP-41)
+- `@bankofai/x402-core` - Core facilitator
+- `@bankofai/x402-server` - Facilitator HTTP router
+- `@bankofai/x402-evm` - EVM facilitator (V2)
+- `@bankofai/x402-evm/v1` - EVM facilitator (V1) + NETWORKS
+- `@bankofai/x402-svm` - SVM facilitator (V2)
+- `@bankofai/x402-svm/v1` - SVM facilitator (V1) + NETWORKS
+- `@bankofai/x402-stellar` - Stellar facilitator (V2, SEP-41)
 - `express` - HTTP server
 - `viem` - Ethereum transactions
 - `@solana/web3.js` - Solana transactions

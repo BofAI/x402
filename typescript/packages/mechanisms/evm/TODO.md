@@ -1,8 +1,8 @@
-# @x402/evm
+# @bankofai/x402-evm
 
 ## Overview
 
-The `@x402/evm` package provides EVM blockchain implementations for x402 payment schemes. It serves as the **reference implementation** for how mechanism packages should be structured, providing scheme clients, facilitators, and resource servers for EVM-compatible chains.
+The `@bankofai/x402-evm` package provides EVM blockchain implementations for x402 payment schemes. It serves as the **reference implementation** for how mechanism packages should be structured, providing scheme clients, facilitators, and resource servers for EVM-compatible chains.
 
 ## Current Implementation Status
 
@@ -60,15 +60,15 @@ Before implementing these expansions:
 2. **Follow the Reference Pattern**
    - Review how the exact scheme is implemented
    - Maintain consistency with the three-class export pattern
-   - Ensure compatibility with `@x402/core` abstractions
+   - Ensure compatibility with `@bankofai/x402-core` abstractions
 
 3. **Testing Requirements**
    - Unit tests for all new functionality
-   - Integration tests with `@x402/core`
+   - Integration tests with `@bankofai/x402-core`
    - E2E test implementation in `/e2e`
 
 ## Technical Notes
 
 - This package serves as the reference for other mechanism implementations (Solana, etc.)
-- All exports should extend the base classes from `@x402/core/types`
+- All exports should extend the base classes from `@bankofai/x402-core/types`
 - Maintain support for both x402 v1 and v2 protocols where applicable

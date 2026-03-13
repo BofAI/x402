@@ -20,7 +20,7 @@ Communicates with remote x402 facilitator services.
 ### Async
 
 ```python
-from x402.http import HTTPFacilitatorClient, FacilitatorConfig
+from bankofai.x402.http import HTTPFacilitatorClient, FacilitatorConfig
 
 facilitator = HTTPFacilitatorClient(
     FacilitatorConfig(url="https://x402.org/facilitator")
@@ -39,7 +39,7 @@ settle = await facilitator.settle(payload, requirements)
 ### Sync
 
 ```python
-from x402.http import HTTPFacilitatorClientSync
+from bankofai.x402.http import HTTPFacilitatorClientSync
 
 facilitator = HTTPFacilitatorClientSync(url="https://x402.org/facilitator")
 
@@ -50,7 +50,7 @@ result = facilitator.verify(payload, requirements)
 ### Authentication
 
 ```python
-from x402.http import FacilitatorConfig, AuthHeaders
+from bankofai.x402.http import FacilitatorConfig, AuthHeaders
 
 class MyAuth:
     async def get_auth_headers(self) -> AuthHeaders:
@@ -71,7 +71,7 @@ config = FacilitatorConfig(
 Encoding/decoding utilities:
 
 ```python
-from x402.http import (
+from bankofai.x402.http import (
     encode_payment_signature_header,
     decode_payment_signature_header,
     encode_payment_required_header,
@@ -90,7 +90,7 @@ payload = decode_payment_signature_header(header_value)
 ## Constants
 
 ```python
-from x402.http import (
+from bankofai.x402.http import (
     PAYMENT_SIGNATURE_HEADER,    # "PAYMENT-SIGNATURE"
     PAYMENT_REQUIRED_HEADER,     # "PAYMENT-REQUIRED"
     PAYMENT_RESPONSE_HEADER,     # "PAYMENT-RESPONSE"
@@ -109,7 +109,7 @@ from x402.http import (
 ## Route Configuration
 
 ```python
-from x402.http import RouteConfig, PaymentOption, RoutesConfig
+from bankofai.x402.http import RouteConfig, PaymentOption, RoutesConfig
 
 routes: RoutesConfig = {
     "GET /api/weather/*": RouteConfig(

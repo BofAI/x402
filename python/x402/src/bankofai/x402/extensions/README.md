@@ -5,7 +5,7 @@ Optional extensions that enhance the x402 payment protocol with additional funct
 ## Installation
 
 ```bash
-uv add x402[extensions]
+uv add bankofai.x402[extensions]
 ```
 
 ## Bazaar Discovery Extension
@@ -17,7 +17,7 @@ Enables facilitators to automatically catalog and index x402-enabled resources b
 Declare endpoint discovery metadata in route configuration:
 
 ```python
-from x402.extensions.bazaar import declare_discovery_extension
+from bankofai.x402.extensions.bazaar import declare_discovery_extension
 
 routes = {
     "GET /api/weather": {
@@ -70,7 +70,7 @@ routes = {
 Extract discovery information from payment requests:
 
 ```python
-from x402.extensions.bazaar import extract_discovery_info
+from bankofai.x402.extensions.bazaar import extract_discovery_info
 
 discovered = extract_discovery_info(payment_payload, payment_requirements)
 
@@ -83,7 +83,7 @@ if discovered:
 #### Validation
 
 ```python
-from x402.extensions.bazaar import validate_discovery_extension
+from bankofai.x402.extensions.bazaar import validate_discovery_extension
 
 result = validate_discovery_extension(extension)
 if not result.valid:
@@ -95,7 +95,7 @@ if not result.valid:
 Auto-enrich extensions with HTTP method from route:
 
 ```python
-from x402.extensions.bazaar import bazaar_resource_server_extension
+from bankofai.x402.extensions.bazaar import bazaar_resource_server_extension
 
 server = x402ResourceServer(facilitator)
 server.register_extension(bazaar_resource_server_extension)

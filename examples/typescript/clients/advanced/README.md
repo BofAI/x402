@@ -3,8 +3,8 @@
 Advanced patterns for x402 TypeScript clients demonstrating builder pattern registration, payment lifecycle hooks, and network preferences.
 
 ```typescript
-import { x402Client, wrapFetchWithPayment } from "@x402/fetch";
-import { ExactEvmScheme } from "@x402/evm/exact/client";
+import { x402Client, wrapFetchWithPayment } from "@bankofai/x402-fetch";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 
 const client = new x402Client()
@@ -98,10 +98,10 @@ pnpm dev:builder-pattern
 Use the builder pattern for fine-grained control over which networks are supported and with which signers:
 
 ```typescript
-import { x402Client, wrapFetchWithPayment } from "@x402/fetch";
-import { ExactEvmScheme } from "@x402/evm/exact/client";
-import { ExactSvmScheme } from "@x402/svm/exact/client";
-import { ExactStellarScheme } from "@x402/stellar/exact/client";
+import { x402Client, wrapFetchWithPayment } from "@bankofai/x402-fetch";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
+import { ExactSvmScheme } from "@bankofai/x402-svm/exact/client";
+import { ExactStellarScheme } from "@bankofai/x402-stellar/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 
 const evmSigner = privateKeyToAccount(evmPrivateKey);
@@ -129,8 +129,8 @@ const response = await fetchWithPayment("http://localhost:4021/weather");
 Register custom logic at different payment stages for observability and control:
 
 ```typescript
-import { x402Client, wrapFetchWithPayment } from "@x402/fetch";
-import { ExactEvmScheme } from "@x402/evm/exact/client";
+import { x402Client, wrapFetchWithPayment } from "@bankofai/x402-fetch";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 
 const signer = privateKeyToAccount(process.env.EVM_PRIVATE_KEY);
@@ -172,10 +172,10 @@ Available hooks:
 Configure client-side network preferences with automatic fallback:
 
 ```typescript
-import { x402Client, wrapFetchWithPayment, type PaymentRequirements } from "@x402/fetch";
-import { ExactEvmScheme } from "@x402/evm/exact/client";
-import { ExactSvmScheme } from "@x402/svm/exact/client";
-import { ExactStellarScheme } from "@x402/stellar/exact/client";
+import { x402Client, wrapFetchWithPayment, type PaymentRequirements } from "@bankofai/x402-fetch";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
+import { ExactSvmScheme } from "@bankofai/x402-svm/exact/client";
+import { ExactStellarScheme } from "@bankofai/x402-stellar/exact/client";
 
 // Define network preference order (most preferred first)
 const networkPreferences = ["eip155:", "solana:", "stellar:"];

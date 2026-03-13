@@ -5,17 +5,17 @@ Server-side middleware for protecting routes with x402 payments.
 ## FastAPI (Async)
 
 ```bash
-uv add x402[fastapi]
+uv add bankofai.x402[fastapi]
 ```
 
 ### Basic Usage
 
 ```python
 from fastapi import FastAPI
-from x402 import x402ResourceServer
-from x402.http import HTTPFacilitatorClient
-from x402.http.middleware import payment_middleware
-from x402.mechanisms.evm.exact import ExactEvmServerScheme
+from bankofai.x402 import x402ResourceServer
+from bankofai.x402.http import HTTPFacilitatorClient
+from bankofai.x402.http.middleware import payment_middleware
+from bankofai.x402.mechanisms.evm.exact import ExactEvmServerScheme
 
 app = FastAPI()
 
@@ -46,7 +46,7 @@ async def x402_middleware(request, call_next):
 ### ASGI Middleware Class
 
 ```python
-from x402.http.middleware import PaymentMiddlewareASGI
+from bankofai.x402.http.middleware import PaymentMiddlewareASGI
 
 app.add_middleware(
     PaymentMiddlewareASGI,
@@ -69,17 +69,17 @@ async def weather(request: Request):
 ## Flask (Sync)
 
 ```bash
-uv add x402[flask]
+uv add bankofai.x402[flask]
 ```
 
 ### Basic Usage
 
 ```python
 from flask import Flask, g
-from x402 import x402ResourceServerSync
-from x402.http import HTTPFacilitatorClientSync
-from x402.http.middleware import PaymentMiddleware
-from x402.mechanisms.evm.exact import ExactEvmServerScheme
+from bankofai.x402 import x402ResourceServerSync
+from bankofai.x402.http import HTTPFacilitatorClientSync
+from bankofai.x402.http.middleware import PaymentMiddleware
+from bankofai.x402.mechanisms.evm.exact import ExactEvmServerScheme
 
 app = Flask(__name__)
 
@@ -112,7 +112,7 @@ def weather():
 ### Convenience Function
 
 ```python
-from x402.http.middleware import payment_middleware
+from bankofai.x402.http.middleware import payment_middleware
 
 payment_middleware(app, routes, server, paywall_config={"appName": "My API"})
 ```
@@ -152,7 +152,7 @@ Browser requests to protected routes show an HTML paywall. API requests receive 
 ## Custom Paywall
 
 ```python
-from x402.http import PaywallProvider
+from bankofai.x402.http import PaywallProvider
 
 class MyPaywall(PaywallProvider):
     def generate_html(self, payment_required, config):

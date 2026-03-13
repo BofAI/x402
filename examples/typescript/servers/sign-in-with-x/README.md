@@ -4,16 +4,16 @@ Express.js server demonstrating how to implement Sign-In-With-X authentication, 
 
 ```typescript
 import express from "express";
-import { paymentMiddlewareFromHTTPServer, x402ResourceServer, x402HTTPResourceServer } from "@x402/express";
-import { ExactEvmScheme } from "@x402/evm/exact/server";
-import { HTTPFacilitatorClient } from "@x402/core/server";
+import { paymentMiddlewareFromHTTPServer, x402ResourceServer, x402HTTPResourceServer } from "@bankofai/x402-express";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
+import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
 import {
   declareSIWxExtension,
   siwxResourceServerExtension,
   createSIWxSettleHook,
   createSIWxRequestHook,
   InMemorySIWxStorage,
-} from "@x402/extensions/sign-in-with-x";
+} from "@bankofai/x402-extensions/sign-in-with-x";
 
 const storage = new InMemorySIWxStorage();
 
@@ -132,7 +132,7 @@ const httpServer = new x402HTTPResourceServer(resourceServer, routes)
 This example uses in-memory storage (`InMemorySIWxStorage`). For production, implement persistent storage:
 
 ```typescript
-import { SIWxStorage } from "@x402/extensions/sign-in-with-x";
+import { SIWxStorage } from "@bankofai/x402-extensions/sign-in-with-x";
 
 class RedisSIWxStorage implements SIWxStorage {
   async recordPayment(address: string, resource: string): Promise<void> {

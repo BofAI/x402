@@ -4,12 +4,12 @@ FastAPI server demonstrating advanced x402 patterns including dynamic pricing, p
 
 ```python
 from fastapi import FastAPI
-from x402.http.middleware.fastapi import PaymentMiddlewareASGI
-from x402.http import HTTPFacilitatorClient, FacilitatorConfig, PaymentOption
-from x402.http.types import RouteConfig
-from x402.server import x402ResourceServer
-from x402.mechanisms.evm.exact import ExactEvmServerScheme
-from x402.mechanisms.svm.exact import ExactSvmServerScheme
+from bankofai.x402.http.middleware.fastapi import PaymentMiddlewareASGI
+from bankofai.x402.http import HTTPFacilitatorClient, FacilitatorConfig, PaymentOption
+from bankofai.x402.http.types import RouteConfig
+from bankofai.x402.server import x402ResourceServer
+from bankofai.x402.mechanisms.evm.exact import ExactEvmServerScheme
+from bankofai.x402.mechanisms.svm.exact import ExactSvmServerScheme
 
 app = FastAPI()
 
@@ -200,7 +200,7 @@ Network identifiers use [CAIP-2](https://github.com/ChainAgnostic/CAIPs/blob/mai
 Add a browser-based payment interface for human users:
 
 ```python
-from x402.http.paywall import create_paywall, evm_paywall, svm_paywall
+from bankofai.x402.http.paywall import create_paywall, evm_paywall, svm_paywall
 
 paywall = (
     create_paywall()
@@ -225,7 +225,7 @@ app.add_middleware(
 Enable AI agent discovery with structured input/output schemas:
 
 ```python
-from x402.extensions.bazaar import declare_discovery_extension, bazaar_resource_server_extension, OutputConfig
+from bankofai.x402.extensions.bazaar import declare_discovery_extension, bazaar_resource_server_extension, OutputConfig
 
 server.register_extension(bazaar_resource_server_extension)
 
@@ -308,7 +308,7 @@ RouteConfig(
 Add custom logic before/after payment verification and settlement:
 
 ```python
-from x402 import VerifyContext, SettleResultContext, AbortResult
+from bankofai.x402 import VerifyContext, SettleResultContext, AbortResult
 
 def before_verify_hook(context: VerifyContext) -> None | AbortResult:
     print(f"Verifying payment: {context}")
@@ -332,7 +332,7 @@ server.on_settle_failure(on_settle_failure_hook)
 Define custom token conversions for specific networks:
 
 ```python
-from x402.schemas import AssetAmount
+from bankofai.x402.schemas import AssetAmount
 
 def custom_money_parser(amount: float, network: str) -> AssetAmount | None:
     if network == "eip155:100":  # Gnosis Chain

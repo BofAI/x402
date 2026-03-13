@@ -5,7 +5,7 @@ MCP (Model Context Protocol) integration for the x402 payment protocol. This pac
 ## Installation
 
 ```bash
-pip install x402
+pip install bankofai.x402
 ```
 
 ## Quick Start
@@ -13,8 +13,8 @@ pip install x402
 ### Server - Using Payment Wrapper
 
 ```python
-from x402 import x402ResourceServerSync
-from x402.mcp import create_payment_wrapper, PaymentWrapperConfig
+from bankofai.x402 import x402ResourceServerSync
+from bankofai.x402.mcp import create_payment_wrapper, PaymentWrapperConfig
 
 # Create x402 resource server
 facilitator_client = # ... create facilitator client
@@ -46,8 +46,8 @@ def handler(args, context):
 ### Client - Using Factory Function
 
 ```python
-from x402.mcp import create_x402_mcp_client_from_config
-from x402.mechanisms.evm.exact import ExactEvmClientScheme
+from bankofai.x402.mcp import create_x402_mcp_client_from_config
+from bankofai.x402.mechanisms.evm.exact import ExactEvmClientScheme
 
 # Create MCP client (from MCP SDK)
 mcp_client = # ... create MCP client
@@ -96,7 +96,7 @@ x402_mcp = create_x402_mcp_client_from_config(
 Wraps an existing MCP client with x402 payment handling.
 
 ```python
-from x402 import x402ClientSync
+from bankofai.x402 import x402ClientSync
 
 payment_client = x402ClientSync()
 payment_client.register("eip155:84532", evm_client_scheme)
@@ -129,7 +129,7 @@ x402_mcp = wrap_mcp_client_with_payment_from_config(
 Creates a payment wrapper for MCP tool handlers.
 
 ```python
-from x402.mcp import PaymentWrapperHooks
+from bankofai.x402.mcp import PaymentWrapperHooks
 
 paid = create_payment_wrapper(
     resource_server,
@@ -149,7 +149,7 @@ paid = create_payment_wrapper(
 #### Error Handling
 
 ```python
-from x402.mcp import (
+from bankofai.x402.mcp import (
     create_payment_required_error,
     is_payment_required_error,
     extract_payment_required_from_error,
@@ -171,7 +171,7 @@ pr = extract_payment_required_from_error(json_rpc_error)
 #### Type Guards
 
 ```python
-from x402.mcp import is_object
+from bankofai.x402.mcp import is_object
 
 # Check if value is an object
 if is_object(value):

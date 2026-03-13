@@ -1,29 +1,30 @@
-# x402 Python SDK
+# bankofai.x402 Python SDK
 
 Core implementation of the x402 payment protocol. Provides transport-agnostic client, server, and facilitator components with both async and sync variants.
 
 ## Installation
 
-Install the core package with your preferred framework/client:
+Install the package with your preferred framework/client:
 
 ```bash
 # HTTP clients (pick one)
-uv add x402[httpx]      # httpx client
-uv add x402[requests]   # requests client
+uv add bankofai.x402[httpx]      # httpx client
+uv add bankofai.x402[requests]   # requests client
 
 # Server frameworks (pick one)
-uv add x402[fastapi]    # FastAPI middleware
-uv add x402[flask]      # Flask middleware
+uv add bankofai.x402[fastapi]    # FastAPI middleware
+uv add bankofai.x402[flask]      # Flask middleware
 
-# Blockchain mechanisms (pick one or both)
-uv add x402[evm]        # EVM/Ethereum
-uv add x402[svm]        # Solana
+# Blockchain mechanisms (pick one or all)
+uv add bankofai.x402[tron]       # TRON
+uv add bankofai.x402[evm]        # EVM/Ethereum/BSC
+uv add bankofai.x402[svm]        # Solana
 
 # Multiple extras
-uv add x402[fastapi,httpx,evm]
+uv add "bankofai.x402[fastapi,httpx,tron,evm]"
 
 # Everything
-uv add x402[all]
+uv add "bankofai.x402[all]"
 ```
 
 ## Quick Start
@@ -31,11 +32,14 @@ uv add x402[all]
 ### Client (Async)
 
 ```python
-from x402 import x402Client
-from x402.mechanisms.evm.exact import ExactEvmScheme
+from bankofai.x402 import x402Client
+from bankofai.x402.mechanisms.tron.exact import ExactTronScheme
+from bankofai.x402.mechanisms.evm.exact import ExactEvmScheme
 
 client = x402Client()
-client.register("eip155:*", ExactEvmScheme(signer=my_signer))
+# Register TRON and EVM handlers
+client.register("tron:*", ExactTronScheme(signer=my_tron_signer))
+client.register("eip155:*", ExactEvmScheme(signer=my_evm_signer))
 
 # Create payment from 402 response
 payload = await client.create_payment_payload(payment_required)
@@ -44,11 +48,11 @@ payload = await client.create_payment_payload(payment_required)
 ### Client (Sync)
 
 ```python
-from x402 import x402ClientSync
-from x402.mechanisms.evm.exact import ExactEvmScheme
+from bankofai.x402 import x402ClientSync
+from bankofai.x402.mechanisms.tron.exact import ExactTronScheme
 
 client = x402ClientSync()
-client.register("eip155:*", ExactEvmScheme(signer=my_signer))
+client.register("tron:*", ExactTronScheme(signer=my_tron_signer))
 
 payload = client.create_payment_payload(payment_required)
 ```
@@ -56,20 +60,20 @@ payload = client.create_payment_payload(payment_required)
 ### Server (Async)
 
 ```python
-from x402 import x402ResourceServer, ResourceConfig
-from x402.http import HTTPFacilitatorClient
-from x402.mechanisms.evm.exact import ExactEvmServerScheme
+from bankofai.x402 import x402ResourceServer, ResourceConfig
+from bankofai.x402.http import HTTPFacilitatorClient
+from bankofai.x402.mechanisms.tron.exact import ExactTronServerScheme
 
 facilitator = HTTPFacilitatorClient(url="https://x402.org/facilitator")
 server = x402ResourceServer(facilitator)
-server.register("eip155:*", ExactEvmServerScheme())
+server.register("tron:*", ExactTronServerScheme())
 server.initialize()
 
 # Build requirements
 config = ResourceConfig(
     scheme="exact",
-    network="eip155:8453",
-    pay_to="0x...",
+    network="tron:mainnet", # TRON Mainnet
+    pay_to="T...",
     price="$0.01",
 )
 requirements = server.build_payment_requirements(config)
@@ -81,13 +85,13 @@ result = await server.verify_payment(payload, requirements[0])
 ### Server (Sync)
 
 ```python
-from x402 import x402ResourceServerSync, ResourceConfig
-from x402.http import HTTPFacilitatorClientSync
-from x402.mechanisms.evm.exact import ExactEvmServerScheme
+from bankofai.x402 import x402ResourceServerSync, ResourceConfig
+from bankofai.x402.http import HTTPFacilitatorClientSync
+from bankofai.x402.mechanisms.tron.exact import ExactTronServerScheme
 
 facilitator = HTTPFacilitatorClientSync(url="https://x402.org/facilitator")
 server = x402ResourceServerSync(facilitator)
-server.register("eip155:*", ExactEvmServerScheme())
+server.register("tron:*", ExactTronServerScheme())
 server.initialize()
 
 result = server.verify_payment(payload, requirements[0])
@@ -96,13 +100,13 @@ result = server.verify_payment(payload, requirements[0])
 ### Facilitator (Async)
 
 ```python
-from x402 import x402Facilitator
-from x402.mechanisms.evm.exact import ExactEvmFacilitatorScheme
+from bankofai.x402 import x402Facilitator
+from bankofai.x402.mechanisms.tron.exact import ExactTronFacilitatorScheme
 
 facilitator = x402Facilitator()
 facilitator.register(
-    ["eip155:8453", "eip155:84532"],
-    ExactEvmFacilitatorScheme(wallet=wallet),
+    ["tron:mainnet", "tron:nile"], # Mainnet and Nile
+    ExactTronFacilitatorScheme(wallet=wallet),
 )
 
 result = await facilitator.verify(payload, requirements)
@@ -113,13 +117,13 @@ if result.is_valid:
 ### Facilitator (Sync)
 
 ```python
-from x402 import x402FacilitatorSync
-from x402.mechanisms.evm.exact import ExactEvmFacilitatorScheme
+from bankofai.x402 import x402FacilitatorSync
+from bankofai.x402.mechanisms.tron.exact import ExactTronFacilitatorScheme
 
 facilitator = x402FacilitatorSync()
 facilitator.register(
-    ["eip155:8453", "eip155:84532"],
-    ExactEvmFacilitatorScheme(wallet=wallet),
+    ["tron:mainnet"],
+    ExactTronFacilitatorScheme(wallet=wallet),
 )
 
 result = facilitator.verify(payload, requirements)
@@ -152,14 +156,16 @@ Mismatched variants raise `TypeError` at runtime.
 Use `from_config()` for declarative setup:
 
 ```python
-from x402 import x402Client, x402ClientConfig, SchemeRegistration
+from bankofai.x402 import x402Client, x402ClientConfig, SchemeRegistration
+from bankofai.x402.mechanisms.tron.exact import ExactTronScheme
+from bankofai.x402.mechanisms.evm.exact import ExactEvmScheme
 
 config = x402ClientConfig(
     schemes=[
-        SchemeRegistration(network="eip155:*", client=ExactEvmScheme(signer)),
-        SchemeRegistration(network="solana:*", client=ExactSvmScheme(signer)),
+        SchemeRegistration(network="tron:*", client=ExactTronScheme(tron_signer)),
+        SchemeRegistration(network="eip155:*", client=ExactEvmScheme(evm_signer)),
     ],
-    policies=[prefer_network("eip155:8453")],
+    policies=[prefer_network("tron:mainnet")],
 )
 client = x402Client.from_config(config)
 ```
@@ -169,11 +175,11 @@ client = x402Client.from_config(config)
 Filter or prioritize payment requirements:
 
 ```python
-from x402 import prefer_network, prefer_scheme, max_amount
+from bankofai.x402 import prefer_network, prefer_scheme, max_amount
 
-client.register_policy(prefer_network("eip155:8453"))
+client.register_policy(prefer_network("tron:mainnet"))
 client.register_policy(prefer_scheme("exact"))
-client.register_policy(max_amount(1_000_000))  # 1 USDC max
+client.register_policy(max_amount(1_000_000))  # 1 USDC (6 decimals) max
 ```
 
 ## Lifecycle Hooks
@@ -181,7 +187,7 @@ client.register_policy(max_amount(1_000_000))  # 1 USDC max
 ### Client Hooks
 
 ```python
-from x402 import AbortResult, RecoveredPayloadResult
+from bankofai.x402 import AbortResult, RecoveredPayloadResult
 
 def before_payment(ctx):
     print(f"Creating payment for: {ctx.selected_requirements.network}")

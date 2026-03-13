@@ -1,13 +1,13 @@
-# x402 Python Examples
+# bankofai.x402 Python Examples
 
-Examples for the x402 Python SDK.
+Examples for the bankofai.x402 Python SDK.
 
 ## Quick Start
 
 ```bash
 cd clients/httpx
 cp .env-local .env
-# Edit .env with your EVM_PRIVATE_KEY and/or SVM_PRIVATE_KEY
+# Edit .env with your TRON_PRIVATE_KEY, EVM_PRIVATE_KEY and/or SVM_PRIVATE_KEY
 uv sync
 uv run python main.py
 ```

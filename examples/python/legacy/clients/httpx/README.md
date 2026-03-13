@@ -31,7 +31,7 @@ uv run python extensible.py
 The simple approach uses `x402HttpxClient`, a pre-configured client that handles payments automatically:
 
 ```python
-from x402.clients import x402HttpxClient
+from bankofai.x402.clients import x402HttpxClient
 
 async with x402HttpxClient(account=account, base_url=base_url) as client:
     response = await client.get(endpoint_path)
@@ -42,7 +42,7 @@ async with x402HttpxClient(account=account, base_url=base_url) as client:
 The extensible approach uses `x402_payment_hooks` with your own httpx client:
 
 ```python
-from x402.clients import x402_payment_hooks
+from bankofai.x402.clients import x402_payment_hooks
 import httpx
 
 async with httpx.AsyncClient(base_url=base_url) as client:

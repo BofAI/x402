@@ -4,12 +4,12 @@ Flask server demonstrating how to protect API endpoints with a paywall using the
 
 ```python
 from flask import Flask, jsonify
-from x402.http.middleware.flask import payment_middleware
-from x402.http import HTTPFacilitatorClientSync, FacilitatorConfig, PaymentOption
-from x402.http.types import RouteConfig
-from x402.server import x402ResourceServerSync
-from x402.mechanisms.evm.exact import ExactEvmServerScheme
-from x402.mechanisms.svm.exact import ExactSvmServerScheme
+from bankofai.x402.http.middleware.flask import payment_middleware
+from bankofai.x402.http import HTTPFacilitatorClientSync, FacilitatorConfig, PaymentOption
+from bankofai.x402.http.types import RouteConfig
+from bankofai.x402.server import x402ResourceServerSync
+from bankofai.x402.mechanisms.evm.exact import ExactEvmServerScheme
+from bankofai.x402.mechanisms.svm.exact import ExactSvmServerScheme
 
 app = Flask(__name__)
 

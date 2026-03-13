@@ -1,10 +1,10 @@
-# @x402/core Custom Server
+# @bankofai/x402-core Custom Server
 
-Demonstrates how to implement x402 payment handling manually without using pre-built middleware packages like `@x402/express` or `@x402/hono`.
+Demonstrates how to implement x402 payment handling manually without using pre-built middleware packages like `@bankofai/x402-express` or `@bankofai/x402-hono`.
 
 ```typescript
-import { x402ResourceServer, HTTPFacilitatorClient } from "@x402/core/server";
-import { ExactEvmScheme } from "@x402/evm/exact/server";
+import { x402ResourceServer, HTTPFacilitatorClient } from "@bankofai/x402-core/server";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
 
 const resourceServer = new x402ResourceServer(
   new HTTPFacilitatorClient({ url: facilitatorUrl }),
@@ -273,7 +273,7 @@ res.set("PAYMENT-RESPONSE", settlementHeader);
 
 ## Middleware vs Custom Comparison
 
-| Aspect                 | With Middleware (@x402/express) | Custom Implementation |
+| Aspect                 | With Middleware (@bankofai/x402-express) | Custom Implementation |
 | ---------------------- | ------------------------------- | --------------------- |
 | Code Complexity        | ~10 lines                       | ~150 lines            |
 | Automatic Verification | ✅ Yes                          | ❌ Manual             |
@@ -285,7 +285,7 @@ res.set("PAYMENT-RESPONSE", settlementHeader);
 
 ## When to Use Each Approach
 
-**Use Middleware (@x402/express, @x402/hono) when:**
+**Use Middleware (@bankofai/x402-express, @bankofai/x402-hono) when:**
 
 - Building standard applications
 - Want quick integration

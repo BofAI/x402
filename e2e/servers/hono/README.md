@@ -23,10 +23,10 @@ This server demonstrates and tests the x402 Hono middleware with EVM, SVM, and o
 
 ```typescript
 import express from "express";
-import { x402Middleware } from "@x402/server/express";
-import { ExactEvmServer } from "@x402/evm";
-import { ExactEvmServer } from "@x402/svm";
-import { ExactStellarServer } from "@x402/stellar";
+import { x402Middleware } from "@bankofai/x402-server/express";
+import { ExactEvmServer } from "@bankofai/x402-evm";
+import { ExactEvmServer } from "@bankofai/x402-svm";
+import { ExactStellarServer } from "@bankofai/x402-stellar";
 
 const app = express();
 
@@ -170,11 +170,11 @@ PAYMENT-RESPONSE: <base64-encoded-settlement-response>
 
 ## Package Dependencies
 
-- `@x402/server` - Express middleware
-- `@x402/evm` - EVM service
-- `@x402/svm` - SVM service
-- `@x402/stellar` - Stellar server (optional)
-- `@x402/extensions/bazaar` - Discovery extension
+- `@bankofai/x402-server` - Express middleware
+- `@bankofai/x402-evm` - EVM service
+- `@bankofai/x402-svm` - SVM service
+- `@bankofai/x402-stellar` - Stellar server (optional)
+- `@bankofai/x402-extensions/bazaar` - Discovery extension
 - `hono` - HTTP server framework
 
 ## Implementation Highlights

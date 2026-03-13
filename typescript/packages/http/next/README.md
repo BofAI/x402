@@ -1,11 +1,11 @@
-# @x402/next
+# @bankofai/x402-next
 
 Next.js integration for the x402 Payment Protocol. This package allows you to easily add paywall functionality to your Next.js applications using the x402 protocol.
 
 ## Installation
 
 ```bash
-pnpm install @x402/next
+pnpm install @bankofai/x402-next
 ```
 
 ## Quick Start
@@ -15,13 +15,13 @@ pnpm install @x402/next
 Page routes are protected using the `paymentProxy`. Create a proxy (middleware) file in your Next.js project (`proxy.ts`):
 
 ```typescript
-import { paymentProxy, x402ResourceServer } from "@x402/next";
-import { HTTPFacilitatorClient } from "@x402/core/server";
-import { ExactEvmScheme } from "@x402/evm/exact/server";
+import { paymentProxy, x402ResourceServer } from "@bankofai/x402-next";
+import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
+import { ExactTronScheme } from "@bankofai/x402-tron/exact/server";
 
 const facilitatorClient = new HTTPFacilitatorClient({ url: "https://facilitator.x402.org" });
 const resourceServer = new x402ResourceServer(facilitatorClient)
-  .register("eip155:84532", new ExactEvmScheme());
+  .register("tron:mainnet", new ExactTronScheme());
 
 export const proxy = paymentProxy(
   {
@@ -29,8 +29,8 @@ export const proxy = paymentProxy(
       accepts: {
         scheme: "exact",
         price: "$0.01",
-        network: "eip155:84532",
-        payTo: "0xYourAddress",
+        network: "tron:mainnet",
+        payTo: "TYourTronAddress",
       },
       description: "Access to protected content",
     },
@@ -51,7 +51,7 @@ API routes are protected using the `withX402` route wrapper. This is the recomme
 ```typescript
 // app/api/your-endpoint/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { withX402 } from "@x402/next";
+import { withX402 } from "@bankofai/x402-next";
 
 const handler = async (_: NextRequest) => {
   return NextResponse.json({ data: "your response" });
@@ -124,7 +124,7 @@ withX402(
 
 ### NextAdapter
 
-The `NextAdapter` class implements the `HTTPAdapter` interface from `@x402/core`, providing Next.js-specific request handling:
+The `NextAdapter` class implements the `HTTPAdapter` interface from `@bankofai/x402-core`, providing Next.js-specific request handling:
 
 ```typescript
 class NextAdapter implements HTTPAdapter {
@@ -159,16 +159,16 @@ const routes: RoutesConfig = {
 ### Multiple Payment Networks
 
 ```typescript
-import { paymentProxy, x402ResourceServer } from "@x402/next";
-import { HTTPFacilitatorClient } from "@x402/core/server";
-import { registerExactEvmScheme } from "@x402/evm/exact/server";
-import { registerExactSvmScheme } from "@x402/svm/exact/server";
+import { paymentProxy, x402ResourceServer } from "@bankofai/x402-next";
+import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
+import { registerExactTronScheme } from "@bankofai/x402-tron/exact/server";
+import { registerExactEvmScheme } from "@bankofai/x402-evm/exact/server";
 
 const facilitatorClient = new HTTPFacilitatorClient({ url: facilitatorUrl });
 const server = new x402ResourceServer(facilitatorClient);
 
+registerExactTronScheme(server);
 registerExactEvmScheme(server);
-registerExactSvmScheme(server);
 
 export const middleware = paymentProxy(
   {
@@ -177,14 +177,14 @@ export const middleware = paymentProxy(
         {
           scheme: "exact",
           price: "$0.001",
-          network: "eip155:84532",
-          payTo: evmAddress,
+          network: "tron:mainnet",
+          payTo: tronAddress,
         },
         {
           scheme: "exact",
           price: "$0.001",
-          network: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
-          payTo: svmAddress,
+          network: "eip155:84532",
+          payTo: evmAddress,
         },
       ],
       description: "Premium content",
@@ -198,9 +198,9 @@ export const middleware = paymentProxy(
 ### Custom Paywall
 
 ```typescript
-import { createPaywall } from "@x402/paywall";
-import { evmPaywall } from "@x402/paywall/evm";
-import { svmPaywall } from "@x402/paywall/svm";
+import { createPaywall } from "@bankofai/x402-paywall";
+import { evmPaywall } from "@bankofai/x402-paywall/evm";
+import { svmPaywall } from "@bankofai/x402-paywall/svm";
 
 const paywall = createPaywall()
   .withNetwork(evmPaywall)
@@ -223,7 +223,7 @@ export const middleware = paymentProxy(
 
 If you're migrating from the legacy `x402-next` package:
 
-1. **Update imports**: Change from `x402-next` to `@x402/next`
+1. **Update imports**: Change from `x402-next` to `@bankofai/x402-next`
 2. **New API**: Create an x402ResourceServer and register payment schemes
 3. **Function rename**: `paymentMiddleware` is now `paymentProxy`
 4. **Parameter order**: Routes first, then resource server
@@ -247,12 +247,12 @@ export const middleware = paymentMiddleware(
 );
 ```
 
-### After (@x402/next):
+### After (@bankofai/x402-next):
 
 ```typescript
-import { paymentProxy, x402ResourceServer } from "@x402/next";
-import { HTTPFacilitatorClient } from "@x402/core/server";
-import { ExactEvmScheme } from "@x402/evm/exact/server";
+import { paymentProxy, x402ResourceServer } from "@bankofai/x402-next";
+import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
 
 const facilitator = new HTTPFacilitatorClient({ url: facilitatorUrl });
 const resourceServer = new x402ResourceServer(facilitator)

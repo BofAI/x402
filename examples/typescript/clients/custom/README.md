@@ -1,11 +1,11 @@
 # Custom x402 Client Implementation
 
-Demonstrates how to implement x402 payment handling manually using only the core packages, without convenience wrappers like `@x402/fetch` or `@x402/axios`.
+Demonstrates how to implement x402 payment handling manually using only the core packages, without convenience wrappers like `@bankofai/x402-fetch` or `@bankofai/x402-axios`.
 
 ```typescript
-import { x402Client } from "@x402/core/client";
-import { decodePaymentRequiredHeader, encodePaymentSignatureHeader } from "@x402/core/http";
-import { ExactEvmScheme } from "@x402/evm/exact/client";
+import { x402Client } from "@bankofai/x402-core/client";
+import { decodePaymentRequiredHeader, encodePaymentSignatureHeader } from "@bankofai/x402-core/http";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 
 const client = new x402Client().register(
@@ -103,9 +103,9 @@ pnpm dev
 ### 1. Setting Up the Client
 
 ```typescript
-import { x402Client } from "@x402/core/client";
-import { ExactEvmScheme } from "@x402/evm/exact/client";
-import { ExactSvmScheme } from "@x402/svm/exact/client";
+import { x402Client } from "@bankofai/x402-core/client";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
+import { ExactSvmScheme } from "@bankofai/x402-svm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 
 const evmSigner = privateKeyToAccount(evmPrivateKey);
@@ -124,7 +124,7 @@ const client = new x402Client(selectPayment)
 ### 2. Detecting Payment Required
 
 ```typescript
-import { decodePaymentRequiredHeader } from "@x402/core/http";
+import { decodePaymentRequiredHeader } from "@bankofai/x402-core/http";
 
 if (response.status === 402) {
   const paymentRequiredHeader = response.headers.get("PAYMENT-REQUIRED");
@@ -136,7 +136,7 @@ if (response.status === 402) {
 ### 3. Creating Payment Payload
 
 ```typescript
-import { encodePaymentSignatureHeader } from "@x402/core/http";
+import { encodePaymentSignatureHeader } from "@bankofai/x402-core/http";
 
 const paymentPayload = await client.createPaymentPayload(paymentRequired);
 const paymentHeader = encodePaymentSignatureHeader(paymentPayload);
@@ -155,7 +155,7 @@ const response = await fetch(url, {
 ### 5. Extracting Settlement
 
 ```typescript
-import { decodePaymentResponseHeader } from "@x402/core/http";
+import { decodePaymentResponseHeader } from "@bankofai/x402-core/http";
 
 const settlementHeader = response.headers.get("PAYMENT-RESPONSE");
 const settlement = decodePaymentResponseHeader(settlementHeader);
@@ -164,7 +164,7 @@ const settlement = decodePaymentResponseHeader(settlementHeader);
 
 ## Wrapper vs Custom Comparison
 
-| Aspect            | With Wrapper (@x402/fetch) | Custom Implementation |
+| Aspect            | With Wrapper (@bankofai/x402-fetch) | Custom Implementation |
 | ----------------- | -------------------------- | --------------------- |
 | Code Complexity   | ~10 lines                  | ~100 lines            |
 | Automatic Retry   | ✅ Yes                     | ❌ Manual             |

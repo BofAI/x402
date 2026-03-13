@@ -6,10 +6,10 @@ This directory contains TypeScript client examples demonstrating how to make HTT
 
 | Directory | Description |
 | --- | --- |
-| [`fetch/`](./fetch/) | Using `@x402/fetch` with the native Fetch API |
-| [`axios/`](./axios/) | Using `@x402/axios` with Axios |
+| [`fetch/`](./fetch/) | Using `@bankofai/x402-fetch` with the native Fetch API |
+| [`axios/`](./axios/) | Using `@bankofai/x402-axios` with Axios |
 | [`advanced/`](./advanced/) | Advanced patterns: lifecycle hooks, network preferences |
-| [`custom/`](./custom/) | Manual implementation using only `@x402/core` |
+| [`custom/`](./custom/) | Manual implementation using only `@bankofai/x402-core` |
 
 ## Framework Examples
 
@@ -33,7 +33,7 @@ These patterns are useful for production applications that need observability, c
 
 ## Custom Implementation
 
-The **custom** directory shows how to implement x402 payment handling manually using only `@x402/core`, without any client interceptors. Use this approach when:
+The **custom** directory shows how to implement x402 payment handling manually using only `@bankofai/x402-core`, without any client interceptors. Use this approach when:
 
 - You need complete control over the payment flow
 - You're integrating with an HTTP client we don't have a package for

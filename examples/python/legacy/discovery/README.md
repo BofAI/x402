@@ -39,7 +39,7 @@ The example demonstrates how to:
 import json
 import asyncio
 from datetime import datetime
-from x402.facilitator import FacilitatorClient
+from bankofai.x402.facilitator import FacilitatorClient
 from cdp.x402 import create_facilitator_config
 
 # Initialize facilitator client (no API keys required for discovery)

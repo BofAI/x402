@@ -30,7 +30,7 @@ app.use(
           {
             scheme: "exact",
             price: "$0.001",
-            network: "eip155:84532",
+            network: "eip155:97",
             payTo: evmAddress,
           },
           {
@@ -45,7 +45,7 @@ app.use(
       },
     },
     new x402ResourceServer(facilitatorClient)
-      .register("eip155:84532", new ExactEvmScheme())
+      .register("eip155:97", new ExactEvmScheme())
       .register("solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1", new ExactSvmScheme()),
   ),
 );

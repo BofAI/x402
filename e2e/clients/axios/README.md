@@ -1,6 +1,6 @@
 # E2E Test Client: TypeScript Axios
 
-This client demonstrates and tests the `@x402/axios` package with EVM, SVM, and Stellar payment support.
+This client demonstrates and tests the `@bankofai/x402-axios` package with EVM, SVM, and Stellar payment support.
 
 ## What It Tests
 
@@ -24,13 +24,13 @@ This client demonstrates and tests the `@x402/axios` package with EVM, SVM, and 
 
 ```typescript
 import axios from "axios";
-import { wrapAxiosWithPayment } from "@x402/axios";
-import { x402Client } from "@x402/core/client";
-import { ExactEvmClient } from "@x402/evm";
-import { ExactEvmClientV1 } from "@x402/evm/v1";
-import { ExactSvmClient } from "@x402/svm";
-import { ExactSvmClientV1 } from "@x402/svm/v1";
-import { ExactStellarClient } from "@x402/stellar";
+import { wrapAxiosWithPayment } from "@bankofai/x402-axios";
+import { x402Client } from "@bankofai/x402-core/client";
+import { ExactEvmClient } from "@bankofai/x402-evm";
+import { ExactEvmClientV1 } from "@bankofai/x402-evm/v1";
+import { ExactSvmClient } from "@bankofai/x402-svm";
+import { ExactSvmClientV1 } from "@bankofai/x402-svm/v1";
+import { ExactStellarClient } from "@bankofai/x402-stellar";
 
 // Build x402 client with direct registration
 const client = new x402Client()
@@ -117,12 +117,12 @@ pnpm start
 
 ## Package Dependencies
 
-- `@x402/axios` - Axios wrapper with payment handling
-- `@x402/core` - Core x402 client and types
-- `@x402/evm` - EVM payment mechanisms (V2)
-- `@x402/evm/v1` - EVM payment mechanisms (V1)
-- `@x402/svm` - SVM payment mechanisms (V2)
-- `@x402/svm/v1` - SVM payment mechanisms (V1)
-- `@x402/stellar` - Stellar payment mechanisms (V2)
+- `@bankofai/x402-axios` - Axios wrapper with payment handling
+- `@bankofai/x402-core` - Core x402 client and types
+- `@bankofai/x402-evm` - EVM payment mechanisms (V2)
+- `@bankofai/x402-evm/v1` - EVM payment mechanisms (V1)
+- `@bankofai/x402-svm` - SVM payment mechanisms (V2)
+- `@bankofai/x402-svm/v1` - SVM payment mechanisms (V1)
+- `@bankofai/x402-stellar` - Stellar payment mechanisms (V2)
 - `viem` - Ethereum library for account creation
 - `@solana/kit` - Solana keypair utilities

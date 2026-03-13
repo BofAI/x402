@@ -5,26 +5,22 @@ A utility package that extends Axios to automatically handle 402 Payment Require
 ## Installation
 
 ```bash
-pnpm install @x402/axios
+pnpm install @bankofai/x402-axios
 ```
 
 ## Quick Start
 
 ```typescript
 import axios from "axios";
-import { wrapAxiosWithPaymentFromConfig } from "@x402/axios";
-import { ExactEvmScheme } from "@x402/evm";
-import { privateKeyToAccount } from "viem/accounts";
-
-// Create an account
-const account = privateKeyToAccount("0xYourPrivateKey");
+import { wrapAxiosWithPaymentFromConfig } from "@bankofai/x402-axios";
+import { ExactTronScheme } from "@bankofai/x402-tron/exact/client";
 
 // Wrap the axios instance with payment handling
 const api = wrapAxiosWithPaymentFromConfig(axios.create(), {
   schemes: [
     {
-      network: "eip155:8453", // Base Mainnet
-      client: new ExactEvmScheme(account),
+      network: "tron:mainnet", // TRON Mainnet
+      client: new ExactTronScheme(tronSigner),
     },
   ],
 });
@@ -75,9 +71,9 @@ A wrapped Axios instance that automatically handles 402 responses by:
 ```typescript
 import { config } from "dotenv";
 import axios from "axios";
-import { wrapAxiosWithPaymentFromConfig, decodePaymentResponseHeader } from "@x402/axios";
+import { wrapAxiosWithPaymentFromConfig, decodePaymentResponseHeader } from "@bankofai/x402-axios";
 import { privateKeyToAccount } from "viem/accounts";
-import { ExactEvmScheme } from "@x402/evm";
+import { ExactEvmScheme } from "@bankofai/x402-evm";
 
 config();
 
@@ -119,9 +115,9 @@ For more control, you can use the builder pattern to register multiple schemes:
 
 ```typescript
 import axios from "axios";
-import { wrapAxiosWithPayment, x402Client } from "@x402/axios";
-import { ExactEvmScheme } from "@x402/evm/exact/client";
-import { ExactSvmScheme } from "@x402/svm/exact/client";
+import { wrapAxiosWithPayment, x402Client } from "@bankofai/x402-axios";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
+import { ExactSvmScheme } from "@bankofai/x402-svm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 import { createKeyPairSignerFromBytes } from "@solana/kit";
 import { base58 } from "@scure/base";
@@ -143,21 +139,21 @@ const api = wrapAxiosWithPayment(axios.create(), client);
 
 ```typescript
 import axios from "axios";
-import { wrapAxiosWithPaymentFromConfig } from "@x402/axios";
-import { ExactEvmScheme } from "@x402/evm";
-import { ExactSvmScheme } from "@x402/svm";
+import { wrapAxiosWithPaymentFromConfig } from "@bankofai/x402-axios";
+import { ExactTronScheme } from "@bankofai/x402-tron";
+import { ExactEvmScheme } from "@bankofai/x402-evm";
 
 const api = wrapAxiosWithPaymentFromConfig(axios.create(), {
   schemes: [
+    // TRON chains
+    {
+      network: "tron:mainnet", // TRON Mainnet
+      client: new ExactTronScheme(tronSigner),
+    },
     // EVM chains
     {
       network: "eip155:8453", // Base Mainnet
       client: new ExactEvmScheme(evmAccount),
-    },
-    // SVM chains
-    {
-      network: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1", // Solana devnet
-      client: new ExactSvmScheme(svmSigner),
     },
   ],
 });
@@ -167,8 +163,8 @@ const api = wrapAxiosWithPaymentFromConfig(axios.create(), {
 
 ```typescript
 import axios from "axios";
-import { wrapAxiosWithPaymentFromConfig, type SelectPaymentRequirements } from "@x402/axios";
-import { ExactEvmScheme } from "@x402/evm";
+import { wrapAxiosWithPaymentFromConfig, type SelectPaymentRequirements } from "@bankofai/x402-axios";
+import { ExactEvmScheme } from "@bankofai/x402-evm";
 
 // Custom selector that prefers the cheapest option
 const selectCheapestOption: SelectPaymentRequirements = (version, accepts) => {

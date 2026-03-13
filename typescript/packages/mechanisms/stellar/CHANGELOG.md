@@ -1,4 +1,4 @@
-# @x402/stellar Changelog
+# @bankofai/x402-stellar Changelog
 
 ## 2.6.0
 

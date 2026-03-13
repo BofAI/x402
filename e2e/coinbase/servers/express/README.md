@@ -23,10 +23,10 @@ This server demonstrates and tests the x402 Express.js middleware with EVM, SVM,
 
 ```typescript
 import express from "express";
-import { x402Middleware } from "@x402/server/express";
-import { ExactEvmServer } from "@x402/evm";
-import { ExactSvmServer } from "@x402/svm";
-import { ExactStellarServer } from "@x402/stellar";
+import { x402Middleware } from "@bankofai/x402-server/express";
+import { ExactEvmServer } from "@bankofai/x402-evm";
+import { ExactSvmServer } from "@bankofai/x402-svm";
+import { ExactStellarServer } from "@bankofai/x402-stellar";
 
 const app = express();
 
@@ -170,11 +170,11 @@ PAYMENT-RESPONSE: <base64-encoded-settlement-response>
 
 ## Package Dependencies
 
-- `@x402/server` - Express middleware
-- `@x402/evm` - EVM server
-- `@x402/svm` - SVM server
-- `@x402/stellar` - Stellar server
-- `@x402/extensions/bazaar` - Discovery extension
+- `@bankofai/x402-server` - Express middleware
+- `@bankofai/x402-evm` - EVM server
+- `@bankofai/x402-svm` - SVM server
+- `@bankofai/x402-stellar` - Stellar server
+- `@bankofai/x402-extensions/bazaar` - Discovery extension
 - `express` - HTTP server framework
 
 ## Implementation Highlights

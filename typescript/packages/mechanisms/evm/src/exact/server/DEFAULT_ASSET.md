@@ -58,7 +58,7 @@ If no `assetTransferMethod` is specified, the client defaults to **EIP-3009**. T
 For tokens that don't support EIP-3009 and aren't in the default config, use the `registerMoneyParser` method to specify Permit2:
 
 ```typescript
-import { ExactEvmScheme } from "@x402/evm/exact/server";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
 
 const server = new ExactEvmScheme();
 
@@ -107,8 +107,8 @@ When a server specifies `assetTransferMethod: "permit2"`, clients must:
 
 1. **One-time approval**: Approve the Permit2 contract to spend their tokens
    ```typescript
-   // Using @x402/evm helpers
-   import { createPermit2ApprovalTx, PERMIT2_ADDRESS } from "@x402/evm";
+   // Using @bankofai/x402-evm helpers
+   import { createPermit2ApprovalTx, PERMIT2_ADDRESS } from "@bankofai/x402-evm";
    
    const tx = createPermit2ApprovalTx(tokenAddress);
    await walletClient.sendTransaction(tx);

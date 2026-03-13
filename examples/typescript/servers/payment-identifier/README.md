@@ -14,12 +14,12 @@ import {
   paymentMiddlewareFromHTTPServer,
   x402ResourceServer,
   x402HTTPResourceServer,
-} from "@x402/express";
+} from "@bankofai/x402-express";
 import {
   declarePaymentIdentifierExtension,
   extractPaymentIdentifier,
   PAYMENT_IDENTIFIER,
-} from "@x402/extensions/payment-identifier";
+} from "@bankofai/x402-extensions/payment-identifier";
 
 // In-memory cache (use Redis in production)
 const idempotencyCache = new Map<string, { timestamp: number; response: unknown }>();
