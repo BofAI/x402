@@ -59,3 +59,28 @@ def register_exact_tron_server(
     for network in networks:
         server.register(network, scheme)
     return server
+
+
+def register_exact_tron_client(
+    client: Any,
+    signer: Any,
+    networks: str | list[str] = "tron:nile",
+) -> Any:
+    """Register TRON exact client scheme to an x402Client.
+
+    Args:
+        client: x402Client or x402ClientSync instance.
+        signer: ClientTronSigner instance.
+        networks: TRON network(s) to register.
+
+    Returns:
+        Client for chaining.
+    """
+    from .client import ExactTronClientScheme
+
+    scheme = ExactTronClientScheme(signer)
+    if isinstance(networks, str):
+        networks = [networks]
+    for network in networks:
+        client.register(network, scheme)
+    return client
