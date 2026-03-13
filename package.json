@@ -1,4 +1,8 @@
 {
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BofAI/x402.git"
+  },
   "packageManager": "pnpm@10.7.0"
 }

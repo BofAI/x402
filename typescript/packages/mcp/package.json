@@ -19,7 +19,7 @@
   "keywords": [],
   "license": "Apache-2.0",
   "author": "bankofai",
-  "repository": "https://github.com/bankofai/x402",
+  "repository": "https://github.com/BofAI/x402",
   "description": "x402 Payment Protocol",
   "bin": {
     "x402": "./bin/x402.js",

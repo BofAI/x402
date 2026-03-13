@@ -8,6 +8,11 @@
   "private": "true",
   "version": "0.0.2",
   "description": "x402 Payment Protocol Monorepo",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BofAI/x402.git",
+    "directory": "typescript"
+  },
   "main": "index.js",
   "pnpm": {
     "overrides": {
