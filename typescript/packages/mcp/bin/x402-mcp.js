@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 const { spawnSync } = require("node:child_process");
 const path = require("node:path");
+const { createRequire } = require("node:module");
 
 const entryPath = path.resolve(__dirname, "../src/command/mcp-server.ts");
 const packageRoot = path.resolve(__dirname, "..");
-const tsxLoaderPath = path.resolve(packageRoot, "node_modules/tsx/dist/loader.mjs");
+const requireFromPackage = createRequire(path.join(packageRoot, "package.json"));
+const tsxLoaderPath = requireFromPackage.resolve("tsx");
 
 const result = spawnSync(
   process.execPath,
