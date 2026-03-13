@@ -1,6 +1,6 @@
 {
   "name": "@bankofai/x402-tron",
-  "version": "2.6.0-beta.1",
+  "version": "2.6.0-beta.4",
   "description": "x402 payment mechanism for TRON (TRC-20 tokens via eip3009-style TransferWithAuthorization and Permit2)",
   "license": "Apache-2.0",
   "repository": {
