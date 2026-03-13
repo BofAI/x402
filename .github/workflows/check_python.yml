@@ -23,7 +23,7 @@ jobs:
         run: uv sync --all-extras --dev
 
       - name: Run Tests
-        run: uv run pytest
+        run: uv run python scripts/run_pytest.py
 
   lint-python:
     runs-on: ubuntu-latest

@@ -99,7 +99,7 @@
     "lint:check": "eslint . --ext .ts"
   },
   "dependencies": {
-    "@bankofai/x402-core": "2.6.0-beta.1",
+    "@bankofai/x402-core": "workspace:*",
     "tronweb": "^6.1.0"
   },
   "devDependencies": {

@@ -1,5 +1,10 @@
 version = 1
+revision = 1
 requires-python = ">=3.10"
+resolution-markers = [
+    "python_full_version == '3.14.*'",
+    "python_full_version != '3.14.*'",
+]
 
 [[package]]
 name = "aiohappyeyeballs"
@@ -176,6 +181,15 @@ wheels = [
 ]
 
 [[package]]
+name = "asn1crypto"
+version = "1.5.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/de/cf/d547feed25b5244fcb9392e288ff9fdc3280b10260362fc45d37a798a6ee/asn1crypto-1.5.1.tar.gz", hash = "sha256:13ae38502be632115abf8a24cbe5f4da52e3b5231990aff31123c805306ccb9c", size = 121080 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c9/7f/09065fd9e27da0eda08b4d6897f1c13535066174cc023af248fc2a8d5e5a/asn1crypto-1.5.1-py2.py3-none-any.whl", hash = "sha256:db4e40728b728508912cbb3d44f19ce188f218e9eba635821bb4b68564f8fd67", size = 105045 },
+]
+
+[[package]]
 name = "async-timeout"
 version = "5.0.1"
 source = { registry = "https://pypi.org/simple" }
@@ -214,6 +228,7 @@ dependencies = [
 
 [package.optional-dependencies]
 all = [
+    { name = "base58" },
     { name = "eth-abi" },
     { name = "eth-account" },
     { name = "eth-keys" },
@@ -227,6 +242,7 @@ all = [
     { name = "solana" },
     { name = "solders" },
     { name = "starlette" },
+    { name = "tronpy" },
     { name = "web3" },
 ]
 clients = [
@@ -257,12 +273,14 @@ mcp = [
     { name = "mcp" },
 ]
 mechanisms = [
+    { name = "base58" },
     { name = "eth-abi" },
     { name = "eth-account" },
     { name = "eth-keys" },
     { name = "eth-utils" },
     { name = "solana" },
     { name = "solders" },
+    { name = "tronpy" },
     { name = "web3" },
 ]
 requests = [
@@ -276,6 +294,10 @@ servers = [
 svm = [
     { name = "solana" },
     { name = "solders" },
+]
+tron = [
+    { name = "base58" },
+    { name = "tronpy" },
 ]
 
 [package.dev-dependencies]
@@ -305,10 +327,11 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "bankofai-x402", extras = ["evm", "svm"], marker = "extra == 'mechanisms'" },
     { name = "bankofai-x402", extras = ["flask", "fastapi"], marker = "extra == 'servers'" },
     { name = "bankofai-x402", extras = ["httpx", "requests"], marker = "extra == 'clients'" },
-    { name = "bankofai-x402", extras = ["httpx", "requests", "flask", "fastapi", "evm", "svm", "mcp", "extensions"], marker = "extra == 'all'" },
+    { name = "bankofai-x402", extras = ["httpx", "requests", "flask", "fastapi", "tron", "evm", "svm", "mcp", "extensions"], marker = "extra == 'all'" },
+    { name = "bankofai-x402", extras = ["tron", "evm", "svm"], marker = "extra == 'mechanisms'" },
+    { name = "base58", marker = "extra == 'tron'", specifier = ">=2.1.1" },
     { name = "eth-abi", marker = "extra == 'evm'", specifier = ">=5.0.0" },
     { name = "eth-account", marker = "extra == 'evm'", specifier = ">=0.12.0" },
     { name = "eth-keys", marker = "extra == 'evm'", specifier = ">=0.5.0" },
@@ -324,9 +347,11 @@ requires-dist = [
     { name = "solana", marker = "extra == 'svm'", specifier = ">=0.36.0" },
     { name = "solders", marker = "extra == 'svm'", specifier = ">=0.27.0" },
     { name = "starlette", marker = "extra == 'fastapi'", specifier = ">=0.27.0" },
+    { name = "tronpy", marker = "extra == 'tron'", specifier = ">=0.4.0" },
     { name = "typing-extensions", specifier = ">=4.0.0" },
     { name = "web3", marker = "extra == 'evm'", specifier = ">=7.0.0" },
 ]
+provides-extras = ["httpx", "requests", "flask", "fastapi", "tron", "evm", "svm", "mcp", "extensions", "clients", "servers", "mechanisms", "all"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -351,6 +376,15 @@ dev = [
     { name = "starlette", specifier = ">=0.27.0" },
     { name = "towncrier", specifier = ">=24.8.0,<25" },
     { name = "web3", specifier = ">=7.0.0" },
+]
+
+[[package]]
+name = "base58"
+version = "2.1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7f/45/8ae61209bb9015f516102fa559a2914178da1d5868428bd86a1b4421141d/base58-2.1.1.tar.gz", hash = "sha256:c5d0cb3f5b6e81e8e35da5754388ddcc6d0d14b6c6a132cb93d69ed580a7278c", size = 6528 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4a/45/ec96b29162a402fc4c1c5512d114d7b3787b9d1c2ec241d9568b4816ee23/base58-2.1.1-py3-none-any.whl", hash = "sha256:11a36f4d3ce51dfc1043f3218591ac4eb1ceb172919cebe05b52a5bcc8d245c2", size = 5621 },
 ]
 
 [[package]]
@@ -768,6 +802,48 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/3d/fa/656b739db8587d7b5dfa22e22ed02566950fbfbcdc20311993483657a5c0/click-8.3.1.tar.gz", hash = "sha256:12ff4785d337a1bb490bb7e9c2b1ee5da3112e94a8622f26a6c77f5d2fc6842a", size = 295065 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/98/78/01c019cdb5d6498122777c1a43056ebb3ebfeef2076d9d026bfe15583b2b/click-8.3.1-py3-none-any.whl", hash = "sha256:981153a64e25f12d547d3426c367a4857371575ee7ad18df2a6183ab0545b2a6", size = 108274 },
+]
+
+[[package]]
+name = "coincurve"
+version = "20.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "asn1crypto" },
+    { name = "cffi" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d9/4c/9e5e51e6c12cec6444c86697992f9c6ccffa19f84d042ff939c8b89206ff/coincurve-20.0.0.tar.gz", hash = "sha256:872419e404300302e938849b6b92a196fabdad651060b559dc310e52f8392829", size = 122865 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/14/0c/f6a8b06f461089aeab441824134ea5d5824dba3acaac0a9dbf8444cbe1d6/coincurve-20.0.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:d559b22828638390118cae9372a1bb6f6594f5584c311deb1de6a83163a0919b", size = 1255634 },
+    { url = "https://files.pythonhosted.org/packages/62/c2/0dbabd2c6648f49f730fdcbba84c53b5ffaf452fca85c750633141fe049c/coincurve-20.0.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:33d7f6ebd90fcc550f819f7f2cce2af525c342aac07f0ccda46ad8956ad9d99b", size = 1255532 },
+    { url = "https://files.pythonhosted.org/packages/f5/77/c4fa50f8cb5d050a9bcab806503acdd1705b0dfb5c554eed15cc18bc12e8/coincurve-20.0.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:22d70dd55d13fd427418eb41c20fde0a20a5e5f016e2b1bb94710701e759e7e0", size = 1191928 },
+    { url = "https://files.pythonhosted.org/packages/a3/11/6254ea354a32a3a1d70722daf58f2ebf0f689f0940eaced5127233416553/coincurve-20.0.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:46f18d481eaae72c169f334cde1fd22011a884e0c9c6adc3fdc1fd13df8236a3", size = 1194364 },
+    { url = "https://files.pythonhosted.org/packages/a7/a9/d8717d41eb02688691adc30d7348f7c5fdc78e977f4cea83ee84622050b5/coincurve-20.0.0-cp310-cp310-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:9de1ec57f43c3526bc462be58fb97910dc1fdd5acab6c71eda9f9719a5bd7489", size = 1204658 },
+    { url = "https://files.pythonhosted.org/packages/55/13/40923832d99c18fb01a00f83e5f6f702156e71cc0eb5d6281535eee662af/coincurve-20.0.0-cp310-cp310-musllinux_1_1_aarch64.whl", hash = "sha256:a6f007c44c726b5c0b3724093c0d4fb8e294f6b6869beb02d7473b21777473a3", size = 1215298 },
+    { url = "https://files.pythonhosted.org/packages/4d/87/646462a7a7810c7a3dcadae8969e1b78d535bcff072c26b17588e93a39b8/coincurve-20.0.0-cp310-cp310-musllinux_1_1_i686.whl", hash = "sha256:0ff1f3b81330db5092c24da2102e4fcba5094f14945b3eb40746456ceabdd6d9", size = 1204504 },
+    { url = "https://files.pythonhosted.org/packages/01/58/fbb9a312d559aee701491435b691e409fb0efa12eabf269ff651d537fed4/coincurve-20.0.0-cp310-cp310-musllinux_1_1_x86_64.whl", hash = "sha256:82f7de97694d9343f26bd1c8e081b168e5f525894c12445548ce458af227f536", size = 1209298 },
+    { url = "https://files.pythonhosted.org/packages/ee/d0/1d5679c000b31f3b32512632d98571f2bb752cd25c127d6f5bf3711b6eae/coincurve-20.0.0-cp310-cp310-win_amd64.whl", hash = "sha256:e905b4b084b4f3b61e5a5d58ac2632fd1d07b7b13b4c6d778335a6ca1dafd7a3", size = 1198934 },
+    { url = "https://files.pythonhosted.org/packages/a3/f6/8c1499f730fac49ec13740fb1c015ce8082fa6b917790056988559f22212/coincurve-20.0.0-cp310-cp310-win_arm64.whl", hash = "sha256:3657bb5ed0baf1cf8cf356e7d44aa90a7902cc3dd4a435c6d4d0bed0553ad4f7", size = 1193319 },
+    { url = "https://files.pythonhosted.org/packages/24/a7/d60a41b3f0a546854c9b7ca65ab99a5fdf1c9e158ae264a580de8f23fd1c/coincurve-20.0.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:44087d1126d43925bf9a2391ce5601bf30ce0dba4466c239172dc43226696018", size = 1255635 },
+    { url = "https://files.pythonhosted.org/packages/b7/4a/727fab66c0fbecfd7beeb38467910bd3652a77df649565e30160a9d2bae2/coincurve-20.0.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:5ccf0ba38b0f307a9b3ce28933f6c71dc12ef3a0985712ca09f48591afd597c8", size = 1255536 },
+    { url = "https://files.pythonhosted.org/packages/0f/8b/25d4ae5bb60665023e6d71681fada88ee95b5010dae6fc0b44d8b23b8df1/coincurve-20.0.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:566bc5986debdf8572b6be824fd4de03d533c49f3de778e29f69017ae3fe82d8", size = 1191928 },
+    { url = "https://files.pythonhosted.org/packages/0d/86/8c32c512fa27bfe7cfe70329fd43ebac23c0c8cec202cf6e4f52854e7ce3/coincurve-20.0.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f4d70283168e146f025005c15406086513d5d35e89a60cf4326025930d45013a", size = 1194365 },
+    { url = "https://files.pythonhosted.org/packages/fe/74/fefbe512f54df7d02a7ea4821b87cf199a91b3565cdf0c94448b3f6b1af1/coincurve-20.0.0-cp311-cp311-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:763c6122dd7d5e7a81c86414ce360dbe9a2d4afa1ca6c853ee03d63820b3d0c5", size = 1204658 },
+    { url = "https://files.pythonhosted.org/packages/09/68/05b29f881f628ce8e8468f5f7420f6c4d7c129f43964e81d15bf388ae67a/coincurve-20.0.0-cp311-cp311-musllinux_1_1_aarch64.whl", hash = "sha256:f00c361c356bcea386d47a191bb8ac60429f4b51c188966a201bfecaf306ff7f", size = 1215301 },
+    { url = "https://files.pythonhosted.org/packages/ee/5d/d91549cf5a163797b0724dc2dcd551b908b6beddb6598b37743df7f6f3ec/coincurve-20.0.0-cp311-cp311-musllinux_1_1_i686.whl", hash = "sha256:4af57bdadd2e64d117dd0b33cfefe76e90c7a6c496a7b034fc65fd01ec249b15", size = 1204505 },
+    { url = "https://files.pythonhosted.org/packages/37/0f/898022e08760fb57d281f3695576e859b0f8a8ac629670223d9066c3f60d/coincurve-20.0.0-cp311-cp311-musllinux_1_1_x86_64.whl", hash = "sha256:a26437b7cbde13fb6e09261610b788ca2a0ca2195c62030afd1e1e0d1a62e035", size = 1209305 },
+    { url = "https://files.pythonhosted.org/packages/57/b9/643567d3f680ddf8d1bf10a56112ae7755296500d8eaaef498be637a8533/coincurve-20.0.0-cp311-cp311-win_amd64.whl", hash = "sha256:ed51f8bba35e6c7676ad65539c3dbc35acf014fc402101fa24f6b0a15a74ab9e", size = 1198932 },
+    { url = "https://files.pythonhosted.org/packages/b3/3a/898f5c12469b292042608dd0702bcb0420ec32bac6b1ca2a0dd790f922bd/coincurve-20.0.0-cp311-cp311-win_arm64.whl", hash = "sha256:594b840fc25d74118407edbbbc754b815f1bba9759dbf4f67f1c2b78396df2d3", size = 1193318 },
+    { url = "https://files.pythonhosted.org/packages/8f/24/e1bf259dd57186fbdc7cec51909db320884162cfad5ec72cbaa63573ff9d/coincurve-20.0.0-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:4df4416a6c0370d777aa725a25b14b04e45aa228da1251c258ff91444643f688", size = 1255671 },
+    { url = "https://files.pythonhosted.org/packages/0a/c5/1817f87d1cd5ff50d8537fe60fb96f66b76dd02da885d970952e6189a801/coincurve-20.0.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:1ccc3e4db55abf3fc0e604a187fdb05f0702bc5952e503d9a75f4ae6eeb4cb3a", size = 1255565 },
+    { url = "https://files.pythonhosted.org/packages/90/9f/35e15f993717ed1dcc4c26d9771f073a1054af26808a0f421783bb4cd7e0/coincurve-20.0.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ac8335b1658a2ef5b3eb66d52647742fe8c6f413ad5b9d5310d7ea6d8060d40f", size = 1191953 },
+    { url = "https://files.pythonhosted.org/packages/4a/3d/6a9bc32e69b738b5e05f5027bace1da6722352a4a447e495d3c03a601d99/coincurve-20.0.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c7ac025e485a0229fd5394e0bf6b4a75f8a4f6cee0dcf6f0b01a2ef05c5210ff", size = 1194425 },
+    { url = "https://files.pythonhosted.org/packages/1a/a6/15424973dc47fc7c87e3c0f8859f6f1b1032582ee9f1b85fdd5d1e33d630/coincurve-20.0.0-cp312-cp312-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:e46e3f1c21b3330857bcb1a3a5b942f645c8bce912a8a2b252216f34acfe4195", size = 1204678 },
+    { url = "https://files.pythonhosted.org/packages/6a/e7/71ddb4d66c11c4ad13e729362f8852e048ae452eba3dfcf57751842bb292/coincurve-20.0.0-cp312-cp312-musllinux_1_1_aarch64.whl", hash = "sha256:df9ff9b17a1d27271bf476cf3fa92df4c151663b11a55d8cea838b8f88d83624", size = 1215395 },
+    { url = "https://files.pythonhosted.org/packages/b9/7d/03e0a19cfff1d86f5d019afc69cfbff02caada701ed5a4a50abc63d4261c/coincurve-20.0.0-cp312-cp312-musllinux_1_1_i686.whl", hash = "sha256:4155759f071375699282e03b3d95fb473ee05c022641c077533e0d906311e57a", size = 1204552 },
+    { url = "https://files.pythonhosted.org/packages/07/cd/e9bd4ca7d931653a35c74194da04191a9aecc54b8f48a554cd538dc810e4/coincurve-20.0.0-cp312-cp312-musllinux_1_1_x86_64.whl", hash = "sha256:0530b9dd02fc6f6c2916716974b79bdab874227f560c422801ade290e3fc5013", size = 1209392 },
+    { url = "https://files.pythonhosted.org/packages/99/54/260053f14f74b99b645084231e1c76994134ded49407a3bba23a8ffc0ff6/coincurve-20.0.0-cp312-cp312-win_amd64.whl", hash = "sha256:eacf9c0ce8739c84549a89c083b1f3526c8780b84517ee75d6b43d276e55f8a0", size = 1198932 },
+    { url = "https://files.pythonhosted.org/packages/b4/b5/c465e09345dd38b9415f5d47ae7683b3f461db02fcc03e699b6b5687ab2b/coincurve-20.0.0-cp312-cp312-win_arm64.whl", hash = "sha256:52a67bfddbd6224dfa42085c88ad176559801b57d6a8bd30d92ee040de88b7b3", size = 1193324 },
 ]
 
 [[package]]
@@ -3220,6 +3296,23 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/69/d7/a5183f788cf4fabf03f7c767ae0b968249b0c737eb64b4d87a07ae01fea7/towncrier-24.8.0.tar.gz", hash = "sha256:013423ee7eed102b2f393c287d22d95f66f1a3ea10a4baa82d298001a7f18af3", size = 61635 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/93/1b/2f7b88506e22d9798c139261af4946865c0787cfa345514ca3c70173a9cc/towncrier-24.8.0-py3-none-any.whl", hash = "sha256:9343209592b839209cdf28c339ba45792fbfe9775b5f9c177462fd693e127d8d", size = 56981 },
+]
+
+[[package]]
+name = "tronpy"
+version = "0.6.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "base58" },
+    { name = "coincurve" },
+    { name = "eth-abi" },
+    { name = "httpx" },
+    { name = "pycryptodome" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1e/dd/7ef2690011ae8bf158c6ebf1b9a0c9b182d6c3caf53163733af9355bf000/tronpy-0.6.2.tar.gz", hash = "sha256:758bfc4f88d1e332d35b5e9e1d31173a40d8a91d2c177c218d7768f03973d45b", size = 206494 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a0/cf/2e4f5bfefcfc9097c9fe4d8301d47ed0aeb35e91ca21ae70350d8ca02c51/tronpy-0.6.2-py3-none-any.whl", hash = "sha256:1d3f8595d372d3f0077a1f5e0a3869cd9edc58fca7dc54b1720d1ff26ade0b7a", size = 51111 },
 ]
 
 [[package]]
