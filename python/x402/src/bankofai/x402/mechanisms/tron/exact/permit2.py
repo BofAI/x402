@@ -4,27 +4,28 @@ Mirrors the TypeScript verifyPermit2() / settlePermit2() functions exactly.
 """
 
 import time
+from typing import Any
 
 from ....schemas import PaymentPayload, PaymentRequirements, SettleResponse, VerifyResponse
 from ..constants import (
+    ERR_INSUFFICIENT_FUNDS,
+    ERR_INVALID_PERMIT2_FACILITATOR,
+    ERR_INVALID_PERMIT2_SPENDER,
+    ERR_INVALID_SCHEME,
+    ERR_INVALID_TRANSACTION_STATE,
+    ERR_MISSING_PERMIT2_ADDRESS,
+    ERR_NETWORK_MISMATCH,
+    ERR_PERMIT2_ALLOWANCE_REQUIRED,
+    ERR_PERMIT2_AMOUNT_MISMATCH,
+    ERR_PERMIT2_DEADLINE_EXPIRED,
+    ERR_PERMIT2_INVALID_SIGNATURE,
+    ERR_PERMIT2_NOT_YET_VALID,
+    ERR_PERMIT2_RECIPIENT_MISMATCH,
+    ERR_PERMIT2_TOKEN_MISMATCH,
+    ERR_TRANSACTION_FAILED,
     PERMIT2_ADDRESSES,
     PERMIT2_WITNESS_TYPES,
     X402_PERMIT2_PROXY_ADDRESSES,
-    ERR_INVALID_SCHEME,
-    ERR_NETWORK_MISMATCH,
-    ERR_MISSING_PERMIT2_ADDRESS,
-    ERR_INVALID_PERMIT2_SPENDER,
-    ERR_PERMIT2_RECIPIENT_MISMATCH,
-    ERR_INVALID_PERMIT2_FACILITATOR,
-    ERR_PERMIT2_DEADLINE_EXPIRED,
-    ERR_PERMIT2_NOT_YET_VALID,
-    ERR_PERMIT2_AMOUNT_MISMATCH,
-    ERR_PERMIT2_TOKEN_MISMATCH,
-    ERR_PERMIT2_INVALID_SIGNATURE,
-    ERR_PERMIT2_ALLOWANCE_REQUIRED,
-    ERR_INSUFFICIENT_FUNDS,
-    ERR_TRANSACTION_FAILED,
-    ERR_INVALID_TRANSACTION_STATE,
 )
 from ..signers import FacilitatorTronSigner
 from ..utils import get_tron_chain_id, normalize_address_for_signing
@@ -34,7 +35,7 @@ def verify_permit2(
     signer: FacilitatorTronSigner,
     payload: PaymentPayload,
     requirements: PaymentRequirements,
-    permit2_payload: dict,
+    permit2_payload: dict[str, Any],
 ) -> VerifyResponse:
     """Verify a Permit2 payment payload on TRON.
 
@@ -58,7 +59,9 @@ def verify_permit2(
     permit2_address = PERMIT2_ADDRESSES.get(network)
     proxy_address = X402_PERMIT2_PROXY_ADDRESSES.get(network)
     if not permit2_address or not proxy_address:
-        return VerifyResponse(is_valid=False, invalid_reason=ERR_MISSING_PERMIT2_ADDRESS, payer=payer)
+        return VerifyResponse(
+            is_valid=False, invalid_reason=ERR_MISSING_PERMIT2_ADDRESS, payer=payer
+        )
 
     normalized_proxy = normalize_address_for_signing(proxy_address)
     token_address = normalize_address_for_signing(requirements.asset)
@@ -66,35 +69,47 @@ def verify_permit2(
     # Spender must be x402Permit2Proxy
     spender = normalize_address_for_signing(auth.get("spender", ""))
     if spender != normalized_proxy:
-        return VerifyResponse(is_valid=False, invalid_reason=ERR_INVALID_PERMIT2_SPENDER, payer=payer)
+        return VerifyResponse(
+            is_valid=False, invalid_reason=ERR_INVALID_PERMIT2_SPENDER, payer=payer
+        )
 
     # Recipient check
     witness = auth.get("witness", {})
     payload_to = normalize_address_for_signing(witness.get("to", ""))
     required_to = normalize_address_for_signing(requirements.pay_to)
     if payload_to != required_to:
-        return VerifyResponse(is_valid=False, invalid_reason=ERR_PERMIT2_RECIPIENT_MISMATCH, payer=payer)
+        return VerifyResponse(
+            is_valid=False, invalid_reason=ERR_PERMIT2_RECIPIENT_MISMATCH, payer=payer
+        )
 
     # Facilitator check
     payload_facilitator = normalize_address_for_signing(witness.get("facilitator", ""))
     if payload_facilitator not in facilitator_addresses:
-        return VerifyResponse(is_valid=False, invalid_reason=ERR_INVALID_PERMIT2_FACILITATOR, payer=payer)
+        return VerifyResponse(
+            is_valid=False, invalid_reason=ERR_INVALID_PERMIT2_FACILITATOR, payer=payer
+        )
 
     # Timing checks
     now = int(time.time())
     if int(auth.get("deadline", 0)) < now + 6:
-        return VerifyResponse(is_valid=False, invalid_reason=ERR_PERMIT2_DEADLINE_EXPIRED, payer=payer)
+        return VerifyResponse(
+            is_valid=False, invalid_reason=ERR_PERMIT2_DEADLINE_EXPIRED, payer=payer
+        )
     if int(witness.get("validAfter", 0)) > now:
         return VerifyResponse(is_valid=False, invalid_reason=ERR_PERMIT2_NOT_YET_VALID, payer=payer)
 
     # Amount check
     permitted = auth.get("permitted", {})
     if int(permitted.get("amount", 0)) != int(requirements.amount):
-        return VerifyResponse(is_valid=False, invalid_reason=ERR_PERMIT2_AMOUNT_MISMATCH, payer=payer)
+        return VerifyResponse(
+            is_valid=False, invalid_reason=ERR_PERMIT2_AMOUNT_MISMATCH, payer=payer
+        )
 
     # Token check
     if normalize_address_for_signing(permitted.get("token", "")) != token_address:
-        return VerifyResponse(is_valid=False, invalid_reason=ERR_PERMIT2_TOKEN_MISMATCH, payer=payer)
+        return VerifyResponse(
+            is_valid=False, invalid_reason=ERR_PERMIT2_TOKEN_MISMATCH, payer=payer
+        )
 
     # Signature verification
     try:
@@ -103,16 +118,16 @@ def verify_permit2(
         domain = {"name": "Permit2", "chainId": chain_id, "verifyingContract": normalized_permit2}
         message = {
             "permitted": {
-                "token": permitted.get("token", ""),
-                "amount": int(permitted.get("amount", 0)),
+                "token": str(permitted.get("token", "")),
+                "amount": int(str(permitted.get("amount", 0))),
             },
-            "spender": auth.get("spender", ""),
-            "nonce": int(auth.get("nonce", 0)),
-            "deadline": int(auth.get("deadline", 0)),
+            "spender": str(auth.get("spender", "")),
+            "nonce": int(str(auth.get("nonce", 0))),
+            "deadline": int(str(auth.get("deadline", 0))),
             "witness": {
-                "to": witness.get("to", ""),
-                "facilitator": witness.get("facilitator", ""),
-                "validAfter": int(witness.get("validAfter", 0)),
+                "to": str(witness.get("to", "")),
+                "facilitator": str(witness.get("facilitator", "")),
+                "validAfter": int(str(witness.get("validAfter", 0))),
             },
         }
         is_valid = signer.verify_typed_data(
@@ -124,9 +139,13 @@ def verify_permit2(
             signature=permit2_payload.get("signature", ""),
         )
         if not is_valid:
-            return VerifyResponse(is_valid=False, invalid_reason=ERR_PERMIT2_INVALID_SIGNATURE, payer=payer)
+            return VerifyResponse(
+                is_valid=False, invalid_reason=ERR_PERMIT2_INVALID_SIGNATURE, payer=payer
+            )
     except Exception:
-        return VerifyResponse(is_valid=False, invalid_reason=ERR_PERMIT2_INVALID_SIGNATURE, payer=payer)
+        return VerifyResponse(
+            is_valid=False, invalid_reason=ERR_PERMIT2_INVALID_SIGNATURE, payer=payer
+        )
 
     # Allowance check (best-effort)
     try:
@@ -135,8 +154,10 @@ def verify_permit2(
             function_name="allowance",
             args=[payer, permit2_address],
         )
-        if int(allowance) < int(requirements.amount):
-            return VerifyResponse(is_valid=False, invalid_reason=ERR_PERMIT2_ALLOWANCE_REQUIRED, payer=payer)
+        if int(str(allowance)) < int(str(requirements.amount)):
+            return VerifyResponse(
+                is_valid=False, invalid_reason=ERR_PERMIT2_ALLOWANCE_REQUIRED, payer=payer
+            )
     except Exception:
         pass
 
@@ -147,7 +168,7 @@ def verify_permit2(
             function_name="balanceOf",
             args=[payer],
         )
-        if int(balance) < int(requirements.amount):
+        if int(str(balance)) < int(str(requirements.amount)):
             return VerifyResponse(
                 is_valid=False,
                 invalid_reason=ERR_INSUFFICIENT_FUNDS,
@@ -164,7 +185,7 @@ def settle_permit2(
     signer: FacilitatorTronSigner,
     payload: PaymentPayload,
     requirements: PaymentRequirements,
-    permit2_payload: dict,
+    permit2_payload: dict[str, Any],
 ) -> SettleResponse:
     """Settle a Permit2 payment on TRON via x402Permit2Proxy.settle().
 
@@ -191,16 +212,17 @@ def settle_permit2(
 
     # Build tuple args as per x402ExactPermit2ProxyABI
     permit_tuple = [
-        [permitted.get("token", ""), int(permitted.get("amount", 0))],  # permitted (token, amount)
-        int(auth.get("nonce", 0)),   # nonce
-        int(auth.get("deadline", 0)),  # deadline
+        [str(permitted.get("token", "")), int(str(permitted.get("amount", 0)))],
+        int(str(auth.get("nonce", 0))),
+        int(str(auth.get("deadline", 0))),
     ]
     witness_tuple = [
-        witness.get("to", ""),
-        witness.get("facilitator", ""),
-        int(witness.get("validAfter", 0)),
+        str(witness.get("to", "")),
+        str(witness.get("facilitator", "")),
+        int(str(witness.get("validAfter", 0))),
     ]
-    signature_bytes = bytes.fromhex(permit2_payload.get("signature", "").removeprefix("0x"))
+    signature_hex = str(permit2_payload.get("signature", ""))
+    signature_bytes = bytes.fromhex(signature_hex.removeprefix("0x"))
 
     try:
         tx = signer.write_contract(

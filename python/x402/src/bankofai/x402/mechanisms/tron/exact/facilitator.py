@@ -4,6 +4,8 @@ Mirrors ExactTronScheme from TypeScript: routes between TIP-712 (eip3009)
 and Permit2 based on the payload structure (permit2Authorization vs authorization).
 """
 
+from typing import Any
+
 from ....schemas import (
     PaymentPayload,
     PaymentRequirements,
@@ -11,15 +13,15 @@ from ....schemas import (
     VerifyResponse,
 )
 from ..constants import (
-    X402_PERMIT2_PROXY_ADDRESSES,
     SCHEME_EXACT,
+    X402_PERMIT2_PROXY_ADDRESSES,
 )
 from ..signers import FacilitatorTronSigner
-from .eip3009 import verify_eip3009, settle_eip3009
-from .permit2 import verify_permit2, settle_permit2
+from .eip3009 import settle_eip3009, verify_eip3009
+from .permit2 import settle_permit2, verify_permit2
 
 
-def _is_permit2_payload(raw: dict) -> bool:
+def _is_permit2_payload(raw: dict[str, Any]) -> bool:
     """Return True if the raw payload uses the Permit2 path (has permit2Authorization)."""
     return "permit2Authorization" in raw
 
@@ -41,14 +43,14 @@ class ExactTronScheme:
     def __init__(self, signer: FacilitatorTronSigner) -> None:
         self._signer = signer
 
-    def get_extra(self, network: str) -> dict | None:
+    def get_extra(self, network: str) -> dict[str, Any] | None:
         """Return supported asset transfer methods and Permit2 proxy address."""
         supported_methods = ["eip3009"]
         signers = self._signer.get_addresses()
         if X402_PERMIT2_PROXY_ADDRESSES.get(network):
             supported_methods.append("permit2")
 
-        extra: dict = {"supportedAssetTransferMethods": supported_methods}
+        extra: dict[str, Any] = {"supportedAssetTransferMethods": supported_methods}
         if signers and X402_PERMIT2_PROXY_ADDRESSES.get(network):
             extra["permit2FacilitatorAddress"] = signers[0]
         return extra
@@ -61,10 +63,10 @@ class ExactTronScheme:
         self,
         payload: PaymentPayload,
         requirements: PaymentRequirements,
-        context=None,
+        context: Any = None,
     ) -> VerifyResponse:
         """Verify — routes to Permit2 or eip3009 based on payload type."""
-        raw = payload.payload or {}
+        raw: dict[str, Any] = payload.payload or {}
         if _is_permit2_payload(raw):
             return verify_permit2(self._signer, payload, requirements, raw)
         return verify_eip3009(self._signer, payload, requirements, raw)
@@ -73,10 +75,10 @@ class ExactTronScheme:
         self,
         payload: PaymentPayload,
         requirements: PaymentRequirements,
-        context=None,
+        context: Any = None,
     ) -> SettleResponse:
         """Settle — routes to Permit2 or eip3009 based on payload type."""
-        raw = payload.payload or {}
+        raw: dict[str, Any] = payload.payload or {}
         if _is_permit2_payload(raw):
             return settle_permit2(self._signer, payload, requirements, raw)
         return settle_eip3009(self._signer, payload, requirements, raw)

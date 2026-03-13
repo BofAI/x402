@@ -1,14 +1,16 @@
 """TRON constants for the exact payment scheme."""
 
+from typing import Any
+
 # TRON chain IDs for TIP-712 signing
 TRON_CHAIN_IDS: dict[str, int] = {
-    "tron:mainnet": 728126428,   # 0x2b6653dc
-    "tron:shasta": 2494104990,   # 0x94a9059e
-    "tron:nile": 3448148188,     # 0xcd8690dc
+    "tron:mainnet": 728126428,  # 0x2b6653dc
+    "tron:shasta": 2494104990,  # 0x94a9059e
+    "tron:nile": 3448148188,  # 0xcd8690dc
 }
 
 # Default stablecoins per network (USDT)
-TRON_DEFAULT_ASSETS: dict[str, dict] = {
+TRON_DEFAULT_ASSETS: dict[str, dict[str, Any]] = {
     "tron:mainnet": {
         "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
         "name": "Tether USD",
@@ -16,7 +18,7 @@ TRON_DEFAULT_ASSETS: dict[str, dict] = {
         "decimals": 6,
     },
     "tron:nile": {
-        "address": "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj",
+        "address": "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
         "name": "Tether USD",
         "version": "1",
         "decimals": 6,
@@ -30,7 +32,7 @@ TRON_DEFAULT_ASSETS: dict[str, dict] = {
 }
 
 # TIP-712 type definitions for TransferWithAuthorization
-AUTHORIZATION_TYPES = {
+AUTHORIZATION_TYPES: dict[str, list[dict[str, str]]] = {
     "TransferWithAuthorization": [
         {"name": "from", "type": "address"},
         {"name": "to", "type": "address"},
@@ -83,7 +85,7 @@ X402_PERMIT2_PROXY_ADDRESSES: dict[str, str] = {
 }
 
 # TIP-712 type definitions for Permit2 PermitWitnessTransferFrom
-PERMIT2_WITNESS_TYPES: dict = {
+PERMIT2_WITNESS_TYPES: dict[str, list[dict[str, str]]] = {
     "PermitWitnessTransferFrom": [
         {"name": "permitted", "type": "TokenPermissions"},
         {"name": "spender", "type": "address"},

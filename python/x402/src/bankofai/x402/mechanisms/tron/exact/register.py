@@ -1,9 +1,14 @@
 """Registration helpers for TRON exact payment schemes."""
 
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 if TYPE_CHECKING:
-    from bankofai.x402 import x402Facilitator, x402FacilitatorSync, x402ResourceServer, x402ResourceServerSync
+    from bankofai.x402 import (
+        x402Facilitator,
+        x402FacilitatorSync,
+        x402ResourceServer,
+        x402ResourceServerSync,
+    )
 
 FacilitatorT = TypeVar("FacilitatorT", "x402Facilitator", "x402FacilitatorSync")
 ServerT = TypeVar("ServerT", "x402ResourceServer", "x402ResourceServerSync")
@@ -11,7 +16,7 @@ ServerT = TypeVar("ServerT", "x402ResourceServer", "x402ResourceServerSync")
 
 def register_exact_tron_facilitator(
     facilitator: FacilitatorT,
-    signer,
+    signer: Any,
     networks: str | list[str] = "tron:nile",
 ) -> FacilitatorT:
     """Register TRON exact payment scheme to an x402Facilitator.
@@ -29,7 +34,7 @@ def register_exact_tron_facilitator(
     scheme = ExactTronScheme(signer)
     if isinstance(networks, str):
         networks = [networks]
-    facilitator.register(networks, scheme)  # type: ignore[arg-type]
+    facilitator.register(networks, scheme)
     return facilitator
 
 
@@ -52,5 +57,5 @@ def register_exact_tron_server(
     if isinstance(networks, str):
         networks = [networks]
     for network in networks:
-        server.register(network, scheme)  # type: ignore[arg-type]
+        server.register(network, scheme)
     return server

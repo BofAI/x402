@@ -4,21 +4,22 @@ Mirrors the TypeScript verifyEIP3009() / settleEIP3009() functions.
 """
 
 import time
+from typing import Any
 
 from ....schemas import PaymentPayload, PaymentRequirements, SettleResponse, VerifyResponse
 from ..constants import (
     AUTHORIZATION_TYPES,
+    ERR_INSUFFICIENT_FUNDS,
     ERR_INVALID_SCHEME,
+    ERR_INVALID_SIGNATURE,
+    ERR_INVALID_TRANSACTION_STATE,
     ERR_MISSING_TIP712_DOMAIN,
     ERR_NETWORK_MISMATCH,
-    ERR_INVALID_SIGNATURE,
     ERR_RECIPIENT_MISMATCH,
-    ERR_VALID_BEFORE_EXPIRED,
-    ERR_VALID_AFTER_FUTURE,
-    ERR_VALUE_MISMATCH,
-    ERR_INSUFFICIENT_FUNDS,
     ERR_TRANSACTION_FAILED,
-    ERR_INVALID_TRANSACTION_STATE,
+    ERR_VALID_AFTER_FUTURE,
+    ERR_VALID_BEFORE_EXPIRED,
+    ERR_VALUE_MISMATCH,
     SCHEME_EXACT,
 )
 from ..signers import FacilitatorTronSigner
@@ -29,7 +30,7 @@ def verify_eip3009(
     signer: FacilitatorTronSigner,
     payload: PaymentPayload,
     requirements: PaymentRequirements,
-    raw: dict,
+    raw: dict[str, Any],
 ) -> VerifyResponse:
     """Verify a TIP-712 TransferWithAuthorization payment payload.
 
@@ -64,17 +65,17 @@ def verify_eip3009(
         "chainId": chain_id,
         "verifyingContract": token_address,
     }
-    nonce_hex = auth.get("nonce", "0x" + "00" * 32)
+    nonce_hex = str(auth.get("nonce", "0x" + "00" * 32))
     message = {
-        "from": normalize_address_for_signing(auth.get("from", "")),
-        "to": normalize_address_for_signing(auth.get("to", "")),
-        "value": int(auth.get("value", 0)),
-        "validAfter": int(auth.get("validAfter", 0)),
-        "validBefore": int(auth.get("validBefore", 0)),
+        "from": normalize_address_for_signing(str(auth.get("from", ""))),
+        "to": normalize_address_for_signing(str(auth.get("to", ""))),
+        "value": int(str(auth.get("value", 0))),
+        "validAfter": int(str(auth.get("validAfter", 0))),
+        "validBefore": int(str(auth.get("validBefore", 0))),
         "nonce": bytes.fromhex(nonce_hex.removeprefix("0x")),  # bytes32
     }
 
-    signature = raw.get("signature", "")
+    signature = str(raw.get("signature", ""))
     is_valid = signer.verify_typed_data(
         address=auth.get("from", ""),
         domain=domain,
@@ -87,7 +88,9 @@ def verify_eip3009(
         return VerifyResponse(is_valid=False, invalid_reason=ERR_INVALID_SIGNATURE, payer=payer)
 
     # Recipient check
-    if normalize_address_for_signing(auth.get("to", "")) != normalize_address_for_signing(requirements.pay_to):
+    if normalize_address_for_signing(auth.get("to", "")) != normalize_address_for_signing(
+        requirements.pay_to
+    ):
         return VerifyResponse(is_valid=False, invalid_reason=ERR_RECIPIENT_MISMATCH, payer=payer)
 
     # Timing check
@@ -108,7 +111,7 @@ def verify_eip3009(
             function_name="balanceOf",
             args=[auth.get("from", "")],
         )
-        if int(balance) < int(requirements.amount):
+        if int(str(balance)) < int(str(requirements.amount)):
             return VerifyResponse(
                 is_valid=False,
                 invalid_reason=ERR_INSUFFICIENT_FUNDS,
@@ -125,7 +128,7 @@ def settle_eip3009(
     signer: FacilitatorTronSigner,
     payload: PaymentPayload,
     requirements: PaymentRequirements,
-    raw: dict,
+    raw: dict[str, Any],
 ) -> SettleResponse:
     """Settle a TIP-712 TransferWithAuthorization payment on-chain.
 
@@ -147,22 +150,22 @@ def settle_eip3009(
         )
 
     # Parse signature into v, r, s
-    clean_sig = raw.get("signature", "").removeprefix("0x")
-    r = bytes.fromhex(clean_sig[:64])    # bytes32
-    s = bytes.fromhex(clean_sig[64:128]) # bytes32
-    v = int(clean_sig[128:130], 16)      # uint8
-    nonce_bytes = bytes.fromhex(auth.get("nonce", "0x" + "00" * 32).removeprefix("0x"))
+    clean_sig = str(raw.get("signature", "")).removeprefix("0x")
+    r = bytes.fromhex(clean_sig[:64])  # bytes32
+    s = bytes.fromhex(clean_sig[64:128])  # bytes32
+    v = int(clean_sig[128:130], 16)  # uint8
+    nonce_bytes = bytes.fromhex(str(auth.get("nonce", "0x" + "00" * 32)).removeprefix("0x"))
 
     try:
         tx = signer.write_contract(
             address=requirements.asset,
             function_name="transferWithAuthorization",
             args=[
-                auth.get("from", ""),
-                auth.get("to", ""),
-                int(auth.get("value", 0)),
-                int(auth.get("validAfter", 0)),
-                int(auth.get("validBefore", 0)),
+                str(auth.get("from", "")),
+                str(auth.get("to", "")),
+                int(str(auth.get("value", 0))),
+                int(str(auth.get("validAfter", 0))),
+                int(str(auth.get("validBefore", 0))),
                 nonce_bytes,
                 v,
                 r,

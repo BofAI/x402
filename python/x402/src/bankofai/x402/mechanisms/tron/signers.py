@@ -12,15 +12,14 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
+from typing import Any
 
 try:
-    from tronpy import Tron
-    from tronpy.keys import PrivateKey
-    from tronpy.providers import HTTPProvider
+    from tronpy import Tron  # type: ignore
+    from tronpy.keys import PrivateKey  # type: ignore
+    from tronpy.providers import HTTPProvider  # type: ignore
 except ImportError as e:
-    raise ImportError(
-        "TRON signers require tronpy. Install with: pip install tronpy"
-    ) from e
+    raise ImportError("TRON signers require tronpy. Install with: pip install tronpy") from e
 
 from .utils import normalize_address_for_signing
 
@@ -28,7 +27,8 @@ from .utils import normalize_address_for_signing
 @dataclass
 class TronTransactionReceipt:
     """Simplified receipt from a TRON transaction."""
-    status: str   # "success" | "reverted" | "pending"
+
+    status: str  # "success" | "reverted" | "pending"
     tx_hash: str
 
 
@@ -36,13 +36,14 @@ class TronTransactionReceipt:
 # TIP-712 / EIP-712 helpers
 # ---------------------------------------------------------------------------
 
-def _normalize_message_for_signing(message: dict) -> dict:
+
+def _normalize_message_for_signing(message: dict[str, Any]) -> dict[str, Any]:
     """Normalize a TIP-712 message dict for eth_account.
 
     - TRON base58 addresses → 0x hex
     - bytes32 nonces kept as "0x…" hex strings (eth_account accepts them)
     """
-    result = {}
+    result: dict[str, Any] = {}
     for k, v in message.items():
         if isinstance(v, str) and v.startswith("T") and len(v) == 34:
             result[k] = normalize_address_for_signing(v)
@@ -51,7 +52,12 @@ def _normalize_message_for_signing(message: dict) -> dict:
     return result
 
 
-def _compute_tip712_digest(domain: dict, types: dict, primary_type: str, message: dict) -> bytes:
+def _compute_tip712_digest(
+    domain: dict[str, Any],
+    types: dict[str, list[dict[str, str]]],
+    primary_type: str,
+    message: dict[str, Any],
+) -> bytes:
     """Compute the TIP-712 struct hash the same way TronWeb does.
 
     TronWeb's tronUtils.typedData.verifyTypedData internally uses the standard
@@ -68,7 +74,7 @@ def _compute_tip712_digest(domain: dict, types: dict, primary_type: str, message
             {"name": "chainId", "type": "uint256"},
             {"name": "verifyingContract", "type": "address"},
         ],
-        **{k: v for k, v in types.items()},
+        **types,
     }
 
     domain_norm = {
@@ -86,12 +92,13 @@ def _compute_tip712_digest(domain: dict, types: dict, primary_type: str, message
         "domain": domain_norm,
         "message": msg_norm,
     }
-    return hash_typed_data(full_typed_data)
+    return bytes(hash_typed_data(full_typed_data))
 
 
 # ---------------------------------------------------------------------------
 # Facilitator signer
 # ---------------------------------------------------------------------------
+
 
 class FacilitatorTronSigner:
     """Facilitator-side TRON signer (verify + settle).
@@ -121,10 +128,10 @@ class FacilitatorTronSigner:
     def verify_typed_data(
         self,
         address: str,
-        domain: dict,
-        types: dict,
+        domain: dict[str, Any],
+        types: dict[str, list[dict[str, str]]],
         primary_type: str,
-        message: dict,
+        message: dict[str, Any],
         signature: str,
     ) -> bool:
         """Verify a TIP-712 signature.
@@ -136,18 +143,22 @@ class FacilitatorTronSigner:
         """
         try:
             from eth_account import Account
-            from eth_account.messages import SignableMessage
 
             digest = _compute_tip712_digest(domain, types, primary_type, message)
             sig_bytes = bytes.fromhex(signature.removeprefix("0x"))
 
             # eth_account.Account._recover_hash accepts the raw 32-byte hash
-            recovered = Account._recover_hash(digest, signature=sig_bytes)  # type: ignore[attr-defined]
-            return normalize_address_for_signing(address) == recovered.lower()
+            recovered = str(Account._recover_hash(digest, signature=sig_bytes))
+            return bool(normalize_address_for_signing(address) == recovered.lower())
         except Exception:
             return False
 
-    def read_contract(self, address: str, function_name: str, args: list | None = None) -> object:
+    def read_contract(
+        self,
+        address: str,
+        function_name: str,
+        args: list[Any] | None = None,
+    ) -> Any:
         """Call a read-only TRC-20 / smart contract function."""
         contract = self._client.get_contract(address)
         func = getattr(contract.functions, function_name)
@@ -157,7 +168,7 @@ class FacilitatorTronSigner:
         self,
         address: str,
         function_name: str,
-        args: list,
+        args: list[Any],
         fee_limit: int = 1_000_000_000,
     ) -> str:
         """Execute a contract write call and return the txid.
@@ -173,15 +184,9 @@ class FacilitatorTronSigner:
         """
         contract = self._client.get_contract(address)
         func = getattr(contract.functions, function_name)
-        txn = (
-            func(*args)
-            .with_owner(self._address)
-            .fee_limit(fee_limit)
-            .build()
-            .sign(self._pk)
-        )
+        txn = func(*args).with_owner(self._address).fee_limit(fee_limit).build().sign(self._pk)
         result = txn.broadcast()
-        return result.txid
+        return str(result.txid)
 
     def wait_for_transaction_receipt(
         self, tx_hash: str, max_attempts: int = 30
@@ -204,6 +209,7 @@ class FacilitatorTronSigner:
 # ---------------------------------------------------------------------------
 # Client signer
 # ---------------------------------------------------------------------------
+
 
 class ClientTronSigner:
     """Client-side TRON signer for TIP-712 signing.
@@ -229,10 +235,10 @@ class ClientTronSigner:
 
     def sign_typed_data(
         self,
-        domain: dict,
-        types: dict,
+        domain: dict[str, Any],
+        types: dict[str, list[dict[str, str]]],
         primary_type: str,
-        message: dict,
+        message: dict[str, Any],
     ) -> str:
         """Sign TIP-712 typed data with ECDSA (same key bytes as EVM).
 
@@ -241,9 +247,7 @@ class ClientTronSigner:
         """
         from eth_account import Account
 
-        full_types = {
-            **{k: v for k, v in types.items()},
-        }
+        full_types = {**types}
 
         domain_norm = {
             **domain,
@@ -259,9 +263,14 @@ class ClientTronSigner:
             message_types=full_types,
             message_data=msg_norm,
         )
-        return "0x" + signed.signature.hex()
+        return str("0x" + signed.signature.hex())
 
-    def read_contract(self, address: str, function_name: str, args: list | None = None) -> object:
+    def read_contract(
+        self,
+        address: str,
+        function_name: str,
+        args: list[Any] | None = None,
+    ) -> Any:
         """Read data from a contract."""
         contract = self._client.get_contract(address)
         func = getattr(contract.functions, function_name)

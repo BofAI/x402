@@ -15,7 +15,8 @@ def get_tron_chain_id(network: str) -> int:
 
 def tron_address_to_evm(address: str) -> str:
     """Convert TRON Base58Check address to 0x-prefixed EVM hex address."""
-    from tronpy.keys import to_hex_address  # tronpy helper
+    from tronpy.keys import to_hex_address  # type: ignore # tronpy helper
+
     if address.startswith("0x"):
         return address.lower()
     if address.startswith("41") and len(address) == 42:
@@ -44,4 +45,5 @@ def is_tron_address(address: str) -> bool:
 def create_nonce() -> str:
     """Generate a random 32-byte hex nonce (0x-prefixed)."""
     import os
+
     return "0x" + os.urandom(32).hex()
