@@ -115,9 +115,8 @@ class ExactTronServerScheme:
                 requirements.extra["version"] = asset_info["version"]
 
         facilitator_extra = supported_kind.extra or {}
-        if (
-            "assetTransferMethod" not in requirements.extra
-            and facilitator_extra.get("supportedAssetTransferMethods")
+        if "assetTransferMethod" not in requirements.extra and facilitator_extra.get(
+            "supportedAssetTransferMethods"
         ):
             supported_methods = facilitator_extra["supportedAssetTransferMethods"]
             if "permit2" in supported_methods:

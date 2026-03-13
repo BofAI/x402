@@ -119,7 +119,9 @@ class ExactTronClientScheme:
 
         proxy_address = X402_PERMIT2_PROXY_ADDRESSES.get(network)
         if not proxy_address:
-            raise ValueError(f"No x402Permit2Proxy contract address configured for network {network}")
+            raise ValueError(
+                f"No x402Permit2Proxy contract address configured for network {network}"
+            )
 
         facilitator_address = (requirements.extra or {}).get("permit2FacilitatorAddress") or (
             requirements.extra or {}
