@@ -1,5 +1,11 @@
 # @bankofai/x402-mcp Changelog
 
+## 2.6.0-beta.7
+
+### Patch Changes
+
+- Make `x402 pay` preflight payment requirements, check token balance, and automatically approve Permit2 when allowance is insufficient.
+
 ## 2.6.0-beta.6
 
 ### Patch Changes

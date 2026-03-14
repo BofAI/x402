@@ -59,6 +59,37 @@ const evmErc20ApproveAbi = [
     stateMutability: "nonpayable",
   },
 ] as const;
+const evmErc20AllowanceAbi = [
+  {
+    type: "function",
+    name: "allowance",
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+    ],
+    outputs: [{ type: "uint256" }],
+    stateMutability: "view",
+  },
+] as const;
+const tronTrc20ViewAbi = [
+  {
+    type: "function",
+    name: "balanceOf",
+    inputs: [{ name: "owner", type: "address" }],
+    outputs: [{ type: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "allowance",
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+    ],
+    outputs: [{ type: "uint256" }],
+    stateMutability: "view",
+  },
+] as const;
 
 type CliBalanceOptions = Partial<Pick<ParsedCliOptions, "network" | "asset" | "token" | "pair">>;
 type SupportedNetwork = keyof typeof TRON_RPC_URLS | keyof typeof EVM_NETWORKS;
@@ -701,7 +732,7 @@ async function readTronTokenBalance(
   tokenAddress: string,
   owner: string,
 ): Promise<string> {
-  const contract = await tronWeb.contract(transferWithAuthorizationABI, tokenAddress);
+  const contract = await tronWeb.contract(tronTrc20ViewAbi as any, tokenAddress);
   const balance = await contract.balanceOf(owner).call();
   return balance.toString();
 }
@@ -722,6 +753,227 @@ async function readEvmTokenBalance(
     args: [owner],
   });
   return balance.toString();
+}
+
+async function readTronTokenAllowance(
+  tronWeb: TronWeb,
+  tokenAddress: string,
+  owner: string,
+  spender: string,
+): Promise<string> {
+  const contract = await tronWeb.contract(tronTrc20ViewAbi as any, tokenAddress);
+  const allowance = await contract.allowance(owner, spender).call();
+  return allowance.toString();
+}
+
+async function readEvmTokenAllowance(
+  networkName: keyof typeof EVM_NETWORKS,
+  owner: `0x${string}`,
+  tokenAddress: `0x${string}`,
+  spender: `0x${string}`,
+): Promise<string> {
+  const publicClient = createPublicClient({
+    chain: EVM_NETWORKS[networkName].chain,
+    transport: http(getBscRpcUrl(networkName)),
+  });
+  const allowance = await publicClient.readContract({
+    address: tokenAddress,
+    abi: evmErc20AllowanceAbi,
+    functionName: "allowance",
+    args: [owner, spender],
+  });
+  return allowance.toString();
+}
+
+async function approveSelectedRequirement(args: {
+  selected: PaymentRequirements;
+  tronKey?: string;
+  evmKey?: string;
+  tronGridApiKey?: string;
+}): Promise<{ transaction: string; spender: string }> {
+  const { selected, tronKey, evmKey, tronGridApiKey } = args;
+
+  if (selected.network.startsWith("tron:")) {
+    if (!tronKey) {
+      throw new Error("TRON wallet not configured.");
+    }
+
+    const networkName = selected.network.slice("tron:".length) as keyof typeof TRON_RPC_URLS;
+    const spender = PERMIT2_ADDRESSES[selected.network];
+    if (!spender) {
+      throw new Error(`No Permit2 contract configured for ${selected.network}`);
+    }
+
+    const tronWeb = buildTronWeb(TRON_RPC_URLS[networkName], tronKey, tronGridApiKey);
+    const derivedAddress = tronWeb.address.fromPrivateKey(tronKey);
+    if (!derivedAddress) {
+      throw new Error("Unable to derive TRON address from private key.");
+    }
+    const ownerAddress = tronWeb.defaultAddress.base58 || derivedAddress;
+
+    const transaction = await tronWeb.transactionBuilder
+      .triggerSmartContract(
+        selected.asset,
+        "approve(address,uint256)",
+        {
+          feeLimit: DEFAULT_TRON_FEE_LIMIT_SUN,
+          callValue: 0,
+        },
+        [
+          { type: "address", value: spender },
+          { type: "uint256", value: MAX_UINT256 },
+        ],
+        ownerAddress,
+      )
+      .then(result => tronWeb.trx.sign(result.transaction))
+      .then(signed => tronWeb.trx.sendRawTransaction(signed as any))
+      .then((result: any) => result.txid ?? result.transaction?.txID);
+
+    return { transaction, spender };
+  }
+
+  if (selected.network.startsWith("eip155:")) {
+    if (!evmKey) {
+      throw new Error("EVM wallet not configured.");
+    }
+
+    const networkKey =
+      selected.network === "eip155:56"
+        ? "bsc"
+        : selected.network === "eip155:97"
+          ? "bsc-testnet"
+          : undefined;
+    if (!networkKey) {
+      throw new Error(`Unsupported EVM network for approve: ${selected.network}`);
+    }
+
+    const account = privateKeyToAccount(normalizeHexPrivateKey(evmKey));
+    const chain = EVM_NETWORKS[networkKey].chain;
+    const rpcUrl = getBscRpcUrl(networkKey);
+    const publicClient = createPublicClient({
+      chain,
+      transport: http(rpcUrl),
+    });
+    const walletClient = createWalletClient({
+      chain,
+      transport: http(rpcUrl),
+      account,
+    });
+
+    const transaction = await walletClient.writeContract({
+      account,
+      chain,
+      address: selected.asset as `0x${string}`,
+      abi: evmErc20ApproveAbi,
+      functionName: "approve",
+      args: [PERMIT2_ADDRESS, BigInt(MAX_UINT256)],
+    });
+
+    await publicClient.waitForTransactionReceipt({ hash: transaction });
+    return { transaction, spender: PERMIT2_ADDRESS };
+  }
+
+  throw new Error(`Unsupported network for approve: ${selected.network}`);
+}
+
+async function preflightPayment(args: {
+  url: string;
+  method: string;
+  body?: string;
+  customHeaders?: Record<string, string>;
+  tronKey?: string;
+  evmKey?: string;
+  tronGridApiKey?: string;
+  preferredNetwork?: string;
+  preferredAsset?: string;
+  preferredPair?: string;
+  maxAmount?: bigint;
+}): Promise<void> {
+  const { selected } = await fetchPaymentRequired(args);
+  const amount = BigInt(selected.amount);
+  const transferMethod = String(selected.extra?.assetTransferMethod ?? "eip3009");
+
+  if (selected.network.startsWith("tron:")) {
+    if (!args.tronKey) {
+      throw new Error("TRON wallet not configured.");
+    }
+    const networkName = selected.network.slice("tron:".length) as keyof typeof TRON_RPC_URLS;
+    const tronWeb = buildTronWeb(TRON_RPC_URLS[networkName], args.tronKey, args.tronGridApiKey);
+    const signer = createClientTronSigner(tronWeb, args.tronKey);
+    const balance = BigInt(await readTronTokenBalance(tronWeb, selected.asset, signer.address));
+    if (balance < amount) {
+      throw new Error(
+        `insufficient token balance: have ${balance.toString()} need ${amount.toString()} for ${selected.network}`,
+      );
+    }
+
+    if (transferMethod === "permit2") {
+      const spender = PERMIT2_ADDRESSES[selected.network];
+      if (!spender) {
+        throw new Error(`No Permit2 contract configured for ${selected.network}`);
+      }
+      const allowance = BigInt(
+        await readTronTokenAllowance(tronWeb, selected.asset, signer.address, spender),
+      );
+      if (allowance < amount) {
+        console.error(
+          `[x402] Permit2 allowance ${allowance.toString()} < ${amount.toString()}, approving ${spender}...`,
+        );
+        const approval = await approveSelectedRequirement({
+          selected,
+          tronKey: args.tronKey,
+          tronGridApiKey: args.tronGridApiKey,
+        });
+        console.error(`[x402] Approval transaction: ${approval.transaction}`);
+      }
+    }
+    return;
+  }
+
+  if (selected.network.startsWith("eip155:")) {
+    if (!args.evmKey) {
+      throw new Error("EVM wallet not configured.");
+    }
+    const networkKey =
+      selected.network === "eip155:56"
+        ? "bsc"
+        : selected.network === "eip155:97"
+          ? "bsc-testnet"
+          : undefined;
+    if (!networkKey) {
+      throw new Error(`Unsupported EVM network for pay: ${selected.network}`);
+    }
+    const account = privateKeyToAccount(normalizeHexPrivateKey(args.evmKey));
+    const balance = BigInt(
+      await readEvmTokenBalance(networkKey, account.address, selected.asset as `0x${string}`),
+    );
+    if (balance < amount) {
+      throw new Error(
+        `insufficient token balance: have ${balance.toString()} need ${amount.toString()} for ${selected.network}`,
+      );
+    }
+
+    if (transferMethod === "permit2") {
+      const allowance = BigInt(
+        await readEvmTokenAllowance(
+          networkKey,
+          account.address,
+          selected.asset as `0x${string}`,
+          PERMIT2_ADDRESS,
+        ),
+      );
+      if (allowance < amount) {
+        console.error(
+          `[x402] Permit2 allowance ${allowance.toString()} < ${amount.toString()}, approving ${PERMIT2_ADDRESS}...`,
+        );
+        const approval = await approveSelectedRequirement({
+          selected,
+          evmKey: args.evmKey,
+        });
+        console.error(`[x402] Approval transaction: ${approval.transaction}`);
+      }
+    }
+  }
 }
 
 export async function runBalance(options: CliBalanceOptions = {}): Promise<void> {
@@ -854,114 +1106,25 @@ export async function runApprove(options: ParsedCliOptions): Promise<void> {
     );
   }
 
-  if (selected.network.startsWith("tron:")) {
-    if (!tronKey) {
-      throw new Error("TRON wallet not configured.");
-    }
-
-    const networkName = selected.network.slice("tron:".length) as keyof typeof TRON_RPC_URLS;
-    const spender = PERMIT2_ADDRESSES[selected.network];
-    if (!spender) {
-      throw new Error(`No Permit2 contract configured for ${selected.network}`);
-    }
-
-    const tronWeb = buildTronWeb(TRON_RPC_URLS[networkName], tronKey, tronGridApiKey);
-    const derivedAddress = tronWeb.address.fromPrivateKey(tronKey);
-    if (!derivedAddress) {
-      throw new Error("Unable to derive TRON address from private key.");
-    }
-    const ownerAddress = tronWeb.defaultAddress.base58 || derivedAddress;
-
-    const txHash = await tronWeb.transactionBuilder
-      .triggerSmartContract(
-        selected.asset,
-        "approve(address,uint256)",
-        {
-          feeLimit: DEFAULT_TRON_FEE_LIMIT_SUN,
-          callValue: 0,
-        },
-        [
-          { type: "address", value: spender },
-          { type: "uint256", value: MAX_UINT256 },
-        ],
-        ownerAddress,
-      )
-      .then(result => tronWeb.trx.sign(result.transaction))
-      .then(signed => tronWeb.trx.sendRawTransaction(signed as any))
-      .then((result: any) => result.txid ?? result.transaction?.txID);
-
-    process.stdout.write(
-      JSON.stringify(
-        {
-          status: "approved",
-          network: selected.network,
-          asset: selected.asset,
-          spender,
-          transaction: txHash,
-        },
-        null,
-        2,
-      ) + "\n",
-    );
-    return;
-  }
-
-  if (selected.network.startsWith("eip155:")) {
-    if (!evmKey) {
-      throw new Error("EVM wallet not configured.");
-    }
-
-    const networkKey =
-      selected.network === "eip155:56"
-        ? "bsc"
-        : selected.network === "eip155:97"
-          ? "bsc-testnet"
-          : undefined;
-    if (!networkKey) {
-      throw new Error(`Unsupported EVM network for approve: ${selected.network}`);
-    }
-
-    const account = privateKeyToAccount(normalizeHexPrivateKey(evmKey));
-    const chain = EVM_NETWORKS[networkKey].chain;
-    const rpcUrl = getBscRpcUrl(networkKey);
-    const publicClient = createPublicClient({
-      chain,
-      transport: http(rpcUrl),
-    });
-    const walletClient = createWalletClient({
-      chain,
-      transport: http(rpcUrl),
-      account,
-    });
-
-    const txHash = await walletClient.writeContract({
-      account,
-      chain,
-      address: selected.asset as `0x${string}`,
-      abi: evmErc20ApproveAbi,
-      functionName: "approve",
-      args: [PERMIT2_ADDRESS, BigInt(`0x${"f".repeat(64)}`)],
-    });
-
-    await publicClient.waitForTransactionReceipt({ hash: txHash });
-
-    process.stdout.write(
-      JSON.stringify(
-        {
-          status: "approved",
-          network: selected.network,
-          asset: selected.asset,
-          spender: PERMIT2_ADDRESS,
-          transaction: txHash,
-        },
-        null,
-        2,
-      ) + "\n",
-    );
-    return;
-  }
-
-  throw new Error(`Unsupported network for approve: ${selected.network}`);
+  const approval = await approveSelectedRequirement({
+    selected,
+    tronKey,
+    evmKey,
+    tronGridApiKey,
+  });
+  process.stdout.write(
+    JSON.stringify(
+      {
+        status: "approved",
+        network: selected.network,
+        asset: selected.asset,
+        spender: approval.spender,
+        transaction: approval.transaction,
+      },
+      null,
+      2,
+    ) + "\n",
+  );
 }
 
 export async function runPay(options: ParsedCliOptions): Promise<void> {
@@ -1038,6 +1201,20 @@ export async function runPay(options: ParsedCliOptions): Promise<void> {
     if (preferredPair) {
       console.error(`[x402] Preferred pair:    ${preferredPair}`);
     }
+
+    await preflightPayment({
+      url: requestUrl,
+      method,
+      body,
+      customHeaders,
+      tronKey,
+      evmKey,
+      tronGridApiKey,
+      preferredNetwork,
+      preferredAsset,
+      preferredPair,
+      maxAmount,
+    });
 
     const response = await fetchWithPayment(requestUrl, init);
     const contentType = response.headers.get("content-type") ?? "";
