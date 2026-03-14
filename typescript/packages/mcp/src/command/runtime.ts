@@ -71,25 +71,6 @@ const evmErc20AllowanceAbi = [
     stateMutability: "view",
   },
 ] as const;
-const tronTrc20ViewAbi = [
-  {
-    type: "function",
-    name: "balanceOf",
-    inputs: [{ name: "owner", type: "address" }],
-    outputs: [{ type: "uint256" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    name: "allowance",
-    inputs: [
-      { name: "owner", type: "address" },
-      { name: "spender", type: "address" },
-    ],
-    outputs: [{ type: "uint256" }],
-    stateMutability: "view",
-  },
-] as const;
 
 type CliBalanceOptions = Partial<Pick<ParsedCliOptions, "network" | "asset" | "token" | "pair">>;
 type SupportedNetwork = keyof typeof TRON_RPC_URLS | keyof typeof EVM_NETWORKS;
@@ -732,7 +713,7 @@ async function readTronTokenBalance(
   tokenAddress: string,
   owner: string,
 ): Promise<string> {
-  const contract = await tronWeb.contract(tronTrc20ViewAbi as any, tokenAddress);
+  const contract = await tronWeb.contract().at(tokenAddress);
   const balance = await contract.balanceOf(owner).call();
   return balance.toString();
 }
@@ -761,7 +742,7 @@ async function readTronTokenAllowance(
   owner: string,
   spender: string,
 ): Promise<string> {
-  const contract = await tronWeb.contract(tronTrc20ViewAbi as any, tokenAddress);
+  const contract = await tronWeb.contract().at(tokenAddress);
   const allowance = await contract.allowance(owner, spender).call();
   return allowance.toString();
 }

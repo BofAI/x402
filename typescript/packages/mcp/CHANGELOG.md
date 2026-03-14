@@ -1,5 +1,11 @@
 # @bankofai/x402-mcp Changelog
 
+## 2.6.0-beta.8
+
+### Patch Changes
+
+- Fix TRON token preflight checks in `x402 pay` by reading TRC-20 balances and allowances from the live token contract methods.
+
 ## 2.6.0-beta.7
 
 ### Patch Changes
