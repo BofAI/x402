@@ -114,7 +114,9 @@ describe("ExactTronScheme (Facilitator)", () => {
         key === TRC20_APPROVAL_GAS_SPONSORING.key
           ? {
               key: TRC20_APPROVAL_GAS_SPONSORING.key,
-              signer: mockSigner as NonNullable<Trc20ApprovalGasSponsoringFacilitatorExtension["signer"]>,
+              signer: mockSigner as NonNullable<
+                Trc20ApprovalGasSponsoringFacilitatorExtension["signer"]
+              >,
             }
           : undefined,
     };
@@ -133,7 +135,9 @@ describe("ExactTronScheme (Facilitator)", () => {
             from: buyerBase58,
             asset: tokenBase58,
             spender: permit2Base58,
-            amount: BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").toString(),
+            amount: BigInt(
+              "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            ).toString(),
             signedTransaction: {
               raw_data: {
                 contract: [
@@ -410,7 +414,7 @@ describe("ExactTronScheme (Facilitator)", () => {
     });
 
     it("should accept approval extension when allowance is insufficient", async () => {
-      (mockSigner.readContract as ReturnType<typeof vi.fn>).mockImplementation(async (args) =>
+      (mockSigner.readContract as ReturnType<typeof vi.fn>).mockImplementation(async args =>
         args.functionName === "allowance" ? BigInt(0) : BigInt("10000000"),
       );
       const result = await facilitator.verify(
@@ -458,7 +462,7 @@ describe("ExactTronScheme (Facilitator)", () => {
     });
 
     it("should broadcast approval then settle when allowance is insufficient and extension is present", async () => {
-      (mockSigner.readContract as ReturnType<typeof vi.fn>).mockImplementation(async (args) =>
+      (mockSigner.readContract as ReturnType<typeof vi.fn>).mockImplementation(async args =>
         args.functionName === "allowance" ? BigInt(0) : BigInt("10000000"),
       );
 
@@ -473,7 +477,9 @@ describe("ExactTronScheme (Facilitator)", () => {
       expect(mockSigner.writeContract).toHaveBeenCalled();
       expect(
         (mockSigner.sendRawTransaction as ReturnType<typeof vi.fn>).mock.invocationCallOrder[0],
-      ).toBeLessThan((mockSigner.writeContract as ReturnType<typeof vi.fn>).mock.invocationCallOrder[0]);
+      ).toBeLessThan(
+        (mockSigner.writeContract as ReturnType<typeof vi.fn>).mock.invocationCallOrder[0],
+      );
     });
   });
 });

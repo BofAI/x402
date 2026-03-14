@@ -234,7 +234,10 @@ export function toClientTronSigner(
       signer.signTransaction ??
       (tronWeb
         ? async transaction =>
-            ((await tronWeb.trx.sign(transaction, tronWeb.defaultPrivateKey)) as unknown as TronSignedTransaction)
+            (await tronWeb.trx.sign(
+              transaction,
+              tronWeb.defaultPrivateKey,
+            )) as unknown as TronSignedTransaction
         : undefined),
   };
 }

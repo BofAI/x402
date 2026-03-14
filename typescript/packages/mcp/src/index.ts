@@ -75,13 +75,7 @@ export {
 } from "./utils";
 
 // CLI command exports
-export {
-  parseCliOptions,
-  runApprove,
-  runBalance,
-  runPay,
-  runStatus,
-} from "./command/runtime";
+export { parseCliOptions, runApprove, runBalance, runPay, runStatus } from "./command/runtime";
 export type { ParsedCliOptions } from "./command/runtime";
 
 // ============================================================================

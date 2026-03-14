@@ -32,6 +32,7 @@ import { validateTrc20ApprovalForPayment } from "./trc20approval";
  * @param payload - The payment payload.
  * @param requirements - The payment requirements.
  * @param permit2Payload - The Permit2 specific payload.
+ * @param context - Facilitator context providing optional sponsoring extensions.
  * @returns The verification response.
  */
 export async function verifyPermit2(
@@ -179,6 +180,17 @@ export async function verifyPermit2(
   return { isValid: true, invalidReason: undefined, payer };
 }
 
+/**
+ * Verifies whether the payer has enough Permit2 allowance or a valid sponsored approval.
+ *
+ * @param signer - Facilitator signer used to read on-chain allowance state.
+ * @param payload - Original payment payload sent by the client.
+ * @param requirements - Payment requirements being settled.
+ * @param payer - Normalized payer address recovered from the Permit2 payload.
+ * @param permit2Address - Permit2 contract address for the current network.
+ * @param context - Facilitator context providing optional sponsoring extensions.
+ * @returns A verification failure when allowance cannot be satisfied, otherwise null.
+ */
 async function verifyPermit2Allowance(
   signer: FacilitatorTronSigner,
   payload: PaymentPayload,
@@ -251,6 +263,12 @@ async function verifyPermit2Allowance(
   }
 }
 
+/**
+ * Normalizes a payment requirement asset address for Permit2 comparisons.
+ *
+ * @param asset - TRON token address in payment requirements.
+ * @returns Normalized hex address used in signing and verification checks.
+ */
 function tokenAddressFromRequirement(asset: string): `0x${string}` {
   return normalizeAddressForSigning(asset);
 }
@@ -262,6 +280,7 @@ function tokenAddressFromRequirement(asset: string): `0x${string}` {
  * @param payload - The payment payload.
  * @param requirements - The payment requirements.
  * @param permit2Payload - The Permit2 specific payload.
+ * @param context - Facilitator context providing optional sponsoring extensions.
  * @returns The settlement response.
  */
 export async function settlePermit2(
@@ -302,6 +321,15 @@ export async function settlePermit2(
   return settlePermit2Direct(signer, payload, requirements, permit2Payload);
 }
 
+/**
+ * Settles a Permit2 payment directly against the x402 Permit2 proxy.
+ *
+ * @param signer - Facilitator signer used to submit the settlement transaction.
+ * @param payload - Original payment payload sent by the client.
+ * @param requirements - Payment requirements being settled.
+ * @param permit2Payload - Permit2 authorization payload embedded in the payment.
+ * @returns Settlement response for the direct Permit2 path.
+ */
 async function settlePermit2Direct(
   signer: FacilitatorTronSigner,
   payload: PaymentPayload,
@@ -363,6 +391,16 @@ async function settlePermit2Direct(
   }
 }
 
+/**
+ * Settles a Permit2 payment after first broadcasting a sponsored TRC-20 approval.
+ *
+ * @param signer - Extension signer used to broadcast the sponsored approval transaction.
+ * @param payload - Original payment payload sent by the client.
+ * @param requirements - Payment requirements being settled.
+ * @param permit2Payload - Permit2 authorization payload embedded in the payment.
+ * @param approvalInfo - Sponsored approval transaction included by the client.
+ * @returns Settlement response for the approval-then-settle flow.
+ */
 async function settlePermit2WithApproval(
   signer: NonNullable<Trc20ApprovalGasSponsoringFacilitatorExtension["signer"]>,
   payload: PaymentPayload,

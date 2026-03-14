@@ -7,6 +7,12 @@ import {
 } from "./types";
 import { trc20ApprovalGasSponsoringSchema } from "./resourceService";
 
+/**
+ * Extracts the TRC-20 approval sponsoring payload from payment extensions.
+ *
+ * @param paymentPayload - Payment payload that may include the sponsoring extension.
+ * @returns The sponsoring info when present and structurally complete, otherwise null.
+ */
 export function extractTrc20ApprovalGasSponsoringInfo(
   paymentPayload: PaymentPayload,
 ): Trc20ApprovalGasSponsoringInfo | null {
@@ -37,6 +43,12 @@ export function extractTrc20ApprovalGasSponsoringInfo(
   return info as Trc20ApprovalGasSponsoringInfo;
 }
 
+/**
+ * Validates a TRC-20 approval sponsoring payload against the advertised schema.
+ *
+ * @param info - Sponsoring info extracted from the payment payload.
+ * @returns True when the payload matches the extension schema.
+ */
 export function validateTrc20ApprovalGasSponsoringInfo(
   info: Trc20ApprovalGasSponsoringInfo,
 ): boolean {

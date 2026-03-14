@@ -66,6 +66,13 @@ export class ExactTronScheme implements SchemeNetworkClient {
     return createEIP3009Payload(this.signer, x402Version, paymentRequirements);
   }
 
+  /**
+   * Signs a sponsored TRC-20 approval transaction when Permit2 allowance is insufficient.
+   *
+   * @param requirements - Payment requirements for the pending payment.
+   * @param context - Optional server-declared extensions for the payment flow.
+   * @returns Sponsored approval extensions when approval is needed, otherwise undefined.
+   */
   private async trySignTrc20Approval(
     requirements: PaymentRequirements,
     context?: PaymentPayloadContext,
@@ -94,7 +101,11 @@ export class ExactTronScheme implements SchemeNetworkClient {
       // If allowance cannot be read, still try to provide the approval transaction.
     }
 
-    const info = await signTrc20ApprovalTransaction(this.signer, requirements.asset, requirements.network);
+    const info = await signTrc20ApprovalTransaction(
+      this.signer,
+      requirements.asset,
+      requirements.network,
+    );
 
     return {
       [TRC20_APPROVAL_GAS_SPONSORING.key]: { info },

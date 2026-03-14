@@ -8,6 +8,14 @@ import { ClientTronSigner } from "../../signer";
 
 const MAX_UINT256 = BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
+/**
+ * Builds and signs a TRC-20 `approve(Permit2, MaxUint256)` transaction for sponsored settlement.
+ *
+ * @param signer - TRON signer capable of building and signing trigger smart contract transactions.
+ * @param tokenAddress - Token contract that should grant Permit2 allowance.
+ * @param network - Network identifier used to resolve the Permit2 contract address.
+ * @returns Sponsored approval payload consumed by the facilitator extension.
+ */
 export async function signTrc20ApprovalTransaction(
   signer: ClientTronSigner,
   tokenAddress: string,

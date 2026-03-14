@@ -15,12 +15,7 @@ import { x402HTTPClient } from "@bankofai/x402-core/http";
 import type { PaymentRequired, PaymentRequirements } from "@bankofai/x402-core/types";
 import { wrapFetchWithPayment } from "@bankofai/x402-fetch";
 import { ExactEvmScheme, toClientEvmSigner, eip3009ABI } from "@bankofai/x402-evm";
-import {
-  ExactTronScheme,
-  createClientTronSigner,
-  PERMIT2_ADDRESSES,
-  transferWithAuthorizationABI,
-} from "@bankofai/x402-tron";
+import { ExactTronScheme, createClientTronSigner, PERMIT2_ADDRESSES } from "@bankofai/x402-tron";
 
 type NetworkName = "mainnet" | "nile" | "shasta" | "bsc" | "bsc-testnet";
 
@@ -444,8 +439,27 @@ function selectPaymentRequirement(
     maxAmount?: bigint;
   },
 ): PaymentRequirements {
-  const filtered = createSelectionPolicy(args)(paymentRequired.x402Version, paymentRequired.accepts);
+  const filtered = createSelectionPolicy(args)(
+    paymentRequired.x402Version,
+    paymentRequired.accepts,
+  );
   return createPaymentSelector()(paymentRequired.x402Version, filtered) as PaymentRequirements;
+}
+
+function extractTronBroadcastTransactionId(result: Record<string, unknown>): string | undefined {
+  const transaction = result.transaction as Record<string, unknown> | undefined;
+  const txid = result.txid;
+  const nestedTxId = transaction?.txID;
+
+  if (typeof txid === "string") {
+    return txid;
+  }
+
+  if (typeof nestedTxId === "string") {
+    return nestedTxId;
+  }
+
+  return undefined;
 }
 
 function buildTronWeb(fullHost: string, privateKey: string, apiKey?: string): TronWeb {
@@ -807,8 +821,12 @@ async function approveSelectedRequirement(args: {
         ownerAddress,
       )
       .then(result => tronWeb.trx.sign(result.transaction))
-      .then(signed => tronWeb.trx.sendRawTransaction(signed as any))
-      .then((result: any) => result.txid ?? result.transaction?.txID);
+      .then(signed => tronWeb.trx.sendRawTransaction(signed as Record<string, unknown>))
+      .then(result => extractTronBroadcastTransactionId(result as Record<string, unknown>));
+
+    if (!transaction) {
+      throw new Error("TRON approval transaction broadcast did not return a transaction id.");
+    }
 
     return { transaction, spender };
   }

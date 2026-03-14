@@ -22,23 +22,38 @@ import {
 const APPROVE_SELECTOR = tronUtils.ethersUtils.id("approve(address,uint256)").slice(2, 10);
 const MAX_UINT256 = BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
+/**
+ * Extracts the owner, target contract, and calldata from a signed TRON approval transaction.
+ *
+ * @param signedTransaction - Signed TRON transaction carrying the approval call.
+ * @returns Decoded transaction value fields used for approval validation.
+ */
 function getApprovalTransactionValue(signedTransaction: Record<string, unknown>): {
   ownerAddress?: string;
   contractAddress?: string;
   data?: string;
 } {
-  const rawData = signedTransaction.raw_data as { contract?: Array<Record<string, unknown>> } | undefined;
+  const rawData = signedTransaction.raw_data as
+    | { contract?: Array<Record<string, unknown>> }
+    | undefined;
   const contract = rawData?.contract?.[0];
   const parameter = contract?.parameter as { value?: Record<string, unknown> } | undefined;
   const value = parameter?.value ?? {};
 
   return {
     ownerAddress: typeof value.owner_address === "string" ? value.owner_address : undefined,
-    contractAddress: typeof value.contract_address === "string" ? value.contract_address : undefined,
+    contractAddress:
+      typeof value.contract_address === "string" ? value.contract_address : undefined,
     data: typeof value.data === "string" ? value.data.toLowerCase() : undefined,
   };
 }
 
+/**
+ * Decodes approve calldata into the expected spender and amount values.
+ *
+ * @param data - Hex calldata from the signed approval transaction.
+ * @returns Decoded spender and amount, or null when calldata is not a valid approve call.
+ */
 function decodeApprovalCalldata(data: string): { spender: `0x${string}`; amount: bigint } | null {
   const cleaned = data.replace(/^0x/, "");
   if (!cleaned.startsWith(APPROVE_SELECTOR) || cleaned.length < 8 + 64 + 64) {
@@ -54,6 +69,16 @@ function decodeApprovalCalldata(data: string): { spender: `0x${string}`; amount:
   };
 }
 
+/**
+ * Validates that a sponsored TRC-20 approval matches the pending Permit2 payment.
+ *
+ * @param signer - Signer used to verify the signed approval transaction with the node.
+ * @param info - Sponsored approval info included by the client.
+ * @param payer - Expected payer address for the current payment.
+ * @param tokenAddress - Expected token contract being approved.
+ * @param permit2Address - Expected Permit2 spender address.
+ * @returns Validation result describing whether the sponsored approval is acceptable.
+ */
 export async function validateTrc20ApprovalForPayment(
   signer: Trc20ApprovalGasSponsoringSigner,
   info: Trc20ApprovalGasSponsoringInfo,
@@ -103,9 +128,7 @@ export async function validateTrc20ApprovalForPayment(
     };
   }
 
-  if (
-    normalizeAddressForSigning(txValue.ownerAddress) !== normalizeAddressForSigning(payer)
-  ) {
+  if (normalizeAddressForSigning(txValue.ownerAddress) !== normalizeAddressForSigning(payer)) {
     return {
       isValid: false,
       invalidReason: INVALID_TRC20_APPROVAL_FROM_MISMATCH,
@@ -171,7 +194,9 @@ export async function validateTrc20ApprovalForPayment(
       typeof signWeight?.permission?.threshold === "number"
         ? signWeight.current_weight >= signWeight.permission.threshold
         : undefined) ??
-      (Array.isArray(signWeight?.approved_list) ? signWeight.approved_list.length > 0 : undefined) ??
+      (Array.isArray(signWeight?.approved_list)
+        ? signWeight.approved_list.length > 0
+        : undefined) ??
       false;
 
     if (!isValidSignature) {

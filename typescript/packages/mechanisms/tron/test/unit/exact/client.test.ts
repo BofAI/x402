@@ -209,7 +209,9 @@ describe("ExactTronScheme (Client)", () => {
     });
 
     it("should skip TRC-20 approval extension when allowance is already sufficient", async () => {
-      (mockSigner.readContract as ReturnType<typeof vi.fn>).mockResolvedValueOnce(BigInt("1000000"));
+      (mockSigner.readContract as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+        BigInt("1000000"),
+      );
       const client = new ExactTronScheme(mockSigner);
       const result = await client.createPaymentPayload(2, permit2Requirements, {
         extensions: {

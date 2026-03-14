@@ -4,6 +4,7 @@ import {
   type Trc20ApprovalGasSponsoringExtension,
 } from "./types";
 
+/** JSON schema advertised by servers for sponsored TRC-20 Permit2 approvals. */
 export const trc20ApprovalGasSponsoringSchema: Record<string, unknown> = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
   type: "object",
@@ -50,6 +51,11 @@ export const trc20ApprovalGasSponsoringSchema: Record<string, unknown> = {
   required: ["from", "asset", "spender", "amount", "signedTransaction", "version"],
 };
 
+/**
+ * Declares the facilitator extension that sponsors a pre-signed TRC-20 approval.
+ *
+ * @returns The extension declaration advertised in `PaymentRequired.extensions`.
+ */
 export function declareTrc20ApprovalGasSponsoringExtension(): Record<
   string,
   Trc20ApprovalGasSponsoringExtension

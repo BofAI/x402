@@ -29,8 +29,7 @@ export const INVALID_TRC20_APPROVAL_SPENDER_NOT_PERMIT2 =
   "invalid_trc20_approval_spender_not_permit2";
 export const INVALID_TRC20_APPROVAL_TX_MISSING_DATA = "invalid_trc20_approval_tx_missing_data";
 export const INVALID_TRC20_APPROVAL_TX_WRONG_TARGET = "invalid_trc20_approval_tx_wrong_target";
-export const INVALID_TRC20_APPROVAL_TX_WRONG_SELECTOR =
-  "invalid_trc20_approval_tx_wrong_selector";
+export const INVALID_TRC20_APPROVAL_TX_WRONG_SELECTOR = "invalid_trc20_approval_tx_wrong_selector";
 export const INVALID_TRC20_APPROVAL_TX_WRONG_SPENDER = "invalid_trc20_approval_tx_wrong_spender";
 export const INVALID_TRC20_APPROVAL_TX_WRONG_AMOUNT = "invalid_trc20_approval_tx_wrong_amount";
 export const INVALID_TRC20_APPROVAL_TX_INVALID_SIGNATURE =

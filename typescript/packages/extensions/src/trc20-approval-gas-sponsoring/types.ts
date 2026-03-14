@@ -30,6 +30,12 @@ export interface Trc20ApprovalGasSponsoringFacilitatorExtension extends Facilita
   signer?: Trc20ApprovalGasSponsoringSigner;
 }
 
+/**
+ * Creates a facilitator extension instance for sponsored TRC-20 approvals.
+ *
+ * @param signer - Signer used to verify and broadcast the pre-signed approval transaction.
+ * @returns Facilitator extension instance for TRC-20 approval sponsoring.
+ */
 export function createTrc20ApprovalGasSponsoringExtension(
   signer: Trc20ApprovalGasSponsoringSigner,
 ): Trc20ApprovalGasSponsoringFacilitatorExtension {
