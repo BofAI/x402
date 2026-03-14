@@ -69,6 +69,7 @@ const evmErc20AllowanceAbi = [
 
 type CliBalanceOptions = Partial<Pick<ParsedCliOptions, "network" | "asset" | "token" | "pair">>;
 type SupportedNetwork = keyof typeof TRON_RPC_URLS | keyof typeof EVM_NETWORKS;
+type TronBroadcastResult = Awaited<ReturnType<TronWeb["trx"]["sendRawTransaction"]>>;
 
 const DEFAULT_PAYMENT_ASSETS: Partial<
   Record<
@@ -446,8 +447,8 @@ function selectPaymentRequirement(
   return createPaymentSelector()(paymentRequired.x402Version, filtered) as PaymentRequirements;
 }
 
-function extractTronBroadcastTransactionId(result: Record<string, unknown>): string | undefined {
-  const transaction = result.transaction as Record<string, unknown> | undefined;
+function extractTronBroadcastTransactionId(result: TronBroadcastResult): string | undefined {
+  const transaction = result.transaction;
   const txid = result.txid;
   const nestedTxId = transaction?.txID;
 
@@ -821,8 +822,8 @@ async function approveSelectedRequirement(args: {
         ownerAddress,
       )
       .then(result => tronWeb.trx.sign(result.transaction))
-      .then(signed => tronWeb.trx.sendRawTransaction(signed as Record<string, unknown>))
-      .then(result => extractTronBroadcastTransactionId(result as Record<string, unknown>));
+      .then(signed => tronWeb.trx.sendRawTransaction(signed))
+      .then(result => extractTronBroadcastTransactionId(result));
 
     if (!transaction) {
       throw new Error("TRON approval transaction broadcast did not return a transaction id.");
