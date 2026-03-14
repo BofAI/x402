@@ -383,11 +383,32 @@ class TestFindFacilitator:
         """Test finding facilitator with wildcard network pattern."""
         facilitator = x402Facilitator()
         mock_scheme = MockSchemeNetworkFacilitator("exact")
-        # Register with wildcard pattern (derived from single network)
-        facilitator.register(["eip155:8453"], mock_scheme)
+        facilitator.register(["eip155:8453", "eip155:84532"], mock_scheme)
 
         # Exact match should work
         assert facilitator._find_facilitator("exact", "eip155:8453") is mock_scheme
+        assert facilitator._find_facilitator("exact", "eip155:84532") is mock_scheme
+
+    def test_find_exact_network_does_not_match_other_same_family_network(self):
+        """Single-network registrations should not widen to the whole family."""
+        facilitator = x402Facilitator()
+        mock_scheme = MockSchemeNetworkFacilitator("exact")
+        facilitator.register(["tron:nile"], mock_scheme)
+
+        assert facilitator._find_facilitator("exact", "tron:nile") is mock_scheme
+        assert facilitator._find_facilitator("exact", "tron:mainnet") is None
+
+    def test_find_distinct_schemes_for_same_family_networks(self):
+        """Different signers on the same family should stay isolated by network."""
+        facilitator = x402Facilitator()
+        nile_scheme = MockSchemeNetworkFacilitator("exact")
+        mainnet_scheme = MockSchemeNetworkFacilitator("exact")
+
+        facilitator.register(["tron:nile"], nile_scheme)
+        facilitator.register(["tron:mainnet"], mainnet_scheme)
+
+        assert facilitator._find_facilitator("exact", "tron:nile") is nile_scheme
+        assert facilitator._find_facilitator("exact", "tron:mainnet") is mainnet_scheme
 
 
 class TestFindFacilitatorV1:
