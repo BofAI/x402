@@ -94,6 +94,25 @@ const DEFAULT_PAYMENT_ASSETS: Partial<
   },
 };
 
+const NETWORK_ALIASES: Record<string, string> = {
+  mainnet: "tron:mainnet",
+  nile: "tron:nile",
+  shasta: "tron:shasta",
+  "tron:mainnet": "tron:mainnet",
+  "tron:nile": "tron:nile",
+  "tron:shasta": "tron:shasta",
+  tron_mainnet: "tron:mainnet",
+  tron_nile: "tron:nile",
+  tron_shasta: "tron:shasta",
+  bsc: "eip155:56",
+  "bsc-mainnet": "eip155:56",
+  bsc_mainnet: "eip155:56",
+  "eip155:56": "eip155:56",
+  "bsc-testnet": "eip155:97",
+  bsc_testnet: "eip155:97",
+  "eip155:97": "eip155:97",
+};
+
 export type ParsedCliOptions = Record<string, string>;
 
 function readJsonFile(file: string): Record<string, unknown> | undefined {
@@ -293,22 +312,16 @@ function resolvePreferredNetwork(network?: string): string | undefined {
     return undefined;
   }
 
-  if (network.startsWith("tron:") || network.startsWith("eip155:")) {
-    return network;
+  return NETWORK_ALIASES[network.trim().toLowerCase()];
+}
+
+function requireSupportedNetwork(network: string, optionName = "--network"): string {
+  const resolved = resolvePreferredNetwork(network);
+  if (!resolved) {
+    throw new Error(`Unsupported network for ${optionName}: ${network}`);
   }
 
-  switch (network) {
-    case "mainnet":
-    case "nile":
-    case "shasta":
-      return `tron:${network}`;
-    case "bsc":
-      return "eip155:56";
-    case "bsc-testnet":
-      return "eip155:97";
-    default:
-      return undefined;
-  }
+  return resolved;
 }
 
 function normalizeSelectorValue(value?: string): string | undefined {
@@ -327,23 +340,23 @@ function parsePairSelector(pair?: string): { network?: string; asset?: string } 
   if (pair.includes("/")) {
     const [network, asset] = pair.split("/", 2);
     return {
-      network: resolvePreferredNetwork(network) ?? network,
+      network: requireSupportedNetwork(network, "--pair"),
       asset,
     };
   }
 
   const parts = pair.split(":");
   if (parts.length >= 3) {
+    const network = parts.slice(0, -1).join(":");
     return {
-      network:
-        resolvePreferredNetwork(parts.slice(0, -1).join(":")) ?? parts.slice(0, -1).join(":"),
+      network: requireSupportedNetwork(network, "--pair"),
       asset: parts.at(-1),
     };
   }
 
   if (parts.length === 2) {
     return {
-      network: resolvePreferredNetwork(parts[0]) ?? parts[0],
+      network: requireSupportedNetwork(parts[0], "--pair"),
       asset: parts[1],
     };
   }
@@ -695,8 +708,59 @@ export async function runStatus(): Promise<void> {
   process.stdout.write(JSON.stringify(result, null, 2) + "\n");
 }
 
-function getPreferredAsset(options: CliBalanceOptions): string | undefined {
-  return parsePairSelector(options.pair).asset ?? options.asset ?? options.token;
+function isHexAddress(value: string): value is `0x${string}` {
+  return /^0x[a-fA-F0-9]{40}$/.test(value);
+}
+
+function isTronAddress(value: string): boolean {
+  return TronWeb.isAddress(value);
+}
+
+function resolvePreferredAssetInfo(args: {
+  network: SupportedNetwork;
+  asset?: string;
+  token?: string;
+  pairAsset?: string;
+}): { asset: string; symbol?: string } | undefined {
+  const explicitToken = args.token?.trim();
+  const explicitAsset = args.asset?.trim();
+  const explicitPairAsset = args.pairAsset?.trim();
+  const explicitSelector = explicitPairAsset ?? explicitAsset ?? explicitToken;
+  const defaultAsset = getDefaultPaymentAsset(args.network);
+
+  if (!explicitSelector) {
+    return defaultAsset;
+  }
+
+  if (args.network === "mainnet" || args.network === "nile" || args.network === "shasta") {
+    if (
+      defaultAsset?.symbol &&
+      normalizeSelectorValue(explicitSelector) === normalizeSelectorValue(defaultAsset.symbol)
+    ) {
+      return defaultAsset;
+    }
+
+    if (!isTronAddress(explicitSelector)) {
+      throw new Error(`Invalid token address format for tron:${args.network}: ${explicitSelector}`);
+    }
+
+    return { asset: explicitSelector };
+  }
+
+  if (
+    defaultAsset?.symbol &&
+    normalizeSelectorValue(explicitSelector) === normalizeSelectorValue(defaultAsset.symbol)
+  ) {
+    return defaultAsset;
+  }
+
+  if (!isHexAddress(explicitSelector)) {
+    throw new Error(
+      `Invalid token address format for ${EVM_NETWORKS[args.network].chainId}: ${explicitSelector}`,
+    );
+  }
+
+  return { asset: explicitSelector };
 }
 
 function getDefaultPaymentAsset(
@@ -980,10 +1044,40 @@ export async function runBalance(options: CliBalanceOptions = {}): Promise<void>
   const { tronKey, evmKey, tronGridApiKey } = await resolveKeys();
   const result: Record<string, unknown> = {};
   const pairSelector = parsePairSelector(options.pair);
-  const preferredNetwork = resolvePreferredNetwork(options.network) ?? pairSelector.network;
-  const preferredAsset = getPreferredAsset(options);
+  const preferredNetwork =
+    options.network !== undefined ? requireSupportedNetwork(options.network) : pairSelector.network;
+  const includeTron = !preferredNetwork || preferredNetwork.startsWith("tron:");
+  const includeEvm = !preferredNetwork || preferredNetwork.startsWith("eip155:");
 
-  if (tronKey) {
+  if (preferredNetwork?.startsWith("tron:")) {
+    resolvePreferredAssetInfo({
+      network: preferredNetwork.slice("tron:".length) as keyof typeof TRON_RPC_URLS,
+      asset: options.asset,
+      token: options.token,
+      pairAsset: pairSelector.asset,
+    });
+  }
+
+  if (preferredNetwork?.startsWith("eip155:")) {
+    const evmNetwork =
+      preferredNetwork === "eip155:56"
+        ? "bsc"
+        : preferredNetwork === "eip155:97"
+          ? "bsc-testnet"
+          : undefined;
+    if (!evmNetwork) {
+      throw new Error(`Unsupported network for --network: ${preferredNetwork}`);
+    }
+
+    resolvePreferredAssetInfo({
+      network: evmNetwork,
+      asset: options.asset,
+      token: options.token,
+      pairAsset: pairSelector.asset,
+    });
+  }
+
+  if (tronKey && includeTron) {
     const tronWeb = buildTronWeb(TRON_RPC_URLS.nile, tronKey, tronGridApiKey);
     const signer = createClientTronSigner(tronWeb, tronKey);
     const trxSun = await tronWeb.trx.getBalance(signer.address);
@@ -991,10 +1085,12 @@ export async function runBalance(options: CliBalanceOptions = {}): Promise<void>
       preferredNetwork && preferredNetwork.startsWith("tron:")
         ? (preferredNetwork.slice("tron:".length) as keyof typeof TRON_RPC_URLS)
         : "nile";
-    const tokenInfo =
-      preferredAsset && (!preferredNetwork || preferredNetwork.startsWith("tron:"))
-        ? { asset: preferredAsset }
-        : getDefaultPaymentAsset(tronNetwork);
+    const tokenInfo = resolvePreferredAssetInfo({
+      network: tronNetwork,
+      asset: options.asset,
+      token: options.token,
+      pairAsset: pairSelector.asset,
+    });
     result.tron = {
       address: signer.address,
       network: `tron:${tronNetwork}`,
@@ -1016,7 +1112,7 @@ export async function runBalance(options: CliBalanceOptions = {}): Promise<void>
     }
   }
 
-  if (evmKey) {
+  if (evmKey && includeEvm) {
     const account = privateKeyToAccount(normalizeHexPrivateKey(evmKey));
     const balances: Record<string, unknown> = {};
 
@@ -1037,9 +1133,12 @@ export async function runBalance(options: CliBalanceOptions = {}): Promise<void>
         nativeBalance: balance.toString(),
       };
 
-      const tokenInfo = preferredAsset
-        ? { asset: preferredAsset }
-        : getDefaultPaymentAsset(networkName as keyof typeof EVM_NETWORKS);
+      const tokenInfo = resolvePreferredAssetInfo({
+        network: networkName as keyof typeof EVM_NETWORKS,
+        asset: options.asset,
+        token: options.token,
+        pairAsset: pairSelector.asset,
+      });
 
       if (tokenInfo?.asset) {
         entry.token = {
