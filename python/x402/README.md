@@ -29,6 +29,16 @@ uv add "bankofai.x402[all]"
 
 ## Quick Start
 
+### EVM Transfer Methods
+
+The Python SDK supports both EVM transfer methods used by the TypeScript SDK:
+
+- `eip3009` for tokens that implement `transferWithAuthorization`
+- `permit2` for networks and assets configured to use Permit2 witness settlement
+
+On BSC mainnet and testnet, the default stablecoin route uses `permit2`. The payer
+wallet must pre-approve the configured Permit2 contract before settlement.
+
 ### Client (Async)
 
 ```python
@@ -263,6 +273,22 @@ client.register("eip155:8453", CustomScheme())
 - `x402.mechanisms.evm` - EVM/Ethereum implementation
 - `x402.mechanisms.svm` - Solana implementation
 - `x402.extensions` - Protocol extensions (Bazaar discovery)
+
+## Integration Tests
+
+The Python integration suite includes:
+
+- Base Sepolia `eip3009`
+- BSC Testnet `permit2`
+
+For BSC Testnet `permit2` integration tests, set:
+
+- `BSC_CLIENT_PRIVATE_KEY`
+- `BSC_FACILITATOR_PRIVATE_KEY`
+- `BSC_TESTNET_RPC_URL`
+
+The payer wallet must also hold testnet BNB, testnet USDT, and a token approval for
+the configured BSC Permit2 contract.
 
 ## Examples
 

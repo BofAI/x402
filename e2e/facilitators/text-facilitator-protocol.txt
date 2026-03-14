@@ -47,7 +47,7 @@ Example configuration:
 }
 ```
 
-Python facilitator example (eip3009 only):
+Python facilitator example (eip3009 + permit2):
 ```json
 {
   "name": "python",
@@ -57,7 +57,7 @@ Python facilitator example (eip3009 only):
   "x402Versions": [2],
   "extensions": ["bazaar"],
   "evm": {
-    "transferMethods": ["eip3009"]
+    "transferMethods": ["eip3009", "permit2"]
   },
   "environment": {
     "required": ["PORT", "EVM_PRIVATE_KEY", "SVM_PRIVATE_KEY", "APTOS_PRIVATE_KEY"],
