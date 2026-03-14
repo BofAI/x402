@@ -1,6 +1,12 @@
 import { TronWeb, utils as tronUtils } from "tronweb";
 import { tronAddressToEvm } from "./utils";
 
+type TriggerSmartContractResult = Awaited<
+  ReturnType<TronWeb["transactionBuilder"]["triggerSmartContract"]>
+>;
+type TronTransaction = TriggerSmartContractResult["transaction"];
+type TronSignedTransaction = Exclude<Awaited<ReturnType<TronWeb["trx"]["sign"]>>, string>;
+
 /**
  * Signer interface for TRON client operations.
  *
@@ -35,6 +41,25 @@ export interface ClientTronSigner {
     functionName: string;
     args: readonly unknown[];
   }): Promise<unknown>;
+
+  /**
+   * Build a TriggerSmartContract transaction without broadcasting it.
+   * Optional capability used for TRC-20 approval gas sponsoring.
+   */
+  buildTriggerSmartContractTransaction?(args: {
+    contractAddress: string;
+    functionSelector: string;
+    parameters: Array<{ type: string; value: unknown }>;
+    feeLimit?: number;
+    callValue?: number;
+    issuerAddress?: string;
+  }): Promise<TronTransaction>;
+
+  /**
+   * Sign a raw TRON transaction object.
+   * Optional capability used for TRC-20 approval gas sponsoring.
+   */
+  signTransaction?(transaction: TronTransaction): Promise<TronSignedTransaction>;
 }
 
 /**
@@ -86,6 +111,18 @@ export interface FacilitatorTronSigner {
    * Wait for a transaction to be confirmed on-chain.
    */
   waitForTransactionReceipt(args: { hash: string }): Promise<{ status: string }>;
+
+  /**
+   * Broadcast a signed raw TRON transaction.
+   * Optional capability used for TRC-20 approval gas sponsoring.
+   */
+  sendRawTransaction?(args: { signedTransaction: TronSignedTransaction }): Promise<string>;
+
+  /**
+   * Ask a TRON node to validate the signatures on a transaction.
+   * Optional capability used for TRC-20 approval gas sponsoring.
+   */
+  getSignWeight?(args: { transaction: TronTransaction }): Promise<unknown>;
 }
 
 type ReadContractCapable = Pick<ClientTronSigner, "readContract">;
@@ -145,6 +182,8 @@ function resolveBase58Address(tronWeb: TronWeb, privateKey: string): string {
 export function toClientTronSigner(
   signer: Omit<ClientTronSigner, "readContract"> & {
     readContract?: ClientTronSigner["readContract"];
+    buildTriggerSmartContractTransaction?: ClientTronSigner["buildTriggerSmartContractTransaction"];
+    signTransaction?: ClientTronSigner["signTransaction"];
   },
   tronWeb?: TronWeb,
 ): ClientTronSigner {
@@ -174,6 +213,29 @@ export function toClientTronSigner(
     address: signer.address,
     signTypedData: args => signer.signTypedData(args),
     readContract,
+    buildTriggerSmartContractTransaction:
+      signer.buildTriggerSmartContractTransaction ??
+      (tronWeb
+        ? async args => {
+            const built = await tronWeb.transactionBuilder.triggerSmartContract(
+              args.contractAddress,
+              args.functionSelector,
+              {
+                feeLimit: args.feeLimit,
+                callValue: args.callValue ?? 0,
+              },
+              args.parameters,
+              args.issuerAddress ?? signer.address,
+            );
+            return built.transaction;
+          }
+        : undefined),
+    signTransaction:
+      signer.signTransaction ??
+      (tronWeb
+        ? async transaction =>
+            ((await tronWeb.trx.sign(transaction, tronWeb.defaultPrivateKey)) as unknown as TronSignedTransaction)
+        : undefined),
   };
 }
 
@@ -290,6 +352,13 @@ export function createFacilitatorTronSigner(
       }
 
       return { status: "pending" };
+    },
+    async sendRawTransaction(args) {
+      const result = await tronWeb.trx.sendRawTransaction(args.signedTransaction);
+      return String(result.txid ?? result.transaction?.txID ?? "");
+    },
+    async getSignWeight(args) {
+      return tronWeb.trx.getSignWeight(args.transaction);
     },
   });
 }

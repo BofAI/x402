@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { TRC20_APPROVAL_GAS_SPONSORING } from "@bankofai/x402-extensions";
 import { ExactTronScheme } from "../../../src/exact/client/scheme";
 import type { ClientTronSigner } from "../../../src/signer";
 import { PaymentRequirements } from "@bankofai/x402-core/types";
@@ -35,6 +36,15 @@ describe("ExactTronScheme (Client)", () => {
       address: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
       signTypedData: vi.fn().mockResolvedValue("0x" + "ab".repeat(32) + "cd".repeat(32) + "1b"),
       readContract: vi.fn().mockResolvedValue(BigInt(0)),
+      buildTriggerSmartContractTransaction: vi.fn().mockResolvedValue({
+        raw_data: { contract: [{ parameter: { value: {} } }] },
+        raw_data_hex: "abcd",
+      }),
+      signTransaction: vi.fn().mockResolvedValue({
+        raw_data: { contract: [{ parameter: { value: {} } }] },
+        raw_data_hex: "abcd",
+        signature: ["11".repeat(65)],
+      }),
     };
   });
 
@@ -180,6 +190,38 @@ describe("ExactTronScheme (Client)", () => {
       await expect(client.createPaymentPayload(2, reqs)).rejects.toThrow(
         "Permit2 facilitator address is required",
       );
+    });
+
+    it("should attach TRC-20 approval extension when advertised and allowance is insufficient", async () => {
+      const client = new ExactTronScheme(mockSigner);
+      const result = await client.createPaymentPayload(2, permit2Requirements, {
+        extensions: {
+          [TRC20_APPROVAL_GAS_SPONSORING.key]: {
+            info: { description: "approve", version: "1" },
+          },
+        },
+      });
+
+      expect(result.extensions).toBeDefined();
+      expect(result.extensions?.[TRC20_APPROVAL_GAS_SPONSORING.key]).toBeDefined();
+      expect(mockSigner.buildTriggerSmartContractTransaction).toHaveBeenCalled();
+      expect(mockSigner.signTransaction).toHaveBeenCalled();
+    });
+
+    it("should skip TRC-20 approval extension when allowance is already sufficient", async () => {
+      (mockSigner.readContract as ReturnType<typeof vi.fn>).mockResolvedValueOnce(BigInt("1000000"));
+      const client = new ExactTronScheme(mockSigner);
+      const result = await client.createPaymentPayload(2, permit2Requirements, {
+        extensions: {
+          [TRC20_APPROVAL_GAS_SPONSORING.key]: {
+            info: { description: "approve", version: "1" },
+          },
+        },
+      });
+
+      expect(result.extensions).toBeUndefined();
+      expect(mockSigner.buildTriggerSmartContractTransaction).not.toHaveBeenCalled();
+      expect(mockSigner.signTransaction).not.toHaveBeenCalled();
     });
   });
 });

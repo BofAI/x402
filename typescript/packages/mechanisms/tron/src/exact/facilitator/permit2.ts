@@ -1,9 +1,16 @@
 import {
   PaymentPayload,
   PaymentRequirements,
+  FacilitatorContext,
   SettleResponse,
   VerifyResponse,
 } from "@bankofai/x402-core/types";
+import {
+  extractTrc20ApprovalGasSponsoringInfo,
+  TRC20_APPROVAL_GAS_SPONSORING,
+  type Trc20ApprovalGasSponsoringInfo,
+  type Trc20ApprovalGasSponsoringFacilitatorExtension,
+} from "@bankofai/x402-extensions";
 import {
   permit2WitnessTypes,
   PERMIT2_ADDRESSES,
@@ -16,6 +23,7 @@ import { FacilitatorTronSigner } from "../../signer";
 import { ExactPermit2Payload } from "../../types";
 import { getTronChainId, normalizeAddressForSigning } from "../../utils";
 import * as errors from "./errors";
+import { validateTrc20ApprovalForPayment } from "./trc20approval";
 
 /**
  * Verifies a Permit2 payment payload on TRON.
@@ -31,6 +39,7 @@ export async function verifyPermit2(
   payload: PaymentPayload,
   requirements: PaymentRequirements,
   permit2Payload: ExactPermit2Payload,
+  context?: FacilitatorContext,
 ): Promise<VerifyResponse> {
   const payer = permit2Payload.permit2Authorization.from;
   const facilitatorAddresses = signer
@@ -134,20 +143,16 @@ export async function verifyPermit2(
     return { isValid: false, invalidReason: errors.PERMIT2_INVALID_SIGNATURE, payer };
   }
 
-  // Check Permit2 allowance
-  try {
-    const allowance = (await signer.readContract({
-      address: requirements.asset,
-      abi: erc20AllowanceAbi as unknown as readonly Record<string, unknown>[],
-      functionName: "allowance",
-      args: [payer, permit2Address],
-    })) as bigint;
-
-    if (allowance < BigInt(requirements.amount)) {
-      return { isValid: false, invalidReason: errors.PERMIT2_ALLOWANCE_REQUIRED, payer };
-    }
-  } catch {
-    // If allowance check fails, proceed optimistically
+  const allowanceResult = await verifyPermit2Allowance(
+    signer,
+    payload,
+    requirements,
+    payer,
+    permit2Address,
+    context,
+  );
+  if (allowanceResult) {
+    return allowanceResult;
   }
 
   // Check balance
@@ -174,6 +179,82 @@ export async function verifyPermit2(
   return { isValid: true, invalidReason: undefined, payer };
 }
 
+async function verifyPermit2Allowance(
+  signer: FacilitatorTronSigner,
+  payload: PaymentPayload,
+  requirements: PaymentRequirements,
+  payer: `0x${string}`,
+  permit2Address: string,
+  context?: FacilitatorContext,
+): Promise<VerifyResponse | null> {
+  try {
+    const allowance = (await signer.readContract({
+      address: requirements.asset,
+      abi: erc20AllowanceAbi as unknown as readonly Record<string, unknown>[],
+      functionName: "allowance",
+      args: [payer, permit2Address],
+    })) as bigint;
+
+    if (allowance >= BigInt(requirements.amount)) {
+      return null;
+    }
+
+    const trc20ApprovalExtension =
+      context?.getExtension<Trc20ApprovalGasSponsoringFacilitatorExtension>(
+        TRC20_APPROVAL_GAS_SPONSORING.key,
+      );
+    const approvalInfo = extractTrc20ApprovalGasSponsoringInfo(payload);
+    if (trc20ApprovalExtension?.signer && approvalInfo) {
+      const result = await validateTrc20ApprovalForPayment(
+        trc20ApprovalExtension.signer,
+        approvalInfo,
+        payer,
+        tokenAddressFromRequirement(requirements.asset),
+        permit2Address,
+      );
+      if (!result.isValid) {
+        return {
+          isValid: false,
+          invalidReason: result.invalidReason,
+          invalidMessage: result.invalidMessage,
+          payer,
+        };
+      }
+      return null;
+    }
+
+    return { isValid: false, invalidReason: errors.PERMIT2_ALLOWANCE_REQUIRED, payer };
+  } catch {
+    const trc20ApprovalExtension =
+      context?.getExtension<Trc20ApprovalGasSponsoringFacilitatorExtension>(
+        TRC20_APPROVAL_GAS_SPONSORING.key,
+      );
+    const approvalInfo = extractTrc20ApprovalGasSponsoringInfo(payload);
+    if (trc20ApprovalExtension?.signer && approvalInfo) {
+      const result = await validateTrc20ApprovalForPayment(
+        trc20ApprovalExtension.signer,
+        approvalInfo,
+        payer,
+        tokenAddressFromRequirement(requirements.asset),
+        permit2Address,
+      );
+      if (!result.isValid) {
+        return {
+          isValid: false,
+          invalidReason: result.invalidReason,
+          invalidMessage: result.invalidMessage,
+          payer,
+        };
+      }
+    }
+    return null;
+  }
+}
+
+function tokenAddressFromRequirement(asset: string): `0x${string}` {
+  return normalizeAddressForSigning(asset);
+}
+
 /**
  * Settles a Permit2 payment on TRON by calling x402Permit2Proxy.settle().
  *
@@ -188,10 +269,11 @@ export async function settlePermit2(
   payload: PaymentPayload,
   requirements: PaymentRequirements,
   permit2Payload: ExactPermit2Payload,
+  context?: FacilitatorContext,
 ): Promise<SettleResponse> {
   const payer = permit2Payload.permit2Authorization.from;
 
-  const valid = await verifyPermit2(signer, payload, requirements, permit2Payload);
+  const valid = await verifyPermit2(signer, payload, requirements, permit2Payload, context);
   if (!valid.isValid) {
     return {
       success: false,
@@ -202,6 +284,31 @@ export async function settlePermit2(
     };
   }
 
+  const trc20ApprovalExtension =
+    context?.getExtension<Trc20ApprovalGasSponsoringFacilitatorExtension>(
+      TRC20_APPROVAL_GAS_SPONSORING.key,
+    );
+  const approvalInfo = extractTrc20ApprovalGasSponsoringInfo(payload);
+  if (trc20ApprovalExtension?.signer && approvalInfo) {
+    return settlePermit2WithApproval(
+      trc20ApprovalExtension.signer,
+      payload,
+      requirements,
+      permit2Payload,
+      approvalInfo,
+    );
+  }
+
+  return settlePermit2Direct(signer, payload, requirements, permit2Payload);
+}
+
+async function settlePermit2Direct(
+  signer: FacilitatorTronSigner,
+  payload: PaymentPayload,
+  requirements: PaymentRequirements,
+  permit2Payload: ExactPermit2Payload,
+): Promise<SettleResponse> {
+  const payer = permit2Payload.permit2Authorization.from;
   const proxyAddress = X402_PERMIT2_PROXY_ADDRESSES[requirements.network]!;
 
   try {
@@ -245,6 +352,42 @@ export async function settlePermit2(
       network: payload.accepted.network,
       payer,
     };
+  } catch {
+    return {
+      success: false,
+      errorReason: errors.TRANSACTION_FAILED,
+      transaction: "",
+      network: payload.accepted.network,
+      payer,
+    };
+  }
+}
+
+async function settlePermit2WithApproval(
+  signer: NonNullable<Trc20ApprovalGasSponsoringFacilitatorExtension["signer"]>,
+  payload: PaymentPayload,
+  requirements: PaymentRequirements,
+  permit2Payload: ExactPermit2Payload,
+  approvalInfo: Trc20ApprovalGasSponsoringInfo,
+): Promise<SettleResponse> {
+  const payer = permit2Payload.permit2Authorization.from;
+
+  try {
+    const approvalTxHash = await signer.sendRawTransaction({
+      signedTransaction: approvalInfo.signedTransaction,
+    });
+    const approvalReceipt = await signer.waitForTransactionReceipt({ hash: approvalTxHash });
+    if (approvalReceipt.status !== "success") {
+      return {
+        success: false,
+        errorReason: errors.INVALID_TRANSACTION_STATE,
+        transaction: approvalTxHash,
+        network: payload.accepted.network,
+        payer,
+      };
+    }
+
+    return settlePermit2Direct(signer, payload, requirements, permit2Payload);
   } catch {
     return {
       success: false,

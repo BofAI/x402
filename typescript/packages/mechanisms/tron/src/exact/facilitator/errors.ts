@@ -22,3 +22,16 @@ export const PERMIT2_TOKEN_MISMATCH = "permit2_token_mismatch";
 export const PERMIT2_INVALID_SIGNATURE = "invalid_permit2_signature";
 export const PERMIT2_ALLOWANCE_REQUIRED = "permit2_allowance_required";
 export const MISSING_PERMIT2_ADDRESS = "missing_permit2_address";
+export const INVALID_TRC20_APPROVAL_FORMAT = "invalid_trc20_approval_format";
+export const INVALID_TRC20_APPROVAL_FROM_MISMATCH = "invalid_trc20_approval_from_mismatch";
+export const INVALID_TRC20_APPROVAL_ASSET_MISMATCH = "invalid_trc20_approval_asset_mismatch";
+export const INVALID_TRC20_APPROVAL_SPENDER_NOT_PERMIT2 =
+  "invalid_trc20_approval_spender_not_permit2";
+export const INVALID_TRC20_APPROVAL_TX_MISSING_DATA = "invalid_trc20_approval_tx_missing_data";
+export const INVALID_TRC20_APPROVAL_TX_WRONG_TARGET = "invalid_trc20_approval_tx_wrong_target";
+export const INVALID_TRC20_APPROVAL_TX_WRONG_SELECTOR =
+  "invalid_trc20_approval_tx_wrong_selector";
+export const INVALID_TRC20_APPROVAL_TX_WRONG_SPENDER = "invalid_trc20_approval_tx_wrong_spender";
+export const INVALID_TRC20_APPROVAL_TX_WRONG_AMOUNT = "invalid_trc20_approval_tx_wrong_amount";
+export const INVALID_TRC20_APPROVAL_TX_INVALID_SIGNATURE =
+  "invalid_trc20_approval_tx_invalid_signature";
