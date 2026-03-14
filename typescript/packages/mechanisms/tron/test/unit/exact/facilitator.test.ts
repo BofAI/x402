@@ -1,11 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import {
+  TRC20_APPROVAL_GAS_SPONSORING,
+  type Trc20ApprovalGasSponsoringFacilitatorExtension,
+} from "@bankofai/x402-extensions";
 import { ExactTronScheme } from "../../../src/exact/facilitator/scheme";
 import * as errors from "../../../src/exact/facilitator/errors";
 import type { FacilitatorTronSigner } from "../../../src/signer";
 import { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
 import { ExactEIP3009Payload, ExactPermit2Payload } from "../../../src/types";
-import { X402_PERMIT2_PROXY_ADDRESSES } from "../../../src/constants";
-import { normalizeAddressForSigning } from "../../../src/utils";
+import { X402_PERMIT2_PROXY_ADDRESSES, PERMIT2_ADDRESSES } from "../../../src/constants";
+import { evmAddressToTron, normalizeAddressForSigning } from "../../../src/utils";
 
 describe("ExactTronScheme (Facilitator)", () => {
   let facilitator: ExactTronScheme;
@@ -18,6 +22,9 @@ describe("ExactTronScheme (Facilitator)", () => {
   const buyerAddress = "0x1234567890123456789012345678901234567890" as `0x${string}`;
   const payToAddress = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd" as `0x${string}`;
   const tokenAddress = "0x5678567856785678567856785678567856785678" as `0x${string}`;
+  const buyerBase58 = evmAddressToTron(buyerAddress);
+  const tokenBase58 = evmAddressToTron(tokenAddress);
+  const permit2Base58 = PERMIT2_ADDRESSES["tron:nile"]!;
 
   // --- TIP-712 test data ---
   const mockTIP712Payload: ExactEIP3009Payload = {
@@ -93,9 +100,67 @@ describe("ExactTronScheme (Facilitator)", () => {
       verifyTypedData: vi.fn().mockResolvedValue(true),
       writeContract: vi.fn().mockResolvedValue("tx_hash_123"),
       waitForTransactionReceipt: vi.fn().mockResolvedValue({ status: "success" }),
+      sendRawTransaction: vi.fn().mockResolvedValue("approval_tx_hash_123"),
+      getSignWeight: vi.fn().mockResolvedValue({ result: { result: true } }),
     };
     facilitator = new ExactTronScheme(mockSigner);
   });
+
+  function createApprovalExtensionContext(): {
+    getExtension: (key: string) => Trc20ApprovalGasSponsoringFacilitatorExtension | undefined;
+  } {
+    return {
+      getExtension: (key: string) =>
+        key === TRC20_APPROVAL_GAS_SPONSORING.key
+          ? {
+              key: TRC20_APPROVAL_GAS_SPONSORING.key,
+              signer: mockSigner as NonNullable<
+                Trc20ApprovalGasSponsoringFacilitatorExtension["signer"]
+              >,
+            }
+          : undefined,
+    };
+  }
+
+  function createApprovalExtensionPayload(): PaymentPayload {
+    const permit2Hex = normalizeAddressForSigning(permit2Base58).slice(2);
+    const spenderWord = permit2Hex.padStart(64, "0");
+    const amountWord = "f".repeat(64);
+
+    return {
+      ...mockPermit2PaymentPayload,
+      extensions: {
+        [TRC20_APPROVAL_GAS_SPONSORING.key]: {
+          info: {
+            from: buyerBase58,
+            asset: tokenBase58,
+            spender: permit2Base58,
+            amount: BigInt(
+              "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            ).toString(),
+            signedTransaction: {
+              raw_data: {
+                contract: [
+                  {
+                    parameter: {
+                      value: {
+                        owner_address: `41${buyerAddress.slice(2)}`,
+                        contract_address: `41${tokenAddress.slice(2)}`,
+                        data: `095ea7b3${spenderWord}${amountWord}`,
+                      },
+                    },
+                  },
+                ],
+              },
+              raw_data_hex: "abcd",
+              signature: ["11".repeat(65)],
+            },
+            version: "1",
+          },
+        },
+      },
+    };
+  }
 
   describe("Construction", () => {
     it("should create instance with correct scheme and caipFamily", () => {
@@ -347,6 +412,19 @@ describe("ExactTronScheme (Facilitator)", () => {
       expect(result.isValid).toBe(false);
       expect(result.invalidReason).toBe(errors.PERMIT2_ALLOWANCE_REQUIRED);
     });
+
+    it("should accept approval extension when allowance is insufficient", async () => {
+      (mockSigner.readContract as ReturnType<typeof vi.fn>).mockImplementation(async args =>
+        args.functionName === "allowance" ? BigInt(0) : BigInt("10000000"),
+      );
+      const result = await facilitator.verify(
+        createApprovalExtensionPayload(),
+        mockPermit2Requirements,
+        createApprovalExtensionContext(),
+      );
+      expect(result.isValid).toBe(true);
+      expect(mockSigner.getSignWeight).toHaveBeenCalled();
+    });
   });
 
   // --- Permit2 settle ---
@@ -381,6 +459,27 @@ describe("ExactTronScheme (Facilitator)", () => {
       const result = await facilitator.settle(mockPermit2PaymentPayload, mockPermit2Requirements);
       expect(result.success).toBe(false);
       expect(result.errorReason).toBe(errors.TRANSACTION_FAILED);
+    });
+
+    it("should broadcast approval then settle when allowance is insufficient and extension is present", async () => {
+      (mockSigner.readContract as ReturnType<typeof vi.fn>).mockImplementation(async args =>
+        args.functionName === "allowance" ? BigInt(0) : BigInt("10000000"),
+      );
+
+      const result = await facilitator.settle(
+        createApprovalExtensionPayload(),
+        mockPermit2Requirements,
+        createApprovalExtensionContext(),
+      );
+
+      expect(result.success).toBe(true);
+      expect(mockSigner.sendRawTransaction).toHaveBeenCalled();
+      expect(mockSigner.writeContract).toHaveBeenCalled();
+      expect(
+        (mockSigner.sendRawTransaction as ReturnType<typeof vi.fn>).mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        (mockSigner.writeContract as ReturnType<typeof vi.fn>).mock.invocationCallOrder[0],
+      );
     });
   });
 });

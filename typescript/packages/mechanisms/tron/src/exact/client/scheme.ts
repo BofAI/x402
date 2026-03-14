@@ -4,10 +4,13 @@ import {
   PaymentPayloadResult,
   PaymentPayloadContext,
 } from "@bankofai/x402-core/types";
+import { TRC20_APPROVAL_GAS_SPONSORING } from "@bankofai/x402-extensions";
 import { ClientTronSigner } from "../../signer";
 import { AssetTransferMethod } from "../../types";
 import { createEIP3009Payload } from "./eip3009";
 import { createPermit2Payload } from "./permit2";
+import { getPermit2AllowanceReadParams } from "./permit2Helpers";
+import { signTrc20ApprovalTransaction } from "./trc20approval";
 
 /**
  * TRON client implementation for the Exact payment scheme.
@@ -47,9 +50,65 @@ export class ExactTronScheme implements SchemeNetworkClient {
       (paymentRequirements.extra?.assetTransferMethod as AssetTransferMethod) ?? "eip3009";
 
     if (assetTransferMethod === "permit2") {
-      return createPermit2Payload(this.signer, x402Version, paymentRequirements);
+      const result = await createPermit2Payload(this.signer, x402Version, paymentRequirements);
+      const trc20Extensions = await this.trySignTrc20Approval(paymentRequirements, context);
+
+      if (trc20Extensions) {
+        return {
+          ...result,
+          extensions: trc20Extensions,
+        };
+      }
+
+      return result;
     }
 
     return createEIP3009Payload(this.signer, x402Version, paymentRequirements);
+  }
+
+  /**
+   * Signs a sponsored TRC-20 approval transaction when Permit2 allowance is insufficient.
+   *
+   * @param requirements - Payment requirements for the pending payment.
+   * @param context - Optional server-declared extensions for the payment flow.
+   * @returns Sponsored approval extensions when approval is needed, otherwise undefined.
+   */
+  private async trySignTrc20Approval(
+    requirements: PaymentRequirements,
+    context?: PaymentPayloadContext,
+  ): Promise<Record<string, unknown> | undefined> {
+    if (!context?.extensions?.[TRC20_APPROVAL_GAS_SPONSORING.key]) {
+      return undefined;
+    }
+
+    if (!this.signer.buildTriggerSmartContractTransaction || !this.signer.signTransaction) {
+      return undefined;
+    }
+
+    try {
+      const allowance = (await this.signer.readContract(
+        getPermit2AllowanceReadParams({
+          tokenAddress: requirements.asset,
+          ownerAddress: this.signer.address,
+          network: requirements.network,
+        }),
+      )) as bigint;
+
+      if (allowance >= BigInt(requirements.amount)) {
+        return undefined;
+      }
+    } catch {
+      // If allowance cannot be read, still try to provide the approval transaction.
+    }
+
+    const info = await signTrc20ApprovalTransaction(
+      this.signer,
+      requirements.asset,
+      requirements.network,
+    );
+
+    return {
+      [TRC20_APPROVAL_GAS_SPONSORING.key]: { info },
+    };
   }
 }

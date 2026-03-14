@@ -1,5 +1,6 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -9,6 +10,8 @@ import { z } from "zod";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const cliPath = path.resolve(__dirname, "../../bin/x402.js");
+const require = createRequire(import.meta.url);
+const { version } = require("../../package.json") as { version: string };
 
 function runCli(args: string[]): unknown {
   const result = spawnSync(process.execPath, [cliPath, ...args], {
@@ -52,7 +55,7 @@ function toTextResult(payload: unknown) {
 async function main(): Promise<void> {
   const server = new McpServer({
     name: "x402-mcp",
-    version: "2.6.0",
+    version,
   });
 
   server.tool("x402_status", "Show configured x402 wallet status.", {}, async () => {
@@ -106,6 +109,37 @@ async function main(): Promise<void> {
       if (args.pair) commandArgs.push("--pair", args.pair);
       if (args.max_amount) commandArgs.push("--max-amount", args.max_amount);
       if (args.correlation_id) commandArgs.push("--correlation-id", args.correlation_id);
+
+      return toTextResult(runCli(commandArgs));
+    },
+  );
+
+  server.tool(
+    "x402_approve",
+    "Approve Permit2 allowance for the selected x402 payment option.",
+    {
+      url: z.string().url(),
+      method: z.string().optional(),
+      data: z.string().optional(),
+      query: z.string().optional(),
+      headers: z.string().optional(),
+      network: z.string().optional(),
+      asset: z.string().optional(),
+      token: z.string().optional(),
+      pair: z.string().optional(),
+      max_amount: z.string().optional(),
+    },
+    async args => {
+      const commandArgs = ["approve", args.url];
+      if (args.method) commandArgs.push("-X", args.method);
+      if (args.data) commandArgs.push("-d", args.data);
+      if (args.query) commandArgs.push("-q", args.query);
+      if (args.headers) commandArgs.push("-h", args.headers);
+      if (args.network) commandArgs.push("--network", args.network);
+      if (args.asset) commandArgs.push("--asset", args.asset);
+      if (args.token) commandArgs.push("--token", args.token);
+      if (args.pair) commandArgs.push("--pair", args.pair);
+      if (args.max_amount) commandArgs.push("--max-amount", args.max_amount);
 
       return toTextResult(runCli(commandArgs));
     },

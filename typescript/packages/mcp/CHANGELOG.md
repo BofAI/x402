@@ -1,5 +1,35 @@
 # @bankofai/x402-mcp Changelog
 
+## 2.6.0-beta.9
+
+### Patch Changes
+
+- Republish the TRON pay preflight fix with rebuilt package artifacts so the npm dist bundle matches the source runtime.
+
+## 2.6.0-beta.8
+
+### Patch Changes
+
+- Fix TRON token preflight checks in `x402 pay` by reading TRC-20 balances and allowances from the live token contract methods.
+
+## 2.6.0-beta.7
+
+### Patch Changes
+
+- Make `x402 pay` preflight payment requirements, check token balance, and automatically approve Permit2 when allowance is insufficient.
+
+## 2.6.0-beta.6
+
+### Patch Changes
+
+- Export the shared x402 CLI command runtime so the OpenClaw skill and MCP package use the same implementation.
+
+## 2.6.0-beta.5
+
+### Patch Changes
+
+- Add explicit `approve` support to the x402 CLI and MCP server via `x402 approve` and `x402_approve`.
+
 ## 2.6.0
 
 ### Minor Changes

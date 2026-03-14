@@ -74,6 +74,10 @@ export {
   createToolResourceUrl,
 } from "./utils";
 
+// CLI command exports
+export { parseCliOptions, runApprove, runBalance, runPay, runStatus } from "./command/runtime";
+export type { ParsedCliOptions } from "./command/runtime";
+
 // ============================================================================
 // Convenience Re-exports from @bankofai/x402-core
 // ============================================================================

@@ -1,0 +1,58 @@
+name: release_npm_changesets
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./typescript
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+          cache: "pnpm"
+          cache-dependency-path: typescript/pnpm-lock.yaml
+
+      - name: Update npm for trusted publishing
+        run: npm install -g npm@latest
+
+      - name: Configure npm for trusted publishing
+        run: npm config delete always-auth 2>/dev/null || true
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Create release PR or publish
+        uses: changesets/action@v1
+        with:
+          cwd: typescript
+          version: pnpm release:version
+          publish: pnpm release:publish
+          title: Release TypeScript packages
+          commit: Release TypeScript packages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
