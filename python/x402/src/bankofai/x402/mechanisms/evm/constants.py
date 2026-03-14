@@ -48,6 +48,16 @@ ERR_FAILED_TO_GET_NETWORK_CONFIG = "invalid_exact_evm_failed_to_get_network_conf
 ERR_FAILED_TO_GET_ASSET_INFO = "invalid_exact_evm_failed_to_get_asset_info"
 ERR_FAILED_TO_VERIFY_SIGNATURE = "invalid_exact_evm_failed_to_verify_signature"
 ERR_TRANSACTION_FAILED = "transaction_failed"
+ERR_MISSING_PERMIT2_ADDRESS = "missing_permit2_address"
+ERR_INVALID_PERMIT2_SPENDER = "invalid_permit2_spender"
+ERR_PERMIT2_RECIPIENT_MISMATCH = "permit2_recipient_mismatch"
+ERR_INVALID_PERMIT2_FACILITATOR = "invalid_permit2_facilitator"
+ERR_PERMIT2_DEADLINE_EXPIRED = "permit2_deadline_expired"
+ERR_PERMIT2_NOT_YET_VALID = "permit2_not_yet_valid"
+ERR_PERMIT2_AMOUNT_MISMATCH = "permit2_amount_mismatch"
+ERR_PERMIT2_TOKEN_MISMATCH = "permit2_token_mismatch"
+ERR_PERMIT2_INVALID_SIGNATURE = "permit2_invalid_signature"
+ERR_PERMIT2_ALLOWANCE_REQUIRED = "permit2_allowance_required"
 
 
 class _AssetInfoRequired(TypedDict):
@@ -122,6 +132,63 @@ NETWORK_CONFIGS: dict[str, NetworkConfig] = {
             "decimals": 6,
         },
     },
+    # BSC Mainnet
+    "eip155:56": {
+        "chain_id": 56,
+        "default_asset": {
+            "address": "0x55d398326f99059fF775485246999027B3197955",
+            "name": "Tether USD",
+            "version": "1",
+            "decimals": 18,
+            "asset_transfer_method": "permit2",
+        },
+    },
+    # BSC Testnet
+    "eip155:97": {
+        "chain_id": 97,
+        "default_asset": {
+            "address": "0x337610d27c682E347C9cD60BD4b3b107C9d34dDd",
+            "name": "Tether USD",
+            "version": "1",
+            "decimals": 18,
+            "asset_transfer_method": "permit2",
+        },
+    },
+}
+
+PERMIT2_ADDRESSES: dict[str, str] = {
+    "eip155:1": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+    "eip155:56": "0x31c2F6fcFf4F8759b3Bd5Bf0e1084A055615c768",
+    "eip155:97": "0x31c2F6fcFf4F8759b3Bd5Bf0e1084A055615c768",
+}
+
+X402_PERMIT2_PROXY_ADDRESSES: dict[str, str] = {
+    "eip155:56": "0xEe38Ec718255fe78e9D16aCC0e1183C731679b23",
+    "eip155:97": "0xEe38Ec718255fe78e9D16aCC0e1183C731679b23",
+}
+
+X402_UPTO_PERMIT2_PROXY_ADDRESSES: dict[str, str] = {
+    "eip155:56": "0x2b30Ed9F37c7C21ae8779c5753B1cCf264DfD63C",
+    "eip155:97": "0x2b30Ed9F37c7C21ae8779c5753B1cCf264DfD63C",
+}
+
+PERMIT2_WITNESS_TYPES: dict[str, list[dict[str, str]]] = {
+    "PermitWitnessTransferFrom": [
+        {"name": "permitted", "type": "TokenPermissions"},
+        {"name": "spender", "type": "address"},
+        {"name": "nonce", "type": "uint256"},
+        {"name": "deadline", "type": "uint256"},
+        {"name": "witness", "type": "Witness"},
+    ],
+    "TokenPermissions": [
+        {"name": "token", "type": "address"},
+        {"name": "amount", "type": "uint256"},
+    ],
+    "Witness": [
+        {"name": "to", "type": "address"},
+        {"name": "facilitator", "type": "address"},
+        {"name": "validAfter", "type": "uint256"},
+    ],
 }
 
 # V1 legacy constants are in x402.mechanisms.evm.v1.constants
@@ -175,6 +242,57 @@ AUTHORIZATION_STATE_ABI = [
         "name": "authorizationState",
         "outputs": [{"name": "", "type": "bool"}],
         "stateMutability": "view",
+        "type": "function",
+    }
+]
+
+ERC20_ALLOWANCE_ABI = [
+    {
+        "inputs": [
+            {"name": "owner", "type": "address"},
+            {"name": "spender", "type": "address"},
+        ],
+        "name": "allowance",
+        "outputs": [{"name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function",
+    }
+]
+
+X402_EXACT_PERMIT2_PROXY_ABI = [
+    {
+        "inputs": [
+            {
+                "name": "permit",
+                "type": "tuple",
+                "components": [
+                    {
+                        "name": "permitted",
+                        "type": "tuple",
+                        "components": [
+                            {"name": "token", "type": "address"},
+                            {"name": "amount", "type": "uint256"},
+                        ],
+                    },
+                    {"name": "nonce", "type": "uint256"},
+                    {"name": "deadline", "type": "uint256"},
+                ],
+            },
+            {"name": "owner", "type": "address"},
+            {
+                "name": "witness",
+                "type": "tuple",
+                "components": [
+                    {"name": "to", "type": "address"},
+                    {"name": "facilitator", "type": "address"},
+                    {"name": "validAfter", "type": "uint256"},
+                ],
+            },
+            {"name": "signature", "type": "bytes"},
+        ],
+        "name": "settle",
+        "outputs": [],
+        "stateMutability": "nonpayable",
         "type": "function",
     }
 ]

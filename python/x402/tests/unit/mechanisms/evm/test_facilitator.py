@@ -411,14 +411,25 @@ class TestFacilitatorSchemeAttributes:
 
         assert facilitator.caip_family == "eip155:*"
 
-    def test_get_extra_returns_none(self):
-        """get_extra should return None for EVM."""
+    def test_get_extra_returns_supported_transfer_methods(self):
+        """get_extra should advertise transfer methods for the network."""
         signer = MockFacilitatorSigner()
         facilitator = ExactEvmFacilitatorScheme(signer)
 
         extra = facilitator.get_extra("eip155:8453")
 
-        assert extra is None
+        assert extra == {"supportedAssetTransferMethods": ["eip3009"]}
+
+    def test_get_extra_includes_permit2_for_bsc(self):
+        """BSC networks should advertise Permit2 support and facilitator address."""
+        signer = MockFacilitatorSigner(["0x1111111111111111111111111111111111111111"])
+        facilitator = ExactEvmFacilitatorScheme(signer)
+
+        extra = facilitator.get_extra("eip155:97")
+
+        assert extra is not None
+        assert extra["supportedAssetTransferMethods"] == ["eip3009", "permit2"]
+        assert extra["permit2FacilitatorAddress"] == "0x1111111111111111111111111111111111111111"
 
     def test_get_signers_returns_signer_addresses(self):
         """get_signers should return list of signer addresses."""

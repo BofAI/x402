@@ -2,19 +2,33 @@
 
 from __future__ import annotations
 
+import time
 from datetime import timedelta
 from typing import Any
 
 from ....schemas import PaymentRequirements
-from ..constants import SCHEME_EXACT
+from ..constants import (
+    PERMIT2_ADDRESSES,
+    PERMIT2_WITNESS_TYPES,
+    SCHEME_EXACT,
+    X402_PERMIT2_PROXY_ADDRESSES,
+)
 from ..eip712 import build_typed_data_for_signing
 from ..signer import ClientEvmSigner
-from ..types import ExactEIP3009Authorization, ExactEIP3009Payload, TypedDataField
+from ..types import (
+    ExactEIP3009Authorization,
+    ExactEIP3009Payload,
+    ExactPermit2Authorization,
+    ExactPermit2Payload,
+    Permit2Witness,
+    TypedDataField,
+)
 from ..utils import (
     create_nonce,
     create_validity_window,
     get_asset_info,
     get_evm_chain_id,
+    normalize_address,
 )
 
 
@@ -58,7 +72,7 @@ class ExactEvmScheme:
         self,
         requirements: PaymentRequirements,
     ) -> dict[str, Any]:
-        """Create signed EIP-3009 inner payload.
+        """Create signed EIP-3009 or Permit2 inner payload.
 
         Args:
             requirements: Payment requirements from server.
@@ -67,6 +81,10 @@ class ExactEvmScheme:
             Inner payload dict (authorization + signature).
             x402Client wraps this with x402_version, accepted, resource, extensions.
         """
+        extra = requirements.extra or {}
+        if extra.get("assetTransferMethod") == "permit2":
+            return self._create_permit2_payload(requirements)
+
         nonce = create_nonce()
         valid_after, valid_before = create_validity_window(
             timedelta(seconds=requirements.max_timeout_seconds or 3600)
@@ -142,4 +160,78 @@ class ExactEvmScheme:
 
         sig_bytes = self._signer.sign_typed_data(domain, typed_fields, primary_type, message)
 
+        return "0x" + sig_bytes.hex()
+
+    def _create_permit2_payload(self, requirements: PaymentRequirements) -> dict[str, Any]:
+        """Create signed Permit2 payload."""
+        network = str(requirements.network)
+        permit2_address = PERMIT2_ADDRESSES.get(network)
+        proxy_address = X402_PERMIT2_PROXY_ADDRESSES.get(network)
+        if not permit2_address or not proxy_address:
+            raise ValueError(f"No Permit2 configuration for network {network}")
+
+        facilitator_address = (requirements.extra or {}).get("permit2FacilitatorAddress")
+        if not facilitator_address:
+            raise ValueError(
+                "Permit2 facilitator address is required in payment requirements extra"
+            )
+
+        now = int(time.time())
+        authorization = ExactPermit2Authorization(
+            from_address=normalize_address(self._signer.address),
+            permitted_token=normalize_address(requirements.asset),
+            permitted_amount=str(requirements.amount),
+            spender=normalize_address(proxy_address),
+            nonce=create_nonce(),
+            deadline=str(now + (requirements.max_timeout_seconds or 3600)),
+            witness=Permit2Witness(
+                to=normalize_address(requirements.pay_to),
+                facilitator=normalize_address(str(facilitator_address)),
+                valid_after=str(now - 600),
+            ),
+        )
+        signature = self._sign_permit2(authorization, requirements, permit2_address)
+        return ExactPermit2Payload(
+            permit2_authorization=authorization, signature=signature
+        ).to_dict()
+
+    def _sign_permit2(
+        self,
+        authorization: ExactPermit2Authorization,
+        requirements: PaymentRequirements,
+        permit2_address: str,
+    ) -> str:
+        """Sign PermitWitnessTransferFrom typed data."""
+        typed_fields: dict[str, list[TypedDataField]] = {}
+        for type_name, fields in PERMIT2_WITNESS_TYPES.items():
+            typed_fields[type_name] = [
+                TypedDataField(name=f["name"], type=f["type"]) for f in fields
+            ]
+
+        domain = {
+            "name": "Permit2",
+            "chainId": get_evm_chain_id(str(requirements.network)),
+            "verifyingContract": normalize_address(permit2_address),
+        }
+        message = {
+            "permitted": {
+                "token": normalize_address(authorization.permitted_token),
+                "amount": int(authorization.permitted_amount),
+            },
+            "spender": normalize_address(authorization.spender),
+            "nonce": int(str(authorization.nonce), 0),
+            "deadline": int(authorization.deadline),
+            "witness": {
+                "to": normalize_address(authorization.witness.to),
+                "facilitator": normalize_address(authorization.witness.facilitator),
+                "validAfter": int(authorization.witness.valid_after),
+            },
+        }
+
+        sig_bytes = self._signer.sign_typed_data(
+            domain,
+            typed_fields,
+            "PermitWitnessTransferFrom",
+            message,
+        )
         return "0x" + sig_bytes.hex()

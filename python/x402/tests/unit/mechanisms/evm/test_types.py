@@ -5,6 +5,9 @@ from bankofai.x402.mechanisms.evm import (
     ExactEIP3009Payload,
     ExactEvmPayloadV1,
     ExactEvmPayloadV2,
+    ExactPermit2Authorization,
+    ExactPermit2Payload,
+    Permit2Witness,
 )
 
 
@@ -178,10 +181,46 @@ class TestExactEvmPayloadV1V2:
         """V1 should be alias of ExactEIP3009Payload."""
         assert ExactEvmPayloadV1 is ExactEIP3009Payload
 
-    def test_v2_should_be_alias_of_eip3009_payload(self):
-        """V2 should be alias of ExactEIP3009Payload."""
-        assert ExactEvmPayloadV2 is ExactEIP3009Payload
+    def test_v2_should_accept_eip3009_payload(self):
+        """V2 should include EIP-3009 payload support."""
+        assert isinstance(ExactEIP3009Payload, type)
 
-    def test_v1_and_v2_should_be_same(self):
-        """V1 and V2 should be the same type."""
-        assert ExactEvmPayloadV1 is ExactEvmPayloadV2
+    def test_v2_should_include_permit2_payload(self):
+        """V2 should also include Permit2 payload support."""
+        args = getattr(ExactEvmPayloadV2, "__args__", ())
+        assert ExactEIP3009Payload in args
+        assert ExactPermit2Payload in args
+
+
+class TestExactPermit2Payload:
+    """Test ExactPermit2Payload type."""
+
+    def test_round_trip_serialization(self):
+        """Should preserve Permit2 payload data through serialization."""
+        payload = ExactPermit2Payload(
+            permit2_authorization=ExactPermit2Authorization(
+                from_address="0x1234567890123456789012345678901234567890",
+                permitted_token="0x337610d27c682E347C9cD60BD4b3b107C9d34dDd",
+                permitted_amount="1000000000000000000",
+                spender="0xEe38Ec718255fe78e9D16aCC0e1183C731679b23",
+                nonce="0x" + "12" * 32,
+                deadline="1000003600",
+                witness=Permit2Witness(
+                    to="0x0987654321098765432109876543210987654321",
+                    facilitator="0x1111111111111111111111111111111111111111",
+                    valid_after="1000000000",
+                ),
+            ),
+            signature="0xabcd",
+        )
+
+        serialized = payload.to_dict()
+        restored = ExactPermit2Payload.from_dict(serialized)
+
+        assert restored.permit2_authorization.from_address == (
+            payload.permit2_authorization.from_address
+        )
+        assert restored.permit2_authorization.witness.facilitator == (
+            payload.permit2_authorization.witness.facilitator
+        )
+        assert restored.signature == payload.signature

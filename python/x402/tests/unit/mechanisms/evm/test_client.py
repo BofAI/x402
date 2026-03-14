@@ -179,3 +179,35 @@ class TestLocalAccountAutoWrap:
         assert "signature" in payload
         assert payload["signature"].startswith("0x")
         assert len(payload["signature"]) > 2  # not just "0x"
+
+    def test_should_create_permit2_payload_for_bsc_testnet(self):
+        """Should create Permit2 payload when requirements request Permit2."""
+        account = Account.create()
+        client = ExactEvmClientScheme(signer=account)
+        network = "eip155:97"
+
+        requirements = PaymentRequirements(
+            scheme="exact",
+            network=network,
+            asset="0x337610d27c682E347C9cD60BD4b3b107C9d34dDd",
+            amount="1000000000000000000",
+            pay_to="0x0987654321098765432109876543210987654321",
+            max_timeout_seconds=3600,
+            extra={
+                "name": "Tether USD",
+                "version": "1",
+                "assetTransferMethod": "permit2",
+                "permit2FacilitatorAddress": "0x1111111111111111111111111111111111111111",
+            },
+        )
+
+        payload = client.create_payment_payload(requirements)
+
+        assert "permit2Authorization" in payload
+        assert payload["signature"].startswith("0x")
+        assert payload["permit2Authorization"]["spender"] == (
+            "0xEe38Ec718255fe78e9D16aCC0e1183C731679b23"
+        )
+        assert payload["permit2Authorization"]["witness"]["facilitator"] == (
+            "0x1111111111111111111111111111111111111111"
+        )

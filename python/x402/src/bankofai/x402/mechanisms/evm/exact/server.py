@@ -157,6 +157,16 @@ class ExactEvmScheme:
             if "assetTransferMethod" not in requirements.extra and atm:
                 requirements.extra["assetTransferMethod"] = atm
 
+        facilitator_extra = supported_kind.extra or {}
+        if (
+            requirements.extra.get("assetTransferMethod") == "permit2"
+            and "permit2FacilitatorAddress" not in requirements.extra
+            and facilitator_extra.get("permit2FacilitatorAddress")
+        ):
+            requirements.extra["permit2FacilitatorAddress"] = facilitator_extra[
+                "permit2FacilitatorAddress"
+            ]
+
         return requirements
 
     def _default_money_conversion(self, amount: float, network: str) -> AssetAmount:

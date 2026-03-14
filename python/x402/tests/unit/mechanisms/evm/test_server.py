@@ -251,6 +251,34 @@ class TestEnhancePaymentRequirements:
         config = get_network_config(network)
         assert result.asset == config["default_asset"]["address"]
 
+    def test_should_propagate_permit2_facilitator_address(self):
+        """Should copy permit2 facilitator address from supported kind extra."""
+        server = ExactEvmServerScheme()
+        network = "eip155:97"
+
+        requirements = PaymentRequirements(
+            scheme="exact",
+            network=network,
+            asset=get_network_config(network)["default_asset"]["address"],
+            amount="1000000000000000000",
+            pay_to="0x1234567890123456789012345678901234567890",
+            max_timeout_seconds=3600,
+            extra={"assetTransferMethod": "permit2"},
+        )
+
+        supported_kind = SupportedKind(
+            x402_version=2,
+            scheme="exact",
+            network=network,
+            extra={"permit2FacilitatorAddress": "0x1111111111111111111111111111111111111111"},
+        )
+
+        result = server.enhance_payment_requirements(requirements, supported_kind, [])
+
+        assert result.extra["permit2FacilitatorAddress"] == (
+            "0x1111111111111111111111111111111111111111"
+        )
+
 
 class TestRegisterMoneyParser:
     """Test registerMoneyParser method."""
