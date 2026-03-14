@@ -29,6 +29,7 @@ export const permit2WitnessTypes = {
   ],
   Witness: [
     { name: "to", type: "address" },
+    { name: "facilitator", type: "address" },
     { name: "validAfter", type: "uint256" },
   ],
 } as const;
@@ -231,6 +232,7 @@ export function getX402UptoPermit2ProxyAddress(network: string): `0x${string}` {
  */
 const permit2WitnessABIComponents = [
   { name: "to", type: "address", internalType: "address" },
+  { name: "facilitator", type: "address", internalType: "address" },
   { name: "validAfter", type: "uint256", internalType: "uint256" },
 ] as const;
 

@@ -37,6 +37,10 @@ export async function createPermit2Payload(
   // Upper time bound is enforced by Permit2's deadline field
   const deadline = (now + paymentRequirements.maxTimeoutSeconds).toString();
 
+  const facilitator =
+    (paymentRequirements.extra?.permit2FacilitatorAddress as `0x${string}` | undefined) ??
+    (getAddress(paymentRequirements.payTo) as `0x${string}`);
+
   const permit2Authorization: ExactPermit2Payload["permit2Authorization"] = {
     from: signer.address,
     permitted: {
@@ -48,6 +52,7 @@ export async function createPermit2Payload(
     deadline,
     witness: {
       to: getAddress(paymentRequirements.payTo),
+      facilitator: getAddress(facilitator),
       validAfter,
     },
   };
@@ -102,6 +107,7 @@ async function signPermit2Authorization(
     deadline: BigInt(permit2Authorization.deadline),
     witness: {
       to: getAddress(permit2Authorization.witness.to),
+      facilitator: getAddress(permit2Authorization.witness.facilitator),
       validAfter: BigInt(permit2Authorization.witness.validAfter),
     },
   };

@@ -92,11 +92,12 @@ describe("EVM Constants", () => {
       expect(hasExtra).toBe(false);
     });
 
-    it("Witness type must have exactly 'to' and 'validAfter' fields", () => {
+    it("Witness type must have exactly 'to', 'facilitator', and 'validAfter' fields", () => {
       const witnessFields = permit2WitnessTypes.Witness;
-      expect(witnessFields).toHaveLength(2);
+      expect(witnessFields).toHaveLength(3);
       expect(witnessFields[0].name).toBe("to");
-      expect(witnessFields[1].name).toBe("validAfter");
+      expect(witnessFields[1].name).toBe("facilitator");
+      expect(witnessFields[2].name).toBe("validAfter");
     });
   });
 
@@ -135,6 +136,7 @@ describe("EVM Constants", () => {
       deadline: 9999999999n,
       witness: {
         to: "0x9876543210987654321098765432109876543210" as `0x${string}`,
+        facilitator: "0x1111111111111111111111111111111111111111" as `0x${string}`,
         validAfter: 0n,
       },
     } as const;
@@ -181,6 +183,7 @@ describe("EVM Constants", () => {
           ...canonicalMessage,
           witness: {
             to: "0x0000000000000000000000000000000000000001" as `0x${string}`,
+            facilitator: "0x1111111111111111111111111111111111111111" as `0x${string}`,
             validAfter: 0n,
           },
         },
