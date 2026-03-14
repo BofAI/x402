@@ -1,5 +1,6 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -9,6 +10,8 @@ import { z } from "zod";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const cliPath = path.resolve(__dirname, "../../bin/x402.js");
+const require = createRequire(import.meta.url);
+const { version } = require("../../package.json") as { version: string };
 
 function runCli(args: string[]): unknown {
   const result = spawnSync(process.execPath, [cliPath, ...args], {
@@ -52,7 +55,7 @@ function toTextResult(payload: unknown) {
 async function main(): Promise<void> {
   const server = new McpServer({
     name: "x402-mcp",
-    version: "2.6.0-beta.5",
+    version,
   });
 
   server.tool("x402_status", "Show configured x402 wallet status.", {}, async () => {

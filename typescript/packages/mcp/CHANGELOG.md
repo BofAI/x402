@@ -1,5 +1,11 @@
 # @bankofai/x402-mcp Changelog
 
+## 2.6.0-beta.6
+
+### Patch Changes
+
+- Export the shared x402 CLI command runtime so the OpenClaw skill and MCP package use the same implementation.
+
 ## 2.6.0-beta.5
 
 ### Patch Changes
