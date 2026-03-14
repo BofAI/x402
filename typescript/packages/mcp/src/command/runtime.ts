@@ -4,18 +4,21 @@ import os from "node:os";
 import path from "node:path";
 import { privateKeyToAccount } from "viem/accounts";
 import { bsc, bscTestnet } from "viem/chains";
-import { createPublicClient, http } from "viem";
+import { createPublicClient, createWalletClient, http } from "viem";
 import { TronWeb } from "tronweb";
 import {
   x402Client,
   type PaymentPolicy,
   type SelectPaymentRequirements,
 } from "@bankofai/x402-core/client";
+import { x402HTTPClient } from "@bankofai/x402-core/http";
+import type { PaymentRequired, PaymentRequirements } from "@bankofai/x402-core/types";
 import { wrapFetchWithPayment } from "@bankofai/x402-fetch";
 import { ExactEvmScheme, toClientEvmSigner, eip3009ABI } from "@bankofai/x402-evm";
 import {
   ExactTronScheme,
   createClientTronSigner,
+  PERMIT2_ADDRESSES,
   transferWithAuthorizationABI,
 } from "@bankofai/x402-tron";
 
@@ -40,7 +43,24 @@ const EVM_NETWORKS = {
   },
 } as const;
 
-type CliBalanceOptions = Pick<ParsedCliOptions, "network" | "asset" | "token" | "pair">;
+const DEFAULT_TRON_FEE_LIMIT_SUN = 1_000_000_000;
+const MAX_UINT256 =
+  "115792089237316195423570985008687907853269984665640564039457584007913129639935";
+const PERMIT2_ADDRESS = "0x000000000022D473030F116dDEE9F6B43aC78BA3" as const;
+const evmErc20ApproveAbi = [
+  {
+    type: "function",
+    name: "approve",
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ type: "bool" }],
+    stateMutability: "nonpayable",
+  },
+] as const;
+
+type CliBalanceOptions = Partial<Pick<ParsedCliOptions, "network" | "asset" | "token" | "pair">>;
 type SupportedNetwork = keyof typeof TRON_RPC_URLS | keyof typeof EVM_NETWORKS;
 
 const DEFAULT_PAYMENT_ASSETS: Partial<
@@ -403,6 +423,19 @@ function createPaymentSelector(): SelectPaymentRequirements {
   };
 }
 
+function selectPaymentRequirement(
+  paymentRequired: PaymentRequired,
+  args: {
+    preferredNetwork?: string;
+    preferredAsset?: string;
+    preferredPair?: string;
+    maxAmount?: bigint;
+  },
+): PaymentRequirements {
+  const filtered = createSelectionPolicy(args)(paymentRequired.x402Version, paymentRequired.accepts);
+  return createPaymentSelector()(paymentRequired.x402Version, filtered) as PaymentRequirements;
+}
+
 function buildTronWeb(fullHost: string, privateKey: string, apiKey?: string): TronWeb {
   const options: { fullHost: string; privateKey: string; headers?: Record<string, string> } = {
     fullHost,
@@ -544,6 +577,66 @@ async function resolveKeys() {
   const evmKey = await findPrivateKey("evm");
   const tronGridApiKey = await findTronGridApiKey();
   return { tronKey, evmKey, tronGridApiKey };
+}
+
+async function fetchPaymentRequired(args: {
+  url: string;
+  method: string;
+  body?: string;
+  customHeaders?: Record<string, string>;
+  tronKey?: string;
+  evmKey?: string;
+  tronGridApiKey?: string;
+  preferredNetwork?: string;
+  preferredAsset?: string;
+  preferredPair?: string;
+  maxAmount?: bigint;
+}): Promise<{ paymentRequired: PaymentRequired; selected: PaymentRequirements }> {
+  const client = buildPaymentClient({
+    tronKey: args.tronKey,
+    evmKey: args.evmKey,
+    tronGridApiKey: args.tronGridApiKey,
+    preferredNetwork: args.preferredNetwork,
+    preferredAsset: args.preferredAsset,
+    preferredPair: args.preferredPair,
+    maxAmount: args.maxAmount,
+  });
+  const httpClient = new x402HTTPClient(client);
+  const response = await fetch(args.url, {
+    method: args.method,
+    headers: {
+      ...(args.body ? { "Content-Type": "application/json" } : {}),
+      ...(args.customHeaders ?? {}),
+    },
+    body: args.body,
+  });
+
+  if (response.status !== 402) {
+    throw new Error(`Expected 402 Payment Required, got ${response.status}`);
+  }
+
+  let parsedBody: unknown;
+  const contentType = response.headers.get("content-type") ?? "";
+  if (contentType.includes("application/json")) {
+    try {
+      parsedBody = await response.json();
+    } catch {
+      parsedBody = undefined;
+    }
+  }
+
+  const paymentRequired = httpClient.getPaymentRequiredResponse(
+    name => response.headers.get(name),
+    parsedBody,
+  );
+  const selected = selectPaymentRequirement(paymentRequired, {
+    preferredNetwork: args.preferredNetwork,
+    preferredAsset: args.preferredAsset,
+    preferredPair: args.preferredPair,
+    maxAmount: args.maxAmount,
+  });
+
+  return { paymentRequired, selected };
 }
 
 export async function runStatus(): Promise<void> {
@@ -715,6 +808,160 @@ export async function runBalance(options: CliBalanceOptions = {}): Promise<void>
   }
 
   process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+}
+
+export async function runApprove(options: ParsedCliOptions): Promise<void> {
+  const { tronKey, evmKey, tronGridApiKey } = await resolveKeys();
+
+  const url = options.url;
+  if (!url) {
+    throw new Error("url is required");
+  }
+
+  if (!tronKey && !evmKey) {
+    throw new Error("configure TRON_PRIVATE_KEY or EVM_PRIVATE_KEY before approving tokens.");
+  }
+
+  const preferredNetwork = resolvePreferredNetwork(options.network);
+  const preferredAsset = options.asset ?? options.token;
+  const preferredPair = options.pair;
+  const maxAmount = options["max-amount"] ? BigInt(options["max-amount"]) : undefined;
+  const method = (options.method ?? "GET").toUpperCase();
+  const requestUrl = appendQueryParams(url, options.query);
+  const customHeaders = parseJsonObject(options.headers, "--headers");
+  const parsed = parseInput(options.data ?? options.input);
+  const body =
+    parsed === undefined ? undefined : typeof parsed === "string" ? parsed : JSON.stringify(parsed);
+
+  const { selected } = await fetchPaymentRequired({
+    url: requestUrl,
+    method,
+    body,
+    customHeaders,
+    tronKey,
+    evmKey,
+    tronGridApiKey,
+    preferredNetwork,
+    preferredAsset,
+    preferredPair,
+    maxAmount,
+  });
+
+  const transferMethod = String(selected.extra?.assetTransferMethod ?? "eip3009");
+  if (transferMethod !== "permit2") {
+    throw new Error(
+      `approve only supports permit2 payment requirements; selected method is ${transferMethod}`,
+    );
+  }
+
+  if (selected.network.startsWith("tron:")) {
+    if (!tronKey) {
+      throw new Error("TRON wallet not configured.");
+    }
+
+    const networkName = selected.network.slice("tron:".length) as keyof typeof TRON_RPC_URLS;
+    const spender = PERMIT2_ADDRESSES[selected.network];
+    if (!spender) {
+      throw new Error(`No Permit2 contract configured for ${selected.network}`);
+    }
+
+    const tronWeb = buildTronWeb(TRON_RPC_URLS[networkName], tronKey, tronGridApiKey);
+    const derivedAddress = tronWeb.address.fromPrivateKey(tronKey);
+    if (!derivedAddress) {
+      throw new Error("Unable to derive TRON address from private key.");
+    }
+    const ownerAddress = tronWeb.defaultAddress.base58 || derivedAddress;
+
+    const txHash = await tronWeb.transactionBuilder
+      .triggerSmartContract(
+        selected.asset,
+        "approve(address,uint256)",
+        {
+          feeLimit: DEFAULT_TRON_FEE_LIMIT_SUN,
+          callValue: 0,
+        },
+        [
+          { type: "address", value: spender },
+          { type: "uint256", value: MAX_UINT256 },
+        ],
+        ownerAddress,
+      )
+      .then(result => tronWeb.trx.sign(result.transaction))
+      .then(signed => tronWeb.trx.sendRawTransaction(signed as any))
+      .then((result: any) => result.txid ?? result.transaction?.txID);
+
+    process.stdout.write(
+      JSON.stringify(
+        {
+          status: "approved",
+          network: selected.network,
+          asset: selected.asset,
+          spender,
+          transaction: txHash,
+        },
+        null,
+        2,
+      ) + "\n",
+    );
+    return;
+  }
+
+  if (selected.network.startsWith("eip155:")) {
+    if (!evmKey) {
+      throw new Error("EVM wallet not configured.");
+    }
+
+    const networkKey =
+      selected.network === "eip155:56"
+        ? "bsc"
+        : selected.network === "eip155:97"
+          ? "bsc-testnet"
+          : undefined;
+    if (!networkKey) {
+      throw new Error(`Unsupported EVM network for approve: ${selected.network}`);
+    }
+
+    const account = privateKeyToAccount(normalizeHexPrivateKey(evmKey));
+    const chain = EVM_NETWORKS[networkKey].chain;
+    const rpcUrl = getBscRpcUrl(networkKey);
+    const publicClient = createPublicClient({
+      chain,
+      transport: http(rpcUrl),
+    });
+    const walletClient = createWalletClient({
+      chain,
+      transport: http(rpcUrl),
+      account,
+    });
+
+    const txHash = await walletClient.writeContract({
+      account,
+      chain,
+      address: selected.asset as `0x${string}`,
+      abi: evmErc20ApproveAbi,
+      functionName: "approve",
+      args: [PERMIT2_ADDRESS, BigInt(`0x${"f".repeat(64)}`)],
+    });
+
+    await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+    process.stdout.write(
+      JSON.stringify(
+        {
+          status: "approved",
+          network: selected.network,
+          asset: selected.asset,
+          spender: PERMIT2_ADDRESS,
+          transaction: txHash,
+        },
+        null,
+        2,
+      ) + "\n",
+    );
+    return;
+  }
+
+  throw new Error(`Unsupported network for approve: ${selected.network}`);
 }
 
 export async function runPay(options: ParsedCliOptions): Promise<void> {

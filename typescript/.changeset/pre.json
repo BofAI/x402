@@ -1,0 +1,30 @@
+{
+  "mode": "pre",
+  "tag": "beta",
+  "initialVersions": {
+    "@bankofai/x402-core": "2.6.0-beta.4",
+    "@bankofai/x402-extensions": "2.6.0-beta.4",
+    "@bankofai/x402-axios": "2.6.0-beta.4",
+    "@bankofai/x402-express": "2.6.0-beta.4",
+    "@bankofai/x402-fetch": "2.6.0-beta.4",
+    "@bankofai/x402-hono": "2.6.0-beta.4",
+    "@bankofai/x402-next": "2.6.0-beta.4",
+    "@bankofai/x402-paywall": "2.6.0-beta.4",
+    "@bankofai/x402-legacy": "1.1.0",
+    "@bankofai/x402-axios-legacy": "1.1.0",
+    "@bankofai/x402-express-legacy": "1.1.0",
+    "@bankofai/x402-fetch-legacy": "1.1.0",
+    "@bankofai/x402-hono-legacy": "1.1.0",
+    "@bankofai/x402-next-legacy": "1.1.0",
+    "@bankofai/x402-mcp": "2.6.0-beta.4",
+    "@bankofai/x402-aptos": "2.6.0-beta.4",
+    "@bankofai/x402-evm": "2.6.0-beta.4",
+    "@bankofai/x402-stellar": "2.6.0-beta.4",
+    "@bankofai/x402-svm": "2.6.0-beta.4",
+    "@bankofai/x402-tron": "2.6.0-beta.4"
+  },
+  "changesets": [
+    "few-bats-boil",
+    "ten-doors-doubt"
+  ]
+}

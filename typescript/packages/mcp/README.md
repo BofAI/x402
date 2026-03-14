@@ -31,6 +31,7 @@ Or run from a local project:
 ```bash
 npx -y -p @bankofai/x402-mcp x402 status
 npx -y -p @bankofai/x402-mcp x402 balance
+npx -y -p @bankofai/x402-mcp x402 approve https://example.com/api/weather
 npx -y -p @bankofai/x402-mcp x402 pay https://example.com/api/weather
 ```
 
@@ -90,6 +91,7 @@ Provided tools:
 
 - `x402_status`
 - `x402_balance`
+- `x402_approve`
 - `x402_pay`
 
 ## Quick Start (Recommended)

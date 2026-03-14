@@ -1,5 +1,11 @@
 # @bankofai/x402-mcp Changelog
 
+## 2.6.0-beta.5
+
+### Patch Changes
+
+- Add explicit `approve` support to the x402 CLI and MCP server via `x402 approve` and `x402_approve`.
+
 ## 2.6.0
 
 ### Minor Changes
