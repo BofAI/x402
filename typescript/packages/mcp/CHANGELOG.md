@@ -1,5 +1,11 @@
 # @bankofai/x402-mcp Changelog
 
+## 2.6.0-beta.9
+
+### Patch Changes
+
+- Republish the TRON pay preflight fix with rebuilt package artifacts so the npm dist bundle matches the source runtime.
+
 ## 2.6.0-beta.8
 
 ### Patch Changes
