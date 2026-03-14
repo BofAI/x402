@@ -12,7 +12,6 @@ except ImportError as e:
 
 from .types import (
     AUTHORIZATION_TYPES,
-    DOMAIN_TYPES,
     ExactEIP3009Authorization,
     TypedDataDomain,
 )
@@ -135,11 +134,20 @@ def hash_domain(domain: TypedDataDomain) -> bytes:
     """
     domain_data = {
         "name": domain.name,
-        "version": domain.version,
         "chainId": domain.chain_id,
         "verifyingContract": domain.verifying_contract,
     }
-    return hash_struct("EIP712Domain", DOMAIN_TYPES, domain_data)
+    domain_types = {
+        "EIP712Domain": [
+            {"name": "name", "type": "string"},
+            {"name": "chainId", "type": "uint256"},
+            {"name": "verifyingContract", "type": "address"},
+        ]
+    }
+    if domain.version is not None:
+        domain_data["version"] = domain.version
+        domain_types["EIP712Domain"].insert(1, {"name": "version", "type": "string"})
+    return hash_struct("EIP712Domain", domain_types, domain_data)
 
 
 def hash_typed_data(
@@ -162,7 +170,16 @@ def hash_typed_data(
         32-byte hash suitable for signing/verification.
     """
     # Merge domain types with provided types
-    all_types = {**DOMAIN_TYPES, **types}
+    domain_types = {
+        "EIP712Domain": [
+            {"name": "name", "type": "string"},
+            {"name": "chainId", "type": "uint256"},
+            {"name": "verifyingContract", "type": "address"},
+        ]
+    }
+    if domain.version is not None:
+        domain_types["EIP712Domain"].insert(1, {"name": "version", "type": "string"})
+    all_types = {**domain_types, **types}
 
     domain_separator = hash_domain(domain)
     struct_hash = hash_struct(primary_type, all_types, message)

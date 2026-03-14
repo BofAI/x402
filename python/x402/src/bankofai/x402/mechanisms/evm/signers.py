@@ -110,10 +110,11 @@ class EthAccountSigner:
         if isinstance(domain, TypedDataDomain):
             domain_dict = {
                 "name": domain.name,
-                "version": domain.version,
                 "chainId": domain.chain_id,
                 "verifyingContract": domain.verifying_contract,
             }
+            if domain.version is not None:
+                domain_dict["version"] = domain.version
         else:
             domain_dict = domain
 
@@ -249,14 +250,14 @@ class FacilitatorWeb3Signer:
             True if signature is valid.
         """
         # Build full types including EIP712Domain
-        full_types: dict[str, list[dict[str, str]]] = {
-            "EIP712Domain": [
-                {"name": "name", "type": "string"},
-                {"name": "version", "type": "string"},
-                {"name": "chainId", "type": "uint256"},
-                {"name": "verifyingContract", "type": "address"},
-            ]
-        }
+        domain_type_fields: list[dict[str, str]] = [
+            {"name": "name", "type": "string"},
+            {"name": "chainId", "type": "uint256"},
+            {"name": "verifyingContract", "type": "address"},
+        ]
+        if domain.version is not None:
+            domain_type_fields.insert(1, {"name": "version", "type": "string"})
+        full_types: dict[str, list[dict[str, str]]] = {"EIP712Domain": domain_type_fields}
         for type_name, fields in types.items():
             full_types[type_name] = [
                 {"name": f.name, "type": f.type} if isinstance(f, TypedDataField) else f
@@ -274,12 +275,13 @@ class FacilitatorWeb3Signer:
                 "primaryType": primary_type,
                 "domain": {
                     "name": domain.name,
-                    "version": domain.version,
                     "chainId": domain.chain_id,
                     "verifyingContract": domain.verifying_contract,
                 },
                 "message": msg_copy,
             }
+            if domain.version is not None:
+                typed_data["domain"]["version"] = domain.version
 
             # Try EOA signature verification first
             recovered = Account.recover_message(

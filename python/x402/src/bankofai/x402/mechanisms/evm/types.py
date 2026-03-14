@@ -151,9 +151,9 @@ class TypedDataDomain:
     """EIP-712 domain separator."""
 
     name: str
-    version: str
     chain_id: int
     verifying_contract: str
+    version: str | None = None
 
 
 @dataclass

@@ -95,7 +95,6 @@ def verify_permit2(
     typed_fields = _permit2_typed_fields()
     domain = TypedDataDomain(
         name="Permit2",
-        version="1",
         chain_id=get_evm_chain_id(network),
         verifying_contract=normalize_address(permit2_address),
     )
