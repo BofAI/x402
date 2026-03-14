@@ -362,7 +362,7 @@ describe("Permit2 Approval Helpers", () => {
   describe("createPermit2ApprovalTx", () => {
     it("should create approval transaction data", () => {
       const tokenAddress = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as `0x${string}`;
-      const tx = createPermit2ApprovalTx(tokenAddress);
+      const tx = createPermit2ApprovalTx(tokenAddress, "eip155:84532");
 
       expect(tx.to.toLowerCase()).toBe(tokenAddress.toLowerCase());
       expect(tx.data).toBeDefined();
@@ -371,10 +371,19 @@ describe("Permit2 Approval Helpers", () => {
 
     it("should encode approve function call", () => {
       const tokenAddress = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as `0x${string}`;
-      const tx = createPermit2ApprovalTx(tokenAddress);
+      const tx = createPermit2ApprovalTx(tokenAddress, "eip155:84532");
 
       // approve(address,uint256) selector is 0x095ea7b3
       expect(tx.data.startsWith("0x095ea7b3")).toBe(true);
+    });
+
+    it("should target PancakeSwap Permit2 on BSC testnet", () => {
+      const tokenAddress = "0x55d398326f99059fF775485246999027B3197955" as `0x${string}`;
+      const tx = createPermit2ApprovalTx(tokenAddress, "eip155:97");
+
+      expect(tx.data.toLowerCase()).toContain(
+        "31c2f6fcff4f8759b3bd5bf0e1084a055615c768".toLowerCase(),
+      );
     });
   });
 
@@ -383,6 +392,7 @@ describe("Permit2 Approval Helpers", () => {
       const params = getPermit2AllowanceReadParams({
         tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         ownerAddress: "0x1234567890123456789012345678901234567890",
+        network: "eip155:84532",
       });
 
       expect(params.address.toLowerCase()).toBe(
@@ -399,6 +409,7 @@ describe("Permit2 Approval Helpers", () => {
       const params = getPermit2AllowanceReadParams({
         tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         ownerAddress: "0x1234567890123456789012345678901234567890",
+        network: "eip155:84532",
       });
 
       expect(params.abi).toBeDefined();
@@ -486,6 +497,7 @@ describe("Permit2 Approval Flow", () => {
       const readParams = getPermit2AllowanceReadParams({
         tokenAddress,
         ownerAddress,
+        network: "eip155:84532",
       });
       expect(readParams).toBeDefined();
 
@@ -496,7 +508,7 @@ describe("Permit2 Approval Flow", () => {
       // Step 3: Check if approval needed
       if (checkNeedsApproval(currentAllowance, requiredAmount)) {
         // Step 4: Create approval transaction
-        const tx = createPermit2ApprovalTx(tokenAddress);
+        const tx = createPermit2ApprovalTx(tokenAddress, "eip155:84532");
         expect(tx.to).toBeDefined();
         expect(tx.data).toBeDefined();
 
@@ -577,6 +589,7 @@ describe("Permit2 Approval Flow", () => {
       const readParams = getPermit2AllowanceReadParams({
         tokenAddress,
         ownerAddress: mockSigner.address,
+        network: requirements.network,
       });
       expect(readParams.functionName).toBe("allowance");
 
@@ -585,7 +598,7 @@ describe("Permit2 Approval Flow", () => {
       expect(needsApproval).toBe(true);
 
       // Step 2: Create and "send" approval tx
-      const approvalTx = createPermit2ApprovalTx(tokenAddress);
+      const approvalTx = createPermit2ApprovalTx(tokenAddress, requirements.network);
       expect(approvalTx.to.toLowerCase()).toBe(tokenAddress.toLowerCase());
       // In real app: await walletClient.sendTransaction(approvalTx)
 

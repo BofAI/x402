@@ -4,7 +4,7 @@ import {
   type Erc20ApprovalGasSponsoringInfo,
 } from "@bankofai/x402-extensions";
 import {
-  PERMIT2_ADDRESS,
+  getPermit2Address,
   erc20ApproveAbi,
   ERC20_APPROVE_GAS_LIMIT,
   DEFAULT_MAX_FEE_PER_GAS,
@@ -23,16 +23,18 @@ import { ClientEvmSigner } from "../../signer";
  *
  * @param signer - The client EVM signer (must support signTransaction, getTransactionCount)
  * @param tokenAddress - The ERC-20 token contract address
+ * @param network - The target EVM network used to resolve Permit2
  * @param chainId - The chain ID
  * @returns The ERC-20 approval gas sponsoring info object
  */
 export async function signErc20ApprovalTransaction(
   signer: ClientEvmSigner,
   tokenAddress: `0x${string}`,
+  network: string,
   chainId: number,
 ): Promise<Erc20ApprovalGasSponsoringInfo> {
   const from = signer.address;
-  const spender = getAddress(PERMIT2_ADDRESS);
+  const spender = getAddress(getPermit2Address(network));
 
   // Encode approve(PERMIT2_ADDRESS, MaxUint256) calldata
   const data = encodeFunctionData({

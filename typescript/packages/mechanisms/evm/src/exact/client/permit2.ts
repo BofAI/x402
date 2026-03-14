@@ -2,8 +2,8 @@ import { PaymentRequirements, PaymentPayloadResult } from "@bankofai/x402-core/t
 import { encodeFunctionData, getAddress } from "viem";
 import {
   permit2WitnessTypes,
-  PERMIT2_ADDRESS,
-  x402ExactPermit2ProxyAddress,
+  getPermit2Address,
+  getX402ExactPermit2ProxyAddress,
   erc20ApproveAbi,
   erc20AllowanceAbi,
 } from "../../constants";
@@ -43,7 +43,7 @@ export async function createPermit2Payload(
       token: getAddress(paymentRequirements.asset),
       amount: paymentRequirements.amount,
     },
-    spender: x402ExactPermit2ProxyAddress,
+    spender: getX402ExactPermit2ProxyAddress(paymentRequirements.network),
     nonce,
     deadline,
     witness: {
@@ -84,11 +84,12 @@ async function signPermit2Authorization(
   requirements: PaymentRequirements,
 ): Promise<`0x${string}`> {
   const chainId = getEvmChainId(requirements.network);
+  const permit2Address = getPermit2Address(requirements.network);
 
   const domain = {
     name: "Permit2",
     chainId,
-    verifyingContract: PERMIT2_ADDRESS,
+    verifyingContract: permit2Address,
   };
 
   const message = {
@@ -118,25 +119,30 @@ async function signPermit2Authorization(
  * The user sends this transaction (paying gas) before using Permit2 flow.
  *
  * @param tokenAddress - The ERC20 token contract address
+ * @param network - The target EVM network used to resolve the Permit2 deployment
  * @returns Transaction data to send for approval
  *
  * @example
  * ```typescript
- * const tx = createPermit2ApprovalTx("0x...");
+ * const tx = createPermit2ApprovalTx("0x...", "eip155:97");
  * await walletClient.sendTransaction({
  *   to: tx.to,
  *   data: tx.data,
  * });
  * ```
  */
-export function createPermit2ApprovalTx(tokenAddress: `0x${string}`): {
+export function createPermit2ApprovalTx(
+  tokenAddress: `0x${string}`,
+  network: string,
+): {
   to: `0x${string}`;
   data: `0x${string}`;
 } {
+  const permit2Address = getPermit2Address(network);
   const data = encodeFunctionData({
     abi: erc20ApproveAbi,
     functionName: "approve",
-    args: [PERMIT2_ADDRESS, MAX_UINT256],
+    args: [permit2Address, MAX_UINT256],
   });
 
   return {
@@ -152,6 +158,7 @@ export function createPermit2ApprovalTx(tokenAddress: `0x${string}`): {
 export interface Permit2AllowanceParams {
   tokenAddress: `0x${string}`;
   ownerAddress: `0x${string}`;
+  network: string;
 }
 
 /**
@@ -178,10 +185,11 @@ export function getPermit2AllowanceReadParams(params: Permit2AllowanceParams): {
   functionName: "allowance";
   args: [`0x${string}`, `0x${string}`];
 } {
+  const permit2Address = getPermit2Address(params.network);
   return {
     address: getAddress(params.tokenAddress),
     abi: erc20AllowanceAbi,
     functionName: "allowance",
-    args: [getAddress(params.ownerAddress), PERMIT2_ADDRESS],
+    args: [getAddress(params.ownerAddress), permit2Address],
   };
 }

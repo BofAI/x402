@@ -4,6 +4,7 @@ import {
   authorizationTypes,
   eip3009ABI,
   permit2WitnessTypes,
+  getPermit2Address,
   x402ExactPermit2ProxyAddress,
   PERMIT2_ADDRESS,
 } from "../../src/constants";
@@ -96,6 +97,16 @@ describe("EVM Constants", () => {
       expect(witnessFields).toHaveLength(2);
       expect(witnessFields[0].name).toBe("to");
       expect(witnessFields[1].name).toBe("validAfter");
+    });
+  });
+
+  describe("Permit2 address resolution", () => {
+    it("should use PancakeSwap Permit2 on BSC testnet", () => {
+      expect(getPermit2Address("eip155:97")).toBe("0x31c2F6fcFf4F8759b3Bd5Bf0e1084A055615c768");
+    });
+
+    it("should fall back to canonical Permit2 on other EVM chains", () => {
+      expect(getPermit2Address("eip155:84532")).toBe(PERMIT2_ADDRESS);
     });
   });
 

@@ -10,7 +10,7 @@ import {
   validateErc20ApprovalGasSponsoringInfo,
   type Erc20ApprovalGasSponsoringInfo,
 } from "@bankofai/x402-extensions";
-import { PERMIT2_ADDRESS, erc20ApproveAbi } from "../../constants";
+import { erc20ApproveAbi, getPermit2Address } from "../../constants";
 import {
   ErrErc20ApprovalInvalidFormat,
   ErrErc20ApprovalFromMismatch,
@@ -43,13 +43,16 @@ const APPROVE_SELECTOR = "0x095ea7b3";
  * @param info - The ERC-20 approval gas sponsoring info
  * @param payer - The expected payer address
  * @param tokenAddress - The expected token address
+ * @param network - CAIP-2 EVM network identifier used to resolve Permit2.
  * @returns Validation result with invalidReason and invalidMessage on failure
  */
 export async function validateErc20ApprovalForPayment(
   info: Erc20ApprovalGasSponsoringInfo,
   payer: `0x${string}`,
   tokenAddress: `0x${string}`,
+  network: string,
 ): Promise<Pick<VerifyResponse, "isValid" | "invalidReason" | "invalidMessage">> {
+  const permit2Address = getPermit2Address(network);
   if (!validateErc20ApprovalGasSponsoringInfo(info)) {
     return {
       isValid: false,
@@ -74,11 +77,11 @@ export async function validateErc20ApprovalForPayment(
     };
   }
 
-  if (getAddress(info.spender) !== getAddress(PERMIT2_ADDRESS)) {
+  if (getAddress(info.spender) !== getAddress(permit2Address)) {
     return {
       isValid: false,
       invalidReason: ErrErc20ApprovalSpenderNotPermit2,
-      invalidMessage: `Expected spender=${PERMIT2_ADDRESS}, got ${info.spender}`,
+      invalidMessage: `Expected spender=${permit2Address}, got ${info.spender}`,
     };
   }
 
@@ -109,11 +112,11 @@ export async function validateErc20ApprovalForPayment(
         data: data as `0x${string}`,
       });
       const calldataSpender = getAddress(decoded.args[0] as `0x${string}`);
-      if (calldataSpender !== getAddress(PERMIT2_ADDRESS)) {
+      if (calldataSpender !== getAddress(permit2Address)) {
         return {
           isValid: false,
           invalidReason: ErrErc20ApprovalTxWrongSpender,
-          invalidMessage: `approve() spender is ${calldataSpender}, expected Permit2 ${PERMIT2_ADDRESS}`,
+          invalidMessage: `approve() spender is ${calldataSpender}, expected Permit2 ${permit2Address}`,
         };
       }
     } catch {
