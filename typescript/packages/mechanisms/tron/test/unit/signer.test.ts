@@ -28,12 +28,17 @@ describe("TRON signer helpers", () => {
 
     it("composes readContract from TronWeb when signer lacks it", async () => {
       const call = vi.fn().mockResolvedValue("99");
+      const sendRawTransaction = vi.fn().mockResolvedValue({ result: true, txid: "0xtxid" });
       const tronWeb = {
         contract: vi.fn().mockResolvedValue({
           methods: {
             balanceOf: (..._args: unknown[]) => ({ call }),
           },
         }),
+        trx: {
+          sendRawTransaction,
+          getTransactionInfo: vi.fn().mockResolvedValue({ receipt: { result: "SUCCESS" } }),
+        },
       };
 
       const result = toClientTronSigner(
@@ -53,6 +58,14 @@ describe("TRON signer helpers", () => {
         }),
       ).resolves.toBe("99");
       expect(call).toHaveBeenCalled();
+      await expect(
+        result.sendRawTransaction?.({
+          signedTransaction: { raw_data: {}, raw_data_hex: "00" } as any,
+        }),
+      ).resolves.toBe("0xtxid");
+      await expect(result.waitForTransactionReceipt?.({ hash: "0xtxid" })).resolves.toEqual({
+        status: "success",
+      });
     });
 
     it("throws when neither signer nor TronWeb can read contracts", () => {

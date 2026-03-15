@@ -154,6 +154,47 @@ class EthAccountSigner:
         func = getattr(contract.functions, function_name)
         return func(*args).call()
 
+    def write_contract(
+        self,
+        address: str,
+        abi: list[dict[str, Any]],
+        function_name: str,
+        *args: Any,
+    ) -> str:
+        """Write to a contract when rpc_url was supplied."""
+        if self._w3 is None:
+            raise NotImplementedError("EthAccountSigner requires rpc_url for write_contract()")
+
+        contract = self._w3.eth.contract(
+            address=Web3.to_checksum_address(address),
+            abi=abi,
+        )
+        func = getattr(contract.functions, function_name)
+        tx = func(*args).build_transaction(
+            {
+                "from": self.address,
+                "nonce": self._w3.eth.get_transaction_count(self.address),
+                "chainId": self._w3.eth.chain_id,
+                "gasPrice": self._w3.eth.gas_price,
+            }
+        )
+        tx["gas"] = self._w3.eth.estimate_gas(tx)
+        signed = self._account.sign_transaction(tx)
+        try:
+            raw = signed.raw_transaction
+        except AttributeError:
+            raw = signed.rawTransaction
+        tx_hash = self._w3.eth.send_raw_transaction(raw)
+        return tx_hash.hex()
+
+    def wait_for_transaction_receipt(self, tx_hash: str, timeout: int = 120) -> Any:
+        """Wait for a submitted transaction to confirm."""
+        if self._w3 is None:
+            raise NotImplementedError(
+                "EthAccountSigner requires rpc_url for wait_for_transaction_receipt()"
+            )
+        return self._w3.eth.wait_for_transaction_receipt(tx_hash, timeout=timeout)
+
 
 class FacilitatorWeb3Signer:
     """Facilitator-side EVM signer using web3.py.

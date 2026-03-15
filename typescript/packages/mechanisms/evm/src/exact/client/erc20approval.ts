@@ -78,3 +78,57 @@ export async function signErc20ApprovalTransaction(
     version: ERC20_APPROVAL_GAS_SPONSORING_VERSION,
   };
 }
+
+/**
+ * Broadcasts a local ERC-20 approval transaction when the facilitator does not
+ * advertise approval sponsoring.
+ *
+ * @param signer - Client signer capable of broadcasting or signing raw approval transactions.
+ * @param tokenAddress - ERC-20 token contract address to approve.
+ * @param network - Network used to resolve the Permit2 deployment.
+ * @param chainId - Chain ID used when signing a raw fallback transaction.
+ * @returns The approval transaction hash.
+ */
+export async function broadcastErc20ApprovalTransaction(
+  signer: ClientEvmSigner,
+  tokenAddress: `0x${string}`,
+  network: string,
+  chainId: number,
+): Promise<`0x${string}`> {
+  if (signer.sendTransaction && signer.waitForTransactionReceipt) {
+    const tx = encodeFunctionData({
+      abi: erc20ApproveAbi,
+      functionName: "approve",
+      args: [getAddress(getPermit2Address(network)), maxUint256],
+    });
+    const hash = await signer.sendTransaction({
+      to: tokenAddress,
+      data: tx,
+    });
+    const receipt = await signer.waitForTransactionReceipt({ hash });
+    if (receipt.status !== "success") {
+      throw new Error(`local_approve_failed: approval transaction ${hash} did not succeed`);
+    }
+    return hash;
+  }
+
+  if (
+    signer.signTransaction &&
+    signer.getTransactionCount &&
+    signer.estimateFeesPerGas &&
+    signer.sendRawTransaction &&
+    signer.waitForTransactionReceipt
+  ) {
+    const info = await signErc20ApprovalTransaction(signer, tokenAddress, network, chainId);
+    const hash = await signer.sendRawTransaction({
+      serializedTransaction: info.signedTransaction,
+    });
+    const receipt = await signer.waitForTransactionReceipt({ hash });
+    if (receipt.status !== "success") {
+      throw new Error(`local_approve_failed: approval transaction ${hash} did not succeed`);
+    }
+    return hash;
+  }
+
+  throw new Error("local_approve_unsupported: EVM signer cannot broadcast approval transactions");
+}

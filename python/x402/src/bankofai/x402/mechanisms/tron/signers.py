@@ -317,3 +317,34 @@ class ClientTronSigner:
         contract = self._client.get_contract(address)
         func = getattr(contract.functions, function_name)
         return func(*(args or []))
+
+    def write_contract(
+        self,
+        address: str,
+        function_name: str,
+        args: list[Any],
+        fee_limit: int = 1_000_000_000,
+    ) -> str:
+        """Execute a contract write call and return the txid."""
+        contract = self._client.get_contract(address)
+        func = getattr(contract.functions, function_name)
+        txn = func(*args).with_owner(self._address).fee_limit(fee_limit).build().sign(self._pk)
+        result = txn.broadcast()
+        return str(result.txid)
+
+    def wait_for_transaction_receipt(
+        self, tx_hash: str, max_attempts: int = 30
+    ) -> TronTransactionReceipt:
+        """Poll until the transaction is confirmed."""
+        for _ in range(max_attempts):
+            try:
+                info = self._client.get_transaction_info(tx_hash)
+                result = info.get("receipt", {}).get("result", "")
+                if result == "SUCCESS":
+                    return TronTransactionReceipt(status="success", tx_hash=tx_hash)
+                if result and result != "SUCCESS":
+                    return TronTransactionReceipt(status="reverted", tx_hash=tx_hash)
+            except Exception:
+                pass
+            time.sleep(1)
+        return TronTransactionReceipt(status="pending", tx_hash=tx_hash)

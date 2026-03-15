@@ -260,7 +260,7 @@ describe("ExactEvmScheme (Client)", () => {
         expect(result.payload.authorization).toBeDefined();
       });
 
-    it("should use EIP-3009 when assetTransferMethod is eip3009", async () => {
+      it("should use EIP-3009 when assetTransferMethod is eip3009", async () => {
         const requirements: PaymentRequirements = {
           scheme: "exact",
           network: "eip155:8453",
@@ -278,8 +278,9 @@ describe("ExactEvmScheme (Client)", () => {
       });
 
       it("should fail fast when token balance is insufficient", async () => {
-        (mockSigner.readContract as ReturnType<typeof vi.fn>).mockImplementation(({ functionName }) =>
-          Promise.resolve(functionName === "balanceOf" ? BigInt(0) : BigInt(0)),
+        (mockSigner.readContract as ReturnType<typeof vi.fn>).mockImplementation(
+          ({ functionName }) =>
+            Promise.resolve(functionName === "balanceOf" ? BigInt(0) : BigInt(0)),
         );
 
         const requirements: PaymentRequirements = {
@@ -882,6 +883,28 @@ describe("Permit2 Approval Flow", () => {
       expect(info.spender).toBeDefined();
       expect(info.signedTransaction).toBe(mockSignedTx);
       expect(info.version).toBe("1");
+    });
+
+    it("should locally approve when sponsoring is unavailable and allowance is insufficient", async () => {
+      const signer: ClientEvmSigner = {
+        address: "0x1234567890123456789012345678901234567890",
+        signTypedData: vi.fn().mockResolvedValue("0xmocksig"),
+        readContract: makeReadContractMock({ allowance: BigInt(0) }),
+        sendTransaction: vi.fn().mockResolvedValue("0xapprovalhash"),
+        waitForTransactionReceipt: vi.fn().mockResolvedValue({ status: "success" }),
+      };
+      const scheme = new ExactEvmScheme(signer);
+
+      const result = await scheme.createPaymentPayload(2, erc20Requirements, {
+        extensions: {},
+      });
+
+      expect(result.extensions).toBeUndefined();
+      expect(signer.sendTransaction).toHaveBeenCalled();
+      expect(signer.waitForTransactionReceipt).toHaveBeenCalledWith({
+        hash: "0xapprovalhash",
+      });
+      expect(isPermit2Payload(result.payload)).toBe(true);
     });
 
     it("should use EIP-2612 over ERC-20 approval when token has EIP-2612 support", async () => {

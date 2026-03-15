@@ -134,6 +134,8 @@ class ExactTronClientScheme:
                 "Permit2 facilitator address is required in payment requirements extra"
             )
 
+        self._ensure_permit2_allowance(requirements, permit2_address)
+
         permit2_authorization = {
             "from": normalize_address_for_signing(self._signer.address),
             "permitted": {
@@ -204,4 +206,37 @@ class ExactTronClientScheme:
         if int(str(balance)) < int(requirements.amount):
             raise ValueError(
                 f"{ERR_INSUFFICIENT_FUNDS}: Insufficient token balance. Required: {requirements.amount}, Available: {balance}"
+            )
+
+    def _ensure_permit2_allowance(
+        self, requirements: PaymentRequirements, permit2_address: str
+    ) -> None:
+        """Best-effort local Permit2 approval fallback when sponsoring is unavailable."""
+        allowance = int(
+            str(
+                self._signer.read_contract(
+                    address=requirements.asset,
+                    function_name="allowance",
+                    args=[self._signer.address, permit2_address],
+                )
+            )
+        )
+        if allowance >= int(requirements.amount):
+            return
+
+        write_contract = getattr(self._signer, "write_contract", None)
+        wait_for_receipt = getattr(self._signer, "wait_for_transaction_receipt", None)
+        if not callable(write_contract) or not callable(wait_for_receipt):
+            return
+
+        tx_hash = write_contract(
+            requirements.asset,
+            "approve",
+            [permit2_address, (1 << 256) - 1],
+        )
+        receipt = wait_for_receipt(tx_hash)
+        status = getattr(receipt, "status", None)
+        if status not in ("success", 1):
+            raise ValueError(
+                f"transaction_failed: local Permit2 approval failed with status={status}"
             )

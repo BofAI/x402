@@ -31,6 +31,23 @@ describe("EVM Signer Converters", () => {
       expect(result.readContract).toBeDefined();
     });
 
+    it("should compose raw broadcast helpers from publicClient", () => {
+      const mockAccount = {
+        address: "0x1234567890123456789012345678901234567890" as `0x${string}`,
+        signTypedData: async () => "0xsignature" as `0x${string}`,
+      };
+
+      const mockPublicClient = {
+        readContract: async () => BigInt(42),
+        sendRawTransaction: async () => "0xhash" as `0x${string}`,
+        waitForTransactionReceipt: async () => ({ status: "success" }),
+      };
+
+      const result = toClientEvmSigner(mockAccount, mockPublicClient);
+      expect(result.sendRawTransaction).toBeDefined();
+      expect(result.waitForTransactionReceipt).toBeDefined();
+    });
+
     it("should throw when neither signer nor publicClient has readContract", () => {
       const mockAccount = {
         address: "0x1234567890123456789012345678901234567890" as `0x${string}`,

@@ -60,6 +60,18 @@ export interface ClientTronSigner {
    * Optional capability used for TRC-20 approval gas sponsoring.
    */
   signTransaction?(transaction: TronTransaction): Promise<TronSignedTransaction>;
+
+  /**
+   * Broadcast a signed raw TRON transaction.
+   * Used for local Permit2 approval fallback when the facilitator does not
+   * advertise approval sponsoring.
+   */
+  sendRawTransaction?(args: { signedTransaction: TronSignedTransaction }): Promise<string>;
+
+  /**
+   * Wait for a locally-broadcast transaction to confirm.
+   */
+  waitForTransactionReceipt?(args: { hash: string }): Promise<{ status: string }>;
 }
 
 /**
@@ -184,6 +196,8 @@ export function toClientTronSigner(
     readContract?: ClientTronSigner["readContract"];
     buildTriggerSmartContractTransaction?: ClientTronSigner["buildTriggerSmartContractTransaction"];
     signTransaction?: ClientTronSigner["signTransaction"];
+    sendRawTransaction?: ClientTronSigner["sendRawTransaction"];
+    waitForTransactionReceipt?: ClientTronSigner["waitForTransactionReceipt"];
   },
   tronWeb?: TronWeb,
 ): ClientTronSigner {
@@ -238,6 +252,40 @@ export function toClientTronSigner(
               transaction,
               tronWeb.defaultPrivateKey,
             )) as unknown as TronSignedTransaction
+        : undefined),
+    sendRawTransaction:
+      signer.sendRawTransaction ??
+      (tronWeb
+        ? async args => {
+            const result = await tronWeb.trx.sendRawTransaction(args.signedTransaction);
+            if (result.result === false) {
+              throw new Error(String(result.code ?? "Failed to broadcast TRON transaction"));
+            }
+            return result.txid;
+          }
+        : undefined),
+    waitForTransactionReceipt:
+      signer.waitForTransactionReceipt ??
+      (tronWeb
+        ? async args => {
+            const start = Date.now();
+            while (Date.now() - start < 60_000) {
+              try {
+                const info = (await tronWeb.trx.getTransactionInfo(args.hash)) as TronTxInfo;
+                const result = info.receipt?.result;
+                if (result === "SUCCESS") {
+                  return { status: "success" };
+                }
+                if (result && result !== "SUCCESS") {
+                  return { status: "reverted" };
+                }
+              } catch {
+                // Poll until confirmation or timeout.
+              }
+              await new Promise(resolve => setTimeout(resolve, 1_000));
+            }
+            return { status: "pending" };
+          }
         : undefined),
   };
 }

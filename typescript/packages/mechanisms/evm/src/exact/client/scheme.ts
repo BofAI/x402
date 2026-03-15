@@ -13,7 +13,7 @@ import { getEvmChainId } from "../../utils";
 import { createEIP3009Payload } from "./eip3009";
 import { createPermit2Payload } from "./permit2";
 import { signEip2612Permit } from "./eip2612";
-import { signErc20ApprovalTransaction } from "./erc20approval";
+import { broadcastErc20ApprovalTransaction, signErc20ApprovalTransaction } from "./erc20approval";
 
 /**
  * EVM client implementation for the Exact payment scheme.
@@ -88,10 +88,55 @@ export class ExactEvmScheme implements SchemeNetworkClient {
         };
       }
 
+      await this.ensureLocalPermit2Approval(paymentRequirements);
+
       return result;
     }
 
     return createEIP3009Payload(this.signer, x402Version, paymentRequirements);
+  }
+
+  /**
+   * Falls back to a local approve(Permit2, MaxUint256) transaction when the
+   * server does not advertise approval sponsoring.
+   *
+   * @param requirements - Payment requirement whose Permit2 allowance should be ensured.
+   */
+  private async ensureLocalPermit2Approval(requirements: PaymentRequirements): Promise<void> {
+    const canBroadcastDirectly =
+      !!this.signer.sendTransaction && !!this.signer.waitForTransactionReceipt;
+    const canBroadcastSigned =
+      !!this.signer.signTransaction &&
+      !!this.signer.getTransactionCount &&
+      !!this.signer.estimateFeesPerGas &&
+      !!this.signer.sendRawTransaction &&
+      !!this.signer.waitForTransactionReceipt;
+    if (!canBroadcastDirectly && !canBroadcastSigned) {
+      return;
+    }
+
+    const tokenAddress = getAddress(requirements.asset) as `0x${string}`;
+    const permit2Address = getPermit2Address(requirements.network);
+    const amount = BigInt(requirements.amount);
+
+    const allowance = (await this.signer.readContract({
+      address: tokenAddress,
+      abi: erc20AllowanceAbi,
+      functionName: "allowance",
+      args: [this.signer.address, permit2Address],
+    })) as bigint;
+
+    if (allowance >= amount) {
+      return;
+    }
+
+    const chainId = getEvmChainId(requirements.network);
+    await broadcastErc20ApprovalTransaction(
+      this.signer,
+      tokenAddress,
+      requirements.network,
+      chainId,
+    );
   }
 
   /**
@@ -240,6 +285,8 @@ export class ExactEvmScheme implements SchemeNetworkClient {
   /**
    * Performs a best-effort ERC-20 balance check before signing.
    * This avoids creating payloads that are guaranteed to fail at facilitator verify/settle.
+   *
+   * @param requirements - Payment requirement whose token balance should be checked.
    */
   private async ensureSufficientTokenBalance(requirements: PaymentRequirements): Promise<void> {
     const tokenAddress = getAddress(requirements.asset) as `0x${string}`;

@@ -239,5 +239,20 @@ describe("ExactTronScheme (Client)", () => {
       expect(mockSigner.buildTriggerSmartContractTransaction).not.toHaveBeenCalled();
       expect(mockSigner.signTransaction).not.toHaveBeenCalled();
     });
+
+    it("should locally approve when sponsoring is unavailable and allowance is insufficient", async () => {
+      const sendRawTransaction = vi.fn().mockResolvedValue("approvaltxid");
+      const waitForTransactionReceipt = vi.fn().mockResolvedValue({ status: "success" });
+      mockSigner.sendRawTransaction = sendRawTransaction;
+      mockSigner.waitForTransactionReceipt = waitForTransactionReceipt;
+
+      const client = new ExactTronScheme(mockSigner);
+      const result = await client.createPaymentPayload(2, permit2Requirements);
+
+      expect(result.extensions).toBeUndefined();
+      expect(sendRawTransaction).toHaveBeenCalled();
+      expect(waitForTransactionReceipt).toHaveBeenCalledWith({ hash: "approvaltxid" });
+      expect(result.payload).toHaveProperty("permit2Authorization");
+    });
   });
 });

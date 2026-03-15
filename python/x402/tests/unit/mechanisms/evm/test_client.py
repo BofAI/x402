@@ -232,6 +232,28 @@ class _ReadCapableSigner:
         return self._balance
 
 
+class _Permit2CapableSigner(_ReadCapableSigner):
+    def __init__(self, address: str, balance: int, allowance: int) -> None:
+        super().__init__(address, balance)
+        self._allowance = allowance
+        self.write_calls: list[tuple[str, str]] = []
+
+    def read_contract(self, address, abi, function_name, *args):
+        if function_name == "balanceOf":
+            return self._balance
+        if function_name == "allowance":
+            return self._allowance
+        raise AssertionError(f"unexpected function {function_name}")
+
+    def write_contract(self, address, abi, function_name, *args):
+        self.write_calls.append((address, function_name))
+        return "0xapprovalhash"
+
+    def wait_for_transaction_receipt(self, tx_hash):
+        assert tx_hash == "0xapprovalhash"
+        return {"status": 1}
+
+
 def test_create_payment_payload_fails_fast_on_insufficient_balance():
     signer = _ReadCapableSigner("0x1111111111111111111111111111111111111111", balance=0)
     client = ExactEvmClientScheme(signer)
@@ -255,3 +277,31 @@ def test_create_payment_payload_fails_fast_on_insufficient_balance():
         raise AssertionError("expected insufficient_balance error")
     except ValueError as exc:
         assert "insufficient_balance" in str(exc)
+
+
+def test_create_payment_payload_locally_approves_permit2_when_allowance_is_insufficient():
+    signer = _Permit2CapableSigner(
+        "0x1111111111111111111111111111111111111111",
+        balance=10**18,
+        allowance=0,
+    )
+    client = ExactEvmClientScheme(signer)
+    requirements = PaymentRequirements(
+        scheme="exact",
+        network="eip155:97",
+        asset="0x337610d27c682E347C9cD60BD4b3b107C9d34dDd",
+        amount="1000000",
+        pay_to="0x0987654321098765432109876543210987654321",
+        max_timeout_seconds=3600,
+        extra={
+            "name": "Tether USD",
+            "version": "1",
+            "assetTransferMethod": "permit2",
+            "permit2FacilitatorAddress": "0x1111111111111111111111111111111111111111",
+        },
+    )
+
+    payload = client.create_payment_payload(requirements)
+
+    assert "permit2Authorization" in payload
+    assert signer.write_calls == [(requirements.asset, "approve")]

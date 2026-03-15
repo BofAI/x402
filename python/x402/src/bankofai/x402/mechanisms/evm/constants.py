@@ -259,6 +259,19 @@ ERC20_ALLOWANCE_ABI = [
     }
 ]
 
+ERC20_APPROVE_ABI = [
+    {
+        "inputs": [
+            {"name": "spender", "type": "address"},
+            {"name": "amount", "type": "uint256"},
+        ],
+        "name": "approve",
+        "outputs": [{"name": "", "type": "bool"}],
+        "stateMutability": "nonpayable",
+        "type": "function",
+    }
+]
+
 X402_EXACT_PERMIT2_PROXY_ABI = [
     {
         "inputs": [

@@ -9,6 +9,8 @@ from typing import Any
 from ....schemas import PaymentRequirements
 from ..constants import (
     BALANCE_OF_ABI,
+    ERC20_ALLOWANCE_ABI,
+    ERC20_APPROVE_ABI,
     ERR_INSUFFICIENT_BALANCE,
     PERMIT2_ADDRESSES,
     PERMIT2_WITNESS_TYPES,
@@ -174,6 +176,8 @@ class ExactEvmScheme:
         if not permit2_address or not proxy_address:
             raise ValueError(f"No Permit2 configuration for network {network}")
 
+        self._ensure_permit2_allowance(requirements, permit2_address)
+
         facilitator_address = (requirements.extra or {}).get("permit2FacilitatorAddress")
         if not facilitator_address:
             raise ValueError(
@@ -262,4 +266,48 @@ class ExactEvmScheme:
         if int(balance) < int(requirements.amount):
             raise ValueError(
                 f"{ERR_INSUFFICIENT_BALANCE}: Insufficient token balance. Required: {requirements.amount}, Available: {balance}"
+            )
+
+    def _ensure_permit2_allowance(
+        self, requirements: PaymentRequirements, permit2_address: str
+    ) -> None:
+        """Best-effort local Permit2 approval fallback when sponsoring is unavailable."""
+        read_contract = getattr(self._signer, "read_contract", None)
+        if not callable(read_contract):
+            return
+
+        try:
+            allowance = int(
+                read_contract(
+                    requirements.asset,
+                    ERC20_ALLOWANCE_ABI,
+                    "allowance",
+                    self._signer.address,
+                    permit2_address,
+                )
+            )
+        except NotImplementedError:
+            return
+        if allowance >= int(requirements.amount):
+            return
+
+        write_contract = getattr(self._signer, "write_contract", None)
+        wait_for_receipt = getattr(self._signer, "wait_for_transaction_receipt", None)
+        if not callable(write_contract) or not callable(wait_for_receipt):
+            return
+
+        tx_hash = write_contract(
+            requirements.asset,
+            ERC20_APPROVE_ABI,
+            "approve",
+            permit2_address,
+            (1 << 256) - 1,
+        )
+        receipt = wait_for_receipt(tx_hash)
+        status = getattr(receipt, "status", None)
+        if status is None and isinstance(receipt, dict):
+            status = receipt.get("status")
+        if status not in (1, "success"):
+            raise ValueError(
+                f"transaction_failed: local Permit2 approval failed with status={status}"
             )

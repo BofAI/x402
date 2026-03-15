@@ -49,6 +49,22 @@ export type ClientEvmSigner = {
    * Required for ERC-20 approval gas sponsoring.
    */
   estimateFeesPerGas?(): Promise<{ maxFeePerGas: bigint; maxPriorityFeePerGas: bigint }>;
+  /**
+   * Optional: Broadcast a transaction directly from the connected wallet client.
+   * Used for local Permit2 approval fallback when the facilitator does not
+   * advertise an approval sponsoring extension.
+   */
+  sendTransaction?(args: { to: `0x${string}`; data: `0x${string}` }): Promise<`0x${string}`>;
+  /**
+   * Optional: Broadcast a pre-signed raw transaction.
+   * Used together with signTransaction() for local approval fallback.
+   */
+  sendRawTransaction?(args: { serializedTransaction: `0x${string}` }): Promise<`0x${string}`>;
+  /**
+   * Optional: Wait for a locally-broadcast transaction to confirm.
+   * Required for local Permit2 approval fallback.
+   */
+  waitForTransactionReceipt?(args: { hash: `0x${string}` }): Promise<{ status: string }>;
 };
 
 /**
@@ -110,6 +126,8 @@ export type FacilitatorEvmSigner = {
  * @param publicClient.readContract - The readContract method from the public client
  * @param publicClient.getTransactionCount - Optional getTransactionCount for ERC-20 approval
  * @param publicClient.estimateFeesPerGas - Optional estimateFeesPerGas for ERC-20 approval
+ * @param publicClient.sendRawTransaction - Optional raw transaction broadcaster for local approval fallback
+ * @param publicClient.waitForTransactionReceipt - Optional receipt waiter for local approval fallback
  * @returns A complete ClientEvmSigner
  *
  * @example
@@ -132,6 +150,8 @@ export function toClientEvmSigner(
     }): Promise<unknown>;
     getTransactionCount?(args: { address: `0x${string}` }): Promise<number>;
     estimateFeesPerGas?(): Promise<{ maxFeePerGas: bigint; maxPriorityFeePerGas: bigint }>;
+    sendRawTransaction?(args: { serializedTransaction: `0x${string}` }): Promise<`0x${string}`>;
+    waitForTransactionReceipt?(args: { hash: `0x${string}` }): Promise<{ status: string }>;
   },
 ): ClientEvmSigner {
   const readContract = signer.readContract ?? publicClient?.readContract.bind(publicClient);
@@ -165,6 +185,23 @@ export function toClientEvmSigner(
     signer.estimateFeesPerGas ?? publicClient?.estimateFeesPerGas?.bind(publicClient);
   if (estimateFeesPerGas) {
     result.estimateFeesPerGas = () => estimateFeesPerGas();
+  }
+
+  const sendTransaction = signer.sendTransaction;
+  if (sendTransaction) {
+    result.sendTransaction = args => sendTransaction(args);
+  }
+
+  const sendRawTransaction =
+    signer.sendRawTransaction ?? publicClient?.sendRawTransaction?.bind(publicClient);
+  if (sendRawTransaction) {
+    result.sendRawTransaction = args => sendRawTransaction(args);
+  }
+
+  const waitForTransactionReceipt =
+    signer.waitForTransactionReceipt ?? publicClient?.waitForTransactionReceipt?.bind(publicClient);
+  if (waitForTransactionReceipt) {
+    result.waitForTransactionReceipt = args => waitForTransactionReceipt(args);
   }
 
   return result;

@@ -69,3 +69,33 @@ export async function signTrc20ApprovalTransaction(
     version: TRC20_APPROVAL_GAS_SPONSORING_VERSION,
   };
 }
+
+/**
+ * Broadcasts a local TRC-20 approval transaction when sponsoring is unavailable.
+ *
+ * @param signer - TRON signer capable of building, signing, and broadcasting approval transactions.
+ * @param tokenAddress - Token contract that should grant Permit2 allowance.
+ * @param network - Network identifier used to resolve the Permit2 contract address.
+ * @returns The approval transaction hash.
+ */
+export async function broadcastTrc20ApprovalTransaction(
+  signer: ClientTronSigner,
+  tokenAddress: string,
+  network: string,
+): Promise<string> {
+  if (!signer.sendRawTransaction || !signer.waitForTransactionReceipt) {
+    throw new Error(
+      "local_approve_unsupported: TRON signer cannot broadcast approval transactions",
+    );
+  }
+
+  const info = await signTrc20ApprovalTransaction(signer, tokenAddress, network);
+  const hash = await signer.sendRawTransaction({
+    signedTransaction: info.signedTransaction,
+  });
+  const receipt = await signer.waitForTransactionReceipt({ hash });
+  if (receipt.status !== "success") {
+    throw new Error(`local_approve_failed: approval transaction ${hash} did not succeed`);
+  }
+  return hash;
+}

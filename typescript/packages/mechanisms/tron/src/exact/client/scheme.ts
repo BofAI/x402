@@ -11,7 +11,7 @@ import { trc20BalanceOfAbi } from "../../constants";
 import { createEIP3009Payload } from "./eip3009";
 import { createPermit2Payload } from "./permit2";
 import { getPermit2AllowanceReadParams } from "./permit2Helpers";
-import { signTrc20ApprovalTransaction } from "./trc20approval";
+import { broadcastTrc20ApprovalTransaction, signTrc20ApprovalTransaction } from "./trc20approval";
 
 /**
  * TRON client implementation for the Exact payment scheme.
@@ -62,6 +62,8 @@ export class ExactTronScheme implements SchemeNetworkClient {
           extensions: trc20Extensions,
         };
       }
+
+      await this.ensureLocalPermit2Approval(paymentRequirements);
 
       return result;
     }
@@ -117,6 +119,8 @@ export class ExactTronScheme implements SchemeNetworkClient {
 
   /**
    * Performs a best-effort TRC-20 balance check before signing.
+   *
+   * @param requirements - Payment requirement whose token balance should be checked.
    */
   private async ensureSufficientTokenBalance(requirements: PaymentRequirements): Promise<void> {
     const balance = (await this.signer.readContract({
@@ -131,5 +135,36 @@ export class ExactTronScheme implements SchemeNetworkClient {
         `insufficient_funds: Insufficient token balance. Required: ${requirements.amount}, Available: ${balance.toString()}`,
       );
     }
+  }
+
+  /**
+   * Falls back to a local TRC-20 approve(Permit2, MaxUint256) transaction when
+   * the facilitator does not advertise approval sponsoring.
+   *
+   * @param requirements - Payment requirement whose Permit2 allowance should be ensured.
+   */
+  private async ensureLocalPermit2Approval(requirements: PaymentRequirements): Promise<void> {
+    const canBroadcast =
+      !!this.signer.buildTriggerSmartContractTransaction &&
+      !!this.signer.signTransaction &&
+      !!this.signer.sendRawTransaction &&
+      !!this.signer.waitForTransactionReceipt;
+    if (!canBroadcast) {
+      return;
+    }
+
+    const allowance = (await this.signer.readContract(
+      getPermit2AllowanceReadParams({
+        tokenAddress: requirements.asset,
+        ownerAddress: this.signer.address,
+        network: requirements.network,
+      }),
+    )) as bigint;
+
+    if (allowance >= BigInt(requirements.amount)) {
+      return;
+    }
+
+    await broadcastTrc20ApprovalTransaction(this.signer, requirements.asset, requirements.network);
   }
 }
