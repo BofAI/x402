@@ -9,6 +9,22 @@ import { PaymentRequirements } from "@bankofai/x402-core/types";
 import { PERMIT2_ADDRESS, x402ExactPermit2ProxyAddress } from "../../../src/constants";
 import { isPermit2Payload, isEIP3009Payload } from "../../../src/types";
 
+function makeReadContractMock({
+  balance = BigInt("1000000000000"),
+  allowance = BigInt(0),
+  fallback = BigInt(0),
+}: {
+  balance?: bigint;
+  allowance?: bigint;
+  fallback?: bigint;
+} = {}) {
+  return vi.fn().mockImplementation(({ functionName }) => {
+    if (functionName === "balanceOf") return Promise.resolve(balance);
+    if (functionName === "allowance") return Promise.resolve(allowance);
+    return Promise.resolve(fallback);
+  });
+}
+
 describe("ExactEvmScheme (Client)", () => {
   let client: ExactEvmScheme;
   let mockSigner: ClientEvmSigner;
@@ -18,7 +34,10 @@ describe("ExactEvmScheme (Client)", () => {
     mockSigner = {
       address: "0x1234567890123456789012345678901234567890",
       signTypedData: vi.fn().mockResolvedValue("0xmocksignature123456789"),
-      readContract: vi.fn().mockResolvedValue(BigInt(0)),
+      readContract: vi.fn().mockImplementation(({ functionName }) => {
+        if (functionName === "balanceOf") return Promise.resolve(BigInt("1000000000000"));
+        return Promise.resolve(BigInt(0));
+      }),
     };
     client = new ExactEvmScheme(mockSigner);
   });
@@ -241,7 +260,7 @@ describe("ExactEvmScheme (Client)", () => {
         expect(result.payload.authorization).toBeDefined();
       });
 
-      it("should use EIP-3009 when assetTransferMethod is eip3009", async () => {
+    it("should use EIP-3009 when assetTransferMethod is eip3009", async () => {
         const requirements: PaymentRequirements = {
           scheme: "exact",
           network: "eip155:8453",
@@ -256,6 +275,26 @@ describe("ExactEvmScheme (Client)", () => {
 
         expect(isEIP3009Payload(result.payload)).toBe(true);
         expect(result.payload.authorization).toBeDefined();
+      });
+
+      it("should fail fast when token balance is insufficient", async () => {
+        (mockSigner.readContract as ReturnType<typeof vi.fn>).mockImplementation(({ functionName }) =>
+          Promise.resolve(functionName === "balanceOf" ? BigInt(0) : BigInt(0)),
+        );
+
+        const requirements: PaymentRequirements = {
+          scheme: "exact",
+          network: "eip155:8453",
+          amount: "1000000",
+          asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
+          maxTimeoutSeconds: 300,
+          extra: { name: "USD Coin", version: "2", assetTransferMethod: "eip3009" },
+        };
+
+        await expect(client.createPaymentPayload(2, requirements)).rejects.toThrow(
+          "insufficient_balance",
+        );
       });
 
       it("should use Permit2 when assetTransferMethod is permit2", async () => {
@@ -569,6 +608,7 @@ describe("Permit2 Approval Flow", () => {
       mockSigner = {
         address: "0x1234567890123456789012345678901234567890",
         signTypedData: vi.fn().mockResolvedValue("0xmocksignature123456789"),
+        readContract: makeReadContractMock(),
       };
       client = new ExactEvmScheme(mockSigner);
     });
@@ -656,7 +696,7 @@ describe("Permit2 Approval Flow", () => {
       const signer: ClientEvmSigner = {
         address: "0x1234567890123456789012345678901234567890",
         signTypedData: vi.fn().mockResolvedValue("0xmocksig"),
-        readContract: vi.fn().mockResolvedValue(BigInt(0)),
+        readContract: makeReadContractMock(),
       };
       const scheme = new ExactEvmScheme(signer);
       const result = await scheme.createPaymentPayload(2, permit2Requirements, {
@@ -670,7 +710,10 @@ describe("Permit2 Approval Flow", () => {
       const signerWithReader: ClientEvmSigner = {
         address: "0x1234567890123456789012345678901234567890",
         signTypedData: vi.fn().mockResolvedValue("0xmocksig"),
-        readContract: vi.fn().mockResolvedValue(BigInt("999999999999999999")),
+        readContract: makeReadContractMock({
+          balance: BigInt("1000000000000"),
+          allowance: BigInt("999999999999999999"),
+        }),
       };
       const schemeWithReader = new ExactEvmScheme(signerWithReader);
 
@@ -689,10 +732,11 @@ describe("Permit2 Approval Flow", () => {
         signTypedData: vi.fn().mockResolvedValue(
           "0x" + "ab".repeat(32) + "cd".repeat(32) + "1b", // 65 byte sig
         ),
-        readContract: vi
-          .fn()
-          .mockResolvedValueOnce(BigInt(0)) // allowance check returns 0
-          .mockResolvedValueOnce(BigInt(5)), // nonce query returns 5
+        readContract: vi.fn().mockImplementation(({ functionName }) => {
+          if (functionName === "balanceOf") return Promise.resolve(BigInt("1000000000000"));
+          if (functionName === "allowance") return Promise.resolve(BigInt(0));
+          return Promise.resolve(BigInt(5));
+        }),
       };
       const schemeWithReader = new ExactEvmScheme(signerWithReader);
 
@@ -716,7 +760,7 @@ describe("Permit2 Approval Flow", () => {
       const signer: ClientEvmSigner = {
         address: "0x1234567890123456789012345678901234567890",
         signTypedData: vi.fn().mockResolvedValue("0xmocksig"),
-        readContract: vi.fn().mockResolvedValue(BigInt(0)),
+        readContract: makeReadContractMock(),
       };
       const scheme = new ExactEvmScheme(signer);
       const eip3009Requirements: PaymentRequirements = {
@@ -755,7 +799,7 @@ describe("Permit2 Approval Flow", () => {
       const signer: ClientEvmSigner = {
         address: "0x1234567890123456789012345678901234567890",
         signTypedData: vi.fn().mockResolvedValue("0xmocksig"),
-        readContract: vi.fn().mockResolvedValue(BigInt(0)),
+        readContract: makeReadContractMock(),
         signTransaction: vi.fn().mockResolvedValue("0x02ab"),
         getTransactionCount: vi.fn().mockResolvedValue(0),
         estimateFeesPerGas: vi
@@ -774,7 +818,10 @@ describe("Permit2 Approval Flow", () => {
       const signer: ClientEvmSigner = {
         address: "0x1234567890123456789012345678901234567890",
         signTypedData: vi.fn().mockResolvedValue("0xmocksig"),
-        readContract: vi.fn().mockResolvedValue(BigInt("999999999999999999")),
+        readContract: makeReadContractMock({
+          balance: BigInt("1000000000000"),
+          allowance: BigInt("999999999999999999"),
+        }),
         signTransaction: vi.fn().mockResolvedValue("0x02ab"),
         getTransactionCount: vi.fn().mockResolvedValue(0),
         estimateFeesPerGas: vi
@@ -795,7 +842,7 @@ describe("Permit2 Approval Flow", () => {
       const signer: ClientEvmSigner = {
         address: "0x1234567890123456789012345678901234567890",
         signTypedData: vi.fn().mockResolvedValue("0xmocksig"),
-        readContract: vi.fn().mockResolvedValue(BigInt(0)),
+        readContract: makeReadContractMock(),
         // No signTransaction, getTransactionCount, estimateFeesPerGas
       };
       const scheme = new ExactEvmScheme(signer);
@@ -813,7 +860,7 @@ describe("Permit2 Approval Flow", () => {
       const signer: ClientEvmSigner = {
         address: "0x1234567890123456789012345678901234567890",
         signTypedData: vi.fn().mockResolvedValue("0xmocksig"),
-        readContract: vi.fn().mockResolvedValue(BigInt(0)), // zero allowance
+        readContract: makeReadContractMock({ allowance: BigInt(0) }),
         signTransaction: vi.fn().mockResolvedValue(mockSignedTx),
         getTransactionCount: vi.fn().mockResolvedValue(5),
         estimateFeesPerGas: vi
@@ -850,10 +897,11 @@ describe("Permit2 Approval Flow", () => {
       const signer: ClientEvmSigner = {
         address: "0x1234567890123456789012345678901234567890",
         signTypedData: vi.fn().mockResolvedValue("0x" + "ab".repeat(32) + "cd".repeat(32) + "1b"),
-        readContract: vi
-          .fn()
-          .mockResolvedValueOnce(BigInt(0)) // allowance check
-          .mockResolvedValueOnce(BigInt(3)), // nonce for EIP-2612
+        readContract: vi.fn().mockImplementation(({ functionName }) => {
+          if (functionName === "balanceOf") return Promise.resolve(BigInt("1000000000000"));
+          if (functionName === "allowance") return Promise.resolve(BigInt(0));
+          return Promise.resolve(BigInt(3));
+        }),
         signTransaction: vi.fn(), // Should NOT be called
         getTransactionCount: vi.fn(),
         estimateFeesPerGas: vi.fn(),
@@ -880,7 +928,7 @@ describe("Permit2 Approval Flow", () => {
       const signer: ClientEvmSigner = {
         address: "0x1234567890123456789012345678901234567890",
         signTypedData: vi.fn().mockResolvedValue("0xmocksig"),
-        readContract: vi.fn().mockResolvedValue(BigInt(0)), // zero allowance
+        readContract: makeReadContractMock({ allowance: BigInt(0) }),
         signTransaction: vi.fn().mockResolvedValue(mockSignedTx),
         getTransactionCount: vi.fn().mockResolvedValue(0),
         estimateFeesPerGas: vi

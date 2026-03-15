@@ -35,7 +35,10 @@ describe("ExactTronScheme (Client)", () => {
     mockSigner = {
       address: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
       signTypedData: vi.fn().mockResolvedValue("0x" + "ab".repeat(32) + "cd".repeat(32) + "1b"),
-      readContract: vi.fn().mockResolvedValue(BigInt(0)),
+      readContract: vi.fn().mockImplementation(({ functionName }) => {
+        if (functionName === "balanceOf") return Promise.resolve(BigInt("1000000"));
+        return Promise.resolve(BigInt(0));
+      }),
       buildTriggerSmartContractTransaction: vi.fn().mockResolvedValue({
         raw_data: { contract: [{ parameter: { value: {} } }] },
         raw_data_hex: "abcd",
@@ -127,6 +130,17 @@ describe("ExactTronScheme (Client)", () => {
         "TIP-712 domain parameters",
       );
     });
+
+    it("should fail fast when TRC-20 balance is insufficient", async () => {
+      (mockSigner.readContract as ReturnType<typeof vi.fn>).mockImplementation(({ functionName }) =>
+        Promise.resolve(functionName === "balanceOf" ? BigInt(0) : BigInt(0)),
+      );
+      const client = new ExactTronScheme(mockSigner);
+
+      await expect(client.createPaymentPayload(2, tip712Requirements)).rejects.toThrow(
+        "insufficient_funds",
+      );
+    });
   });
 
   describe("Permit2 path", () => {
@@ -209,8 +223,8 @@ describe("ExactTronScheme (Client)", () => {
     });
 
     it("should skip TRC-20 approval extension when allowance is already sufficient", async () => {
-      (mockSigner.readContract as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
-        BigInt("1000000"),
+      (mockSigner.readContract as ReturnType<typeof vi.fn>).mockImplementation(({ functionName }) =>
+        Promise.resolve(functionName === "balanceOf" ? BigInt("1000000") : BigInt("1000000")),
       );
       const client = new ExactTronScheme(mockSigner);
       const result = await client.createPaymentPayload(2, permit2Requirements, {

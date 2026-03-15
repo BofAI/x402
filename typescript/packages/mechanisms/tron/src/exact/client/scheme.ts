@@ -7,6 +7,7 @@ import {
 import { TRC20_APPROVAL_GAS_SPONSORING } from "@bankofai/x402-extensions";
 import { ClientTronSigner } from "../../signer";
 import { AssetTransferMethod } from "../../types";
+import { trc20BalanceOfAbi } from "../../constants";
 import { createEIP3009Payload } from "./eip3009";
 import { createPermit2Payload } from "./permit2";
 import { getPermit2AllowanceReadParams } from "./permit2Helpers";
@@ -43,6 +44,8 @@ export class ExactTronScheme implements SchemeNetworkClient {
     paymentRequirements: PaymentRequirements,
     context?: PaymentPayloadContext,
   ): Promise<PaymentPayloadResult> {
+    await this.ensureSufficientTokenBalance(paymentRequirements);
+
     // Mark unused parameters to satisfy linter
     void context;
 
@@ -110,5 +113,23 @@ export class ExactTronScheme implements SchemeNetworkClient {
     return {
       [TRC20_APPROVAL_GAS_SPONSORING.key]: { info },
     };
+  }
+
+  /**
+   * Performs a best-effort TRC-20 balance check before signing.
+   */
+  private async ensureSufficientTokenBalance(requirements: PaymentRequirements): Promise<void> {
+    const balance = (await this.signer.readContract({
+      address: requirements.asset,
+      abi: trc20BalanceOfAbi,
+      functionName: "balanceOf",
+      args: [this.signer.address],
+    })) as bigint;
+
+    if (balance < BigInt(requirements.amount)) {
+      throw new Error(
+        `insufficient_funds: Insufficient token balance. Required: ${requirements.amount}, Available: ${balance.toString()}`,
+      );
+    }
   }
 }

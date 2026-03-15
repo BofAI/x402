@@ -211,3 +211,47 @@ class TestLocalAccountAutoWrap:
         assert payload["permit2Authorization"]["witness"]["facilitator"] == (
             "0x1111111111111111111111111111111111111111"
         )
+
+
+class _ReadCapableSigner:
+    def __init__(self, address: str, balance: int) -> None:
+        self._address = address
+        self._balance = balance
+
+    @property
+    def address(self) -> str:
+        return self._address
+
+    def sign_typed_data(
+        self, domain, types, primary_type, message
+    ):  # pragma: no cover - not reached
+        return bytes.fromhex("11" * 65)
+
+    def read_contract(self, address, abi, function_name, *args):
+        assert function_name == "balanceOf"
+        return self._balance
+
+
+def test_create_payment_payload_fails_fast_on_insufficient_balance():
+    signer = _ReadCapableSigner("0x1111111111111111111111111111111111111111", balance=0)
+    client = ExactEvmClientScheme(signer)
+    requirements = PaymentRequirements(
+        scheme="exact",
+        network="eip155:97",
+        asset="0x337610d27c682E347C9cD60BD4b3b107C9d34dDd",
+        amount="1000000",
+        pay_to="0x0987654321098765432109876543210987654321",
+        max_timeout_seconds=3600,
+        extra={
+            "name": "Tether USD",
+            "version": "1",
+            "assetTransferMethod": "permit2",
+            "permit2FacilitatorAddress": "0x1111111111111111111111111111111111111111",
+        },
+    )
+
+    try:
+        client.create_payment_payload(requirements)
+        raise AssertionError("expected insufficient_balance error")
+    except ValueError as exc:
+        assert "insufficient_balance" in str(exc)

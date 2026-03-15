@@ -8,6 +8,8 @@ from typing import Any
 
 from ....schemas import PaymentRequirements
 from ..constants import (
+    BALANCE_OF_ABI,
+    ERR_INSUFFICIENT_BALANCE,
     PERMIT2_ADDRESSES,
     PERMIT2_WITNESS_TYPES,
     SCHEME_EXACT,
@@ -81,6 +83,8 @@ class ExactEvmScheme:
             Inner payload dict (authorization + signature).
             x402Client wraps this with x402_version, accepted, resource, extensions.
         """
+        self._ensure_sufficient_balance(requirements)
+
         extra = requirements.extra or {}
         if extra.get("assetTransferMethod") == "permit2":
             return self._create_permit2_payload(requirements)
@@ -235,3 +239,27 @@ class ExactEvmScheme:
             message,
         )
         return "0x" + sig_bytes.hex()
+
+    def _ensure_sufficient_balance(self, requirements: PaymentRequirements) -> None:
+        """Best-effort ERC-20 balance preflight.
+
+        Runs only when the configured client signer exposes read_contract().
+        """
+        read_contract = getattr(self._signer, "read_contract", None)
+        if not callable(read_contract):
+            return
+
+        try:
+            balance = read_contract(
+                requirements.asset,
+                BALANCE_OF_ABI,
+                "balanceOf",
+                self._signer.address,
+            )
+        except NotImplementedError:
+            return
+
+        if int(balance) < int(requirements.amount):
+            raise ValueError(
+                f"{ERR_INSUFFICIENT_BALANCE}: Insufficient token balance. Required: {requirements.amount}, Available: {balance}"
+            )

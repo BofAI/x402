@@ -138,6 +138,17 @@ export const erc20AllowanceAbi = [
   },
 ] as const;
 
+/** ERC-20 balanceOf(address) ABI for checking token balances before signing. */
+export const erc20BalanceOfAbi = [
+  {
+    type: "function",
+    name: "balanceOf",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ type: "uint256" }],
+    stateMutability: "view",
+  },
+] as const;
+
 /** Gas limit for a standard ERC-20 approve() transaction. */
 export const ERC20_APPROVE_GAS_LIMIT = 70_000n;
 

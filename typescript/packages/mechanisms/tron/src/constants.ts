@@ -156,6 +156,19 @@ export const erc20AllowanceAbi = [
 ] as const;
 
 /**
+ * ABI for TRC-20 balanceOf check.
+ */
+export const trc20BalanceOfAbi = [
+  {
+    type: "function",
+    name: "balanceOf",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+  },
+] as const;
+
+/**
  * ABI for TRC-20 approve used by Permit2 setup flows.
  */
 export const erc20ApproveAbi = [

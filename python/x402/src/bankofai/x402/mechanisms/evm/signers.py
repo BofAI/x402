@@ -61,14 +61,20 @@ class EthAccountSigner:
         account: eth_account LocalAccount instance.
     """
 
-    def __init__(self, account: LocalAccount) -> None:
+    def __init__(self, account: LocalAccount, rpc_url: str | None = None) -> None:
         """Initialize signer with eth_account LocalAccount.
 
         Args:
             account: eth_account LocalAccount instance (from Account.from_key,
                 Account.from_mnemonic, etc.).
+            rpc_url: Optional RPC endpoint URL used to enable best-effort
+                on-chain reads such as ERC-20 balance preflight.
         """
         self._account = account
+        self._w3 = None
+        if rpc_url:
+            self._w3 = Web3(Web3.HTTPProvider(rpc_url))
+            self._w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
 
     @property
     def address(self) -> str:
@@ -125,6 +131,28 @@ class EthAccountSigner:
             message_data=message,
         )
         return bytes(signed.signature)
+
+    def read_contract(
+        self,
+        address: str,
+        abi: list[dict[str, Any]],
+        function_name: str,
+        *args: Any,
+    ) -> Any:
+        """Read data from a contract when rpc_url was supplied.
+
+        Raises:
+            NotImplementedError: If this signer was created without rpc_url.
+        """
+        if self._w3 is None:
+            raise NotImplementedError("EthAccountSigner requires rpc_url for read_contract()")
+
+        contract = self._w3.eth.contract(
+            address=Web3.to_checksum_address(address),
+            abi=abi,
+        )
+        func = getattr(contract.functions, function_name)
+        return func(*args).call()
 
 
 class FacilitatorWeb3Signer:

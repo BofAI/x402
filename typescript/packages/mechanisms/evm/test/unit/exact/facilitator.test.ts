@@ -6,6 +6,22 @@ import { PaymentRequirements, PaymentPayload } from "@bankofai/x402-core/types";
 import { x402ExactPermit2ProxyAddress, PERMIT2_ADDRESS } from "../../../src/constants";
 import { ERC20_APPROVAL_GAS_SPONSORING } from "@bankofai/x402-extensions";
 
+function makeReadContractMock({
+  balance = BigInt("10000000000"),
+  allowance = BigInt(0),
+  fallback = BigInt(0),
+}: {
+  balance?: bigint;
+  allowance?: bigint;
+  fallback?: bigint;
+} = {}) {
+  return vi.fn().mockImplementation(({ functionName }) => {
+    if (functionName === "balanceOf") return Promise.resolve(balance);
+    if (functionName === "allowance") return Promise.resolve(allowance);
+    return Promise.resolve(fallback);
+  });
+}
+
 // Mock viem's transaction parsing utilities for ERC-20 approval tests
 // Uses importOriginal to preserve all other viem exports (getAddress, etc.)
 vi.mock("viem", async importOriginal => {
@@ -28,14 +44,14 @@ describe("ExactEvmScheme (Facilitator)", () => {
     mockClientSigner = {
       address: "0x1234567890123456789012345678901234567890",
       signTypedData: vi.fn().mockResolvedValue("0xmocksignature"),
-      readContract: vi.fn().mockResolvedValue(BigInt(0)),
+      readContract: makeReadContractMock(),
     };
     client = new ClientExactEvmScheme(mockClientSigner);
 
     // Create mock facilitator signer
     mockFacilitatorSigner = {
       getAddresses: vi.fn().mockReturnValue(["0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0"]),
-      readContract: vi.fn().mockResolvedValue(0n), // Mock nonce state
+      readContract: makeReadContractMock({ fallback: 0n }), // Mock nonce state
       verifyTypedData: vi.fn().mockResolvedValue(true), // Mock signature verification
       writeContract: vi.fn().mockResolvedValue("0xtxhash"),
       sendTransaction: vi.fn().mockResolvedValue("0xtxhash"),
@@ -163,9 +179,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
         resource: { url: "", description: "", mimeType: "" },
       };
 
-      const wrongNetworkRequirements = { ...requirements, network: "eip155:1" as any };
-
-      const result = await facilitator.verify(fullPayload, wrongNetworkRequirements);
+      const result = await facilitator.verify(fullPayload, requirements);
 
       expect(result.isValid).toBe(false);
       // Verification should fail (network mismatch or other validation error)
@@ -314,7 +328,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
       };
 
       // Mock readContract to return zero allowance
-      mockFacilitatorSigner.readContract = vi.fn().mockResolvedValue(BigInt(0));
+      mockFacilitatorSigner.readContract = makeReadContractMock({ allowance: BigInt(0) });
 
       const permit2Payload: PaymentPayload = {
         x402Version: 2,
@@ -528,7 +542,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
       };
 
       // Mock readContract to return zero allowance
-      mockFacilitatorSigner.readContract = vi.fn().mockResolvedValue(BigInt(0));
+      mockFacilitatorSigner.readContract = makeReadContractMock({ allowance: BigInt(0) });
 
       const permit2Payload: PaymentPayload = {
         x402Version: 2,
@@ -648,7 +662,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
       const permit2ClientSigner: ClientEvmSigner = {
         address: "0x1234567890123456789012345678901234567890",
         signTypedData: vi.fn().mockResolvedValue("0x" + "ab".repeat(32) + "cd".repeat(32) + "1b"),
-        readContract: vi.fn().mockResolvedValue(BigInt(0)),
+        readContract: makeReadContractMock(),
       };
       const permit2Client = new ClientExactEvmScheme(permit2ClientSigner);
       const paymentPayload = await permit2Client.createPaymentPayload(2, permit2Requirements);
@@ -688,7 +702,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
 
     it("should reject when allowance is 0 and no EIP-2612 extension", async () => {
       // Mock: allowance returns 0
-      mockFacilitatorSigner.readContract = vi.fn().mockResolvedValueOnce(0n); // allowance check = 0
+      mockFacilitatorSigner.readContract = makeReadContractMock({ allowance: 0n });
 
       const permit2Requirements: PaymentRequirements = {
         scheme: "exact",
@@ -703,7 +717,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
       const permit2ClientSigner: ClientEvmSigner = {
         address: "0x1234567890123456789012345678901234567890",
         signTypedData: vi.fn().mockResolvedValue("0x" + "ab".repeat(32) + "cd".repeat(32) + "1b"),
-        readContract: vi.fn().mockResolvedValue(BigInt(0)),
+        readContract: makeReadContractMock(),
       };
       const permit2Client = new ClientExactEvmScheme(permit2ClientSigner);
       const paymentPayload = await permit2Client.createPaymentPayload(2, permit2Requirements);
@@ -740,7 +754,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
       const permit2ClientSigner: ClientEvmSigner = {
         address: "0x1234567890123456789012345678901234567890",
         signTypedData: vi.fn().mockResolvedValue("0x" + "ab".repeat(32) + "cd".repeat(32) + "1b"),
-        readContract: vi.fn().mockResolvedValue(BigInt(0)),
+        readContract: makeReadContractMock(),
       };
       const permit2Client = new ClientExactEvmScheme(permit2ClientSigner);
       const paymentPayload = await permit2Client.createPaymentPayload(2, permit2Requirements);
@@ -1015,7 +1029,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
     }
 
     it("should reject when allowance is 0 and no ERC-20 extension (no context)", async () => {
-      mockFacilitatorSigner.readContract = vi.fn().mockResolvedValueOnce(0n);
+      mockFacilitatorSigner.readContract = makeReadContractMock({ allowance: 0n });
 
       const payload = makeErc20Permit2Payload();
       const result = await facilitator.verify(payload, erc20Requirements);
@@ -1025,7 +1039,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
     });
 
     it("should reject when ERC-20 extension has invalid format (bad address)", async () => {
-      mockFacilitatorSigner.readContract = vi.fn().mockResolvedValueOnce(0n);
+      mockFacilitatorSigner.readContract = makeReadContractMock({ allowance: 0n });
 
       const payload = makeErc20Permit2Payload({
         erc20ApprovalGasSponsoring: {
@@ -1048,7 +1062,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
     });
 
     it("should reject when ERC-20 extension `from` doesn't match payer", async () => {
-      mockFacilitatorSigner.readContract = vi.fn().mockResolvedValueOnce(0n);
+      mockFacilitatorSigner.readContract = makeReadContractMock({ allowance: 0n });
 
       const payload = makeErc20Permit2Payload({
         erc20ApprovalGasSponsoring: {
@@ -1071,7 +1085,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
     });
 
     it("should reject when ERC-20 extension `asset` doesn't match token", async () => {
-      mockFacilitatorSigner.readContract = vi.fn().mockResolvedValueOnce(0n);
+      mockFacilitatorSigner.readContract = makeReadContractMock({ allowance: 0n });
 
       const payload = makeErc20Permit2Payload({
         erc20ApprovalGasSponsoring: {
@@ -1094,7 +1108,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
     });
 
     it("should reject when ERC-20 extension spender is not PERMIT2_ADDRESS", async () => {
-      mockFacilitatorSigner.readContract = vi.fn().mockResolvedValueOnce(0n);
+      mockFacilitatorSigner.readContract = makeReadContractMock({ allowance: 0n });
 
       const payload = makeErc20Permit2Payload({
         erc20ApprovalGasSponsoring: {
@@ -1118,7 +1132,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
 
     it("should accept when allowance insufficient but valid ERC-20 extension present", async () => {
       // allowance=0 (verifyPermit2 returns permit2_allowance_required, scheme handles it)
-      mockFacilitatorSigner.readContract = vi.fn().mockResolvedValueOnce(0n);
+      mockFacilitatorSigner.readContract = makeReadContractMock({ allowance: 0n });
 
       // Mock viem functions used in validateErc20ApprovalForPayment
       const { parseTransaction, recoverTransactionAddress } = await import("viem");
@@ -1138,7 +1152,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
     });
 
     it("should reject when calldata targets wrong address (not PERMIT2_ADDRESS)", async () => {
-      mockFacilitatorSigner.readContract = vi.fn().mockResolvedValueOnce(0n);
+      mockFacilitatorSigner.readContract = makeReadContractMock({ allowance: 0n });
 
       const wrongSpenderCalldata =
         "0x095ea7b3" +

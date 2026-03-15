@@ -8,6 +8,7 @@ from typing import Any
 from ....schemas import PaymentRequirements
 from ..constants import (
     AUTHORIZATION_TYPES,
+    ERR_INSUFFICIENT_FUNDS,
     PERMIT2_ADDRESSES,
     PERMIT2_WITNESS_TYPES,
     SCHEME_EXACT,
@@ -46,6 +47,8 @@ class ExactTronClientScheme:
         Returns:
             Inner payload dict (authorization + signature).
         """
+        self._ensure_sufficient_balance(requirements)
+
         extra = requirements.extra or {}
         method = extra.get("assetTransferMethod", "eip3009")
 
@@ -190,3 +193,15 @@ class ExactTronClientScheme:
             primary_type="PermitWitnessTransferFrom",
             message=message,
         )
+
+    def _ensure_sufficient_balance(self, requirements: PaymentRequirements) -> None:
+        """Check TRC-20 balance before signing a payment payload."""
+        balance = self._signer.read_contract(
+            address=requirements.asset,
+            function_name="balanceOf",
+            args=[self._signer.address],
+        )
+        if int(str(balance)) < int(requirements.amount):
+            raise ValueError(
+                f"{ERR_INSUFFICIENT_FUNDS}: Insufficient token balance. Required: {requirements.amount}, Available: {balance}"
+            )

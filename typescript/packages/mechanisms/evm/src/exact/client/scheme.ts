@@ -7,7 +7,7 @@ import {
 import { EIP2612_GAS_SPONSORING, ERC20_APPROVAL_GAS_SPONSORING } from "@bankofai/x402-extensions";
 import { ClientEvmSigner } from "../../signer";
 import { AssetTransferMethod } from "../../types";
-import { erc20AllowanceAbi, getPermit2Address } from "../../constants";
+import { erc20AllowanceAbi, erc20BalanceOfAbi, getPermit2Address } from "../../constants";
 import { getAddress } from "viem";
 import { getEvmChainId } from "../../utils";
 import { createEIP3009Payload } from "./eip3009";
@@ -57,6 +57,8 @@ export class ExactEvmScheme implements SchemeNetworkClient {
     paymentRequirements: PaymentRequirements,
     context?: PaymentPayloadContext,
   ): Promise<PaymentPayloadResult> {
+    await this.ensureSufficientTokenBalance(paymentRequirements);
+
     const assetTransferMethod =
       (paymentRequirements.extra?.assetTransferMethod as AssetTransferMethod) ?? "eip3009";
 
@@ -233,5 +235,25 @@ export class ExactEvmScheme implements SchemeNetworkClient {
     return {
       [ERC20_APPROVAL_GAS_SPONSORING.key]: { info },
     };
+  }
+
+  /**
+   * Performs a best-effort ERC-20 balance check before signing.
+   * This avoids creating payloads that are guaranteed to fail at facilitator verify/settle.
+   */
+  private async ensureSufficientTokenBalance(requirements: PaymentRequirements): Promise<void> {
+    const tokenAddress = getAddress(requirements.asset) as `0x${string}`;
+    const balance = (await this.signer.readContract({
+      address: tokenAddress,
+      abi: erc20BalanceOfAbi,
+      functionName: "balanceOf",
+      args: [this.signer.address],
+    })) as bigint;
+
+    if (balance < BigInt(requirements.amount)) {
+      throw new Error(
+        `insufficient_balance: Insufficient token balance. Required: ${requirements.amount}, Available: ${balance.toString()}`,
+      );
+    }
   }
 }
