@@ -16,6 +16,7 @@ from bankofai.x402.mechanisms._base.server import ServerMechanism
 from bankofai.x402.mechanisms._exact_base.types import (
     SCHEME_EXACT,
     TRANSFER_AUTH_EIP712_TYPES,
+    TRANSFER_AUTH_PRIMARY_TYPE,
     TransferAuthorization,
     build_eip712_domain,
     build_eip712_message,
@@ -393,6 +394,7 @@ class ExactBaseFacilitatorMechanism(FacilitatorMechanism):
             types=TRANSFER_AUTH_EIP712_TYPES,
             message=message,
             signature=signature,
+            primary_type=TRANSFER_AUTH_PRIMARY_TYPE,
         )
 
 
