@@ -92,11 +92,8 @@ class EvmClientSigner(ClientSigner):
             logger.warning("web3 not available, returning 0 balance")
             return 0
         except Exception as e:
-            logger.error(
-                "Failed to check ERC20 balance",
-                extra={"token": token, "network": network, "error": str(e)},
-            )
-            return 0
+            logger.error("Failed to check ERC20 balance: %s", e)
+            raise
 
     async def check_allowance(self, token: str, amount: int, network: str) -> int:
         """Check ERC20 allowance"""
@@ -113,11 +110,8 @@ class EvmClientSigner(ClientSigner):
             logger.warning("web3 not available, returning 0 allowance")
             return 0
         except Exception as e:
-            logger.error(
-                "Failed to check ERC20 allowance",
-                extra={"token": token, "spender": spender, "network": network, "error": str(e)},
-            )
-            return 0
+            logger.error("Failed to check ERC20 allowance: %s", e)
+            raise
 
     async def ensure_allowance(
         self,

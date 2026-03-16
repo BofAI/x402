@@ -6,7 +6,6 @@ Centralized configuration for contract addresses and network settings
 from typing import Dict
 
 from bankofai.x402.exceptions import UnsupportedNetworkError
-from bankofai.x402.utils.address import checksum_evm_address
 
 
 class NetworkConfig:
@@ -113,13 +112,6 @@ class NetworkConfig:
         """
         addr = cls.PAYMENT_PERMIT_ADDRESSES.get(network)
         if addr is not None:
-            if network.startswith("eip155:"):
-                try:
-                    return checksum_evm_address(addr, strict=True)
-                except ValueError as exc:
-                    raise ValueError(
-                        f"Invalid EVM payment permit address for {network}: {addr}"
-                    ) from exc
             return addr
         # EVM fallback: zero address
         if network.startswith("eip155:"):

@@ -98,7 +98,7 @@ class EvmFacilitatorSigner(FacilitatorSigner):
             return await contract.functions.balanceOf(target_address).call()
         except Exception as e:
             logger.error(f"Failed to check balance for {target_address}: {e}")
-            return 0
+            raise
 
     async def write_contract(
         self,
@@ -143,7 +143,7 @@ class EvmFacilitatorSigner(FacilitatorSigner):
                 exc_info=True,
                 extra={"method": method, "contract": contract_address},
             )
-            return None
+            raise
 
     async def wait_for_transaction_receipt(
         self,

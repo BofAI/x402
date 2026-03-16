@@ -125,13 +125,9 @@ class X402Facilitator:
             try:
                 accept = self._normalize_evm_requirements(accept)
             except ValueError as exc:
-                self._logger.error(
-                    "fee_quote invalid requirements: %s",
-                    exc,
-                    exc_info=True,
-                    extra={"network": accept.network, "scheme": accept.scheme},
-                )
-                continue
+                raise ValueError(
+                    f"Invalid payment requirements for {accept.network}/{accept.scheme}: {exc}"
+                ) from exc
             mechanism = self._find_mechanism(accept.network, accept.scheme)
             if mechanism is None:
                 continue
@@ -140,12 +136,9 @@ class X402Facilitator:
                 if quote is not None:
                     results.append(quote)
             except Exception as exc:
-                self._logger.error(
-                    "fee_quote failed: %s",
-                    exc,
-                    exc_info=True,
-                    extra={"network": accept.network, "scheme": accept.scheme},
-                )
+                raise RuntimeError(
+                    f"Fee quote failed for {accept.network}/{accept.scheme}: {exc}"
+                ) from exc
         return results
 
     async def verify(
