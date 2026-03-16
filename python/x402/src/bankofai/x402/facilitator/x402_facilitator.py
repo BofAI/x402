@@ -2,6 +2,7 @@
 X402Facilitator - Core payment processor for x402 protocol
 """
 
+import logging
 from typing import Any, Protocol
 
 from bankofai.x402.types import (
@@ -13,6 +14,7 @@ from bankofai.x402.types import (
     SupportedResponse,
     VerifyResponse,
 )
+from bankofai.x402.utils.address import checksum_evm_address
 
 
 class FacilitatorMechanism(Protocol):
@@ -56,6 +58,7 @@ class X402Facilitator:
 
     def __init__(self) -> None:
         self._mechanisms: dict[str, dict[str, FacilitatorMechanism]] = {}
+        self._logger = logging.getLogger(self.__class__.__name__)
 
     def register(
         self,
@@ -119,12 +122,30 @@ class X402Facilitator:
         """
         results: list[FeeQuoteResponse] = []
         for accept in accepts:
+            try:
+                accept = self._normalize_evm_requirements(accept)
+            except ValueError as exc:
+                self._logger.error(
+                    "fee_quote invalid requirements: %s",
+                    exc,
+                    exc_info=True,
+                    extra={"network": accept.network, "scheme": accept.scheme},
+                )
+                continue
             mechanism = self._find_mechanism(accept.network, accept.scheme)
             if mechanism is None:
                 continue
-            quote = await mechanism.fee_quote(accept, context)
-            if quote is not None:
-                results.append(quote)
+            try:
+                quote = await mechanism.fee_quote(accept, context)
+                if quote is not None:
+                    results.append(quote)
+            except Exception as exc:
+                self._logger.error(
+                    "fee_quote failed: %s",
+                    exc,
+                    exc_info=True,
+                    extra={"network": accept.network, "scheme": accept.scheme},
+                )
         return results
 
     async def verify(
@@ -150,7 +171,23 @@ class X402Facilitator:
                     f"unsupported_network_scheme: {requirements.network}/{requirements.scheme}"
                 ),
             )
-        return await mechanism.verify(payload, requirements)
+        try:
+            requirements = self._normalize_evm_requirements(requirements)
+        except ValueError as exc:
+            return VerifyResponse(is_valid=False, invalid_reason=str(exc))
+        try:
+            return await mechanism.verify(payload, requirements)
+        except Exception as exc:
+            self._logger.error(
+                "verify failed: %s",
+                exc,
+                exc_info=True,
+                extra={"network": requirements.network, "scheme": requirements.scheme},
+            )
+            return VerifyResponse(
+                is_valid=False,
+                invalid_reason=str(exc),
+            )
 
     async def settle(
         self,
@@ -176,7 +213,28 @@ class X402Facilitator:
                     f"unsupported_network_scheme: {requirements.network}/{requirements.scheme}"
                 ),
             )
-        return await mechanism.settle(payload, requirements)
+        try:
+            requirements = self._normalize_evm_requirements(requirements)
+        except ValueError as exc:
+            return SettleResponse(
+                success=False,
+                network=requirements.network,
+                error_reason=str(exc),
+            )
+        try:
+            return await mechanism.settle(payload, requirements)
+        except Exception as exc:
+            self._logger.error(
+                "settle failed: %s",
+                exc,
+                exc_info=True,
+                extra={"network": requirements.network, "scheme": requirements.scheme},
+            )
+            return SettleResponse(
+                success=False,
+                network=requirements.network,
+                error_reason=str(exc),
+            )
 
     def _find_mechanism(self, network: str, scheme: str) -> FacilitatorMechanism | None:
         """Find mechanism for network and scheme"""
@@ -184,3 +242,24 @@ class X402Facilitator:
         if network_mechanisms is None:
             return None
         return network_mechanisms.get(scheme)
+
+    @staticmethod
+    def _normalize_evm_requirements(
+        requirements: PaymentRequirements,
+    ) -> PaymentRequirements:
+        if not requirements.network.startswith("eip155:"):
+            return requirements
+
+        requirements.asset = checksum_evm_address(requirements.asset, strict=True)
+        requirements.pay_to = checksum_evm_address(requirements.pay_to, strict=True)
+
+        if requirements.extra and requirements.extra.fee:
+            requirements.extra.fee.fee_to = checksum_evm_address(
+                requirements.extra.fee.fee_to, strict=True
+            )
+            if requirements.extra.fee.caller:
+                requirements.extra.fee.caller = checksum_evm_address(
+                    requirements.extra.fee.caller, strict=True
+                )
+
+        return requirements

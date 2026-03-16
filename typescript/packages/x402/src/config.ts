@@ -4,6 +4,7 @@
  */
 
 import { UnsupportedNetworkError } from './errors.js';
+import { toChecksumEvmAddress } from './address.js';
 
 /** Chain IDs for supported networks */
 export const CHAIN_IDS: Record<string, number> = {
@@ -113,7 +114,12 @@ export function getChainId(network: string): number {
  */
 export function getPaymentPermitAddress(network: string): string {
   const addr = PAYMENT_PERMIT_ADDRESSES[network];
-  if (addr) return addr;
+  if (addr) {
+    if (network.startsWith('eip155:')) {
+      return toChecksumEvmAddress(addr, { strict: true });
+    }
+    return addr;
+  }
   // EVM fallback: zero address (not yet deployed)
   if (network.startsWith('eip155:')) return EVM_ZERO_ADDRESS;
   return TRON_ZERO_ADDRESS;

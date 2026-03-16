@@ -139,17 +139,27 @@ export function toEvmHex(addr: string): Hex {
 /**
  * Normalize an EVM address to checksum format when possible.
  */
-export function toChecksumEvmAddress(address: string): Hex {
+export function toChecksumEvmAddress(
+  address: string,
+  options: { strict?: boolean } = {},
+): Hex {
   if (!address) return ZERO_ADDRESS_HEX;
 
   const candidate = address.startsWith('0x') ? address : `0x${address}`;
-  if (!/^0x[0-9a-fA-F]{40}$/.test(candidate)) {
+  const isHex40 = /^0x[0-9a-fA-F]{40}$/.test(candidate);
+  if (!isHex40) {
+    if (options.strict && (candidate.startsWith('0x') || address.length === 40)) {
+      throw new Error(`Invalid EVM address: ${address}`);
+    }
     return candidate as Hex;
   }
 
   try {
     return getAddress(candidate) as Hex;
-  } catch {
+  } catch (error) {
+    if (options.strict) {
+      throw new Error(`Invalid EVM address checksum: ${address}`);
+    }
     return candidate as Hex;
   }
 }

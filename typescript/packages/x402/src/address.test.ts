@@ -18,4 +18,10 @@ describe('address utils', () => {
     const lower = '0x8617e340b3d01fa5f11f306f4090fd50e238070d';
     expect(converter.toEvmFormat(lower)).toBe(getAddress(lower));
   });
+
+  it('throws on invalid address in strict mode', () => {
+    expect(() => toChecksumEvmAddress('0x1234', { strict: true })).toThrow(
+      'Invalid EVM address',
+    );
+  });
 });

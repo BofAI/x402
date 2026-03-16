@@ -4,7 +4,9 @@ Type definitions for x402 protocol
 
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from bankofai.x402.utils.address import checksum_evm_address
 
 # Delivery Kind constants
 PAYMENT_ONLY = "PAYMENT_ONLY"
@@ -37,6 +39,11 @@ class Payment(BaseModel):
     pay_amount: str = Field(alias="payAmount")
     pay_to: str = Field(alias="payTo")
 
+    @field_validator("pay_token", "pay_to", mode="before")
+    @classmethod
+    def _checksum_evm_addresses(cls, value: str) -> str:
+        return checksum_evm_address(value)
+
     class Config:
         populate_by_name = True
 
@@ -46,6 +53,11 @@ class Fee(BaseModel):
 
     fee_to: str = Field(alias="feeTo")
     fee_amount: str = Field(alias="feeAmount")
+
+    @field_validator("fee_to", mode="before")
+    @classmethod
+    def _checksum_evm_addresses(cls, value: str) -> str:
+        return checksum_evm_address(value)
 
     class Config:
         populate_by_name = True
@@ -59,6 +71,25 @@ class PaymentPermit(BaseModel):
     caller: str
     payment: Payment
     fee: Fee
+
+    @field_validator("buyer", "caller", mode="before")
+    @classmethod
+    def _checksum_evm_addresses(cls, value: str) -> str:
+        return checksum_evm_address(value)
+
+    @model_validator(mode="after")
+    def _normalize_evm_addresses(self) -> "PaymentPermit":
+        def maybe_checksum(addr: str) -> str:
+            if addr.startswith("0x") or len(addr) == 40:
+                return checksum_evm_address(addr, strict=True)
+            return addr
+
+        self.buyer = maybe_checksum(self.buyer)
+        self.caller = maybe_checksum(self.caller)
+        self.payment.pay_token = maybe_checksum(self.payment.pay_token)
+        self.payment.pay_to = maybe_checksum(self.payment.pay_to)
+        self.fee.fee_to = maybe_checksum(self.fee.fee_to)
+        return self
 
 
 class FeeInfo(BaseModel):
