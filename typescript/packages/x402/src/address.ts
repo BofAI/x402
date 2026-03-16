@@ -3,6 +3,8 @@
  * Handles conversion between TRON Base58 and EVM hex formats
  */
 
+import { getAddress } from 'viem';
+
 /** Hex address type */
 export type Hex = `0x${string}`;
 
@@ -31,14 +33,11 @@ export interface AddressConverter {
  */
 export class EvmAddressConverter implements AddressConverter {
   normalize(address: string): string {
-    return address.toLowerCase();
+    return toChecksumEvmAddress(address);
   }
 
   toEvmFormat(address: string): Hex {
-    if (!address.startsWith('0x')) {
-      return `0x${address}` as Hex;
-    }
-    return address as Hex;
+    return toChecksumEvmAddress(address);
   }
 
   getZeroAddress(): string {
@@ -135,6 +134,24 @@ export function toEvmHex(addr: string): Hex {
   // Invalid format, return zero address
   console.warn(`[toEvmHex] Invalid address format: ${addr}, returning zero address`);
   return ZERO_ADDRESS_HEX;
+}
+
+/**
+ * Normalize an EVM address to checksum format when possible.
+ */
+export function toChecksumEvmAddress(address: string): Hex {
+  if (!address) return ZERO_ADDRESS_HEX;
+
+  const candidate = address.startsWith('0x') ? address : `0x${address}`;
+  if (!/^0x[0-9a-fA-F]{40}$/.test(candidate)) {
+    return candidate as Hex;
+  }
+
+  try {
+    return getAddress(candidate) as Hex;
+  } catch {
+    return candidate as Hex;
+  }
 }
 
 /**

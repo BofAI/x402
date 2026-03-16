@@ -25,6 +25,7 @@ import {
 } from '../index.js';
 import type { Wallet } from '../wallet/types.js';
 import { EvmPrivateKeyWallet } from '../wallet/evmPrivateKeyWallet.js';
+import { toChecksumEvmAddress } from '../address.js';
 
 const ERC20_ABI = parseAbi([
   'function allowance(address owner, address spender) view returns (uint256)',
@@ -85,10 +86,10 @@ export class EvmClientSigner implements ClientSigner {
     const client = this.getPublicClient(chainId, network);
     try {
       return await client.readContract({
-        address: token as Hex,
+        address: toChecksumEvmAddress(token),
         abi: ERC20_ABI,
         functionName: 'balanceOf',
-        args: [(address ?? this._address) as Hex],
+        args: [toChecksumEvmAddress(address ?? this._address)],
       });
     } catch (error) {
       console.error(
@@ -106,14 +107,14 @@ export class EvmClientSigner implements ClientSigner {
   ): Promise<bigint> {
     const chainId = this.parseNetworkToChainId(network);
     const client = this.getPublicClient(chainId, network);
-    const spender = getPaymentPermitAddress(network) as Hex;
+    const spender = toChecksumEvmAddress(getPaymentPermitAddress(network));
 
     try {
       return await client.readContract({
-        address: token as Hex,
+        address: toChecksumEvmAddress(token),
         abi: ERC20_ABI,
         functionName: 'allowance',
-        args: [this._address as Hex, spender],
+        args: [toChecksumEvmAddress(this._address), spender],
       });
     } catch (error) {
       console.error(
@@ -141,7 +142,7 @@ export class EvmClientSigner implements ClientSigner {
 
     const chainId = this.parseNetworkToChainId(network);
     const client = this.getPublicClient(chainId, network);
-    const spender = getPaymentPermitAddress(network) as Hex;
+    const spender = toChecksumEvmAddress(getPaymentPermitAddress(network));
     const chain = this.getChain(chainId);
 
     try {
@@ -157,11 +158,11 @@ export class EvmClientSigner implements ClientSigner {
 
       // Use wallet's signTransaction to sign the approval
       const hash = await tempWalletClient.writeContract({
-        address: token as Hex,
+        address: toChecksumEvmAddress(token),
         abi: ERC20_ABI,
         functionName: 'approve',
         args: [spender, BigInt(2) ** BigInt(256) - BigInt(1)],
-        account: this._address as Hex,
+        account: toChecksumEvmAddress(this._address),
       } as any);
 
       const receipt = await client.waitForTransactionReceipt({ hash });
