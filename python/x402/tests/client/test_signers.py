@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from bankofai.x402.signers.client import EvmClientSigner, TronClientSigner
 
@@ -127,6 +128,4 @@ async def test_evm_signer_check_balance():
     signer._ensure_async_web3_client = MagicMock(return_value=mock_w3)
 
     with pytest.raises(RuntimeError, match="boom"):
-        await signer.check_balance(
-            "0x0000000000000000000000000000000000000002", "eip155:1"
-        )
+        await signer.check_balance("0x0000000000000000000000000000000000000002", "eip155:1")

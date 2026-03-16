@@ -26,6 +26,8 @@ def test_evm_address_converter_checksums_message() -> None:
     converted = converter.convert_message_addresses(message)
     assert converted["buyer"] == Web3.to_checksum_address(message["buyer"])
     assert converted["caller"] == Web3.to_checksum_address(message["caller"])
-    assert converted["payment"]["payToken"] == Web3.to_checksum_address(message["payment"]["payToken"])
+    assert converted["payment"]["payToken"] == Web3.to_checksum_address(
+        message["payment"]["payToken"]
+    )
     assert converted["payment"]["payTo"] == Web3.to_checksum_address(message["payment"]["payTo"])
     assert converted["fee"]["feeTo"] == Web3.to_checksum_address(message["fee"]["feeTo"])

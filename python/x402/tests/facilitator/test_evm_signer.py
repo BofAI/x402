@@ -1,6 +1,7 @@
-import pytest
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from bankofai.x402.signers.facilitator import EvmFacilitatorSigner
 
