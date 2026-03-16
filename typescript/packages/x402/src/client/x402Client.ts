@@ -281,5 +281,4 @@ export class X402Client {
     if (pattern.endsWith(':*')) return 1;
     return 10;
   }
-
 }
