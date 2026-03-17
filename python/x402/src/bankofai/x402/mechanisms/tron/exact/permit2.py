@@ -3,14 +3,14 @@
 import time
 from typing import Any
 
-from ....interfaces import FacilitatorContext
-from ....schemas import PaymentPayload, PaymentRequirements, SettleResponse, VerifyResponse
 from ....extensions.trc20_approval_gas_sponsoring import (
     TRC20_APPROVAL_GAS_SPONSORING,
     Trc20ApprovalGasSponsoringExtension,
     extract_trc20_approval_gas_sponsoring_info,
     validate_trc20_approval_gas_sponsoring_info,
 )
+from ....interfaces import FacilitatorContext
+from ....schemas import PaymentPayload, PaymentRequirements, SettleResponse, VerifyResponse
 from ..constants import (
     ERR_INSUFFICIENT_FUNDS,
     ERR_INVALID_PERMIT2_FACILITATOR,
@@ -26,6 +26,7 @@ from ..constants import (
     ERR_PERMIT2_NOT_YET_VALID,
     ERR_PERMIT2_RECIPIENT_MISMATCH,
     ERR_PERMIT2_TOKEN_MISMATCH,
+    ERR_TRANSACTION_FAILED,
     ERR_TRC20_APPROVAL_ASSET_MISMATCH,
     ERR_TRC20_APPROVAL_FORMAT,
     ERR_TRC20_APPROVAL_FROM_MISMATCH,
@@ -36,7 +37,6 @@ from ..constants import (
     ERR_TRC20_APPROVAL_TX_WRONG_SELECTOR,
     ERR_TRC20_APPROVAL_TX_WRONG_SPENDER,
     ERR_TRC20_APPROVAL_TX_WRONG_TARGET,
-    ERR_TRANSACTION_FAILED,
     PERMIT2_ADDRESSES,
     PERMIT2_WITNESS_TYPES,
     X402_PERMIT2_PROXY_ADDRESSES,

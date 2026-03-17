@@ -5,6 +5,7 @@ Contains shared logic for client implementations.
 
 from __future__ import annotations
 
+import inspect
 from collections.abc import Awaitable, Callable, Generator
 from dataclasses import dataclass, field
 from typing import Any, Literal
@@ -268,6 +269,36 @@ class x402ClientBase:
     # Core Logic Generators (shared between async/sync)
     # ========================================================================
 
+    @staticmethod
+    def _supports_payload_context(create_payload: Callable[..., Any]) -> bool:
+        """Return whether create_payment_payload supports a context argument."""
+        try:
+            signature = inspect.signature(create_payload)
+        except (TypeError, ValueError):
+            return True
+
+        parameters = list(signature.parameters.values())
+        positional = [
+            p
+            for p in parameters
+            if p.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+        ]
+        if len(positional) >= 2:
+            return True
+        return any(p.kind == inspect.Parameter.VAR_POSITIONAL for p in parameters)
+
+    @classmethod
+    def _create_inner_payload(
+        cls,
+        create_payload: Callable[..., Any],
+        requirements: PaymentRequirements | PaymentRequirementsV1,
+        payload_context: PaymentPayloadContext,
+    ) -> Any:
+        """Call scheme payload factory with backward-compatible signature handling."""
+        if cls._supports_payload_context(create_payload):
+            return create_payload(requirements, payload_context)
+        return create_payload(requirements)
+
     def _create_payment_payload_v2_core(
         self,
         payment_required: PaymentRequired,
@@ -305,7 +336,11 @@ class x402ClientBase:
 
             # 5. Create inner payload
             payload_context = PaymentPayloadContext(extensions=payment_required.extensions)
-            inner_payload = client.create_payment_payload(selected, payload_context)
+            inner_payload = self._create_inner_payload(
+                client.create_payment_payload,
+                selected,
+                payload_context,
+            )
             client_extensions = None
             if isinstance(inner_payload, tuple):
                 inner_payload, client_extensions = inner_payload
@@ -388,7 +423,11 @@ class x402ClientBase:
 
             # 5. Create inner payload
             payload_context = PaymentPayloadContext(extensions=None)
-            inner_payload = client.create_payment_payload(selected, payload_context)
+            inner_payload = self._create_inner_payload(
+                client.create_payment_payload,
+                selected,
+                payload_context,
+            )
             if isinstance(inner_payload, tuple):
                 inner_payload = inner_payload[0]
 

@@ -5,7 +5,6 @@ from typing import Any
 
 from ...interfaces import FacilitatorExtension
 
-
 EIP2612_GAS_SPONSORING = FacilitatorExtension(key="eip2612GasSponsoring")
 
 

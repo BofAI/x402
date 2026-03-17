@@ -1,7 +1,6 @@
 """Type definitions for the TRC-20 Approval Gas Sponsoring Extension."""
 
 import json
-
 from dataclasses import dataclass
 from typing import Any, Protocol
 

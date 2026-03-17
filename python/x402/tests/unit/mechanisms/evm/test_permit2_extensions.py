@@ -1,9 +1,14 @@
 """Tests for EVM Permit2 gas sponsoring extensions."""
 
-from eth_account import Account
 from eth_abi import encode
+from eth_account import Account
 from eth_utils import keccak
 
+from bankofai.x402.extensions.eip2612_gas_sponsoring import EIP2612_GAS_SPONSORING
+from bankofai.x402.extensions.erc20_approval_gas_sponsoring import (
+    ERC20_APPROVAL_GAS_SPONSORING,
+    Erc20ApprovalGasSponsoringExtension,
+)
 from bankofai.x402.interfaces import FacilitatorContext
 from bankofai.x402.mechanisms.evm import (
     get_evm_chain_id,
@@ -13,11 +18,6 @@ from bankofai.x402.mechanisms.evm import (
 from bankofai.x402.mechanisms.evm.exact.permit2 import verify_permit2
 from bankofai.x402.mechanisms.evm.types import ExactPermit2Payload
 from bankofai.x402.schemas import PaymentPayload, PaymentRequirements
-from bankofai.x402.extensions.eip2612_gas_sponsoring import EIP2612_GAS_SPONSORING
-from bankofai.x402.extensions.erc20_approval_gas_sponsoring import (
-    ERC20_APPROVAL_GAS_SPONSORING,
-    Erc20ApprovalGasSponsoringExtension,
-)
 
 
 class DummySigner:

@@ -5,14 +5,24 @@ from __future__ import annotations
 import time
 from typing import Any
 
+from ....extensions.trc20_approval_gas_sponsoring import TRC20_APPROVAL_GAS_SPONSORING
 from ....interfaces import PaymentPayloadContext
 from ....schemas import PaymentRequirements
-from ....extensions.trc20_approval_gas_sponsoring import TRC20_APPROVAL_GAS_SPONSORING
-from ..constants import AUTHORIZATION_TYPES, PERMIT2_ADDRESSES, PERMIT2_WITNESS_TYPES, SCHEME_EXACT
-from ..constants import X402_PERMIT2_PROXY_ADDRESSES
+from ..constants import (
+    AUTHORIZATION_TYPES,
+    PERMIT2_ADDRESSES,
+    PERMIT2_WITNESS_TYPES,
+    SCHEME_EXACT,
+    X402_PERMIT2_PROXY_ADDRESSES,
+)
 from ..signer import ClientTronSigner
-from ..types import ExactEIP3009Authorization, ExactEIP3009Payload, ExactPermit2Payload
-from ..types import Permit2Authorization, Permit2Witness
+from ..types import (
+    ExactEIP3009Authorization,
+    ExactEIP3009Payload,
+    ExactPermit2Payload,
+    Permit2Authorization,
+    Permit2Witness,
+)
 from ..utils import create_nonce, get_tron_chain_id, normalize_address_for_signing
 from .trc20approval import sign_trc20_approval_transaction
 

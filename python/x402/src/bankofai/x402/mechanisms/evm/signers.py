@@ -6,8 +6,8 @@ libraries like eth_account and web3.py.
 
 from __future__ import annotations
 
-from typing import Any
 import os
+from typing import Any
 
 try:
     from eth_account import Account

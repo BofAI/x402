@@ -9,8 +9,6 @@ from eth_account import Account
 from eth_account.typed_transactions import TypedTransaction
 from hexbytes import HexBytes
 
-from ....interfaces import FacilitatorContext
-from ....schemas import PaymentPayload, PaymentRequirements, SettleResponse, VerifyResponse
 from ....extensions.eip2612_gas_sponsoring import (
     extract_eip2612_gas_sponsoring_info,
     validate_eip2612_gas_sponsoring_info,
@@ -21,13 +19,11 @@ from ....extensions.erc20_approval_gas_sponsoring import (
     extract_erc20_approval_gas_sponsoring_info,
     validate_erc20_approval_gas_sponsoring_info,
 )
+from ....interfaces import FacilitatorContext
+from ....schemas import PaymentPayload, PaymentRequirements, SettleResponse, VerifyResponse
 from ..constants import (
     BALANCE_OF_ABI,
-    ERR_UNSUPPORTED_SCHEME,
-    ERR_NETWORK_MISMATCH,
-    ERR_PERMIT2_ALLOWANCE_REQUIRED,
-    ERR_PERMIT2_AMOUNT_MISMATCH,
-    ERR_PERMIT2_DEADLINE_EXPIRED,
+    ERC20_ALLOWANCE_ABI,
     ERR_EIP2612_ASSET_MISMATCH,
     ERR_EIP2612_DEADLINE_EXPIRED,
     ERR_EIP2612_EXTENSION_FORMAT,
@@ -37,14 +33,19 @@ from ..constants import (
     ERR_ERC20_APPROVAL_EXTENSION_FORMAT,
     ERR_ERC20_APPROVAL_FROM_MISMATCH,
     ERR_ERC20_APPROVAL_SPENDER_NOT_PERMIT2,
+    ERR_ERC20_APPROVAL_TX_FAILED,
     ERR_ERC20_APPROVAL_TX_INVALID_CALLDATA,
     ERR_ERC20_APPROVAL_TX_INVALID_SIGNATURE,
     ERR_ERC20_APPROVAL_TX_PARSE_FAILED,
-    ERR_ERC20_APPROVAL_TX_FAILED,
     ERR_ERC20_APPROVAL_TX_SIGNER_MISMATCH,
     ERR_ERC20_APPROVAL_TX_WRONG_SELECTOR,
     ERR_ERC20_APPROVAL_TX_WRONG_SPENDER,
     ERR_ERC20_APPROVAL_TX_WRONG_TARGET,
+    ERR_NETWORK_MISMATCH,
+    ERR_PERMIT2_2612_AMOUNT_MISMATCH,
+    ERR_PERMIT2_ALLOWANCE_REQUIRED,
+    ERR_PERMIT2_AMOUNT_MISMATCH,
+    ERR_PERMIT2_DEADLINE_EXPIRED,
     ERR_PERMIT2_INVALID_AMOUNT,
     ERR_PERMIT2_INVALID_DESTINATION,
     ERR_PERMIT2_INVALID_FACILITATOR,
@@ -57,7 +58,7 @@ from ..constants import (
     ERR_PERMIT2_RECIPIENT_MISMATCH,
     ERR_PERMIT2_TOKEN_MISMATCH,
     ERR_TRANSACTION_FAILED,
-    ERC20_ALLOWANCE_ABI,
+    ERR_UNSUPPORTED_SCHEME,
     PERMIT2_WITNESS_TYPES,
     get_permit2_address,
     get_x402_exact_permit2_proxy_address,

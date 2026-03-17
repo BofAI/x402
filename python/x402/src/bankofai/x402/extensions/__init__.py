@@ -36,6 +36,27 @@ from .bazaar import (
 # Create alias for backward compatibility
 ValidationResult = BazaarValidationResult
 
+from .eip2612_gas_sponsoring import (  # noqa: E402
+    EIP2612_GAS_SPONSORING,
+    Eip2612GasSponsoringExtension,
+    Eip2612GasSponsoringInfo,
+    Eip2612GasSponsoringServerInfo,
+    declare_eip2612_gas_sponsoring_extension,
+    extract_eip2612_gas_sponsoring_info,
+    validate_eip2612_gas_sponsoring_info,
+)
+from .erc20_approval_gas_sponsoring import (  # noqa: E402
+    ERC20_APPROVAL_GAS_SPONSORING,
+    ERC20_APPROVAL_GAS_SPONSORING_VERSION,
+    Erc20ApprovalGasSponsoringExtension,
+    Erc20ApprovalGasSponsoringInfo,
+    Erc20ApprovalGasSponsoringServerInfo,
+    Erc20ApprovalGasSponsoringSigner,
+    create_erc20_approval_gas_sponsoring_extension,
+    declare_erc20_approval_gas_sponsoring_extension,
+    extract_erc20_approval_gas_sponsoring_info,
+    validate_erc20_approval_gas_sponsoring_info,
+)
 from .payment_identifier import (  # noqa: E402
     PAYMENT_ID_MAX_LENGTH,
     PAYMENT_ID_MIN_LENGTH,
@@ -58,27 +79,6 @@ from .payment_identifier import (  # noqa: E402
     payment_identifier_schema,
     validate_payment_identifier,
     validate_payment_identifier_requirement,
-)
-from .eip2612_gas_sponsoring import (  # noqa: E402
-    EIP2612_GAS_SPONSORING,
-    Eip2612GasSponsoringExtension,
-    Eip2612GasSponsoringInfo,
-    Eip2612GasSponsoringServerInfo,
-    declare_eip2612_gas_sponsoring_extension,
-    extract_eip2612_gas_sponsoring_info,
-    validate_eip2612_gas_sponsoring_info,
-)
-from .erc20_approval_gas_sponsoring import (  # noqa: E402
-    ERC20_APPROVAL_GAS_SPONSORING,
-    ERC20_APPROVAL_GAS_SPONSORING_VERSION,
-    Erc20ApprovalGasSponsoringExtension,
-    Erc20ApprovalGasSponsoringInfo,
-    Erc20ApprovalGasSponsoringServerInfo,
-    Erc20ApprovalGasSponsoringSigner,
-    create_erc20_approval_gas_sponsoring_extension,
-    declare_erc20_approval_gas_sponsoring_extension,
-    extract_erc20_approval_gas_sponsoring_info,
-    validate_erc20_approval_gas_sponsoring_info,
 )
 from .trc20_approval_gas_sponsoring import (  # noqa: E402
     TRC20_APPROVAL_GAS_SPONSORING,

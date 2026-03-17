@@ -1,7 +1,7 @@
 """TRON server implementation for the Exact payment scheme (V2)."""
 
-from collections.abc import Callable
 import re
+from collections.abc import Callable
 
 from ....schemas import AssetAmount, Network, PaymentRequirements, Price, SupportedKind
 from ..constants import SCHEME_EXACT

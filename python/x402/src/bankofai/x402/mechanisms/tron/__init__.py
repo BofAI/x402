@@ -2,16 +2,16 @@
 
 from .constants import (
     AUTHORIZATION_TYPES,
+    PERMIT2_ADDRESSES,
     PERMIT2_WITNESS_TYPES,
     SCHEME_EXACT,
     TRON_CHAIN_IDS,
     TRON_DEFAULT_ASSETS,
     TRON_NETWORK_CONFIGS,
     X402_PERMIT2_PROXY_ADDRESSES,
-    PERMIT2_ADDRESSES,
-    x402ExactPermit2ProxyABI,
     AssetInfo,
     NetworkConfig,
+    x402ExactPermit2ProxyABI,
 )
 from .exact import (
     ExactTronClientScheme,

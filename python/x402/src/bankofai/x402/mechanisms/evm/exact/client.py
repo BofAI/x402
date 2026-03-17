@@ -5,10 +5,10 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any
 
-from ....schemas import PaymentRequirements
-from ....interfaces import PaymentPayloadContext
 from ....extensions.eip2612_gas_sponsoring import EIP2612_GAS_SPONSORING
 from ....extensions.erc20_approval_gas_sponsoring import ERC20_APPROVAL_GAS_SPONSORING
+from ....interfaces import PaymentPayloadContext
+from ....schemas import PaymentRequirements
 from ..constants import (
     DEFAULT_MAX_FEE_PER_GAS,
     DEFAULT_MAX_PRIORITY_FEE_PER_GAS,
@@ -37,8 +37,9 @@ def _wrap_if_local_account(signer: Any) -> ClientEvmSigner:
         from eth_account.signers.local import LocalAccount
 
         if isinstance(signer, LocalAccount):
-            from ..signers import EthAccountSigner
             import os
+
+            from ..signers import EthAccountSigner
 
             rpc_url = (
                 os.environ.get("EVM_RPC_URL")
