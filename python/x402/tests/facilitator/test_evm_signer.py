@@ -22,6 +22,7 @@ async def test_evm_facilitator_signer_creation(mock_evm_private_key):
 async def test_evm_verify_typed_data(mock_evm_private_key):
     """Test EVM signature verification"""
     from eth_account import Account
+
     domain = {
         "name": "PaymentPermit",
         "chainId": 1,
