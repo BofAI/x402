@@ -52,9 +52,7 @@ def test_create_permit2_payload(monkeypatch):
     import bankofai.x402.mechanisms.tron.exact.client as tron_client
 
     monkeypatch.setitem(tron_client.PERMIT2_ADDRESSES, "tron:nile", "0x" + "44" * 20)
-    monkeypatch.setitem(
-        tron_client.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20
-    )
+    monkeypatch.setitem(tron_client.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20)
 
     client = ExactTronClientScheme(DummySigner())
     requirements = _base_requirements(
@@ -73,9 +71,7 @@ def test_create_permit2_payload_with_trc20_extension(monkeypatch):
     import bankofai.x402.mechanisms.tron.exact.client as tron_client
 
     monkeypatch.setitem(tron_client.PERMIT2_ADDRESSES, "tron:nile", "0x" + "44" * 20)
-    monkeypatch.setitem(
-        tron_client.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20
-    )
+    monkeypatch.setitem(tron_client.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20)
 
     client = ExactTronClientScheme(DummySigner())
     requirements = _base_requirements(

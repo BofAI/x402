@@ -311,17 +311,13 @@ class ClientTronSigner:
         call_value = kwargs.get("call_value", 0)
 
         if not contract_address or not function_selector:
-            raise AttributeError(
-                "TRON client does not support trigger smart contract transactions"
-            )
+            raise AttributeError("TRON client does not support trigger smart contract transactions")
 
         method_name = str(function_selector).split("(", 1)[0]
         contract = self._client.get_contract(contract_address)
         func = getattr(contract.functions, method_name, None)
         if func is None:
-            raise AttributeError(
-                "TRON client does not support trigger smart contract transactions"
-            )
+            raise AttributeError("TRON client does not support trigger smart contract transactions")
 
         args: list[Any] = []
         for param in parameters:

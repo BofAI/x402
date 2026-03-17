@@ -250,7 +250,10 @@ def _try_build_eip2612_extension(
     }
     sig = signer.sign_typed_data(
         domain=domain,
-        types={k: [TypedDataField(name=f["name"], type=f["type"]) for f in v] for k, v in EIP2612_PERMIT_TYPES.items()},
+        types={
+            k: [TypedDataField(name=f["name"], type=f["type"]) for f in v]
+            for k, v in EIP2612_PERMIT_TYPES.items()
+        },
         primary_type="Permit",
         message=message,
     )

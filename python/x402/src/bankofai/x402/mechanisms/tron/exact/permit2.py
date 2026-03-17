@@ -104,9 +104,7 @@ def verify_permit2(
             is_valid=False, invalid_reason=ERR_PERMIT2_DEADLINE_EXPIRED, payer=payer
         )
     if int(auth.witness.valid_after) > now:
-        return VerifyResponse(
-            is_valid=False, invalid_reason=ERR_PERMIT2_NOT_YET_VALID, payer=payer
-        )
+        return VerifyResponse(is_valid=False, invalid_reason=ERR_PERMIT2_NOT_YET_VALID, payer=payer)
 
     if int(auth.permitted_amount) != int(requirements.amount):
         return VerifyResponse(
@@ -325,12 +323,16 @@ def _verify_trc20_approval_extension(
             is_valid=False, invalid_reason=ERR_TRC20_APPROVAL_FROM_MISMATCH, payer=payer
         )
 
-    if normalize_address_for_signing(info.asset) != normalize_address_for_signing(requirements.asset):
+    if normalize_address_for_signing(info.asset) != normalize_address_for_signing(
+        requirements.asset
+    ):
         return True, VerifyResponse(
             is_valid=False, invalid_reason=ERR_TRC20_APPROVAL_ASSET_MISMATCH, payer=payer
         )
 
-    if normalize_address_for_signing(info.spender) != normalize_address_for_signing(permit2_address):
+    if normalize_address_for_signing(info.spender) != normalize_address_for_signing(
+        permit2_address
+    ):
         return True, VerifyResponse(
             is_valid=False, invalid_reason=ERR_TRC20_APPROVAL_SPENDER_NOT_PERMIT2, payer=payer
         )
@@ -342,12 +344,18 @@ def _verify_trc20_approval_extension(
         )
 
     tx_value = _get_approval_transaction_value(tx)
-    if not tx_value.get("owner_address") or not tx_value.get("contract_address") or not tx_value.get("data"):
+    if (
+        not tx_value.get("owner_address")
+        or not tx_value.get("contract_address")
+        or not tx_value.get("data")
+    ):
         return True, VerifyResponse(
             is_valid=False, invalid_reason=ERR_TRC20_APPROVAL_TX_MISSING_DATA, payer=payer
         )
 
-    if normalize_address_for_signing(tx_value["owner_address"]) != normalize_address_for_signing(payer):
+    if normalize_address_for_signing(tx_value["owner_address"]) != normalize_address_for_signing(
+        payer
+    ):
         return True, VerifyResponse(
             is_valid=False, invalid_reason=ERR_TRC20_APPROVAL_FROM_MISMATCH, payer=payer
         )

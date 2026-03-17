@@ -76,7 +76,9 @@ def _build_permit2_payload(requirements: PaymentRequirements, payer: str) -> dic
     }
 
 
-def _build_signed_erc20_approval_tx(private_key: str, token: str, spender: str, chain_id: int) -> str:
+def _build_signed_erc20_approval_tx(
+    private_key: str, token: str, spender: str, chain_id: int
+) -> str:
     account = Account.from_key(private_key)
     selector = keccak(text="approve(address,uint256)")[:4]
     calldata = selector + encode(["address", "uint256"], [spender, 2**256 - 1])
@@ -164,7 +166,11 @@ def test_verify_permit2_accepts_erc20_extension_with_context():
     )
 
     context = FacilitatorContext(
-        {ERC20_APPROVAL_GAS_SPONSORING.key: Erc20ApprovalGasSponsoringExtension(key=ERC20_APPROVAL_GAS_SPONSORING.key)}
+        {
+            ERC20_APPROVAL_GAS_SPONSORING.key: Erc20ApprovalGasSponsoringExtension(
+                key=ERC20_APPROVAL_GAS_SPONSORING.key
+            )
+        }
     )
 
     result = verify_permit2(

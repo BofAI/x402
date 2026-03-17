@@ -281,7 +281,8 @@ class x402ClientBase:
         positional = [
             p
             for p in parameters
-            if p.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+            if p.kind
+            in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
         ]
         if len(positional) >= 2:
             return True

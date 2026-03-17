@@ -129,7 +129,9 @@ def verify_permit2(
     proxy_address = normalize_address(get_x402_exact_permit2_proxy_address(network))
 
     if normalize_address(permit2_payload.permit2_authorization.spender) != proxy_address:
-        return VerifyResponse(is_valid=False, invalid_reason=ERR_PERMIT2_INVALID_SPENDER, payer=payer)
+        return VerifyResponse(
+            is_valid=False, invalid_reason=ERR_PERMIT2_INVALID_SPENDER, payer=payer
+        )
 
     if normalize_address(permit2_payload.permit2_authorization.witness.to) != normalize_address(
         requirements.pay_to
@@ -141,9 +143,9 @@ def verify_permit2(
     expected_facilitator = (requirements.extra or {}).get("permit2FacilitatorAddress") or (
         requirements.pay_to
     )
-    if normalize_address(permit2_payload.permit2_authorization.witness.facilitator) != normalize_address(
-        str(expected_facilitator)
-    ):
+    if normalize_address(
+        permit2_payload.permit2_authorization.witness.facilitator
+    ) != normalize_address(str(expected_facilitator)):
         return VerifyResponse(
             is_valid=False, invalid_reason=ERR_PERMIT2_INVALID_FACILITATOR, payer=payer
         )
@@ -155,9 +157,7 @@ def verify_permit2(
         )
 
     if int(permit2_payload.permit2_authorization.witness.valid_after) > now:
-        return VerifyResponse(
-            is_valid=False, invalid_reason=ERR_PERMIT2_NOT_YET_VALID, payer=payer
-        )
+        return VerifyResponse(is_valid=False, invalid_reason=ERR_PERMIT2_NOT_YET_VALID, payer=payer)
 
     if int(permit2_payload.permit2_authorization.permitted_amount) != int(requirements.amount):
         return VerifyResponse(
@@ -174,7 +174,9 @@ def verify_permit2(
         typed_fields[type_name] = [TypedDataField(name=f["name"], type=f["type"]) for f in fields]
 
     chain_id = get_evm_chain_id(network)
-    domain = TypedDataDomain(name="Permit2", version=None, chain_id=chain_id, verifying_contract=permit2_address)
+    domain = TypedDataDomain(
+        name="Permit2", version=None, chain_id=chain_id, verifying_contract=permit2_address
+    )
     message = {
         "permitted": {
             "token": normalize_address(permit2_payload.permit2_authorization.permitted_token),
@@ -244,8 +246,7 @@ def verify_permit2(
                 is_valid=False,
                 invalid_reason="insufficient_funds",
                 invalid_message=(
-                    f"Insufficient funds. Required: {requirements.amount}, "
-                    f"Available: {balance}"
+                    f"Insufficient funds. Required: {requirements.amount}, Available: {balance}"
                 ),
                 payer=payer,
             )
@@ -353,7 +354,9 @@ def _sign_permit2_authorization(
     chain_id = get_evm_chain_id(str(requirements.network))
     permit2_address = normalize_address(get_permit2_address(str(requirements.network)))
 
-    domain = TypedDataDomain(name="Permit2", version=None, chain_id=chain_id, verifying_contract=permit2_address)
+    domain = TypedDataDomain(
+        name="Permit2", version=None, chain_id=chain_id, verifying_contract=permit2_address
+    )
     types = PERMIT2_WITNESS_TYPES
     message = {
         "permitted": {

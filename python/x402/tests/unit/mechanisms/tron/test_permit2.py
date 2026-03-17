@@ -58,7 +58,9 @@ class Base58ArgsSigner(DummySigner):
 
 class FailingApprovalSigner:
     def send_raw_transaction(self, signed_transaction):
-        raise AssertionError("send_raw_transaction should not be called when allowance is sufficient")
+        raise AssertionError(
+            "send_raw_transaction should not be called when allowance is sufficient"
+        )
 
     def wait_for_transaction_receipt(self, tx_hash: str):
         raise AssertionError(
@@ -114,9 +116,7 @@ def test_verify_permit2_valid(monkeypatch):
     import bankofai.x402.mechanisms.tron.exact.permit2 as tron_permit2
 
     monkeypatch.setitem(tron_permit2.PERMIT2_ADDRESSES, "tron:nile", "0x" + "44" * 20)
-    monkeypatch.setitem(
-        tron_permit2.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20
-    )
+    monkeypatch.setitem(tron_permit2.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20)
 
     req = _requirements()
     signer = DummySigner(allowance=10**9)
@@ -136,9 +136,7 @@ def test_verify_permit2_allowance_required(monkeypatch):
     import bankofai.x402.mechanisms.tron.exact.permit2 as tron_permit2
 
     monkeypatch.setitem(tron_permit2.PERMIT2_ADDRESSES, "tron:nile", "0x" + "44" * 20)
-    monkeypatch.setitem(
-        tron_permit2.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20
-    )
+    monkeypatch.setitem(tron_permit2.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20)
 
     req = _requirements()
     signer = DummySigner(allowance=0)
@@ -159,9 +157,7 @@ def test_settle_permit2_success(monkeypatch):
     import bankofai.x402.mechanisms.tron.exact.permit2 as tron_permit2
 
     monkeypatch.setitem(tron_permit2.PERMIT2_ADDRESSES, "tron:nile", "0x" + "44" * 20)
-    monkeypatch.setitem(
-        tron_permit2.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20
-    )
+    monkeypatch.setitem(tron_permit2.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20)
 
     req = _requirements()
     signer = DummySigner(allowance=10**9)
@@ -181,9 +177,7 @@ def test_verify_permit2_allows_trc20_extension(monkeypatch):
     import bankofai.x402.mechanisms.tron.exact.permit2 as tron_permit2
 
     monkeypatch.setitem(tron_permit2.PERMIT2_ADDRESSES, "tron:nile", "0x" + "44" * 20)
-    monkeypatch.setitem(
-        tron_permit2.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20
-    )
+    monkeypatch.setitem(tron_permit2.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20)
 
     req = _requirements()
     signer = DummySigner(allowance=0)
@@ -246,9 +240,7 @@ def test_verify_permit2_ignores_server_declared_extension_when_allowance_suffici
     import bankofai.x402.mechanisms.tron.exact.permit2 as tron_permit2
 
     monkeypatch.setitem(tron_permit2.PERMIT2_ADDRESSES, "tron:nile", "0x" + "44" * 20)
-    monkeypatch.setitem(
-        tron_permit2.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20
-    )
+    monkeypatch.setitem(tron_permit2.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20)
 
     req = _requirements()
     signer = Base58ArgsSigner(allowance=10**9)
@@ -278,9 +270,7 @@ def test_settle_permit2_skips_trc20_approval_when_allowance_sufficient(monkeypat
     import bankofai.x402.mechanisms.tron.exact.permit2 as tron_permit2
 
     monkeypatch.setitem(tron_permit2.PERMIT2_ADDRESSES, "tron:nile", "0x" + "44" * 20)
-    monkeypatch.setitem(
-        tron_permit2.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20
-    )
+    monkeypatch.setitem(tron_permit2.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20)
 
     req = _requirements()
     signer = Base58ArgsSigner(allowance=10**9)
@@ -327,9 +317,7 @@ def test_settle_permit2_uses_base58_addresses_in_contract_call(monkeypatch):
     import bankofai.x402.mechanisms.tron.exact.permit2 as tron_permit2
 
     monkeypatch.setitem(tron_permit2.PERMIT2_ADDRESSES, "tron:nile", "0x" + "44" * 20)
-    monkeypatch.setitem(
-        tron_permit2.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20
-    )
+    monkeypatch.setitem(tron_permit2.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20)
 
     req = _requirements()
     signer = Base58WriteSigner(allowance=10**9)
