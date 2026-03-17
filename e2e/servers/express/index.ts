@@ -31,6 +31,7 @@ const SVM_NETWORK = (process.env.SVM_NETWORK ||
 const APTOS_NETWORK = (process.env.APTOS_NETWORK || "aptos:2") as `${string}:${string}`;
 const STELLAR_NETWORK = (process.env.STELLAR_NETWORK || "stellar:testnet") as `${string}:${string}`;
 const EVM_PAYEE_ADDRESS = process.env.EVM_PAYEE_ADDRESS as `0x${string}`;
+const EVM_FACILITATOR_ADDRESS = process.env.EVM_FACILITATOR_ADDRESS as `0x${string}` | undefined;
 const SVM_PAYEE_ADDRESS = process.env.SVM_PAYEE_ADDRESS as string;
 const APTOS_PAYEE_ADDRESS = process.env.APTOS_PAYEE_ADDRESS as string;
 const STELLAR_PAYEE_ADDRESS = process.env.STELLAR_PAYEE_ADDRESS as string | undefined;
@@ -48,6 +49,11 @@ if (!SVM_PAYEE_ADDRESS) {
 if (!facilitatorUrl) {
   console.error("❌ FACILITATOR_URL environment variable is required");
   process.exit(1);
+}
+if (!EVM_FACILITATOR_ADDRESS) {
+  console.warn(
+    "⚠️  EVM_FACILITATOR_ADDRESS not set — Permit2 witness will default to payTo",
+  );
 }
 
 // Initialize Express app
@@ -227,6 +233,9 @@ app.use(
             asset: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816", // DHLU (ERC-20 approval path, no name/version)
             extra: {
               assetTransferMethod: "permit2",
+              ...(EVM_FACILITATOR_ADDRESS
+                ? { permit2FacilitatorAddress: EVM_FACILITATOR_ADDRESS }
+                : {}),
             },
           },
         },
@@ -248,6 +257,9 @@ app.use(
               name: "DA HULU",
               version: "1",
               assetTransferMethod: "permit2",
+              ...(EVM_FACILITATOR_ADDRESS
+                ? { permit2FacilitatorAddress: EVM_FACILITATOR_ADDRESS }
+                : {}),
             },
           },
         },

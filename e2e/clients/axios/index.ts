@@ -1,6 +1,7 @@
 import { config } from "dotenv";
 import axios from "axios";
 import { wrapAxiosWithPayment, decodePaymentResponseHeader } from "@bankofai/x402-axios";
+import { decodePaymentRequiredHeader } from "@bankofai/x402-core/http";
 import { createPublicClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { bscTestnet } from "viem/chains";
@@ -107,11 +108,31 @@ axiosWithPayment
     process.exit(0);
   })
   .catch(error => {
+    const status = error.response?.status || 500;
+    const headers = error.response?.headers || {};
+    const paymentRequiredHeader = headers["payment-required"] || headers["x-payment"];
+    const paymentResponseHeader = headers["payment-response"] || headers["x-payment-response"];
+
+    let paymentRequired = undefined;
+    let paymentResponse = undefined;
+    if (paymentRequiredHeader) {
+      try {
+        paymentRequired = decodePaymentRequiredHeader(paymentRequiredHeader);
+      } catch {}
+    }
+    if (paymentResponseHeader) {
+      try {
+        paymentResponse = decodePaymentResponseHeader(paymentResponseHeader);
+      } catch {}
+    }
+
     console.error(
       JSON.stringify({
         success: false,
         error: error.message || "Request failed",
-        status_code: error.response?.status || 500,
+        status_code: status,
+        payment_required: paymentRequired,
+        payment_response: paymentResponse,
       }),
     );
     process.exit(1);

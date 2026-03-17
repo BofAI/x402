@@ -294,7 +294,7 @@ export class TestDiscovery {
           // For protocols with transfer methods (EVM, TRON), check compatibility with client
           if (endpointProtocolFamily === 'evm' || endpointProtocolFamily === 'tron') {
             const defaultMethod = endpointProtocolFamily === 'evm' ? 'eip3009' : 'tip712';
-            const endpointTransferMethod = endpoint.transferMethod || defaultMethod;
+            const endpointTransferMethod = (endpoint as any).permit2 ? 'permit2' : (endpoint.transferMethod || defaultMethod);
             const clientTransferMethods = (endpointProtocolFamily === 'evm'
               ? client.config.evm?.transferMethods
               : client.config.tron?.transferMethods) || [defaultMethod];
@@ -311,7 +311,7 @@ export class TestDiscovery {
             // For protocols with transfer methods, also check compatibility
             if (endpointProtocolFamily === 'evm' || endpointProtocolFamily === 'tron') {
               const defaultMethod = endpointProtocolFamily === 'evm' ? 'eip3009' : 'tip712';
-              const endpointTransferMethod = endpoint.transferMethod || defaultMethod;
+              const endpointTransferMethod = (endpoint as any).permit2 ? 'permit2' : (endpoint.transferMethod || defaultMethod);
               const facilTransferMethods = (endpointProtocolFamily === 'evm'
                 ? f.config.evm?.transferMethods
                 : f.config.tron?.transferMethods) || [defaultMethod];
@@ -321,12 +321,6 @@ export class TestDiscovery {
           });
 
           for (const facilitator of matchingFacilitators) {
-            // TODO: Python SDK currently lacks Permit2 support.
-            // We skip these scenarios when using the python facilitator to avoid expected failures.
-            if (facilitator.name === 'python' && (endpoint.transferMethod === 'permit2' || (endpoint as any).permit2)) {
-              continue;
-            }
-
             scenarios.push({
               client,
               server,

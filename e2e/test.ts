@@ -129,12 +129,28 @@ async function runClientTest(
 ): Promise<ScenarioResult & { verboseLogs?: string[] }> {
   const verboseLogs: string[] = [];
 
+  const sanitizeForLogs = (value: unknown): unknown => {
+    if (Array.isArray(value)) {
+      return value.map(sanitizeForLogs);
+    }
+    if (value && typeof value === "object") {
+      const entries = Object.entries(value as Record<string, unknown>).map(([k, v]) => {
+        if (k.toLowerCase().includes("privatekey")) {
+          return [k, "<redacted>"] as const;
+        }
+        return [k, sanitizeForLogs(v)] as const;
+      });
+      return Object.fromEntries(entries);
+    }
+    return value;
+  };
+
   const bufferLog = (msg: string) => {
     verboseLogs.push(msg);
   };
 
   try {
-    bufferLog(`  📞 Running client: ${JSON.stringify(callConfig, null, 2)}`);
+    bufferLog(`  📞 Running client: ${JSON.stringify(sanitizeForLogs(callConfig), null, 2)}`);
     const result = await client.call(callConfig);
     bufferLog(`  📊 Client result: ${JSON.stringify(result, null, 2)}`);
 
@@ -238,14 +254,18 @@ async function runTest() {
   const serverSvmAddress = process.env.SERVER_SVM_ADDRESS;
   const serverAptosAddress = process.env.SERVER_APTOS_ADDRESS;
   const serverStellarAddress = process.env.SERVER_STELLAR_ADDRESS;
+  const serverTronAddress = process.env.SERVER_TRON_ADDRESS;
+  const tronFacilitatorAddress = process.env.TRON_FACILITATOR_ADDRESS;
   const clientEvmPrivateKey = process.env.CLIENT_EVM_PRIVATE_KEY;
   const clientSvmPrivateKey = process.env.CLIENT_SVM_PRIVATE_KEY;
   const clientAptosPrivateKey = process.env.CLIENT_APTOS_PRIVATE_KEY;
   const clientStellarPrivateKey = process.env.CLIENT_STELLAR_PRIVATE_KEY;
+  const clientTronPrivateKey = process.env.CLIENT_TRON_PRIVATE_KEY;
   const facilitatorEvmPrivateKey = process.env.FACILITATOR_EVM_PRIVATE_KEY;
   const facilitatorSvmPrivateKey = process.env.FACILITATOR_SVM_PRIVATE_KEY;
   const facilitatorAptosPrivateKey = process.env.FACILITATOR_APTOS_PRIVATE_KEY;
   const facilitatorStellarPrivateKey = process.env.FACILITATOR_STELLAR_PRIVATE_KEY;
+  const facilitatorTronPrivateKey = process.env.FACILITATOR_TRON_PRIVATE_KEY;
   // Env validation is deferred until after scenario filtering so we only
   // require variables for the protocol families that will actually be tested.
 
@@ -320,6 +340,9 @@ async function runTest() {
   log(`   SVM: ${networks.svm.name} (${networks.svm.caip2})`);
   log(`   APTOS: ${networks.aptos.name} (${networks.aptos.caip2})`);
   log(`   STELLAR: ${networks.stellar.name} (${networks.stellar.caip2})`);
+  if (networks.tron) {
+    log(`   TRON: ${networks.tron.name} (${networks.tron.caip2})`);
+  }
 
   if (networkMode === 'mainnet') {
     log('\n⚠️  WARNING: Running on MAINNET - real funds will be used!');
@@ -377,6 +400,12 @@ async function runTest() {
     if (!clientStellarPrivateKey) missingEnv.push('CLIENT_STELLAR_PRIVATE_KEY');
     if (!facilitatorStellarPrivateKey) missingEnv.push('FACILITATOR_STELLAR_PRIVATE_KEY');
   }
+  if (requiredFamilies.has('tron')) {
+    if (!serverTronAddress) missingEnv.push('SERVER_TRON_ADDRESS');
+    if (!tronFacilitatorAddress) missingEnv.push('TRON_FACILITATOR_ADDRESS');
+    if (!clientTronPrivateKey) missingEnv.push('CLIENT_TRON_PRIVATE_KEY');
+    if (!facilitatorTronPrivateKey) missingEnv.push('FACILITATOR_TRON_PRIVATE_KEY');
+  }
 
   if (missingEnv.length > 0) {
     errorLog('❌ Missing required environment variables for selected protocol families:');
@@ -387,7 +416,7 @@ async function runTest() {
 
   // Auto-detect Permit2 scenarios
   const hasPermit2Scenarios = filteredScenarios.some(
-    (s) => s.endpoint.transferMethod === 'permit2'
+    (s) => s.endpoint.transferMethod === 'permit2' || (s.endpoint as any).permit2
   );
 
   // Check if eip2612GasSponsoring extension should be tested
@@ -599,6 +628,8 @@ async function runTest() {
       aptosPrivateKey: clientAptosPrivateKey || '',
       stellarPrivateKey: clientStellarPrivateKey || '',
       evmRpcUrl: networks.evm.rpcUrl,
+      tronPrivateKey: clientTronPrivateKey || '',
+      tronRpcUrl: networks.tron?.rpcUrl || '',
       serverUrl: `http://localhost:${port}`,
       endpointPath: scenario.endpoint.path,
     };
@@ -686,6 +717,7 @@ async function runTest() {
       svmPayTo: serverSvmAddress!,
       aptosPayTo: facilitatorSupportsAptos ? (serverAptosAddress || '') : '',
       stellarPayTo: facilitatorSupportsStellar ? (serverStellarAddress || '') : '',
+      tronPayTo: serverTronAddress || '',
       networks,
       facilitatorUrl,
     };

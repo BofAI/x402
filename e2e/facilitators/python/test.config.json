@@ -4,7 +4,8 @@
   "language": "python",
   "protocolFamilies": [
     "evm",
-    "svm"
+    "svm",
+    "tron"
   ],
   "x402Versions": [
     1,
@@ -14,7 +15,10 @@
     "bazaar"
   ],
   "evm": {
-    "transferMethods": ["eip3009"]
+    "transferMethods": ["eip3009", "permit2"]
+  },
+  "tron": {
+    "transferMethods": ["tip712", "permit2"]
   },
   "environment": {
     "required": [
@@ -23,10 +27,12 @@
     ],
     "optional": [
       "SVM_PRIVATE_KEY",
+      "TRON_PRIVATE_KEY",
       "EVM_NETWORK",
       "SVM_NETWORK",
-      "EVM_RPC_URL"
+      "EVM_RPC_URL",
+      "TRON_NETWORK",
+      "TRON_RPC_URL"
     ]
   }
 }
-

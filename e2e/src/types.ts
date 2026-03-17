@@ -18,6 +18,7 @@ export interface ClientConfig {
   aptosPrivateKey: string;
   stellarPrivateKey: string;
   evmRpcUrl?: string;
+  tronRpcUrl?: string;
   tronPrivateKey: string;
   serverUrl: string;
   endpointPath: string;

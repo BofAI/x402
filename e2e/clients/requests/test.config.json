@@ -4,14 +4,18 @@
   "language": "python",
   "protocolFamilies": [
     "evm",
-    "svm"
+    "svm",
+    "tron"
   ],
   "x402Versions": [
     1,
     2
   ],
   "evm": {
-    "transferMethods": ["eip3009"]
+    "transferMethods": ["eip3009", "permit2"]
+  },
+  "tron": {
+    "transferMethods": ["tip712", "permit2"]
   },
   "description": "Python requests client with x402 v2 HTTP adapter",
   "environment": {
@@ -21,7 +25,9 @@
     ],
     "optional": [
       "EVM_PRIVATE_KEY",
-      "SVM_PRIVATE_KEY"
+      "SVM_PRIVATE_KEY",
+      "TRON_PRIVATE_KEY",
+      "TRON_RPC_URL"
     ]
   }
 }

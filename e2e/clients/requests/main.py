@@ -13,6 +13,8 @@ from bankofai.x402.mechanisms.evm import EthAccountSigner
 from bankofai.x402.mechanisms.evm.exact import register_exact_evm_client
 from bankofai.x402.mechanisms.svm import KeypairSigner
 from bankofai.x402.mechanisms.svm.exact import register_exact_svm_client
+from bankofai.x402.mechanisms.tron.signers import ClientTronSigner
+from bankofai.x402.mechanisms.tron.exact import register_exact_tron_client
 
 # Load environment variables
 load_dotenv()
@@ -20,6 +22,8 @@ load_dotenv()
 # Get environment variables
 evm_private_key = os.getenv("EVM_PRIVATE_KEY")
 svm_private_key = os.getenv("SVM_PRIVATE_KEY")
+tron_private_key = os.getenv("TRON_PRIVATE_KEY")
+tron_rpc_url = os.getenv("TRON_RPC_URL")
 base_url = os.getenv("RESOURCE_SERVER_URL")
 endpoint_path = os.getenv("ENDPOINT_PATH")
 
@@ -51,6 +55,14 @@ def main():
     if svm_private_key:
         svm_signer = KeypairSigner.from_base58(svm_private_key)
         register_exact_svm_client(client, svm_signer)
+
+    # Register TRON exact scheme if private key is available
+    if tron_private_key:
+        tron_signer = ClientTronSigner(
+            private_key=tron_private_key,
+            full_node=tron_rpc_url or "https://nile.trongrid.io",
+        )
+        register_exact_tron_client(client, tron_signer)
 
     # Create a session with x402 payment handling
     session = x402_requests(client)

@@ -37,6 +37,7 @@ export class FacilitatorManager {
       svmPrivateKey: process.env.FACILITATOR_SVM_PRIVATE_KEY,
       aptosPrivateKey: process.env.FACILITATOR_APTOS_PRIVATE_KEY,
       stellarPrivateKey: process.env.FACILITATOR_STELLAR_PRIVATE_KEY,
+      tronPrivateKey: process.env.FACILITATOR_TRON_PRIVATE_KEY,
       networks,
     });
 
