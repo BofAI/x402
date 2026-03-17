@@ -69,6 +69,28 @@ class TestEthAccountSigner:
         assert isinstance(signature, bytes)
         assert len(signature) >= 65  # ECDSA signature is 65 bytes
 
+    def test_should_sign_transaction(self):
+        account = Account.create()
+        signer = EthAccountSigner(account)
+        tx = {
+            "to": account.address,
+            "value": 0,
+            "nonce": 0,
+            "gas": 21000,
+            "maxFeePerGas": 1,
+            "maxPriorityFeePerGas": 1,
+            "chainId": 1,
+        }
+        signed = signer.sign_transaction(tx)
+        assert isinstance(signed, (bytes, bytearray))
+        assert len(signed) > 0
+
+    def test_should_use_env_rpc_url_default(self, monkeypatch):
+        account = Account.create()
+        monkeypatch.setenv("EVM_RPC_URL", "https://bsc-testnet-rpc.publicnode.com")
+        signer = EthAccountSigner(account)
+        assert signer._w3 is not None
+
 
 class TestFacilitatorWeb3Signer:
     """Test FacilitatorWeb3Signer facilitator-side signer."""
