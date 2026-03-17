@@ -63,6 +63,13 @@ class FacilitatorContext:
         return self._extensions.get(key)
 
 
+@dataclass(frozen=True)
+class PaymentPayloadContext:
+    """Context passed to client schemes during payload creation."""
+
+    extensions: dict[str, Any] | None = None
+
+
 # ============================================================================
 # Client-Side Protocols
 # ============================================================================
@@ -98,11 +105,13 @@ class SchemeNetworkClient(Protocol):
     def create_payment_payload(
         self,
         requirements: PaymentRequirements,
+        context: PaymentPayloadContext | None = None,
     ) -> dict[str, Any]:
         """Create the scheme-specific inner payload dict.
 
         Args:
             requirements: The payment requirements to fulfill.
+            context: Optional context with server-declared extensions.
 
         Returns:
             Scheme-specific payload dict. x402Client wraps this into
@@ -125,11 +134,13 @@ class SchemeNetworkClientV1(Protocol):
     def create_payment_payload(
         self,
         requirements: PaymentRequirementsV1,
+        context: PaymentPayloadContext | None = None,
     ) -> dict[str, Any]:
         """Create the scheme-specific inner payload dict for V1.
 
         Args:
             requirements: The V1 payment requirements to fulfill.
+            context: Optional context with server-declared extensions.
 
         Returns:
             Scheme-specific payload dict. x402Client wraps this into

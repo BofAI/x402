@@ -11,7 +11,7 @@ from typing import Any, Literal
 
 from typing_extensions import Self
 
-from .interfaces import SchemeNetworkClient, SchemeNetworkClientV1
+from .interfaces import PaymentPayloadContext, SchemeNetworkClient, SchemeNetworkClientV1
 from .schemas import (
     AbortResult,
     Network,
@@ -304,15 +304,28 @@ class x402ClientBase:
             client = schemes[selected.scheme]
 
             # 5. Create inner payload
-            inner_payload = client.create_payment_payload(selected)
+            payload_context = PaymentPayloadContext(extensions=payment_required.extensions)
+            inner_payload = client.create_payment_payload(selected, payload_context)
+            client_extensions = None
+            if isinstance(inner_payload, tuple):
+                inner_payload, client_extensions = inner_payload
 
             # 6. Wrap into full PaymentPayload
+            merged_extensions: dict[str, Any] | None
+            base_extensions = extensions if extensions is not None else payment_required.extensions
+            if base_extensions is None:
+                base_extensions = {}
+            if client_extensions:
+                merged_extensions = {**base_extensions, **client_extensions}
+            else:
+                merged_extensions = base_extensions if base_extensions else None
+
             payload = PaymentPayload(
                 x402_version=2,
                 payload=inner_payload,
                 accepted=selected,
                 resource=resource or payment_required.resource,
-                extensions=extensions or payment_required.extensions,
+                extensions=merged_extensions,
             )
 
             # 7. Execute after hooks
@@ -374,7 +387,10 @@ class x402ClientBase:
             client = schemes[selected.scheme]
 
             # 5. Create inner payload
-            inner_payload = client.create_payment_payload(selected)
+            payload_context = PaymentPayloadContext(extensions=None)
+            inner_payload = client.create_payment_payload(selected, payload_context)
+            if isinstance(inner_payload, tuple):
+                inner_payload = inner_payload[0]
 
             # 6. Wrap into full PaymentPayloadV1
             payload = PaymentPayloadV1(

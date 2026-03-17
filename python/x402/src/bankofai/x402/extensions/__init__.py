@@ -59,6 +59,39 @@ from .payment_identifier import (  # noqa: E402
     validate_payment_identifier,
     validate_payment_identifier_requirement,
 )
+from .eip2612_gas_sponsoring import (  # noqa: E402
+    EIP2612_GAS_SPONSORING,
+    Eip2612GasSponsoringExtension,
+    Eip2612GasSponsoringInfo,
+    Eip2612GasSponsoringServerInfo,
+    declare_eip2612_gas_sponsoring_extension,
+    extract_eip2612_gas_sponsoring_info,
+    validate_eip2612_gas_sponsoring_info,
+)
+from .erc20_approval_gas_sponsoring import (  # noqa: E402
+    ERC20_APPROVAL_GAS_SPONSORING,
+    ERC20_APPROVAL_GAS_SPONSORING_VERSION,
+    Erc20ApprovalGasSponsoringExtension,
+    Erc20ApprovalGasSponsoringInfo,
+    Erc20ApprovalGasSponsoringServerInfo,
+    Erc20ApprovalGasSponsoringSigner,
+    create_erc20_approval_gas_sponsoring_extension,
+    declare_erc20_approval_gas_sponsoring_extension,
+    extract_erc20_approval_gas_sponsoring_info,
+    validate_erc20_approval_gas_sponsoring_info,
+)
+from .trc20_approval_gas_sponsoring import (  # noqa: E402
+    TRC20_APPROVAL_GAS_SPONSORING,
+    TRC20_APPROVAL_GAS_SPONSORING_VERSION,
+    Trc20ApprovalGasSponsoringExtension,
+    Trc20ApprovalGasSponsoringInfo,
+    Trc20ApprovalGasSponsoringServerInfo,
+    Trc20ApprovalGasSponsoringSigner,
+    create_trc20_approval_gas_sponsoring_extension,
+    declare_trc20_approval_gas_sponsoring_extension,
+    extract_trc20_approval_gas_sponsoring_info,
+    validate_trc20_approval_gas_sponsoring_info,
+)
 
 __all__ = [
     # Constants
@@ -125,4 +158,34 @@ __all__ = [
     "validate_payment_identifier_requirement",
     "PaymentIdentifierValidationResult",
     "BazaarValidationResult",
+    # EIP-2612 gas sponsoring
+    "EIP2612_GAS_SPONSORING",
+    "Eip2612GasSponsoringInfo",
+    "Eip2612GasSponsoringServerInfo",
+    "Eip2612GasSponsoringExtension",
+    "declare_eip2612_gas_sponsoring_extension",
+    "extract_eip2612_gas_sponsoring_info",
+    "validate_eip2612_gas_sponsoring_info",
+    # ERC-20 approval gas sponsoring
+    "ERC20_APPROVAL_GAS_SPONSORING",
+    "ERC20_APPROVAL_GAS_SPONSORING_VERSION",
+    "Erc20ApprovalGasSponsoringSigner",
+    "Erc20ApprovalGasSponsoringInfo",
+    "Erc20ApprovalGasSponsoringServerInfo",
+    "Erc20ApprovalGasSponsoringExtension",
+    "create_erc20_approval_gas_sponsoring_extension",
+    "declare_erc20_approval_gas_sponsoring_extension",
+    "extract_erc20_approval_gas_sponsoring_info",
+    "validate_erc20_approval_gas_sponsoring_info",
+    # TRC-20 approval gas sponsoring
+    "TRC20_APPROVAL_GAS_SPONSORING",
+    "TRC20_APPROVAL_GAS_SPONSORING_VERSION",
+    "Trc20ApprovalGasSponsoringSigner",
+    "Trc20ApprovalGasSponsoringInfo",
+    "Trc20ApprovalGasSponsoringServerInfo",
+    "Trc20ApprovalGasSponsoringExtension",
+    "create_trc20_approval_gas_sponsoring_extension",
+    "declare_trc20_approval_gas_sponsoring_extension",
+    "extract_trc20_approval_gas_sponsoring_info",
+    "validate_trc20_approval_gas_sponsoring_info",
 ]
