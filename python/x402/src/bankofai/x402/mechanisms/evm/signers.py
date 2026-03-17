@@ -7,6 +7,7 @@ libraries like eth_account and web3.py.
 from __future__ import annotations
 
 from typing import Any
+import os
 
 try:
     from eth_account import Account
@@ -61,14 +62,22 @@ class EthAccountSigner:
         account: eth_account LocalAccount instance.
     """
 
-    def __init__(self, account: LocalAccount) -> None:
+    def __init__(self, account: LocalAccount, rpc_url: str | None = None) -> None:
         """Initialize signer with eth_account LocalAccount.
 
         Args:
             account: eth_account LocalAccount instance (from Account.from_key,
                 Account.from_mnemonic, etc.).
+            rpc_url: Optional Ethereum RPC endpoint for nonce + gas data.
         """
         self._account = account
+        if rpc_url is None:
+            rpc_url = (
+                os.environ.get("EVM_RPC_URL")
+                or os.environ.get("WEB3_PROVIDER_URL")
+                or "https://bsc-testnet-rpc.publicnode.com"
+            )
+        self._w3 = Web3(Web3.HTTPProvider(rpc_url)) if rpc_url else None
 
     @property
     def address(self) -> str:
@@ -110,10 +119,11 @@ class EthAccountSigner:
         if isinstance(domain, TypedDataDomain):
             domain_dict = {
                 "name": domain.name,
-                "version": domain.version,
                 "chainId": domain.chain_id,
                 "verifyingContract": domain.verifying_contract,
             }
+            if domain.version:
+                domain_dict["version"] = domain.version
         else:
             domain_dict = domain
 
@@ -124,6 +134,22 @@ class EthAccountSigner:
             message_data=message,
         )
         return bytes(signed.signature)
+
+    def get_transaction_count(self, address: str) -> int:
+        """Get transaction count (nonce) for address."""
+        if not self._w3:
+            raise ValueError("RPC URL required for get_transaction_count")
+        return int(self._w3.eth.get_transaction_count(Web3.to_checksum_address(address)))
+
+    def sign_transaction(self, tx: dict[str, Any]) -> bytes:
+        """Sign an EIP-1559 transaction dict and return raw bytes."""
+        signed = self._account.sign_transaction(tx)
+        raw = getattr(signed, "rawTransaction", None)
+        if raw is None:
+            raw = getattr(signed, "raw_transaction", None)
+        if raw is None:
+            raise AttributeError("SignedTransaction missing raw transaction bytes")
+        return raw if isinstance(raw, (bytes, bytearray)) else bytes(raw)
 
 
 class FacilitatorWeb3Signer:
@@ -249,14 +275,15 @@ class FacilitatorWeb3Signer:
             True if signature is valid.
         """
         # Build full types including EIP712Domain
-        full_types: dict[str, list[dict[str, str]]] = {
-            "EIP712Domain": [
-                {"name": "name", "type": "string"},
-                {"name": "version", "type": "string"},
-                {"name": "chainId", "type": "uint256"},
-                {"name": "verifyingContract", "type": "address"},
-            ]
-        }
+        domain_fields = [
+            {"name": "name", "type": "string"},
+            {"name": "chainId", "type": "uint256"},
+            {"name": "verifyingContract", "type": "address"},
+        ]
+        if domain.version:
+            domain_fields.insert(1, {"name": "version", "type": "string"})
+
+        full_types: dict[str, list[dict[str, str]]] = {"EIP712Domain": domain_fields}
         for type_name, fields in types.items():
             full_types[type_name] = [
                 {"name": f.name, "type": f.type} if isinstance(f, TypedDataField) else f
@@ -269,15 +296,18 @@ class FacilitatorWeb3Signer:
             msg_copy["nonce"] = "0x" + msg_copy["nonce"].hex()
 
         try:
+            domain_dict = {
+                "name": domain.name,
+                "chainId": domain.chain_id,
+                "verifyingContract": domain.verifying_contract,
+            }
+            if domain.version:
+                domain_dict["version"] = domain.version
+
             typed_data = {
                 "types": full_types,
                 "primaryType": primary_type,
-                "domain": {
-                    "name": domain.name,
-                    "version": domain.version,
-                    "chainId": domain.chain_id,
-                    "verifyingContract": domain.verifying_contract,
-                },
+                "domain": domain_dict,
                 "message": msg_copy,
             }
 

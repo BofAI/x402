@@ -36,9 +36,10 @@ from ..constants import (
 from ..eip712 import hash_eip3009_authorization
 from ..erc6492 import has_deployment_info, parse_erc6492_signature
 from ..signer import FacilitatorEvmSigner
-from ..types import ERC6492SignatureData, ExactEIP3009Payload
+from ..types import ERC6492SignatureData, ExactEIP3009Payload, ExactPermit2Payload, is_permit2_payload
 from ..utils import bytes_to_hex, get_evm_chain_id, hex_to_bytes, normalize_address
 from ..verify import verify_universal_signature
+from .permit2 import settle_permit2, verify_permit2
 
 
 @dataclass
@@ -77,14 +78,17 @@ class ExactEvmScheme:
         self._config = config or ExactEvmSchemeConfig()
 
     def get_extra(self, network: Network) -> dict[str, Any] | None:
-        """Get mechanism-specific extra data. EVM: None.
+        """Get mechanism-specific extra data.
 
         Args:
             network: Network identifier.
 
         Returns:
-            None for EVM scheme.
+            Extra metadata for Permit2 facilitator address.
         """
+        signers = self._signer.get_addresses()
+        if signers:
+            return {"permit2FacilitatorAddress": signers[0]}
         return None
 
     def get_signers(self, network: Network) -> list[str]:
@@ -122,7 +126,12 @@ class ExactEvmScheme:
         Returns:
             VerifyResponse with is_valid and payer.
         """
-        evm_payload = ExactEIP3009Payload.from_dict(payload.payload)
+        raw_payload = payload.payload or {}
+        if is_permit2_payload(raw_payload):
+            permit2_payload = ExactPermit2Payload.from_dict(raw_payload)
+            return verify_permit2(self._signer, payload, requirements, permit2_payload, context)
+
+        evm_payload = ExactEIP3009Payload.from_dict(raw_payload)
         payer = evm_payload.authorization.from_address
         network = str(requirements.network)
 
@@ -257,6 +266,11 @@ class ExactEvmScheme:
             SettleResponse with success, transaction, and payer.
         """
         # First verify
+        raw_payload = payload.payload or {}
+        if is_permit2_payload(raw_payload):
+            permit2_payload = ExactPermit2Payload.from_dict(raw_payload)
+            return settle_permit2(self._signer, payload, requirements, permit2_payload, context)
+
         verify_result = self.verify(payload, requirements, context)
         if not verify_result.is_valid:
             return SettleResponse(

@@ -27,7 +27,8 @@ from bankofai.x402.mechanisms.evm import EthAccountSigner
 from eth_account import Account
 
 account = Account.from_key("0x...")
-signer = EthAccountSigner(account)
+signer = EthAccountSigner(account, rpc_url="https://your-rpc")
+# Or set EVM_RPC_URL / WEB3_PROVIDER_URL and omit rpc_url (defaults to BSC testnet)
 
 client = x402Client()
 client.register("eip155:*", ExactEvmScheme(signer=signer))
@@ -127,4 +128,3 @@ Automatic handling of:
 - Deployed smart wallets (ERC-1271 signature verification)
 - Undeployed smart wallets (ERC-6492 counterfactual verification)
 - EOA wallets (standard ECDSA)
-

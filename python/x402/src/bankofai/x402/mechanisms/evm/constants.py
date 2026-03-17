@@ -48,6 +48,42 @@ ERR_FAILED_TO_GET_NETWORK_CONFIG = "invalid_exact_evm_failed_to_get_network_conf
 ERR_FAILED_TO_GET_ASSET_INFO = "invalid_exact_evm_failed_to_get_asset_info"
 ERR_FAILED_TO_VERIFY_SIGNATURE = "invalid_exact_evm_failed_to_verify_signature"
 ERR_TRANSACTION_FAILED = "transaction_failed"
+# Permit2 verify errors
+ERR_PERMIT2_INVALID_SPENDER = "invalid_permit2_spender"
+ERR_PERMIT2_RECIPIENT_MISMATCH = "invalid_permit2_recipient_mismatch"
+ERR_PERMIT2_INVALID_FACILITATOR = "invalid_permit2_facilitator_mismatch"
+ERR_PERMIT2_DEADLINE_EXPIRED = "permit2_deadline_expired"
+ERR_PERMIT2_NOT_YET_VALID = "permit2_not_yet_valid"
+ERR_PERMIT2_AMOUNT_MISMATCH = "permit2_amount_mismatch"
+ERR_PERMIT2_TOKEN_MISMATCH = "permit2_token_mismatch"
+ERR_PERMIT2_INVALID_SIGNATURE = "invalid_permit2_signature"
+ERR_PERMIT2_ALLOWANCE_REQUIRED = "permit2_allowance_required"
+# Permit2 settle errors
+ERR_PERMIT2_INVALID_AMOUNT = "permit2_invalid_amount"
+ERR_PERMIT2_INVALID_DESTINATION = "permit2_invalid_destination"
+ERR_PERMIT2_INVALID_OWNER = "permit2_invalid_owner"
+ERR_PERMIT2_PAYMENT_TOO_EARLY = "permit2_payment_too_early"
+ERR_PERMIT2_INVALID_NONCE = "permit2_invalid_nonce"
+ERR_PERMIT2_2612_AMOUNT_MISMATCH = "permit2_2612_amount_mismatch"
+# EIP-2612 extension verify errors
+ERR_EIP2612_EXTENSION_FORMAT = "invalid_eip2612_extension_format"
+ERR_EIP2612_FROM_MISMATCH = "eip2612_from_mismatch"
+ERR_EIP2612_ASSET_MISMATCH = "eip2612_asset_mismatch"
+ERR_EIP2612_SPENDER_NOT_PERMIT2 = "eip2612_spender_not_permit2"
+ERR_EIP2612_DEADLINE_EXPIRED = "eip2612_deadline_expired"
+# ERC-20 approval extension verify errors
+ERR_ERC20_APPROVAL_EXTENSION_FORMAT = "invalid_erc20_approval_extension_format"
+ERR_ERC20_APPROVAL_FROM_MISMATCH = "erc20_approval_from_mismatch"
+ERR_ERC20_APPROVAL_ASSET_MISMATCH = "erc20_approval_asset_mismatch"
+ERR_ERC20_APPROVAL_SPENDER_NOT_PERMIT2 = "erc20_approval_spender_not_permit2"
+ERR_ERC20_APPROVAL_TX_WRONG_TARGET = "erc20_approval_tx_wrong_target"
+ERR_ERC20_APPROVAL_TX_WRONG_SELECTOR = "erc20_approval_tx_wrong_selector"
+ERR_ERC20_APPROVAL_TX_WRONG_SPENDER = "erc20_approval_tx_wrong_spender"
+ERR_ERC20_APPROVAL_TX_INVALID_CALLDATA = "erc20_approval_tx_invalid_calldata"
+ERR_ERC20_APPROVAL_TX_SIGNER_MISMATCH = "erc20_approval_tx_signer_mismatch"
+ERR_ERC20_APPROVAL_TX_INVALID_SIGNATURE = "erc20_approval_tx_invalid_signature"
+ERR_ERC20_APPROVAL_TX_PARSE_FAILED = "erc20_approval_tx_parse_failed"
+ERR_ERC20_APPROVAL_TX_FAILED = "erc20_approval_tx_failed"
 
 
 class _AssetInfoRequired(TypedDict):
@@ -189,6 +225,56 @@ BALANCE_OF_ABI = [
     }
 ]
 
+ERC20_APPROVE_ABI = [
+    {
+        "inputs": [
+            {"name": "spender", "type": "address"},
+            {"name": "amount", "type": "uint256"},
+        ],
+        "name": "approve",
+        "outputs": [{"name": "", "type": "bool"}],
+        "stateMutability": "nonpayable",
+        "type": "function",
+    }
+]
+
+ERC20_ALLOWANCE_ABI = [
+    {
+        "inputs": [
+            {"name": "owner", "type": "address"},
+            {"name": "spender", "type": "address"},
+        ],
+        "name": "allowance",
+        "outputs": [{"name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function",
+    }
+]
+
+EIP2612_PERMIT_TYPES: dict[str, list[dict[str, str]]] = {
+    "Permit": [
+        {"name": "owner", "type": "address"},
+        {"name": "spender", "type": "address"},
+        {"name": "value", "type": "uint256"},
+        {"name": "nonce", "type": "uint256"},
+        {"name": "deadline", "type": "uint256"},
+    ]
+}
+
+EIP2612_NONCES_ABI = [
+    {
+        "type": "function",
+        "name": "nonces",
+        "inputs": [{"name": "owner", "type": "address"}],
+        "outputs": [{"type": "uint256"}],
+        "stateMutability": "view",
+    }
+]
+
+ERC20_APPROVE_GAS_LIMIT = 70_000
+DEFAULT_MAX_FEE_PER_GAS = 1_000_000_000
+DEFAULT_MAX_PRIORITY_FEE_PER_GAS = 100_000_000
+
 IS_VALID_SIGNATURE_ABI = [
     {
         "inputs": [
@@ -200,4 +286,140 @@ IS_VALID_SIGNATURE_ABI = [
         "stateMutability": "view",
         "type": "function",
     }
+]
+
+# Permit2 EIP-712 types for signing PermitWitnessTransferFrom.
+# Types must be in alphabetical order after the primary type.
+PERMIT2_WITNESS_TYPES: dict[str, list[dict[str, str]]] = {
+    "PermitWitnessTransferFrom": [
+        {"name": "permitted", "type": "TokenPermissions"},
+        {"name": "spender", "type": "address"},
+        {"name": "nonce", "type": "uint256"},
+        {"name": "deadline", "type": "uint256"},
+        {"name": "witness", "type": "Witness"},
+    ],
+    "TokenPermissions": [
+        {"name": "token", "type": "address"},
+        {"name": "amount", "type": "uint256"},
+    ],
+    "Witness": [
+        {"name": "to", "type": "address"},
+        {"name": "facilitator", "type": "address"},
+        {"name": "validAfter", "type": "uint256"},
+    ],
+}
+
+# Canonical Permit2 address and overrides.
+PERMIT2_ADDRESS = "0x000000000022D473030F116dDEE9F6B43aC78BA3"
+PERMIT2_ADDRESSES: dict[str, str] = {
+    "eip155:56": "0x31c2F6fcFf4F8759b3Bd5Bf0e1084A055615c768",
+    "eip155:97": "0x31c2F6fcFf4F8759b3Bd5Bf0e1084A055615c768",
+}
+
+# x402 exact Permit2 proxy addresses.
+X402_EXACT_PERMIT2_PROXY_ADDRESS = "0xEe38Ec718255fe78e9D16aCC0e1183C731679b23"
+X402_EXACT_PERMIT2_PROXY_ADDRESSES: dict[str, str] = {
+    "eip155:56": X402_EXACT_PERMIT2_PROXY_ADDRESS,
+    "eip155:97": X402_EXACT_PERMIT2_PROXY_ADDRESS,
+}
+
+
+def get_permit2_address(network: str) -> str:
+    """Resolve Permit2 contract address for a network."""
+    return PERMIT2_ADDRESSES.get(network, PERMIT2_ADDRESS)
+
+
+def get_x402_exact_permit2_proxy_address(network: str) -> str:
+    """Resolve x402 exact Permit2 proxy address for a network."""
+    return X402_EXACT_PERMIT2_PROXY_ADDRESSES.get(network, X402_EXACT_PERMIT2_PROXY_ADDRESS)
+
+
+_PERMIT2_WITNESS_ABI_COMPONENTS = [
+    {"name": "to", "type": "address", "internalType": "address"},
+    {"name": "facilitator", "type": "address", "internalType": "address"},
+    {"name": "validAfter", "type": "uint256", "internalType": "uint256"},
+]
+
+# x402ExactPermit2Proxy ABI (settle + settleWithPermit).
+x402ExactPermit2ProxyABI = [
+    {
+        "type": "function",
+        "name": "settle",
+        "inputs": [
+            {
+                "name": "permit",
+                "type": "tuple",
+                "internalType": "struct ISignatureTransfer.PermitTransferFrom",
+                "components": [
+                    {
+                        "name": "permitted",
+                        "type": "tuple",
+                        "internalType": "struct ISignatureTransfer.TokenPermissions",
+                        "components": [
+                            {"name": "token", "type": "address", "internalType": "address"},
+                            {"name": "amount", "type": "uint256", "internalType": "uint256"},
+                        ],
+                    },
+                    {"name": "nonce", "type": "uint256", "internalType": "uint256"},
+                    {"name": "deadline", "type": "uint256", "internalType": "uint256"},
+                ],
+            },
+            {"name": "owner", "type": "address", "internalType": "address"},
+            {
+                "name": "witness",
+                "type": "tuple",
+                "internalType": "struct x402ExactPermit2Proxy.Witness",
+                "components": _PERMIT2_WITNESS_ABI_COMPONENTS,
+            },
+            {"name": "signature", "type": "bytes", "internalType": "bytes"},
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable",
+    },
+    {
+        "type": "function",
+        "name": "settleWithPermit",
+        "inputs": [
+            {
+                "name": "permit2612",
+                "type": "tuple",
+                "internalType": "struct x402ExactPermit2Proxy.EIP2612Permit",
+                "components": [
+                    {"name": "value", "type": "uint256", "internalType": "uint256"},
+                    {"name": "deadline", "type": "uint256", "internalType": "uint256"},
+                    {"name": "r", "type": "bytes32", "internalType": "bytes32"},
+                    {"name": "s", "type": "bytes32", "internalType": "bytes32"},
+                    {"name": "v", "type": "uint8", "internalType": "uint8"},
+                ],
+            },
+            {
+                "name": "permit",
+                "type": "tuple",
+                "internalType": "struct ISignatureTransfer.PermitTransferFrom",
+                "components": [
+                    {
+                        "name": "permitted",
+                        "type": "tuple",
+                        "internalType": "struct ISignatureTransfer.TokenPermissions",
+                        "components": [
+                            {"name": "token", "type": "address", "internalType": "address"},
+                            {"name": "amount", "type": "uint256", "internalType": "uint256"},
+                        ],
+                    },
+                    {"name": "nonce", "type": "uint256", "internalType": "uint256"},
+                    {"name": "deadline", "type": "uint256", "internalType": "uint256"},
+                ],
+            },
+            {"name": "owner", "type": "address", "internalType": "address"},
+            {
+                "name": "witness",
+                "type": "tuple",
+                "internalType": "struct x402ExactPermit2Proxy.Witness",
+                "components": _PERMIT2_WITNESS_ABI_COMPONENTS,
+            },
+            {"name": "signature", "type": "bytes", "internalType": "bytes"},
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable",
+    },
 ]
