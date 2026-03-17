@@ -1,50 +1,61 @@
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
 
 from bankofai.x402.signers.client import EvmClientSigner, TronClientSigner
 
 
-def test_tron_signer_from_private_key():
-    """Test creating TRON signer from private key"""
-    private_key = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-    signer = TronClientSigner.from_private_key(private_key)
+@pytest.mark.anyio
+async def test_tron_signer_create():
+    """Test creating TRON signer from wallet"""
+    wallet = MagicMock()
+    wallet.get_address = AsyncMock(return_value="TTestBuyerAddress")
+    signer = await TronClientSigner.create(wallet)
 
     assert signer is not None
     assert signer.get_address().startswith("T")
 
 
-def test_tron_signer_with_0x_prefix():
-    """Test TRON signer handling 0x prefix"""
-    private_key = "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-    signer = TronClientSigner.from_private_key(private_key)
+@pytest.mark.anyio
+async def test_tron_signer_uses_wallet_address():
+    """Test TRON signer uses resolved wallet address"""
+    wallet = MagicMock()
+    wallet.get_address = AsyncMock(return_value="TAnotherBuyerAddress")
+    signer = await TronClientSigner.create(wallet)
 
     assert signer is not None
-    assert signer.get_address().startswith("T")
+    assert signer.get_address() == "TAnotherBuyerAddress"
 
 
-def test_evm_signer_from_private_key():
-    """Test creating EVM signer from private key"""
-    private_key = "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-    signer = EvmClientSigner.from_private_key(private_key)
+@pytest.mark.anyio
+async def test_evm_signer_create():
+    """Test creating EVM signer from wallet"""
+    wallet = MagicMock()
+    wallet.get_address = AsyncMock(return_value="0xFCAd0B19bB29D4674531d6f115237E16AfCE377c")
+    signer = await EvmClientSigner.create(wallet)
 
     assert signer is not None
     assert signer.get_address().startswith("0x")
     assert len(signer.get_address()) == 42
 
 
-def test_evm_signer_without_0x_prefix():
-    """Test EVM signer adding 0x prefix when missing"""
-    private_key = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-    signer = EvmClientSigner.from_private_key(private_key)
+@pytest.mark.anyio
+async def test_evm_signer_uses_wallet_address():
+    """Test EVM signer uses resolved wallet address"""
+    wallet = MagicMock()
+    wallet.get_address = AsyncMock(return_value="0x1111111111111111111111111111111111111111")
+    signer = await EvmClientSigner.create(wallet)
 
     assert signer is not None
-    assert signer.get_address().startswith("0x")
+    assert signer.get_address() == "0x1111111111111111111111111111111111111111"
 
 
 @pytest.mark.anyio
 async def test_tron_signer_check_allowance():
     """Test TRON signer allowance check (without tronpy)"""
-    private_key = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-    signer = TronClientSigner.from_private_key(private_key)
+    wallet = MagicMock()
+    wallet.get_address = AsyncMock(return_value="TTestBuyerAddress")
+    signer = await TronClientSigner.create(wallet)
 
     # Should return 0 when no tronpy client available
     allowance = await signer.check_allowance("TTestToken", 1000000, "tron:shasta")
@@ -54,8 +65,10 @@ async def test_tron_signer_check_allowance():
 @pytest.mark.anyio
 async def test_evm_signer_check_allowance():
     """Test EVM signer allowance check (without web3)"""
-    private_key = "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-    signer = EvmClientSigner.from_private_key(private_key)
+    wallet = MagicMock()
+    wallet.get_address = AsyncMock(return_value="0x1111111111111111111111111111111111111111")
+    signer = await EvmClientSigner.create(wallet)
+    signer._ensure_async_web3_client = MagicMock(return_value=None)
 
     # Should return 0 when no web3 client available
     allowance = await signer.check_allowance("0xTestToken", 1000000, "eip155:1")
@@ -65,21 +78,26 @@ async def test_evm_signer_check_allowance():
 @pytest.mark.anyio
 async def test_evm_signer_sign_message():
     """Test EVM signer message signing"""
-    private_key = "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-    signer = EvmClientSigner.from_private_key(private_key)
+    wallet = MagicMock()
+    wallet.get_address = AsyncMock(return_value="0x1111111111111111111111111111111111111111")
+    wallet.sign_message = AsyncMock(return_value="0x" + "ab" * 65)
+    signer = await EvmClientSigner.create(wallet)
 
     message = b"hello world"
     signature = await signer.sign_message(message)
 
     assert signature is not None
     assert signature.startswith("0x") or len(signature) == 130
+    wallet.sign_message.assert_awaited_once_with(message)
 
 
 @pytest.mark.anyio
 async def test_evm_signer_sign_typed_data():
     """Test EVM signer typed data signing"""
-    private_key = "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-    signer = EvmClientSigner.from_private_key(private_key)
+    wallet = MagicMock()
+    wallet.get_address = AsyncMock(return_value="0x1111111111111111111111111111111111111111")
+    wallet.sign_typed_data = AsyncMock(return_value="0x" + "cd" * 65)
+    signer = await EvmClientSigner.create(wallet)
 
     domain = {
         "name": "Test",
@@ -101,13 +119,23 @@ async def test_evm_signer_sign_typed_data():
 
     assert signature is not None
     assert signature.startswith("0x") or len(signature) == 130
+    wallet.sign_typed_data.assert_awaited_once_with(
+        {
+            "types": types,
+            "domain": domain,
+            "primaryType": "Person",
+            "message": message,
+        }
+    )
 
 
 @pytest.mark.anyio
 async def test_evm_signer_check_balance():
     """Test EVM signer balance check (without web3)"""
-    private_key = "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-    signer = EvmClientSigner.from_private_key(private_key)
+    wallet = MagicMock()
+    wallet.get_address = AsyncMock(return_value="0x1111111111111111111111111111111111111111")
+    signer = await EvmClientSigner.create(wallet)
+    signer._ensure_async_web3_client = MagicMock(return_value=None)
 
     balance = await signer.check_balance("0xTestToken", "eip155:1")
     assert balance == 0

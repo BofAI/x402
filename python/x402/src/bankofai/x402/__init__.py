@@ -4,8 +4,6 @@ x402 - Payment Protocol SDK for Python
 Supports Client, Server, and Facilitator functionality for multi-chain payments.
 """
 
-__version__ = "0.1.0"
-
 from bankofai.x402.address import (
     AddressConverter,
     EvmAddressConverter,
@@ -38,6 +36,8 @@ from bankofai.x402.types import (
     SettleResponse,
     VerifyResponse,
 )
+
+__version__ = "0.1.0"
 __all__ = [
     "__version__",
     # Types
