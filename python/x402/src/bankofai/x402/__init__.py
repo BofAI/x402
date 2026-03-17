@@ -38,13 +38,6 @@ from bankofai.x402.types import (
     SettleResponse,
     VerifyResponse,
 )
-from bankofai.x402.wallet import (
-    AgentWalletAdapter,
-    EvmPrivateKeyWallet,
-    TronPrivateKeyWallet,
-    Wallet,
-)
-
 __all__ = [
     "__version__",
     # Types
@@ -78,9 +71,4 @@ __all__ = [
     # Token registry
     "TokenInfo",
     "TokenRegistry",
-    # Wallet
-    "Wallet",
-    "EvmPrivateKeyWallet",
-    "TronPrivateKeyWallet",
-    "AgentWalletAdapter",
 ]

@@ -1,7 +1,8 @@
 /**
- * TRON Client Signer for x402 protocol
+ * Signers for x402 protocol
  */
 
+export type { AgentWallet } from './signer.js';
 export { TronClientSigner } from './signer.js';
 export { EvmClientSigner } from './evmSigner.js';
 export type {

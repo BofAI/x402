@@ -1,5 +1,9 @@
 """
 EvmClientSigner - EVM client signer implementation
+
+Accepts any wallet object that exposes the agent-wallet BaseWallet interface
+(get_address, sign_message, sign_typed_data, sign_transaction).
+The signer is agnostic about how the wallet was created (private key, hosted, etc.).
 """
 
 import logging
@@ -10,7 +14,6 @@ from bankofai.x402.config import NetworkConfig
 from bankofai.x402.exceptions import InsufficientAllowanceError, SignatureCreationError
 from bankofai.x402.signers.client.base import ClientSigner
 from bankofai.x402.signers.utils import resolve_provider_uri
-from bankofai.x402.wallet import EvmPrivateKeyWallet, Wallet
 
 logger = logging.getLogger(__name__)
 
@@ -18,21 +21,27 @@ logger = logging.getLogger(__name__)
 class EvmClientSigner(ClientSigner):
     """EVM client signer implementation using web3.py"""
 
-    def __init__(self, wallet: Wallet) -> None:
+    def __init__(self, wallet: Any, address: str) -> None:
+        """Create signer from a wallet and its pre-resolved address.
+
+        Prefer the async factory ``create()`` which resolves the address
+        automatically.
+
+        Args:
+            wallet: Any object implementing the BaseWallet interface
+                    (get_address, sign_message, sign_typed_data, sign_transaction).
+            address: The wallet's EVM address (checksummed hex).
+        """
         self._wallet = wallet
-        self._address = wallet.get_address()
+        self._address = address
         self._async_web3_clients: dict[str, Any] = {}
         logger.debug("EvmClientSigner initialized", extra={"address": self._address})
 
     @classmethod
-    def from_wallet(cls, wallet: Wallet) -> "EvmClientSigner":
-        """Create signer from a Wallet instance."""
-        return cls(wallet)
-
-    @classmethod
-    def from_private_key(cls, private_key: str) -> "EvmClientSigner":
-        """Create signer from private key (convenience factory)."""
-        return cls(EvmPrivateKeyWallet(private_key))
+    async def create(cls, wallet: Any) -> "EvmClientSigner":
+        """Async factory: resolve address from wallet and create signer."""
+        address = await wallet.get_address()
+        return cls(wallet, address)
 
     def get_address(self) -> str:
         return self._address
