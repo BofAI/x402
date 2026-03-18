@@ -10,10 +10,10 @@ async def test_tron_signer_create():
     """Test creating TRON signer from wallet"""
     wallet = MagicMock()
     wallet.get_address = AsyncMock(return_value="TTestBuyerAddress")
-    
+
     provider = MagicMock()
     provider.get_active_wallet = AsyncMock(return_value=wallet)
-    
+
     with patch("agent_wallet.resolve_wallet_provider", return_value=provider):
         signer = await TronClientSigner.create()
 
@@ -26,10 +26,10 @@ async def test_tron_signer_uses_wallet_address():
     """Test TRON signer uses resolved wallet address"""
     wallet = MagicMock()
     wallet.get_address = AsyncMock(return_value="TAnotherBuyerAddress")
-    
+
     provider = MagicMock()
     provider.get_active_wallet = AsyncMock(return_value=wallet)
-    
+
     with patch("agent_wallet.resolve_wallet_provider", return_value=provider):
         signer = await TronClientSigner.create()
 
@@ -42,10 +42,10 @@ async def test_evm_signer_create():
     """Test creating EVM signer from wallet"""
     wallet = MagicMock()
     wallet.get_address = AsyncMock(return_value="0xFCAd0B19bB29D4674531d6f115237E16AfCE377c")
-    
+
     provider = MagicMock()
     provider.get_active_wallet = AsyncMock(return_value=wallet)
-    
+
     with patch("agent_wallet.resolve_wallet_provider", return_value=provider):
         signer = await EvmClientSigner.create()
 
@@ -59,10 +59,10 @@ async def test_evm_signer_uses_wallet_address():
     """Test EVM signer uses resolved wallet address"""
     wallet = MagicMock()
     wallet.get_address = AsyncMock(return_value="0x1111111111111111111111111111111111111111")
-    
+
     provider = MagicMock()
     provider.get_active_wallet = AsyncMock(return_value=wallet)
-    
+
     with patch("agent_wallet.resolve_wallet_provider", return_value=provider):
         signer = await EvmClientSigner.create()
 
@@ -75,10 +75,10 @@ async def test_tron_signer_check_allowance():
     """Test TRON signer allowance check (without tronpy)"""
     wallet = MagicMock()
     wallet.get_address = AsyncMock(return_value="TTestBuyerAddress")
-    
+
     provider = MagicMock()
     provider.get_active_wallet = AsyncMock(return_value=wallet)
-    
+
     with patch("agent_wallet.resolve_wallet_provider", return_value=provider):
         signer = await TronClientSigner.create()
 
@@ -92,10 +92,10 @@ async def test_evm_signer_check_allowance():
     """Test EVM signer allowance check (without web3)"""
     wallet = MagicMock()
     wallet.get_address = AsyncMock(return_value="0x1111111111111111111111111111111111111111")
-    
+
     provider = MagicMock()
     provider.get_active_wallet = AsyncMock(return_value=wallet)
-    
+
     with patch("agent_wallet.resolve_wallet_provider", return_value=provider):
         signer = await EvmClientSigner.create()
     signer._ensure_async_web3_client = MagicMock(return_value=None)
@@ -111,10 +111,10 @@ async def test_evm_signer_sign_message():
     wallet = MagicMock()
     wallet.get_address = AsyncMock(return_value="0x1111111111111111111111111111111111111111")
     wallet.sign_message = AsyncMock(return_value="0x" + "ab" * 65)
-    
+
     provider = MagicMock()
     provider.get_active_wallet = AsyncMock(return_value=wallet)
-    
+
     with patch("agent_wallet.resolve_wallet_provider", return_value=provider):
         signer = await EvmClientSigner.create()
 
@@ -132,10 +132,10 @@ async def test_evm_signer_sign_typed_data():
     wallet = MagicMock()
     wallet.get_address = AsyncMock(return_value="0x1111111111111111111111111111111111111111")
     wallet.sign_typed_data = AsyncMock(return_value="0x" + "cd" * 65)
-    
+
     provider = MagicMock()
     provider.get_active_wallet = AsyncMock(return_value=wallet)
-    
+
     with patch("agent_wallet.resolve_wallet_provider", return_value=provider):
         signer = await EvmClientSigner.create()
 
@@ -174,10 +174,10 @@ async def test_evm_signer_check_balance():
     """Test EVM signer balance check (without web3)"""
     wallet = MagicMock()
     wallet.get_address = AsyncMock(return_value="0x1111111111111111111111111111111111111111")
-    
+
     provider = MagicMock()
     provider.get_active_wallet = AsyncMock(return_value=wallet)
-    
+
     with patch("agent_wallet.resolve_wallet_provider", return_value=provider):
         signer = await EvmClientSigner.create()
     signer._ensure_async_web3_client = MagicMock(return_value=None)

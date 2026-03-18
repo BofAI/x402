@@ -13,10 +13,10 @@ async def test_evm_facilitator_signer_creation(mock_evm_private_key):
     address = Account.from_key(mock_evm_private_key).address
     wallet = MagicMock()
     wallet.get_address = AsyncMock(return_value=address)
-    
+
     provider = MagicMock()
     provider.get_active_wallet = AsyncMock(return_value=wallet)
-    
+
     with patch("agent_wallet.resolve_wallet_provider", return_value=provider):
         signer = await EvmFacilitatorSigner.create()
     assert signer is not None
@@ -43,10 +43,10 @@ async def test_evm_verify_typed_data(mock_evm_private_key):
     address = Account.from_key(mock_evm_private_key).address
     wallet = MagicMock()
     wallet.get_address = AsyncMock(return_value=address)
-    
+
     provider = MagicMock()
     provider.get_active_wallet = AsyncMock(return_value=wallet)
-    
+
     with patch("agent_wallet.resolve_wallet_provider", return_value=provider):
         signer = await EvmFacilitatorSigner.create()
 
@@ -73,10 +73,10 @@ async def test_evm_verify_typed_data_invalid(mock_evm_private_key):
     address = Account.from_key(mock_evm_private_key).address
     wallet = MagicMock()
     wallet.get_address = AsyncMock(return_value=address)
-    
+
     provider = MagicMock()
     provider.get_active_wallet = AsyncMock(return_value=wallet)
-    
+
     with patch("agent_wallet.resolve_wallet_provider", return_value=provider):
         signer = await EvmFacilitatorSigner.create()
 
