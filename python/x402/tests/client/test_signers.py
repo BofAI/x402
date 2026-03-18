@@ -50,8 +50,9 @@ async def test_evm_signer_create():
         signer = await EvmClientSigner.create()
 
     assert signer is not None
-    assert signer.get_address().startswith("0x")
-    assert len(signer.get_address()) == 42
+    address = await signer.get_address()
+    assert address.startswith("0x")
+    assert len(address) == 42
 
 
 @pytest.mark.anyio
@@ -67,7 +68,7 @@ async def test_evm_signer_uses_wallet_address():
         signer = await EvmClientSigner.create()
 
     assert signer is not None
-    assert signer.get_address() == "0x1111111111111111111111111111111111111111"
+    assert await signer.get_address() == "0x1111111111111111111111111111111111111111"
 
 
 @pytest.mark.anyio
