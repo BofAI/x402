@@ -20,7 +20,7 @@ async def test_evm_facilitator_signer_creation(mock_evm_private_key):
     with patch("agent_wallet.resolve_wallet_provider", return_value=provider):
         signer = await EvmFacilitatorSigner.create()
     assert signer is not None
-    address = await signer.get_address()
+    address = signer.get_address()
     assert address.lower() == "0xFCAd0B19bB29D4674531d6f115237E16AfCE377c".lower()
 
 
@@ -60,7 +60,7 @@ async def test_evm_verify_typed_data(mock_evm_private_key):
     signature = signed.signature.hex()
 
     # Verify
-    address = await signer.get_address()
+    address = signer.get_address()
     valid = await signer.verify_typed_data(
         address, domain, types, message, signature, primary_type="Test"
     )
@@ -87,7 +87,7 @@ async def test_evm_verify_typed_data_invalid(mock_evm_private_key):
     message = {"content": "test"}
     signature = "0x" + "00" * 65
 
-    address = await signer.get_address()
+    address = signer.get_address()
     valid = await signer.verify_typed_data(
         address, domain, types, message, signature, primary_type="Test"
     )
