@@ -5,16 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.0] - 2026-03-11
-
-### Added
-- Added Agent Wallet support in both Python and TypeScript through a unified `Wallet` abstraction
-- Added Agent Wallet adapter implementations for signer integration with external wallet providers
+## [0.5.0] - 2026-03-18
 
 ### Changed
-- Refactored client and facilitator signers to use wallet-based signing flows instead of private-key-only logic
-- Unified transaction signing behavior across wallet implementations
-- Unified TRON wallet transaction signing to return signature hex only, with normalization handled inside wallet implementations
+- Refactored client and facilitator signers to accept wallet instances and resolve addresses through async factory methods
+- Standardized signer integration around the agent-wallet `BaseWallet` capability surface for message, typed-data, and transaction signing
+- Normalized TRON transaction signing by extracting signatures from wallet-signed transaction payloads when wallets return full signed transaction JSON
 
 ## [0.4.2] - 2026-03-11
 
