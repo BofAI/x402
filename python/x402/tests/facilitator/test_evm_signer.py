@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -13,7 +13,12 @@ async def test_evm_facilitator_signer_creation(mock_evm_private_key):
     address = Account.from_key(mock_evm_private_key).address
     wallet = MagicMock()
     wallet.get_address = AsyncMock(return_value=address)
-    signer = await EvmFacilitatorSigner.create(wallet)
+    
+    provider = MagicMock()
+    provider.get_active_wallet = AsyncMock(return_value=wallet)
+    
+    with patch("agent_wallet.resolve_wallet_provider", return_value=provider):
+        signer = await EvmFacilitatorSigner.create()
     assert signer is not None
     assert signer.get_address().lower() == "0xFCAd0B19bB29D4674531d6f115237E16AfCE377c".lower()
 
@@ -38,7 +43,12 @@ async def test_evm_verify_typed_data(mock_evm_private_key):
     address = Account.from_key(mock_evm_private_key).address
     wallet = MagicMock()
     wallet.get_address = AsyncMock(return_value=address)
-    signer = await EvmFacilitatorSigner.create(wallet)
+    
+    provider = MagicMock()
+    provider.get_active_wallet = AsyncMock(return_value=wallet)
+    
+    with patch("agent_wallet.resolve_wallet_provider", return_value=provider):
+        signer = await EvmFacilitatorSigner.create()
 
     full_types = {"EIP712Domain": PAYMENT_PERMIT_EIP712_DOMAIN_TYPE, **types}
 
@@ -63,7 +73,12 @@ async def test_evm_verify_typed_data_invalid(mock_evm_private_key):
     address = Account.from_key(mock_evm_private_key).address
     wallet = MagicMock()
     wallet.get_address = AsyncMock(return_value=address)
-    signer = await EvmFacilitatorSigner.create(wallet)
+    
+    provider = MagicMock()
+    provider.get_active_wallet = AsyncMock(return_value=wallet)
+    
+    with patch("agent_wallet.resolve_wallet_provider", return_value=provider):
+        signer = await EvmFacilitatorSigner.create()
 
     domain = {"name": "Test", "chainId": 1, "verifyingContract": "0x00"}
     types = {"Test": [{"name": "content", "type": "string"}]}

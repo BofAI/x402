@@ -41,6 +41,7 @@ class TronClientSigner(ClientSigner):
     async def create(cls) -> "TronClientSigner":
         """Async factory: resolve active agent wallet and create signer."""
         from agent_wallet import resolve_wallet_provider
+
         provider = resolve_wallet_provider(network="tron")
         wallet = await provider.get_active_wallet()
         address = await wallet.get_address()
@@ -53,6 +54,7 @@ class TronClientSigner(ClientSigner):
         Uses agent-wallet's ``create_wallet_provider`` internally.
         """
         from agent_wallet import PrivateKeyProviderOptions, create_wallet_provider
+
         provider = create_wallet_provider(
             PrivateKeyProviderOptions(private_key=private_key, network="tron")
         )
