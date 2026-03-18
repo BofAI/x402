@@ -43,7 +43,9 @@ class EvmClientSigner(ClientSigner):
 
         provider = resolve_wallet_provider(network="eip155")
         wallet = await provider.get_active_wallet()
-        return cls(wallet)
+        signer = cls(wallet)
+        signer.set_address(await wallet.get_address())
+        return signer
 
     @classmethod
     async def from_private_key(cls, private_key: str) -> "EvmClientSigner":
@@ -57,12 +59,17 @@ class EvmClientSigner(ClientSigner):
             PrivateKeyProviderOptions(private_key=private_key, network="eip155")
         )
         wallet = await provider.get_active_wallet()
-        return cls(wallet)
+        signer = cls(wallet)
+        signer.set_address(await wallet.get_address())
+        return signer
 
-    async def get_address(self) -> str:
+    def get_address(self) -> str:
         if not self._address:
-            self._address = await self._wallet.get_address()
+            raise ValueError("Signer address has not been initialized")
         return self._address
+
+    def set_address(self, address: str) -> None:
+        self._address = address
 
     def _ensure_async_web3_client(self, network: str) -> Any:
         """Lazy initialize async web3 client for the given network."""
@@ -110,7 +117,7 @@ class EvmClientSigner(ClientSigner):
             w3 = self._ensure_async_web3_client(network)
             if not w3:
                 return 0
-            target_address = address or await self.get_address()
+            target_address = address or self.get_address()
             contract = w3.eth.contract(address=token, abi=ERC20_ABI)
             return await contract.functions.balanceOf(target_address).call()
         except (ImportError, ModuleNotFoundError):
@@ -131,7 +138,7 @@ class EvmClientSigner(ClientSigner):
             if not spender or not w3:
                 return 0
             contract = w3.eth.contract(address=token, abi=ERC20_ABI)
-            return await contract.functions.allowance(await self.get_address(), spender).call()
+            return await contract.functions.allowance(self.get_address(), spender).call()
         except (ImportError, ModuleNotFoundError):
             logger.warning("web3 not available, returning 0 allowance")
             return 0
@@ -167,7 +174,7 @@ class EvmClientSigner(ClientSigner):
 
             spender = self._get_spender_address(network)
             contract = w3.eth.contract(address=token, abi=ERC20_ABI)
-            address = await self.get_address()
+            address = self.get_address()
 
             tx = await contract.functions.approve(spender, 2**256 - 1).build_transaction(
                 {

@@ -18,21 +18,19 @@ logger = logging.getLogger(__name__)
 class EvmFacilitatorSigner(FacilitatorSigner):
     """EVM facilitator signer implementation using web3.py"""
 
-    def __init__(self, wallet: Any, address: str) -> None:
-        """Create signer from a wallet and its pre-resolved address.
+    def __init__(self, wallet: Any) -> None:
+        """Create signer from a wallet.
 
-        Prefer the async factory ``create()`` which resolves the address
-        automatically.
+        Prefer the async factory ``create()`` or ``from_private_key()``.
 
         Args:
             wallet: Any object implementing the BaseWallet interface
                     (get_address, sign_message, sign_typed_data, sign_transaction).
-            address: The wallet's EVM address (checksummed hex).
         """
         self._wallet = wallet
-        self._address = address
+        self._address: str | None = None
         self._async_web3_clients: dict[str, Any] = {}
-        logger.debug("EvmFacilitatorSigner initialized", extra={"address": self._address})
+        logger.debug("EvmFacilitatorSigner initialized")
 
     @classmethod
     async def create(cls) -> "EvmFacilitatorSigner":
@@ -41,8 +39,9 @@ class EvmFacilitatorSigner(FacilitatorSigner):
 
         provider = resolve_wallet_provider(network="eip155")
         wallet = await provider.get_active_wallet()
-        address = await wallet.get_address()
-        return cls(wallet, address)
+        signer = cls(wallet)
+        signer.set_address(await wallet.get_address())
+        return signer
 
     @classmethod
     async def from_private_key(cls, private_key: str) -> "EvmFacilitatorSigner":
@@ -56,11 +55,17 @@ class EvmFacilitatorSigner(FacilitatorSigner):
             PrivateKeyProviderOptions(private_key=private_key, network="eip155")
         )
         wallet = await provider.get_active_wallet()
-        address = await wallet.get_address()
-        return cls(wallet, address)
+        signer = cls(wallet)
+        signer.set_address(await wallet.get_address())
+        return signer
 
     def get_address(self) -> str:
+        if not self._address:
+            raise ValueError("Signer address has not been initialized")
         return self._address
+
+    def set_address(self, address: str) -> None:
+        self._address = address
 
     def _ensure_async_web3_client(self, network: str) -> Any:
         """Lazy initialize async web3 client for the given network."""

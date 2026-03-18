@@ -21,21 +21,19 @@ logger = logging.getLogger(__name__)
 class TronClientSigner(ClientSigner):
     """TRON client signer implementation"""
 
-    def __init__(self, wallet: Any, address: str) -> None:
-        """Create signer from a wallet and its pre-resolved address.
+    def __init__(self, wallet: Any) -> None:
+        """Create signer from a wallet.
 
-        Prefer the async factory ``create()`` which resolves the address
-        automatically.
+        Prefer the async factory ``create()`` or ``from_private_key()``.
 
         Args:
             wallet: Any object implementing the BaseWallet interface
                     (get_address, sign_message, sign_typed_data, sign_transaction).
-            address: The wallet's TRON address (Base58Check format).
         """
         self._wallet = wallet
-        self._address = address
+        self._address: str | None = None
         self._async_tron_clients: dict[str, Any] = {}
-        logger.info(f"TronClientSigner initialized: address={self._address}")
+        logger.debug("TronClientSigner initialized")
 
     @classmethod
     async def create(cls) -> "TronClientSigner":
@@ -44,8 +42,9 @@ class TronClientSigner(ClientSigner):
 
         provider = resolve_wallet_provider(network="tron")
         wallet = await provider.get_active_wallet()
-        address = await wallet.get_address()
-        return cls(wallet, address)
+        signer = cls(wallet)
+        signer.set_address(await wallet.get_address())
+        return signer
 
     @classmethod
     async def from_private_key(cls, private_key: str) -> "TronClientSigner":
@@ -59,8 +58,9 @@ class TronClientSigner(ClientSigner):
             PrivateKeyProviderOptions(private_key=private_key, network="tron")
         )
         wallet = await provider.get_active_wallet()
-        address = await wallet.get_address()
-        return cls(wallet, address)
+        signer = cls(wallet)
+        signer.set_address(await wallet.get_address())
+        return signer
 
     @staticmethod
     def _extract_tron_signature(result: str) -> str:
@@ -96,7 +96,12 @@ class TronClientSigner(ClientSigner):
         return self._async_tron_clients[network]
 
     def get_address(self) -> str:
+        if not self._address:
+            raise ValueError("Signer address has not been initialized")
         return self._address
+
+    def set_address(self, address: str) -> None:
+        self._address = address
 
     async def sign_message(self, message: bytes) -> str:
         """Sign raw message using ECDSA"""
@@ -255,7 +260,8 @@ class TronClientSigner(ClientSigner):
             contract.abi = ERC20_ABI
             # AsyncTron: contract.functions.approve() returns a coroutine, need to await it first
             txn_builder = await contract.functions.approve(spender, max_uint160)
-            txn_builder = txn_builder.with_owner(self.get_address()).fee_limit(100_000_000)
+            owner_address = self.get_address()
+            txn_builder = txn_builder.with_owner(owner_address).fee_limit(100_000_000)
             txn = await txn_builder.build()
             # Sign the transaction via wallet
             txn_dict = txn.to_json()

@@ -18,7 +18,8 @@ async def test_tron_signer_create():
         signer = await TronClientSigner.create()
 
     assert signer is not None
-    assert signer.get_address().startswith("T")
+    address = await signer.get_address()
+    assert address.startswith("T")
 
 
 @pytest.mark.anyio
@@ -34,7 +35,7 @@ async def test_tron_signer_uses_wallet_address():
         signer = await TronClientSigner.create()
 
     assert signer is not None
-    assert signer.get_address() == "TAnotherBuyerAddress"
+    assert await signer.get_address() == "TAnotherBuyerAddress"
 
 
 @pytest.mark.anyio

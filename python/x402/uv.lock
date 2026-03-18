@@ -216,10 +216,25 @@ wheels = [
 ]
 
 [[package]]
+name = "bankofai-agent-wallet"
+version = "2.2.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "eth-hash", extra = ["pycryptodome"] },
+    { name = "pycryptodome" },
+    { name = "pydantic" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/2f/6e/f19a74e65d4b43fd16bfd0ef3d856c77ad7cca3e75306824831c33eabec5/bankofai_agent_wallet-2.2.1.tar.gz", hash = "sha256:f13b3efc9ec5b52a9e6d783d91a049e3746a483b3e15ad19151404fb522f147f", size = 18795 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/04/a9/3f3fc62afed7e164d95b80141d9f4ebddf39bfda08481a336687c0e7c606/bankofai_agent_wallet-2.2.1-py3-none-any.whl", hash = "sha256:7eff02bd96cd06b24da6333a11ce2f5a295f4c7c36011d33f029203138978ff8", size = 24734 },
+]
+
+[[package]]
 name = "bankofai-x402"
 version = "0.5.0"
 source = { editable = "." }
 dependencies = [
+    { name = "bankofai-agent-wallet" },
     { name = "base58" },
     { name = "httpx" },
     { name = "pydantic" },
@@ -263,6 +278,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "bankofai-agent-wallet", specifier = ">=2.2.1" },
     { name = "base58", specifier = ">=2.1.1" },
     { name = "eth-account", marker = "extra == 'all'", specifier = ">=0.8.0" },
     { name = "eth-account", marker = "extra == 'evm'", specifier = ">=0.8.0" },
