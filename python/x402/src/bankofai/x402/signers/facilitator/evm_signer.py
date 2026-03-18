@@ -118,7 +118,7 @@ class EvmFacilitatorSigner(FacilitatorSigner):
 
         from bankofai.x402.abi import ERC20_ABI
 
-        target_address = address or self._address
+        target_address = address or self.get_address()
         try:
             contract = w3.eth.contract(address=token, abi=ERC20_ABI)
             return await contract.functions.balanceOf(target_address).call()
@@ -145,11 +145,12 @@ class EvmFacilitatorSigner(FacilitatorSigner):
             abi_list = json.loads(abi) if isinstance(abi, str) else abi
             contract = w3.eth.contract(address=contract_address, abi=abi_list)
             func = getattr(contract.functions, method)
+            address = self.get_address()
 
             tx = await func(*args).build_transaction(
                 {
-                    "from": self._address,
-                    "nonce": await w3.eth.get_transaction_count(self._address),
+                    "from": address,
+                    "nonce": await w3.eth.get_transaction_count(address),
                     "chainId": await w3.eth.chain_id,
                 }
             )

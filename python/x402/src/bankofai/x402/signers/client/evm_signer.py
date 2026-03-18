@@ -21,21 +21,20 @@ logger = logging.getLogger(__name__)
 class EvmClientSigner(ClientSigner):
     """EVM client signer implementation using web3.py"""
 
-    def __init__(self, wallet: Any, address: str) -> None:
-        """Create signer from a wallet and its pre-resolved address.
+    def __init__(self, wallet: Any) -> None:
+        """Create signer from a wallet.
 
         Prefer the async factory ``create()`` which resolves the address
-        automatically.
+        automatically and stores it on the instance.
 
         Args:
             wallet: Any object implementing the BaseWallet interface
                     (get_address, sign_message, sign_typed_data, sign_transaction).
-            address: The wallet's EVM address (checksummed hex).
         """
         self._wallet = wallet
-        self._address = address
+        self._address: str | None = None
         self._async_web3_clients: dict[str, Any] = {}
-        logger.debug("EvmClientSigner initialized", extra={"address": self._address})
+        logger.debug("EvmClientSigner initialized")
 
     @classmethod
     async def create(cls) -> "EvmClientSigner":
@@ -44,8 +43,7 @@ class EvmClientSigner(ClientSigner):
 
         provider = resolve_wallet_provider(network="eip155")
         wallet = await provider.get_active_wallet()
-        address = await wallet.get_address()
-        return cls(wallet, address)
+        return cls(wallet)
 
     @classmethod
     async def from_private_key(cls, private_key: str) -> "EvmClientSigner":
@@ -59,10 +57,11 @@ class EvmClientSigner(ClientSigner):
             PrivateKeyProviderOptions(private_key=private_key, network="eip155")
         )
         wallet = await provider.get_active_wallet()
-        address = await wallet.get_address()
-        return cls(wallet, address)
+        return cls(wallet)
 
-    def get_address(self) -> str:
+    async def get_address(self) -> str:
+        if not self._address:
+            self._address = await self._wallet.get_address()
         return self._address
 
     def _ensure_async_web3_client(self, network: str) -> Any:
@@ -111,7 +110,7 @@ class EvmClientSigner(ClientSigner):
             w3 = self._ensure_async_web3_client(network)
             if not w3:
                 return 0
-            target_address = address or self._address
+            target_address = address or await self.get_address()
             contract = w3.eth.contract(address=token, abi=ERC20_ABI)
             return await contract.functions.balanceOf(target_address).call()
         except (ImportError, ModuleNotFoundError):
@@ -132,7 +131,7 @@ class EvmClientSigner(ClientSigner):
             if not spender or not w3:
                 return 0
             contract = w3.eth.contract(address=token, abi=ERC20_ABI)
-            return await contract.functions.allowance(self._address, spender).call()
+            return await contract.functions.allowance(await self.get_address(), spender).call()
         except (ImportError, ModuleNotFoundError):
             logger.warning("web3 not available, returning 0 allowance")
             return 0
@@ -168,11 +167,12 @@ class EvmClientSigner(ClientSigner):
 
             spender = self._get_spender_address(network)
             contract = w3.eth.contract(address=token, abi=ERC20_ABI)
+            address = await self.get_address()
 
             tx = await contract.functions.approve(spender, 2**256 - 1).build_transaction(
                 {
-                    "from": self._address,
-                    "nonce": await w3.eth.get_transaction_count(self._address),
+                    "from": address,
+                    "nonce": await w3.eth.get_transaction_count(address),
                     "chainId": await w3.eth.chain_id,
                 }
             )

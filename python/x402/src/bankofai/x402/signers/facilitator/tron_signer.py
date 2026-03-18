@@ -174,7 +174,7 @@ class TronFacilitatorSigner(FacilitatorSigner):
 
         from bankofai.x402.abi import ERC20_ABI
 
-        target_address = address or self._address
+        target_address = address or self.get_address()
         try:
             contract = await client.get_contract(token)
             contract.abi = ERC20_ABI
@@ -250,12 +250,13 @@ class TronFacilitatorSigner(FacilitatorSigner):
             # Normalize contract address to ensure valid Base58Check format
             normalized_address = self._normalize_tron_address(contract_address)
             logger.info(f"Normalized contract address: {contract_address} -> {normalized_address}")
+            address = self.get_address()
 
             # Log account resources before transaction
             try:
-                account_info = await client.get_account(self._address)
-                account_resource = await client.get_account_resource(self._address)
-                logger.info(f"Account address: {self._address}")
+                account_info = await client.get_account(address)
+                account_resource = await client.get_account_resource(address)
+                logger.info(f"Account address: {address}")
                 logger.info(
                     f"Account balance: {account_info.get('balance', 0) / 1_000_000:.6f} TRX"
                 )
@@ -293,7 +294,7 @@ class TronFacilitatorSigner(FacilitatorSigner):
             logger.info("Building transaction with fee_limit=1,000,000,000 SUN (1000 TRX)")
             # AsyncTron: func(*args) returns a coroutine, need to await it first
             txn_builder = await func(*args)
-            txn_builder = txn_builder.with_owner(self._address).fee_limit(1_000_000_000)
+            txn_builder = txn_builder.with_owner(address).fee_limit(1_000_000_000)
             txn = await txn_builder.build()
             # Sign the transaction via wallet
             unsigned_payload = _build_unsigned_tx_payload(txn)

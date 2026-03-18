@@ -156,7 +156,7 @@ class TronClientSigner(ClientSigner):
             logger.warning("AsyncTron client not available, returning 0 balance")
             return 0
 
-        target_address = address or self._address
+        target_address = address or self.get_address()
         try:
             contract = await client.get_contract(token)
             contract.abi = ERC20_ABI
@@ -185,10 +185,11 @@ class TronClientSigner(ClientSigner):
     ) -> int:
         """Check token allowance on TRON"""
         spender = self._get_spender_address(network)
+        address = self.get_address()
         logger.info(
             "Checking allowance: token=%s, owner=%s, spender=%s, network=%s",
             token,
-            self._address,
+            address,
             spender,
             network,
         )
@@ -207,7 +208,7 @@ class TronClientSigner(ClientSigner):
             contract = await client.get_contract(token)
             contract.abi = ERC20_ABI
             allowance = await contract.functions.allowance(
-                self._address,
+                address,
                 spender,
             )
             allowance_int = int(allowance)
@@ -254,7 +255,7 @@ class TronClientSigner(ClientSigner):
             contract.abi = ERC20_ABI
             # AsyncTron: contract.functions.approve() returns a coroutine, need to await it first
             txn_builder = await contract.functions.approve(spender, max_uint160)
-            txn_builder = txn_builder.with_owner(self._address).fee_limit(100_000_000)
+            txn_builder = txn_builder.with_owner(self.get_address()).fee_limit(100_000_000)
             txn = await txn_builder.build()
             # Sign the transaction via wallet
             txn_dict = txn.to_json()
