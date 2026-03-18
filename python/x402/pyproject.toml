@@ -27,7 +27,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "bankofai-agent-wallet>=2.2.1b0",
+    "bankofai-agent-wallet>=2.2.1",
     "httpx>=0.25.0",
     "pydantic>=2.0.0",
     "base58>=2.1.1",
