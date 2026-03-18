@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { resolveWalletProvider } from '@bankofai/agent-wallet';
 import { EvmClientSigner } from './evmSigner.js';
 import type { AgentWallet } from './signer.js';
 
@@ -11,6 +12,10 @@ function createMockWallet(address: string): AgentWallet {
     signTransaction: vi.fn().mockResolvedValue('0x1234'),
   };
 }
+
+vi.mock('@bankofai/agent-wallet', () => ({
+  resolveWalletProvider: vi.fn(),
+}));
 
 describe('EvmClientSigner', () => {
   const expectedAddress = '0xFCAd0B19bB29D4674531d6f115237E16AfCE377c';
@@ -25,7 +30,11 @@ describe('EvmClientSigner', () => {
 
   it('should create via async factory', async () => {
     const wallet = createMockWallet(expectedAddress);
-    const signer = await EvmClientSigner.create(wallet);
+    vi.mocked(resolveWalletProvider).mockReturnValue({
+      getActiveWallet: vi.fn().mockResolvedValue(wallet),
+    });
+
+    const signer = await EvmClientSigner.create();
     expect(signer.getAddress().toLowerCase()).toBe(
       expectedAddress.toLowerCase(),
     );
