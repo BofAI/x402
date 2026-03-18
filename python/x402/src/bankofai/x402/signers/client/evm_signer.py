@@ -38,8 +38,25 @@ class EvmClientSigner(ClientSigner):
         logger.debug("EvmClientSigner initialized", extra={"address": self._address})
 
     @classmethod
-    async def create(cls, wallet: Any) -> "EvmClientSigner":
-        """Async factory: resolve address from wallet and create signer."""
+    async def create(cls) -> "EvmClientSigner":
+        """Async factory: resolve active agent wallet and create signer."""
+        from agent_wallet import resolve_wallet_provider
+        provider = resolve_wallet_provider(network="eip155")
+        wallet = await provider.get_active_wallet()
+        address = await wallet.get_address()
+        return cls(wallet, address)
+
+    @classmethod
+    async def from_private_key(cls, private_key: str) -> "EvmClientSigner":
+        """Create signer from a raw private-key hex string (backward-compat).
+
+        Uses agent-wallet's ``create_wallet_provider`` internally.
+        """
+        from agent_wallet import PrivateKeyProviderOptions, create_wallet_provider
+        provider = create_wallet_provider(
+            PrivateKeyProviderOptions(private_key=private_key, network="eip155")
+        )
+        wallet = await provider.get_active_wallet()
         address = await wallet.get_address()
         return cls(wallet, address)
 

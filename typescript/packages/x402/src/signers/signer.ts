@@ -14,6 +14,7 @@ import {
   UnsupportedNetworkError,
   TRON_RPC_URLS,
 } from '../index.js';
+import { createWalletProvider, resolveWalletProvider } from '@bankofai/agent-wallet';
 import { TronWeb as TronWebClass } from 'tronweb';
 import type { TronWeb, TypedDataDomain, TypedDataField } from './types.js';
 
@@ -40,25 +41,55 @@ const ERC20_APPROVE_SELECTOR = 'approve(address,uint256)';
  * (private key, hosted, etc.).
  */
 export class TronClientSigner implements ClientSigner {
-  private wallet: AgentWallet;
-  private address: string; // Base58 format
+  private wallet!: AgentWallet;
+  private address: string = ''; // Base58 format
   private tronWebInstances: Map<string, TronWeb> = new Map();
+  private _initPromise: Promise<void> | null = null;
 
   /**
-   * Create signer from a wallet and its pre-resolved address.
+   * Create signer from a wallet + address, or from a raw private-key string.
    *
-   * Prefer the async factory `TronClientSigner.create()` which resolves
-   * the address automatically.
+   * When constructed with a private key the signer initialises lazily;
+   * all async methods wait for initialisation automatically.
    */
-  constructor(wallet: AgentWallet, address: string) {
-    this.wallet = wallet;
-    this.address = address;
+  constructor(privateKey: string);
+  constructor(wallet: AgentWallet, address: string);
+  constructor(walletOrPrivateKey: AgentWallet | string, address?: string) {
+    if (typeof walletOrPrivateKey === 'string') {
+      this._initPromise = this._initFromPrivateKey(walletOrPrivateKey);
+    } else {
+      this.wallet = walletOrPrivateKey;
+      this.address = address!;
+    }
   }
 
-  /** Async factory: resolve address from wallet and create signer. */
-  static async create(wallet: AgentWallet): Promise<TronClientSigner> {
+  /** Async factory: resolve active agent wallet and create signer. */
+  static async create(): Promise<TronClientSigner> {
+    const provider = resolveWalletProvider({ network: 'tron' });
+    const wallet = await provider.getActiveWallet();
     const address = await wallet.getAddress();
-    return new TronClientSigner(wallet, address);
+    return new TronClientSigner(wallet as unknown as AgentWallet, address);
+  }
+
+  /** Create signer from a raw private-key hex string (backward-compat). */
+  static async fromPrivateKey(privateKey: string): Promise<TronClientSigner> {
+    const signer = new TronClientSigner(privateKey);
+    await signer._ensureReady();
+    return signer;
+  }
+
+  private async _initFromPrivateKey(privateKey: string): Promise<void> {
+    const provider = createWalletProvider({ privateKey, network: 'tron' });
+    const wallet = await provider.getActiveWallet();
+    this.wallet = wallet as unknown as AgentWallet;
+    this.address = await wallet.getAddress();
+  }
+
+  private async _ensureReady(): Promise<void> {
+    if (this._initPromise) {
+      await this._initPromise;
+      this._initPromise = null;
+    }
   }
 
   /**
@@ -120,6 +151,7 @@ export class TronClientSigner implements ClientSigner {
   }
 
   async signMessage(message: Uint8Array): Promise<string> {
+    await this._ensureReady();
     return this.wallet.signMessage(message);
   }
 
@@ -132,6 +164,7 @@ export class TronClientSigner implements ClientSigner {
     message: Record<string, unknown>,
     _primaryType: string
   ): Promise<string> {
+    await this._ensureReady();
     const fullData = {
       types: { EIP712Domain: [], ...types },
       domain,
@@ -145,6 +178,7 @@ export class TronClientSigner implements ClientSigner {
   }
 
   async checkBalance(token: string, network: string, address?: string): Promise<bigint> {
+    await this._ensureReady();
     try {
       const targetAddress = address || this.address;
       const ownerHex = toEvmHex(targetAddress);
@@ -169,6 +203,7 @@ export class TronClientSigner implements ClientSigner {
   }
 
   async checkAllowance(token: string, _amount: bigint, network: string): Promise<bigint> {
+    await this._ensureReady();
     const spender = getPaymentPermitAddress(network);
     
     try {
@@ -203,6 +238,7 @@ export class TronClientSigner implements ClientSigner {
     network: string,
     mode: 'auto' | 'interactive' | 'skip' = 'auto'
   ): Promise<boolean> {
+    await this._ensureReady();
     if (mode === 'skip') {
       return true;
     }

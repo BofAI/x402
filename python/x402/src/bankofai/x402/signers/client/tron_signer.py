@@ -38,8 +38,25 @@ class TronClientSigner(ClientSigner):
         logger.info(f"TronClientSigner initialized: address={self._address}")
 
     @classmethod
-    async def create(cls, wallet: Any) -> "TronClientSigner":
-        """Async factory: resolve address from wallet and create signer."""
+    async def create(cls) -> "TronClientSigner":
+        """Async factory: resolve active agent wallet and create signer."""
+        from agent_wallet import resolve_wallet_provider
+        provider = resolve_wallet_provider(network="tron")
+        wallet = await provider.get_active_wallet()
+        address = await wallet.get_address()
+        return cls(wallet, address)
+
+    @classmethod
+    async def from_private_key(cls, private_key: str) -> "TronClientSigner":
+        """Create signer from a raw private-key hex string (backward-compat).
+
+        Uses agent-wallet's ``create_wallet_provider`` internally.
+        """
+        from agent_wallet import PrivateKeyProviderOptions, create_wallet_provider
+        provider = create_wallet_provider(
+            PrivateKeyProviderOptions(private_key=private_key, network="tron")
+        )
+        wallet = await provider.get_active_wallet()
         address = await wallet.get_address()
         return cls(wallet, address)
 

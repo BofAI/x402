@@ -2,6 +2,9 @@
 requires = ["hatchling>=1.18.0,<1.22.0"]
 build-backend = "hatchling.build"
 
+[tool.hatch.metadata]
+allow-direct-references = true
+
 [project]
 name = "bankofai-x402"
 version = "0.5.0"
@@ -24,6 +27,7 @@ classifiers = [
 ]
 
 dependencies = [
+    "bankofai-agent-wallet>=2.2.1b0",
     "httpx>=0.25.0",
     "pydantic>=2.0.0",
     "base58>=2.1.1",
