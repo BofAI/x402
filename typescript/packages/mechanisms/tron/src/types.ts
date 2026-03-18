@@ -1,9 +1,9 @@
 /**
  * Asset transfer methods for the exact TRON scheme.
- * - eip3009: Uses TransferWithAuthorization via TIP-712 (TRON equivalent of EIP-3009)
+ * - transferWithAuthorization: Uses TransferWithAuthorization via TIP-712
  * - permit2: Uses Permit2 + x402Permit2Proxy — universal fallback for any TRC-20
  */
-export type AssetTransferMethod = "eip3009" | "permit2";
+export type AssetTransferMethod = "transferWithAuthorization" | "permit2";
 
 // --- TIP-712 (TransferWithAuthorization) types ---
 

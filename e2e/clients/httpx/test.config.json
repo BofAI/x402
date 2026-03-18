@@ -15,7 +15,7 @@
     "transferMethods": ["eip3009", "permit2"]
   },
   "tron": {
-    "transferMethods": ["tip712", "permit2"]
+    "transferMethods": ["transferWithAuthorization", "permit2"]
   },
   "description": "Python httpx client with x402 v2 payment hooks",
   "environment": {

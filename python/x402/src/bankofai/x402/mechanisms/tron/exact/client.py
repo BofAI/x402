@@ -39,7 +39,9 @@ class ExactTronClientScheme:
         self, requirements: PaymentRequirements, context: PaymentPayloadContext | None = None
     ) -> dict[str, Any] | tuple[dict[str, Any], dict[str, Any]]:
         extra = requirements.extra or {}
-        asset_transfer_method = extra.get("assetTransferMethod", "eip3009")
+        asset_transfer_method = extra.get("assetTransferMethod", "transferWithAuthorization")
+        if asset_transfer_method in {"tip712", "eip3009"}:
+            asset_transfer_method = "transferWithAuthorization"
 
         if asset_transfer_method == "permit2":
             payload = self._create_permit2_payload(requirements)

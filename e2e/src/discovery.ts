@@ -293,7 +293,7 @@ export class TestDiscovery {
 
           // For protocols with transfer methods (EVM, TRON), check compatibility with client
           if (endpointProtocolFamily === 'evm' || endpointProtocolFamily === 'tron') {
-            const defaultMethod = endpointProtocolFamily === 'evm' ? 'eip3009' : 'tip712';
+            const defaultMethod = endpointProtocolFamily === 'evm' ? 'eip3009' : 'transferWithAuthorization';
             const endpointTransferMethod = (endpoint as any).permit2 ? 'permit2' : (endpoint.transferMethod || defaultMethod);
             const clientTransferMethods = (endpointProtocolFamily === 'evm'
               ? client.config.evm?.transferMethods
@@ -310,7 +310,7 @@ export class TestDiscovery {
             const supportsVersion = f.config.x402Versions?.includes(serverVersion);
             // For protocols with transfer methods, also check compatibility
             if (endpointProtocolFamily === 'evm' || endpointProtocolFamily === 'tron') {
-              const defaultMethod = endpointProtocolFamily === 'evm' ? 'eip3009' : 'tip712';
+              const defaultMethod = endpointProtocolFamily === 'evm' ? 'eip3009' : 'transferWithAuthorization';
               const endpointTransferMethod = (endpoint as any).permit2 ? 'permit2' : (endpoint.transferMethod || defaultMethod);
               const facilTransferMethods = (endpointProtocolFamily === 'evm'
                 ? f.config.evm?.transferMethods

@@ -2,7 +2,7 @@ import type { NetworkSet } from './networks/networks';
 
 export type ProtocolFamily = 'evm' | 'svm' | 'aptos' | 'stellar' | 'tron';
 export type Transport = 'http' | 'mcp';
-export type TransferMethod = 'eip3009' | 'permit2' | 'tip712';
+export type TransferMethod = 'eip3009' | 'permit2' | 'transferWithAuthorization';
 
 export interface ClientResult {
   success: boolean;

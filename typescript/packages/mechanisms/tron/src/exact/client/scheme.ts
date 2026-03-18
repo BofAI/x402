@@ -17,7 +17,7 @@ import { signTrc20ApprovalTransaction } from "./trc20approval";
  * Supports both EIP-3009-style TransferWithAuthorization and Permit2 flows.
  *
  * Routes to the appropriate authorization method based on
- * `requirements.extra.assetTransferMethod`. Defaults to `eip3009`.
+ * `requirements.extra.assetTransferMethod`. Defaults to `transferWithAuthorization`.
  */
 export class ExactTronScheme implements SchemeNetworkClient {
   readonly scheme = "exact";
@@ -43,11 +43,9 @@ export class ExactTronScheme implements SchemeNetworkClient {
     paymentRequirements: PaymentRequirements,
     context?: PaymentPayloadContext,
   ): Promise<PaymentPayloadResult> {
-    // Mark unused parameters to satisfy linter
-    void context;
-
-    const assetTransferMethod =
-      (paymentRequirements.extra?.assetTransferMethod as AssetTransferMethod) ?? "eip3009";
+    const assetTransferMethod = normalizeAssetTransferMethod(
+      paymentRequirements.extra?.assetTransferMethod as string | undefined,
+    );
 
     if (assetTransferMethod === "permit2") {
       const result = await createPermit2Payload(this.signer, x402Version, paymentRequirements);
@@ -111,4 +109,14 @@ export class ExactTronScheme implements SchemeNetworkClient {
       [TRC20_APPROVAL_GAS_SPONSORING.key]: { info },
     };
   }
+}
+
+function normalizeAssetTransferMethod(method?: string): AssetTransferMethod {
+  if (method === "permit2") {
+    return "permit2";
+  }
+  if (method === "tip712" || method === "eip3009") {
+    return "transferWithAuthorization";
+  }
+  return method === "transferWithAuthorization" ? method : "transferWithAuthorization";
 }

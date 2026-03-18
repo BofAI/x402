@@ -45,7 +45,7 @@
       "description": "Protected endpoint requiring TRON payment",
       "requiresPayment": true,
       "protocolFamily": "tron",
-      "transferMethod": "tip712"
+      "transferMethod": "transferWithAuthorization"
     },
     {
       "path": "/protected-tron-permit2",
