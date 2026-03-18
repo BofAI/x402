@@ -38,8 +38,10 @@ export async function createPermit2Payload(
   const deadline = (now + paymentRequirements.maxTimeoutSeconds).toString();
 
   const facilitator =
-    (paymentRequirements.extra?.permit2FacilitatorAddress as `0x${string}` | undefined) ??
-    (getAddress(paymentRequirements.payTo) as `0x${string}`);
+    paymentRequirements.extra?.permit2FacilitatorAddress as `0x${string}` | undefined;
+  if (!facilitator) {
+    throw new Error("permit2FacilitatorAddress is required for Permit2 payments");
+  }
 
   const permit2Authorization: ExactPermit2Payload["permit2Authorization"] = {
     from: signer.address,

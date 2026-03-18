@@ -19,6 +19,8 @@ from bankofai.x402.mechanisms.evm.exact.permit2 import verify_permit2
 from bankofai.x402.mechanisms.evm.types import ExactPermit2Payload
 from bankofai.x402.schemas import PaymentPayload, PaymentRequirements
 
+PERMIT2_FACILITATOR_ADDRESS = "0x1111111111111111111111111111111111111111"
+
 
 class DummySigner:
     def __init__(self, balance: int = 10**9):
@@ -54,7 +56,12 @@ def _build_requirements():
         amount="1000",
         pay_to="0x0987654321098765432109876543210987654321",
         max_timeout_seconds=3600,
-        extra={"name": "USD Coin", "version": "2", "assetTransferMethod": "permit2"},
+        extra={
+            "name": "USD Coin",
+            "version": "2",
+            "assetTransferMethod": "permit2",
+            "permit2FacilitatorAddress": PERMIT2_FACILITATOR_ADDRESS,
+        },
     )
 
 
@@ -69,7 +76,7 @@ def _build_permit2_payload(requirements: PaymentRequirements, payer: str) -> dic
             "deadline": str(9999999999),
             "witness": {
                 "to": requirements.pay_to,
-                "facilitator": requirements.pay_to,
+                "facilitator": requirements.extra["permit2FacilitatorAddress"],
                 "validAfter": "0",
             },
         },

@@ -9,6 +9,8 @@ import { PaymentRequirements } from "@bankofai/x402-core/types";
 import { PERMIT2_ADDRESS, x402ExactPermit2ProxyAddress } from "../../../src/constants";
 import { isPermit2Payload, isEIP3009Payload } from "../../../src/types";
 
+const permit2FacilitatorAddress = "0x1111111111111111111111111111111111111111";
+
 describe("ExactEvmScheme (Client)", () => {
   let client: ExactEvmScheme;
   let mockSigner: ClientEvmSigner;
@@ -266,7 +268,12 @@ describe("ExactEvmScheme (Client)", () => {
           asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
           payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
           maxTimeoutSeconds: 300,
-          extra: { name: "USD Coin", version: "2", assetTransferMethod: "permit2" },
+          extra: {
+            name: "USD Coin",
+            version: "2",
+            assetTransferMethod: "permit2",
+            permit2FacilitatorAddress,
+          },
         };
 
         const result = await client.createPaymentPayload(2, requirements);
@@ -287,7 +294,7 @@ describe("ExactEvmScheme (Client)", () => {
         asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
         maxTimeoutSeconds: 300,
-        extra: { assetTransferMethod: "permit2" },
+        extra: { assetTransferMethod: "permit2", permit2FacilitatorAddress },
       };
 
       const result = await client.createPaymentPayload(2, requirements);
@@ -308,7 +315,7 @@ describe("ExactEvmScheme (Client)", () => {
         asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
         maxTimeoutSeconds: 300,
-        extra: { assetTransferMethod: "permit2" },
+        extra: { assetTransferMethod: "permit2", permit2FacilitatorAddress },
       };
 
       const result = await client.createPaymentPayload(2, requirements);
@@ -326,7 +333,7 @@ describe("ExactEvmScheme (Client)", () => {
         asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         payTo: payToAddress,
         maxTimeoutSeconds: 300,
-        extra: { assetTransferMethod: "permit2" },
+        extra: { assetTransferMethod: "permit2", permit2FacilitatorAddress },
       };
 
       const result = await client.createPaymentPayload(2, requirements);
@@ -345,7 +352,7 @@ describe("ExactEvmScheme (Client)", () => {
         asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
         maxTimeoutSeconds: 300,
-        extra: { assetTransferMethod: "permit2" },
+        extra: { assetTransferMethod: "permit2", permit2FacilitatorAddress },
       };
 
       await client.createPaymentPayload(2, requirements);
@@ -582,7 +589,7 @@ describe("Permit2 Approval Flow", () => {
         asset: tokenAddress,
         payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
         maxTimeoutSeconds: 300,
-        extra: { assetTransferMethod: "permit2" },
+        extra: { assetTransferMethod: "permit2", permit2FacilitatorAddress },
       };
 
       // Step 1: Check allowance (simulated as zero)
@@ -619,7 +626,7 @@ describe("Permit2 Approval Flow", () => {
         asset: tokenAddress,
         payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
         maxTimeoutSeconds: 300,
-        extra: { assetTransferMethod: "permit2" },
+        extra: { assetTransferMethod: "permit2", permit2FacilitatorAddress },
       };
 
       // Step 1: Check allowance (simulated as max uint256 - already approved)
@@ -649,6 +656,7 @@ describe("Permit2 Approval Flow", () => {
         assetTransferMethod: "permit2",
         name: "USDC",
         version: "2",
+        permit2FacilitatorAddress,
       },
     };
 
@@ -747,6 +755,7 @@ describe("Permit2 Approval Flow", () => {
       maxTimeoutSeconds: 60,
       extra: {
         assetTransferMethod: "permit2",
+        permit2FacilitatorAddress,
         // No name/version - generic ERC-20 without EIP-2612
       },
     };
@@ -844,6 +853,7 @@ describe("Permit2 Approval Flow", () => {
           assetTransferMethod: "permit2",
           name: "TOKEN",
           version: "1",
+          permit2FacilitatorAddress,
         },
       };
 

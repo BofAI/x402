@@ -86,7 +86,9 @@ def create_permit2_payload(
     valid_after = str(now - 600)
     deadline = str(now + (requirements.max_timeout_seconds or 3600))
 
-    facilitator = (requirements.extra or {}).get("permit2FacilitatorAddress") or requirements.pay_to
+    facilitator = (requirements.extra or {}).get("permit2FacilitatorAddress")
+    if not facilitator:
+        raise ValueError("Permit2 facilitator address required in payment requirements extra")
 
     authorization = Permit2Authorization(
         from_address=normalize_address(signer.address),
@@ -140,9 +142,11 @@ def verify_permit2(
             is_valid=False, invalid_reason=ERR_PERMIT2_RECIPIENT_MISMATCH, payer=payer
         )
 
-    expected_facilitator = (requirements.extra or {}).get("permit2FacilitatorAddress") or (
-        requirements.pay_to
-    )
+    expected_facilitator = (requirements.extra or {}).get("permit2FacilitatorAddress")
+    if not expected_facilitator:
+        return VerifyResponse(
+            is_valid=False, invalid_reason=ERR_PERMIT2_INVALID_FACILITATOR, payer=payer
+        )
     if normalize_address(
         permit2_payload.permit2_authorization.witness.facilitator
     ) != normalize_address(str(expected_facilitator)):

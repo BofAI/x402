@@ -102,7 +102,12 @@ class TestCreatePaymentPayload:
             amount="1000",
             pay_to="0x0987654321098765432109876543210987654321",
             max_timeout_seconds=3600,
-            extra={"name": "USD Coin", "version": "2", "assetTransferMethod": "permit2"},
+            extra={
+                "name": "USD Coin",
+                "version": "2",
+                "assetTransferMethod": "permit2",
+                "permit2FacilitatorAddress": "0x1111111111111111111111111111111111111111",
+            },
         )
 
         context = PaymentPayloadContext(extensions={EIP2612_GAS_SPONSORING.key: {}})
@@ -139,7 +144,12 @@ class TestCreatePaymentPayload:
             amount="1000",
             pay_to="0x0987654321098765432109876543210987654321",
             max_timeout_seconds=3600,
-            extra={"name": "USD Coin", "version": "2", "assetTransferMethod": "permit2"},
+            extra={
+                "name": "USD Coin",
+                "version": "2",
+                "assetTransferMethod": "permit2",
+                "permit2FacilitatorAddress": "0x1111111111111111111111111111111111111111",
+            },
         )
 
         context = PaymentPayloadContext(extensions={ERC20_APPROVAL_GAS_SPONSORING.key: {}})

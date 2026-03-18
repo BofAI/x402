@@ -50,7 +50,7 @@ if not TRON_ADDRESS:
 if not TRON_FACILITATOR_ADDRESS:
     print("Warning: TRON_FACILITATOR_ADDRESS not set - TRON Permit2 endpoints disabled")
 if not EVM_FACILITATOR_ADDRESS:
-    print("Warning: EVM_FACILITATOR_ADDRESS not set - EVM Permit2 witness will default to payTo")
+    print("Warning: EVM_FACILITATOR_ADDRESS not set - EVM Permit2 endpoints disabled")
 
 # Network configurations (CAIP-2 format)
 EVM_NETWORK = "eip155:97"  # BSC Testnet
@@ -156,45 +156,47 @@ routes = {
             ),
         },
     },
-    "GET /protected-permit2": {
-        "accepts": {
-            "scheme": "exact",
-            "payTo": EVM_ADDRESS,
-            "assets": ["DHLU"],
-            "price": {
-                "amount": "1000",
-                "asset": "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
-                "extra": {
-                    "name": "DA HULU",
-                    "version": "1",
-                    "assetTransferMethod": "permit2",
-                    **(
-                        {"permit2FacilitatorAddress": EVM_FACILITATOR_ADDRESS}
-                        if EVM_FACILITATOR_ADDRESS
-                        else {}
+    **(
+        {
+            "GET /protected-permit2": {
+                "accepts": {
+                    "scheme": "exact",
+                    "payTo": EVM_ADDRESS,
+                    "assets": ["DHLU"],
+                    "price": {
+                        "amount": "1000",
+                        "asset": "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
+                        "extra": {
+                            "name": "DA HULU",
+                            "version": "1",
+                            "assetTransferMethod": "permit2",
+                            "permit2FacilitatorAddress": EVM_FACILITATOR_ADDRESS,
+                        },
+                    },
+                    "network": EVM_NETWORK,
+                },
+                "extensions": {
+                    **declare_discovery_extension(
+                        output=OutputConfig(
+                            example={
+                                "message": "Access granted to Permit2 protected resource",
+                                "timestamp": "2024-01-01T00:00:00Z",
+                            },
+                            schema={
+                                "properties": {
+                                    "message": {"type": "string"},
+                                    "timestamp": {"type": "string"},
+                                },
+                                "required": ["message", "timestamp"],
+                            },
+                        )
                     ),
                 },
             },
-            "network": EVM_NETWORK,
-        },
-        "extensions": {
-            **declare_discovery_extension(
-                output=OutputConfig(
-                    example={
-                        "message": "Access granted to Permit2 protected resource",
-                        "timestamp": "2024-01-01T00:00:00Z",
-                    },
-                    schema={
-                        "properties": {
-                            "message": {"type": "string"},
-                            "timestamp": {"type": "string"},
-                        },
-                        "required": ["message", "timestamp"],
-                    },
-                )
-            ),
-        },
-    },
+        }
+        if EVM_FACILITATOR_ADDRESS
+        else {}
+    ),
     **(
         {
             "GET /protected-svm": {

@@ -52,7 +52,7 @@ if (!facilitatorUrl) {
 }
 if (!EVM_FACILITATOR_ADDRESS) {
   console.warn(
-    "⚠️  EVM_FACILITATOR_ADDRESS not set — Permit2 witness will default to payTo",
+    "⚠️  EVM_FACILITATOR_ADDRESS not set — Permit2 endpoints disabled",
   );
 }
 
@@ -221,69 +221,69 @@ app.use(
             },
           }
         : {}),
-      // Permit2 endpoint for generic ERC-20 tokens (no EIP-2612, uses raw approve tx)
-      "GET /protected-permit2-erc20": {
-        accepts: {
-          payTo: EVM_PAYEE_ADDRESS,
-          scheme: "exact",
-          network: EVM_NETWORK,
-          assets: ["DHLU"],
-          price: {
-            amount: "1000",
-            asset: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816", // DHLU (ERC-20 approval path, no name/version)
-            extra: {
-              assetTransferMethod: "permit2",
-              ...(EVM_FACILITATOR_ADDRESS
-                ? { permit2FacilitatorAddress: EVM_FACILITATOR_ADDRESS }
-                : {}),
-            },
-          },
-        },
-        extensions: {
-          ...declareErc20ApprovalGasSponsoringExtension(),
-        },
-      },
-      // Permit2 endpoint - explicitly requires Permit2 flow instead of EIP-3009
-      "GET /protected-permit2": {
-        accepts: {
-          payTo: EVM_PAYEE_ADDRESS,
-          scheme: "exact",
-          network: EVM_NETWORK,
-          assets: ["DHLU"],
-          price: {
-            amount: "1000",
-            asset: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816", // DHLU (permit2 + EIP-2612 path)
-            extra: {
-              name: "DA HULU",
-              version: "1",
-              assetTransferMethod: "permit2",
-              ...(EVM_FACILITATOR_ADDRESS
-                ? { permit2FacilitatorAddress: EVM_FACILITATOR_ADDRESS }
-                : {}),
-            },
-          },
-        },
-        extensions: {
-          ...declareDiscoveryExtension({
-            output: {
-              example: {
-                message: "Permit2 endpoint accessed successfully",
-                timestamp: "2024-01-01T00:00:00Z",
-                method: "permit2",
-              },
-              schema: {
-                properties: {
-                  message: { type: "string" },
-                  timestamp: { type: "string" },
-                  method: { type: "string" },
+      ...(EVM_FACILITATOR_ADDRESS
+        ? {
+            // Permit2 endpoint for generic ERC-20 tokens (no EIP-2612, uses raw approve tx)
+            "GET /protected-permit2-erc20": {
+              accepts: {
+                payTo: EVM_PAYEE_ADDRESS,
+                scheme: "exact",
+                network: EVM_NETWORK,
+                assets: ["DHLU"],
+                price: {
+                  amount: "1000",
+                  asset: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816", // DHLU (ERC-20 approval path, no name/version)
+                  extra: {
+                    assetTransferMethod: "permit2",
+                    permit2FacilitatorAddress: EVM_FACILITATOR_ADDRESS,
+                  },
                 },
-                required: ["message", "timestamp", "method"],
+              },
+              extensions: {
+                ...declareErc20ApprovalGasSponsoringExtension(),
               },
             },
-          }),
-          ...declareEip2612GasSponsoringExtension(),
-        },
-      },
+            // Permit2 endpoint - explicitly requires Permit2 flow instead of EIP-3009
+            "GET /protected-permit2": {
+              accepts: {
+                payTo: EVM_PAYEE_ADDRESS,
+                scheme: "exact",
+                network: EVM_NETWORK,
+                assets: ["DHLU"],
+                price: {
+                  amount: "1000",
+                  asset: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816", // DHLU (permit2 + EIP-2612 path)
+                  extra: {
+                    name: "DA HULU",
+                    version: "1",
+                    assetTransferMethod: "permit2",
+                    permit2FacilitatorAddress: EVM_FACILITATOR_ADDRESS,
+                  },
+                },
+              },
+              extensions: {
+                ...declareDiscoveryExtension({
+                  output: {
+                    example: {
+                      message: "Permit2 endpoint accessed successfully",
+                      timestamp: "2024-01-01T00:00:00Z",
+                      method: "permit2",
+                    },
+                    schema: {
+                      properties: {
+                        message: { type: "string" },
+                        timestamp: { type: "string" },
+                        method: { type: "string" },
+                      },
+                      required: ["message", "timestamp", "method"],
+                    },
+                  },
+                }),
+                ...declareEip2612GasSponsoringExtension(),
+              },
+            },
+          }
+        : {}),
       ...(STELLAR_PAYEE_ADDRESS
         ? {
             "GET /protected-stellar": {
@@ -365,13 +365,15 @@ app.get("/protected-aptos", (req, res) => {
  * that do NOT implement EIP-2612. The facilitator broadcasts the pre-signed
  * approve() transaction on the client's behalf before settling.
  */
-app.get("/protected-permit2-erc20", (req, res) => {
-  res.json({
-    message: "Permit2 ERC-20 approval endpoint accessed successfully",
-    timestamp: new Date().toISOString(),
-    method: "permit2-erc20-approval",
+if (EVM_FACILITATOR_ADDRESS) {
+  app.get("/protected-permit2-erc20", (req, res) => {
+    res.json({
+      message: "Permit2 ERC-20 approval endpoint accessed successfully",
+      timestamp: new Date().toISOString(),
+      method: "permit2-erc20-approval",
+    });
   });
-});
+}
 
 /**
  * Protected Permit2 endpoint - requires payment via Permit2 flow
@@ -379,13 +381,15 @@ app.get("/protected-permit2-erc20", (req, res) => {
  * This endpoint demonstrates the Permit2 payment flow.
  * Clients must have approved Permit2 to spend their USDC before accessing.
  */
-app.get("/protected-permit2", (req, res) => {
-  res.json({
-    message: "Permit2 endpoint accessed successfully",
-    timestamp: new Date().toISOString(),
-    method: "permit2",
+if (EVM_FACILITATOR_ADDRESS) {
+  app.get("/protected-permit2", (req, res) => {
+    res.json({
+      message: "Permit2 endpoint accessed successfully",
+      timestamp: new Date().toISOString(),
+      method: "permit2",
+    });
   });
-});
+}
 
 /**
  * Protected Stellar endpoint - requires payment to access
@@ -432,6 +436,12 @@ app.post("/close", (req, res) => {
   }, 100);
 });
 
+const permit2Endpoints = EVM_FACILITATOR_ADDRESS
+  ? "\n" +
+    "║  • GET  /protected-permit2     (Permit2 payment - EVM)     ║\n" +
+    "║  • GET  /protected-permit2-erc20 (Permit2 + ERC-20 approval) ║"
+  : "";
+
 // Start the server
 app.listen(parseInt(PORT), () => {
   console.log(`
@@ -451,9 +461,7 @@ app.listen(parseInt(PORT), () => {
 ║  Endpoints:                                            ║
 ║  • GET  /protected             (EIP-3009 payment - EVM)    ║
 ║  • GET  /protected-svm         (SVM payment)               ║
-║  • GET  /protected-aptos       (Aptos payment)             ║
-║  • GET  /protected-permit2     (Permit2 payment - EVM)     ║
-║  • GET  /protected-permit2-erc20 (Permit2 + ERC-20 approval) ║
+║  • GET  /protected-aptos       (Aptos payment)             ║${permit2Endpoints}
 ║  • GET  /protected-stellar     (Stellar payment)           ║
 ║  • GET  /health                (no payment required)       ║
 ║  • POST /close                 (shutdown server)           ║
