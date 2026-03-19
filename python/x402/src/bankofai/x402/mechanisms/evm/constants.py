@@ -112,6 +112,7 @@ class NetworkConfig(_NetworkConfigRequired, total=False):
     """Configuration for an EVM network."""
 
     default_asset: AssetInfo
+    default_rpc_url: str
 
 
 # Network configurations
@@ -129,12 +130,18 @@ NETWORK_CONFIGS: dict[str, NetworkConfig] = {
     # Base Sepolia (Testnet)
     "eip155:84532": {
         "chain_id": 84532,
+        "default_rpc_url": "https://sepolia.base.org",
         "default_asset": {
             "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
             "name": "USDC",
             "version": "2",
             "decimals": 6,
         },
+    },
+    # BSC Testnet
+    "eip155:97": {
+        "chain_id": 97,
+        "default_rpc_url": "https://bsc-testnet-rpc.publicnode.com",
     },
     # MegaETH Mainnet (uses Permit2 instead of EIP-3009, supports EIP-2612)
     "eip155:4326": {

@@ -27,26 +27,21 @@ from ..utils import (
     create_validity_window,
     get_asset_info,
     get_evm_chain_id,
+    resolve_evm_rpc_url,
 )
 from .permit2 import create_permit2_payload
 
 
-def _wrap_if_local_account(signer: Any) -> ClientEvmSigner:
+def _wrap_if_local_account(signer: Any, network: str | None = None) -> ClientEvmSigner:
     """Auto-wrap eth_account LocalAccount in EthAccountSigner if needed."""
     try:
         from eth_account.signers.local import LocalAccount
 
         if isinstance(signer, LocalAccount):
-            import os
-
             from ..signers import EthAccountSigner
 
-            rpc_url = (
-                os.environ.get("EVM_RPC_URL")
-                or os.environ.get("WEB3_PROVIDER_URL")
-                or "https://bsc-testnet-rpc.publicnode.com"
-            )
-            return EthAccountSigner(signer, rpc_url=rpc_url)
+            rpc_url = resolve_evm_rpc_url(network)
+            return EthAccountSigner(signer, rpc_url=rpc_url, network=network)
     except ImportError:
         pass
     return signer
@@ -72,7 +67,9 @@ class ExactEvmScheme:
                 eth_account LocalAccount, which will be auto-wrapped in
                 EthAccountSigner.
         """
+        self._raw_signer = signer
         self._signer = _wrap_if_local_account(signer)
+        self._network_signers: dict[str, ClientEvmSigner] = {}
 
         # If signer is EthAccountSigner without RPC, approval extension will be unavailable.
 
@@ -90,12 +87,13 @@ class ExactEvmScheme:
             Inner payload dict (authorization + signature).
             x402Client wraps this with x402_version, accepted, resource, extensions.
         """
+        signer = self._resolve_signer_for_network(str(requirements.network))
         extra = requirements.extra or {}
         asset_transfer_method = extra.get("assetTransferMethod", "eip3009")
         if asset_transfer_method == "permit2":
-            payload = create_permit2_payload(self._signer, requirements)
+            payload = create_permit2_payload(signer, requirements)
             extensions = _try_build_gas_sponsoring_extensions(
-                self._signer, requirements, payload, context
+                signer, requirements, payload, context
             )
             if extensions:
                 return payload, extensions
@@ -107,7 +105,7 @@ class ExactEvmScheme:
         )
 
         authorization = ExactEIP3009Authorization(
-            from_address=self._signer.address,
+            from_address=signer.address,
             to=requirements.pay_to,
             value=requirements.amount,
             valid_after=str(valid_after),
@@ -115,7 +113,7 @@ class ExactEvmScheme:
             nonce=nonce,
         )
 
-        signature = self._sign_authorization(authorization, requirements)
+        signature = self._sign_authorization(signer, authorization, requirements)
 
         payload = ExactEIP3009Payload(authorization=authorization, signature=signature)
 
@@ -124,6 +122,7 @@ class ExactEvmScheme:
 
     def _sign_authorization(
         self,
+        signer: ClientEvmSigner,
         authorization: ExactEIP3009Authorization,
         requirements: PaymentRequirements,
     ) -> str:
@@ -174,9 +173,29 @@ class ExactEvmScheme:
                 TypedDataField(name=f["name"], type=f["type"]) for f in fields
             ]
 
-        sig_bytes = self._signer.sign_typed_data(domain, typed_fields, primary_type, message)
+        sig_bytes = signer.sign_typed_data(domain, typed_fields, primary_type, message)
 
         return "0x" + sig_bytes.hex()
+
+    def _resolve_signer_for_network(self, network: str) -> ClientEvmSigner:
+        """Resolve signer for a specific network.
+
+        For raw LocalAccount inputs, this creates a network-specific wrapped signer
+        (cached by network) so RPC selection can follow per-network defaults.
+        """
+        try:
+            from eth_account.signers.local import LocalAccount
+
+            if isinstance(self._raw_signer, LocalAccount):
+                if network not in self._network_signers:
+                    self._network_signers[network] = _wrap_if_local_account(
+                        self._raw_signer, network
+                    )
+                return self._network_signers[network]
+        except ImportError:
+            pass
+
+        return self._signer
 
 
 def _try_build_gas_sponsoring_extensions(

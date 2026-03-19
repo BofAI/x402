@@ -94,6 +94,45 @@ def get_asset_info(network: str, asset_address: str) -> AssetInfo:
     raise ValueError(f"Token {asset_address} is not a registered asset for network {network}.")
 
 
+def resolve_evm_rpc_url(
+    network: str | None,
+    explicit_rpc_url: str | None = None,
+) -> str | None:
+    """Resolve RPC URL for an EVM network with deterministic precedence.
+
+    Precedence:
+    1. explicit_rpc_url argument
+    2. EVM_RPC_URL_<CHAIN_ID> (for e.g., EVM_RPC_URL_97)
+    3. EVM_RPC_URL / WEB3_PROVIDER_URL
+    4. network config default_rpc_url
+    5. None
+    """
+    if explicit_rpc_url:
+        return explicit_rpc_url
+
+    chain_id: str | None = None
+    if network and network.startswith("eip155:"):
+        parts = network.split(":", 1)
+        if len(parts) == 2 and parts[1].isdigit():
+            chain_id = parts[1]
+
+    if chain_id:
+        chain_specific = os.environ.get(f"EVM_RPC_URL_{chain_id}")
+        if chain_specific:
+            return chain_specific
+
+    generic = os.environ.get("EVM_RPC_URL") or os.environ.get("WEB3_PROVIDER_URL")
+    if generic:
+        return generic
+
+    if network:
+        config = NETWORK_CONFIGS.get(network)
+        if config:
+            return config.get("default_rpc_url")
+
+    return None
+
+
 def is_valid_network(network: str) -> bool:
     """Check if network is a valid eip155 network identifier.
 

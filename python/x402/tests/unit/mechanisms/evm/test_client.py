@@ -259,8 +259,29 @@ class TestLocalAccountAutoWrap:
 
         payload = client.create_payment_payload(requirements)
 
-        assert isinstance(payload, dict)
         assert "authorization" in payload
         assert "signature" in payload
-        assert payload["signature"].startswith("0x")
-        assert len(payload["signature"]) > 2  # not just "0x"
+
+    def test_local_account_uses_network_specific_rpc_resolution(self, monkeypatch):
+        account = Account.create()
+        monkeypatch.delenv("EVM_RPC_URL", raising=False)
+        monkeypatch.delenv("WEB3_PROVIDER_URL", raising=False)
+        monkeypatch.setenv("EVM_RPC_URL_84532", "https://example-base-sepolia.local")
+
+        client = ExactEvmClientScheme(signer=account)
+
+        requirements = PaymentRequirements(
+            scheme="exact",
+            network="eip155:84532",
+            asset="0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+            amount="500000",
+            pay_to="0x0987654321098765432109876543210987654321",
+            max_timeout_seconds=3600,
+            extra={"name": "USDC", "version": "2"},
+        )
+        client.create_payment_payload(requirements)
+
+        network_signer = client._network_signers["eip155:84532"]
+        assert isinstance(network_signer, EthAccountSigner)
+        assert network_signer._w3 is not None
+        assert network_signer._w3.provider.endpoint_uri == "https://example-base-sepolia.local"

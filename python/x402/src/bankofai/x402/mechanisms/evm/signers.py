@@ -6,7 +6,6 @@ libraries like eth_account and web3.py.
 
 from __future__ import annotations
 
-import os
 from typing import Any
 
 try:
@@ -22,6 +21,7 @@ except ImportError as e:
 
 from .constants import EIP1271_MAGIC_VALUE, IS_VALID_SIGNATURE_ABI, TX_STATUS_SUCCESS
 from .types import TransactionReceipt, TypedDataDomain, TypedDataField
+from .utils import resolve_evm_rpc_url
 
 # ERC20 ABI for balance checks
 _ERC20_BALANCE_ABI = [
@@ -62,21 +62,24 @@ class EthAccountSigner:
         account: eth_account LocalAccount instance.
     """
 
-    def __init__(self, account: LocalAccount, rpc_url: str | None = None) -> None:
+    def __init__(
+        self,
+        account: LocalAccount,
+        rpc_url: str | None = None,
+        network: str | None = None,
+    ) -> None:
         """Initialize signer with eth_account LocalAccount.
 
         Args:
             account: eth_account LocalAccount instance (from Account.from_key,
                 Account.from_mnemonic, etc.).
             rpc_url: Optional Ethereum RPC endpoint for nonce + gas data.
+            network: Optional CAIP-2 network (e.g., eip155:84532) used to
+                resolve chain-specific default RPC URL when rpc_url is not set.
         """
         self._account = account
         if rpc_url is None:
-            rpc_url = (
-                os.environ.get("EVM_RPC_URL")
-                or os.environ.get("WEB3_PROVIDER_URL")
-                or "https://bsc-testnet-rpc.publicnode.com"
-            )
+            rpc_url = resolve_evm_rpc_url(network)
         self._w3 = Web3(Web3.HTTPProvider(rpc_url)) if rpc_url else None
 
     @property

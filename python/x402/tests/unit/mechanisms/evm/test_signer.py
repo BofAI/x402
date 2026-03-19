@@ -91,6 +91,28 @@ class TestEthAccountSigner:
         signer = EthAccountSigner(account)
         assert signer._w3 is not None
 
+    def test_should_use_chain_specific_env_rpc_url(self, monkeypatch):
+        account = Account.create()
+        monkeypatch.delenv("EVM_RPC_URL", raising=False)
+        monkeypatch.delenv("WEB3_PROVIDER_URL", raising=False)
+        monkeypatch.setenv("EVM_RPC_URL_97", "https://example-bsc.local")
+
+        signer = EthAccountSigner(account, network="eip155:97")
+
+        assert signer._w3 is not None
+        assert signer._w3.provider.endpoint_uri == "https://example-bsc.local"
+
+    def test_should_use_network_default_rpc_url(self, monkeypatch):
+        account = Account.create()
+        monkeypatch.delenv("EVM_RPC_URL", raising=False)
+        monkeypatch.delenv("WEB3_PROVIDER_URL", raising=False)
+        monkeypatch.delenv("EVM_RPC_URL_84532", raising=False)
+
+        signer = EthAccountSigner(account, network="eip155:84532")
+
+        assert signer._w3 is not None
+        assert signer._w3.provider.endpoint_uri == "https://sepolia.base.org"
+
 
 class TestFacilitatorWeb3Signer:
     """Test FacilitatorWeb3Signer facilitator-side signer."""
