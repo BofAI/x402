@@ -62,7 +62,7 @@ app = FastAPI()
 # Create HTTP facilitator client
 if FACILITATOR_URL:
     print(f"Using remote facilitator at: {FACILITATOR_URL}")
-    config = FacilitatorConfig(url=FACILITATOR_URL)
+    config = FacilitatorConfig(url=FACILITATOR_URL, timeout=90.0)
     facilitator = HTTPFacilitatorClient(config)
 else:
     print("Using default facilitator")

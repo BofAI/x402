@@ -67,8 +67,8 @@ async def main():
         register_exact_tron_client(client, tron_signer)
 
     # Create httpx client with x402 payment transport and increased timeout
-    # Set timeout to 30 seconds to handle busy servers during test runs
-    timeout = httpx.Timeout(30.0, connect=10.0)
+    # Set timeout to 90 seconds to handle slow on-chain settlement during test runs
+    timeout = httpx.Timeout(90.0, connect=10.0)
     async with httpx.AsyncClient(
         base_url=base_url,
         timeout=timeout,
