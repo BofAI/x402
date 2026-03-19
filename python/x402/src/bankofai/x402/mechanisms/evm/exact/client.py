@@ -293,16 +293,33 @@ def _try_build_erc20_approval_extension(
     data = _encode_erc20_approve(permit2_address)
     nonce = signer.get_transaction_count(signer.address)
     chain_id = get_evm_chain_id(str(requirements.network))
-    tx = {
+    tx: dict[str, Any] = {
         "to": token_address,
         "data": data,
         "value": 0,
         "nonce": nonce,
         "gas": ERC20_APPROVE_GAS_LIMIT,
-        "maxFeePerGas": DEFAULT_MAX_FEE_PER_GAS,
-        "maxPriorityFeePerGas": DEFAULT_MAX_PRIORITY_FEE_PER_GAS,
         "chainId": chain_id,
     }
+    fees = None
+    if hasattr(signer, "estimate_fees_per_gas"):
+        try:
+            fees = signer.estimate_fees_per_gas()
+        except Exception:
+            fees = None
+    if fees:
+        max_fee, max_priority_fee = fees
+        tx["maxFeePerGas"] = max_fee
+        tx["maxPriorityFeePerGas"] = max_priority_fee
+    elif hasattr(signer, "get_gas_price"):
+        try:
+            tx["gasPrice"] = signer.get_gas_price()
+        except Exception:
+            tx["maxFeePerGas"] = DEFAULT_MAX_FEE_PER_GAS
+            tx["maxPriorityFeePerGas"] = DEFAULT_MAX_PRIORITY_FEE_PER_GAS
+    else:
+        tx["maxFeePerGas"] = DEFAULT_MAX_FEE_PER_GAS
+        tx["maxPriorityFeePerGas"] = DEFAULT_MAX_PRIORITY_FEE_PER_GAS
     signed = signer.sign_transaction(tx)
     signed_hex = _normalize_signed_tx(signed)
     return {

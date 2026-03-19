@@ -141,6 +141,30 @@ class EthAccountSigner:
             raise ValueError("RPC URL required for get_transaction_count")
         return int(self._w3.eth.get_transaction_count(Web3.to_checksum_address(address)))
 
+    def get_gas_price(self) -> int:
+        """Get current gas price for legacy transactions."""
+        if not self._w3:
+            raise ValueError("RPC URL required for get_gas_price")
+        return int(self._w3.eth.gas_price)
+
+    def estimate_fees_per_gas(self) -> tuple[int, int] | None:
+        """Estimate EIP-1559 fees (maxFeePerGas, maxPriorityFeePerGas).
+
+        Returns None if the connected network does not expose baseFeePerGas.
+        """
+        if not self._w3:
+            raise ValueError("RPC URL required for estimate_fees_per_gas")
+        try:
+            block = self._w3.eth.get_block("pending")
+            base_fee = block.get("baseFeePerGas")
+            if base_fee is None:
+                return None
+            max_priority_fee = int(self._w3.eth.max_priority_fee)
+            max_fee = int(base_fee) * 2 + max_priority_fee
+            return max_fee, max_priority_fee
+        except Exception:
+            return None
+
     def sign_transaction(self, tx: dict[str, Any]) -> bytes:
         """Sign an EIP-1559 transaction dict and return raw bytes."""
         signed = self._account.sign_transaction(tx)
