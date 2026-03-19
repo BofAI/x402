@@ -208,7 +208,7 @@ class FacilitatorTronSigner:
         return str(result.txid)
 
     def wait_for_transaction_receipt(
-        self, tx_hash: str, max_attempts: int = 30
+        self, tx_hash: str, max_attempts: int = 120
     ) -> TronTransactionReceipt:
         """Poll until the transaction is confirmed."""
         for _ in range(max_attempts):
