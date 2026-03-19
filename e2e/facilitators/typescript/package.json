@@ -20,9 +20,11 @@
     "@bankofai/x402-evm": "workspace:*",
     "@bankofai/x402-extensions": "workspace:*",
     "@bankofai/x402-stellar": "workspace:*",
+    "@bankofai/x402-tron": "workspace:*",
     "@bankofai/x402-svm": "workspace:*",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "tronweb": "^6.1.0",
     "viem": "^2.21.54"
   },
   "devDependencies": {

@@ -343,6 +343,6 @@ export class GenericFacilitatorProxy extends BaseProxy implements FacilitatorPro
   }
 
   getUrl(): string {
-    return `http://localhost:${this.port}`;
+    return `http://127.0.0.1:${this.port}`;
   }
 }

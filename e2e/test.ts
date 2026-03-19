@@ -710,6 +710,7 @@ async function runTest() {
     const facilitatorConfig = facilitatorName ? uniqueFacilitators.get(facilitatorName)?.config : undefined;
     const facilitatorSupportsAptos = facilitatorConfig?.protocolFamilies?.includes('aptos') ?? false;
     const facilitatorSupportsStellar = facilitatorConfig?.protocolFamilies?.includes('stellar') ?? false;
+    const facilitatorSupportsTron = facilitatorConfig?.protocolFamilies?.includes('tron') ?? false;
 
     const serverConfig: ServerConfig = {
       port,
@@ -717,7 +718,7 @@ async function runTest() {
       svmPayTo: serverSvmAddress!,
       aptosPayTo: facilitatorSupportsAptos ? (serverAptosAddress || '') : '',
       stellarPayTo: facilitatorSupportsStellar ? (serverStellarAddress || '') : '',
-      tronPayTo: serverTronAddress || '',
+      tronPayTo: facilitatorSupportsTron ? (serverTronAddress || '') : '',
       networks,
       facilitatorUrl,
     };

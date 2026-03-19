@@ -1363,6 +1363,9 @@ importers:
       '@bankofai/x402-core':
         specifier: workspace:*
         version: link:../../core
+      '@bankofai/x402-extensions':
+        specifier: workspace:*
+        version: link:../../extensions
       tronweb:
         specifier: ^6.1.0
         version: 6.2.2(bufferutil@4.0.9)(utf-8-validate@5.0.10)
@@ -1723,6 +1726,9 @@ importers:
       '@bankofai/x402-svm':
         specifier: workspace:*
         version: link:../../../typescript/packages/mechanisms/svm
+      '@bankofai/x402-tron':
+        specifier: workspace:*
+        version: link:../../../typescript/packages/mechanisms/tron
       '@scure/base':
         specifier: ^1.2.6
         version: 1.2.6
@@ -1735,6 +1741,9 @@ importers:
       express:
         specifier: ^4.19.2
         version: 4.21.2
+      tronweb:
+        specifier: ^6.1.0
+        version: 6.2.2(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       viem:
         specifier: ^2.21.54
         version: 2.38.3(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.12)
