@@ -27,14 +27,14 @@ classifiers = [
 ]
 
 dependencies = [
-    "bankofai-agent-wallet>=2.3.0-beta.2",
+    "bankofai-agent-wallet>=2.3.0b2",
     "httpx>=0.25.0",
     "pydantic>=2.0.0",
     "base58>=2.1.1",
 ]
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "pytest>=7.0.0",
     "pytest-asyncio>=0.21.0",
     "mypy>=1.0.0",
