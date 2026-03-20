@@ -1,9 +1,10 @@
 name: Audit PR
 
 on:
-  push:
+  pull_request:
     branches:
       - main
+    types: [opened, synchronize, reopened, ready_for_review]
   issue_comment:
     types: [created]
   workflow_dispatch:
@@ -13,22 +14,28 @@ permissions:
   pull-requests: write
   issues: write
 
+concurrency:
+  group: audit-pr-${{ github.event.pull_request.number || github.event.issue.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  audit-on-main:
-    name: Audit on main push
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  audit-on-pr:
+    name: Audit on pull request
+    if: github.event_name == 'pull_request'
     runs-on: [self-hosted, Linux, ARM64, audit-linux]
 
     steps:
-      - name: Checkout repository
+      - name: Checkout PR head
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
       - name: Check required tools
         run: |
           which zip
           which jq
+          which python3
 
       - name: Create source archive
         id: archive
@@ -39,17 +46,17 @@ jobs:
           zip -r "/tmp/${ARCHIVE_NAME}" .
           echo "archive_name=${ARCHIVE_NAME}" >> "$GITHUB_OUTPUT"
 
-      - name: Call audit service
-        id: audit
+      - name: Submit audit job
+        id: submit
         shell: bash
         run: |
           RESPONSE=$(curl -s -X POST "${{ vars.AUDIT_SERVICE_URL }}/audit-pr/${{ vars.AUDIT_PR_SKILL }}" \
             -H "X-API-Key: ${{ secrets.AUDIT_API_KEY }}" \
             -F "file=@/tmp/${{ steps.archive.outputs.archive_name }}" \
-            -F "from_branch=main" \
-            -F "to_branch=main")
+            -F "from_branch=${{ github.event.pull_request.base.ref }}" \
+            -F "to_branch=${{ github.event.pull_request.head.ref }}")
 
-          echo "Audit response:"
+          echo "Submit response:"
           echo "$RESPONSE" | jq .
 
           REPORT_URL=$(echo "$RESPONSE" | jq -r '.report_url // empty')
@@ -65,15 +72,233 @@ jobs:
           echo "status_url=$STATUS_URL" >> "$GITHUB_OUTPUT"
           echo "status=$STATUS" >> "$GITHUB_OUTPUT"
 
-      - name: Write summary
+      - name: Poll audit status until completed
+        id: poll
+        shell: bash
         run: |
-          {
-            echo "## Audit PR result"
-            echo ""
-            echo "- status: ${{ steps.audit.outputs.status }}"
-            echo "- report_path: ${{ steps.audit.outputs.report_url }}"
-            echo "- status_path: ${{ steps.audit.outputs.status_url }}"
-          } >> "$GITHUB_STEP_SUMMARY"
+          STATUS_PATH="${{ steps.submit.outputs.status_url }}"
+          if [ -z "$STATUS_PATH" ]; then
+            echo "Missing status_url"
+            exit 1
+          fi
+
+          FINAL_STATUS=""
+          for i in $(seq 1 40); do
+            RESP=$(curl -s "${{ vars.AUDIT_SERVICE_URL }}${STATUS_PATH}")
+            echo "Poll #$i:"
+            echo "$RESP" | jq .
+
+            CURRENT_STATUS=$(echo "$RESP" | jq -r '.status // empty')
+
+            if [ "$CURRENT_STATUS" = "completed" ]; then
+              FINAL_STATUS="completed"
+              break
+            fi
+
+            if [ "$CURRENT_STATUS" = "failed" ] || [ "$CURRENT_STATUS" = "error" ]; then
+              echo "Audit failed with status: $CURRENT_STATUS"
+              exit 1
+            fi
+
+            sleep 30
+          done
+
+          if [ "$FINAL_STATUS" != "completed" ]; then
+            echo "Audit did not complete within timeout"
+            exit 1
+          fi
+
+      - name: Fetch final report html
+        shell: bash
+        run: |
+          REPORT_PATH="${{ steps.submit.outputs.report_url }}"
+          if [ -z "$REPORT_PATH" ]; then
+            echo "Missing report_url"
+            exit 1
+          fi
+
+          curl -s "${{ vars.AUDIT_SERVICE_URL }}${REPORT_PATH}" -o /tmp/audit-report.html
+
+          if [ ! -s /tmp/audit-report.html ]; then
+            echo "Fetched report html is empty"
+            exit 1
+          fi
+
+      - name: Convert html to readable full text
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import re
+          from html.parser import HTMLParser
+          from pathlib import Path
+
+          html = Path("/tmp/audit-report.html").read_text(encoding="utf-8", errors="ignore")
+
+          class ReportParser(HTMLParser):
+              BLOCK_TAGS = {
+                  "p", "div", "section", "article", "header", "footer", "aside", "main",
+                  "table", "thead", "tbody", "tfoot", "tr", "ul", "ol", "blockquote"
+              }
+              HEADER_TAGS = {"h1", "h2", "h3", "h4", "h5", "h6"}
+              SKIP_TAGS = {"style", "script", "head", "svg", "noscript"}
+              CELL_TAGS = {"td", "th"}
+
+              def __init__(self):
+                  super().__init__()
+                  self.parts = []
+                  self.in_pre = False
+                  self.skip_depth = 0
+
+              def _push(self, text):
+                  self.parts.append(text)
+
+              def handle_starttag(self, tag, attrs):
+                  if tag in self.SKIP_TAGS:
+                      self.skip_depth += 1
+                      return
+                  if self.skip_depth > 0:
+                      return
+
+                  if tag in self.HEADER_TAGS:
+                      self._push("\n\n")
+                  elif tag in self.BLOCK_TAGS:
+                      self._push("\n")
+                  elif tag == "br":
+                      self._push("\n")
+                  elif tag == "li":
+                      self._push("\n- ")
+                  elif tag in self.CELL_TAGS:
+                      self._push(" | ")
+                  elif tag == "pre":
+                      self._push("\n\n")
+                      self.in_pre = True
+                  elif tag == "code" and not self.in_pre:
+                      self._push("`")
+
+              def handle_endtag(self, tag):
+                  if tag in self.SKIP_TAGS:
+                      if self.skip_depth > 0:
+                          self.skip_depth -= 1
+                      return
+                  if self.skip_depth > 0:
+                      return
+
+                  if tag in self.HEADER_TAGS:
+                      self._push("\n")
+                  elif tag in self.BLOCK_TAGS:
+                      self._push("\n")
+                  elif tag == "tr":
+                      self._push("\n")
+                  elif tag == "pre":
+                      self._push("\n\n")
+                      self.in_pre = False
+                  elif tag == "code" and not self.in_pre:
+                      self._push("`")
+
+              def handle_data(self, data):
+                  if self.skip_depth > 0:
+                      return
+                  if not data:
+                      return
+                  self._push(data)
+
+          parser = ReportParser()
+          parser.feed(html)
+          text = "".join(parser.parts)
+
+          # 去除明显的样式/CSS残留
+          filtered_lines = []
+          css_like = re.compile(
+              r'^\s*([.#:]?[-_a-zA-Z][\w\-:#.,\s>*\[\]="\']*)\s*\{\s*$|^\s*--[\w\-]+\s*:\s*.+;?\s*$'
+          )
+
+          for raw_line in text.splitlines():
+              line = raw_line.rstrip()
+
+              if not line.strip():
+                  filtered_lines.append("")
+                  continue
+
+              # 清理多余空白
+              if " | " not in line:
+                  line = re.sub(r'[ \t]+', ' ', line).strip()
+
+              stripped = line.strip()
+
+              # 过滤明显非正文内容
+              if stripped.startswith("@charset"):
+                  continue
+              if stripped.startswith(":root"):
+                  continue
+              if css_like.match(stripped):
+                  continue
+              if stripped in {"{", "}", "};"}:
+                  continue
+
+              filtered_lines.append(line)
+
+          # 合并空行，避免过于稀疏
+          cleaned = []
+          blank = False
+          for line in filtered_lines:
+              if line.strip():
+                  cleaned.append(line.strip())
+                  blank = False
+              else:
+                  if not blank:
+                      cleaned.append("")
+                  blank = True
+
+          output = "\n".join(cleaned).strip() + "\n"
+          Path("/tmp/audit-report.txt").write_text(output, encoding="utf-8")
+          PY
+
+      - name: Comment full report to PR
+        uses: actions/github-script@v7
+        env:
+          REPORT_PATH: ${{ steps.submit.outputs.report_url }}
+          STATUS_PATH: ${{ steps.submit.outputs.status_url }}
+          RUN_GROUP: github-pr-${{ github.run_id }}-${{ github.run_attempt }}
+        with:
+          script: |
+            const fs = require('fs');
+
+            const reportText = fs.readFileSync('/tmp/audit-report.txt', 'utf8').trim();
+            const reportPath = process.env.REPORT_PATH || '';
+            const statusPath = process.env.STATUS_PATH || '';
+            const runGroup = process.env.RUN_GROUP || 'unknown';
+
+            const header = [
+              `[AUDIT-PR][source=pull_request][run=${runGroup}]`,
+              '',
+              'Status: completed',
+              `Report path: ${reportPath}`,
+              `Status path: ${statusPath}`,
+              '',
+            ].join('\n');
+
+            const fullText = `${header}${reportText}`;
+            const limit = 60000;
+            const chunks = [];
+
+            for (let i = 0; i < fullText.length; i += limit) {
+              chunks.push(fullText.slice(i, i + limit));
+            }
+
+            for (let i = 0; i < chunks.length; i++) {
+              const body = [
+                `[AUDIT-PR][source=pull_request][run=${runGroup}][part ${i + 1}/${chunks.length}]`,
+                '',
+                chunks[i]
+              ].join('\n');
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body
+              });
+            }
 
   audit-by-comment:
     name: Audit by PR comment
@@ -110,6 +335,7 @@ jobs:
         run: |
           which zip
           which jq
+          which python3
 
       - name: Create source archive
         id: archive
@@ -120,8 +346,8 @@ jobs:
           zip -r "/tmp/${ARCHIVE_NAME}" .
           echo "archive_name=${ARCHIVE_NAME}" >> "$GITHUB_OUTPUT"
 
-      - name: Call audit service
-        id: audit
+      - name: Submit audit job
+        id: submit
         shell: bash
         run: |
           RESPONSE=$(curl -s -X POST "${{ vars.AUDIT_SERVICE_URL }}/audit-pr/${{ vars.AUDIT_PR_SKILL }}" \
@@ -130,7 +356,7 @@ jobs:
             -F "from_branch=${{ steps.pr.outputs.base_ref }}" \
             -F "to_branch=${{ steps.pr.outputs.head_ref }}")
 
-          echo "Audit response:"
+          echo "Submit response:"
           echo "$RESPONSE" | jq .
 
           REPORT_URL=$(echo "$RESPONSE" | jq -r '.report_url // empty')
@@ -146,25 +372,226 @@ jobs:
           echo "status_url=$STATUS_URL" >> "$GITHUB_OUTPUT"
           echo "status=$STATUS" >> "$GITHUB_OUTPUT"
 
-      - name: Comment result to PR
+      - name: Poll audit status until completed
+        id: poll
+        shell: bash
+        run: |
+          STATUS_PATH="${{ steps.submit.outputs.status_url }}"
+          if [ -z "$STATUS_PATH" ]; then
+            echo "Missing status_url"
+            exit 1
+          fi
+
+          FINAL_STATUS=""
+          for i in $(seq 1 40); do
+            RESP=$(curl -s "${{ vars.AUDIT_SERVICE_URL }}${STATUS_PATH}")
+            echo "Poll #$i:"
+            echo "$RESP" | jq .
+
+            CURRENT_STATUS=$(echo "$RESP" | jq -r '.status // empty')
+
+            if [ "$CURRENT_STATUS" = "completed" ]; then
+              FINAL_STATUS="completed"
+              break
+            fi
+
+            if [ "$CURRENT_STATUS" = "failed" ] || [ "$CURRENT_STATUS" = "error" ]; then
+              echo "Audit failed with status: $CURRENT_STATUS"
+              exit 1
+            fi
+
+            sleep 30
+          done
+
+          if [ "$FINAL_STATUS" != "completed" ]; then
+            echo "Audit did not complete within timeout"
+            exit 1
+          fi
+
+      - name: Fetch final report html
+        shell: bash
+        run: |
+          REPORT_PATH="${{ steps.submit.outputs.report_url }}"
+          if [ -z "$REPORT_PATH" ]; then
+            echo "Missing report_url"
+            exit 1
+          fi
+
+          curl -s "${{ vars.AUDIT_SERVICE_URL }}${REPORT_PATH}" -o /tmp/audit-report.html
+
+          if [ ! -s /tmp/audit-report.html ]; then
+            echo "Fetched report html is empty"
+            exit 1
+          fi
+
+      - name: Convert html to readable full text
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import re
+          from html.parser import HTMLParser
+          from pathlib import Path
+
+          html = Path("/tmp/audit-report.html").read_text(encoding="utf-8", errors="ignore")
+
+          class ReportParser(HTMLParser):
+              BLOCK_TAGS = {
+                  "p", "div", "section", "article", "header", "footer", "aside", "main",
+                  "table", "thead", "tbody", "tfoot", "tr", "ul", "ol", "blockquote"
+              }
+              HEADER_TAGS = {"h1", "h2", "h3", "h4", "h5", "h6"}
+              SKIP_TAGS = {"style", "script", "head", "svg", "noscript"}
+              CELL_TAGS = {"td", "th"}
+
+              def __init__(self):
+                  super().__init__()
+                  self.parts = []
+                  self.in_pre = False
+                  self.skip_depth = 0
+
+              def _push(self, text):
+                  self.parts.append(text)
+
+              def handle_starttag(self, tag, attrs):
+                  if tag in self.SKIP_TAGS:
+                      self.skip_depth += 1
+                      return
+                  if self.skip_depth > 0:
+                      return
+
+                  if tag in self.HEADER_TAGS:
+                      self._push("\n\n")
+                  elif tag in self.BLOCK_TAGS:
+                      self._push("\n")
+                  elif tag == "br":
+                      self._push("\n")
+                  elif tag == "li":
+                      self._push("\n- ")
+                  elif tag in self.CELL_TAGS:
+                      self._push(" | ")
+                  elif tag == "pre":
+                      self._push("\n\n")
+                      self.in_pre = True
+                  elif tag == "code" and not self.in_pre:
+                      self._push("`")
+
+              def handle_endtag(self, tag):
+                  if tag in self.SKIP_TAGS:
+                      if self.skip_depth > 0:
+                          self.skip_depth -= 1
+                      return
+                  if self.skip_depth > 0:
+                      return
+
+                  if tag in self.HEADER_TAGS:
+                      self._push("\n")
+                  elif tag in self.BLOCK_TAGS:
+                      self._push("\n")
+                  elif tag == "tr":
+                      self._push("\n")
+                  elif tag == "pre":
+                      self._push("\n\n")
+                      self.in_pre = False
+                  elif tag == "code" and not self.in_pre:
+                      self._push("`")
+
+              def handle_data(self, data):
+                  if self.skip_depth > 0:
+                      return
+                  if not data:
+                      return
+                  self._push(data)
+
+          parser = ReportParser()
+          parser.feed(html)
+          text = "".join(parser.parts)
+
+          filtered_lines = []
+          css_like = re.compile(
+              r'^\s*([.#:]?[-_a-zA-Z][\w\-:#.,\s>*\[\]="\']*)\s*\{\s*$|^\s*--[\w\-]+\s*:\s*.+;?\s*$'
+          )
+
+          for raw_line in text.splitlines():
+              line = raw_line.rstrip()
+
+              if not line.strip():
+                  filtered_lines.append("")
+                  continue
+
+              if " | " not in line:
+                  line = re.sub(r'[ \t]+', ' ', line).strip()
+
+              stripped = line.strip()
+
+              if stripped.startswith("@charset"):
+                  continue
+              if stripped.startswith(":root"):
+                  continue
+              if css_like.match(stripped):
+                  continue
+              if stripped in {"{", "}", "};"}:
+                  continue
+
+              filtered_lines.append(line)
+
+          cleaned = []
+          blank = False
+          for line in filtered_lines:
+              if line.strip():
+                  cleaned.append(line.strip())
+                  blank = False
+              else:
+                  if not blank:
+                      cleaned.append("")
+                  blank = True
+
+          output = "\n".join(cleaned).strip() + "\n"
+          Path("/tmp/audit-report.txt").write_text(output, encoding="utf-8")
+          PY
+
+      - name: Comment full report to PR
         uses: actions/github-script@v7
+        env:
+          REPORT_PATH: ${{ steps.submit.outputs.report_url }}
+          STATUS_PATH: ${{ steps.submit.outputs.status_url }}
+          RUN_GROUP: github-pr-comment-${{ github.run_id }}-${{ github.run_attempt }}
         with:
           script: |
-            const reportPath = `${{ steps.audit.outputs.report_url }}`;
-            const statusPath = `${{ steps.audit.outputs.status_url }}`;
-            const status = `${{ steps.audit.outputs.status }}`;
+            const fs = require('fs');
 
-            const body = [
-              `Audit PR triggered by @${context.payload.comment.user.login}`,
+            const reportText = fs.readFileSync('/tmp/audit-report.txt', 'utf8').trim();
+            const reportPath = process.env.REPORT_PATH || '';
+            const statusPath = process.env.STATUS_PATH || '';
+            const runGroup = process.env.RUN_GROUP || 'unknown';
+
+            const header = [
+              `[AUDIT-PR][source=comment][/audit-pr][run=${runGroup}]`,
               '',
-              `Status: ${status}`,
+              'Status: completed',
               `Report path: ${reportPath}`,
-              `Status path: ${statusPath}`
+              `Status path: ${statusPath}`,
+              '',
             ].join('\n');
 
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body
-            });
+            const fullText = `${header}${reportText}`;
+            const limit = 60000;
+            const chunks = [];
+
+            for (let i = 0; i < fullText.length; i += limit) {
+              chunks.push(fullText.slice(i, i + limit));
+            }
+
+            for (let i = 0; i < chunks.length; i++) {
+              const body = [
+                `[AUDIT-PR][source=comment][/audit-pr][run=${runGroup}][part ${i + 1}/${chunks.length}]`,
+                '',
+                chunks[i]
+              ].join('\n');
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body
+              });
+            }
