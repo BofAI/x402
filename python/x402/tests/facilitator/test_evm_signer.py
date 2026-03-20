@@ -120,8 +120,8 @@ async def test_evm_check_balance_raises_on_contract_error(mock_evm_private_key):
 
 @pytest.mark.anyio
 async def test_evm_write_contract_raises_on_contract_error(mock_evm_private_key):
-    from eth_account import Account
     import asyncio
+    from eth_account import Account
 
     address = Account.from_key(mock_evm_private_key).address
     wallet = MagicMock()
