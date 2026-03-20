@@ -1,3 +1,6 @@
+import asyncio
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
 
 from bankofai.x402.signers.facilitator import EvmFacilitatorSigner
@@ -59,3 +62,43 @@ async def test_evm_verify_typed_data_invalid(mock_evm_private_key):
         signer.get_address(), domain, types, message, signature, primary_type="Test"
     )
     assert valid is False
+
+
+@pytest.mark.anyio
+async def test_evm_check_balance_raises_on_contract_error(mock_evm_private_key):
+    signer = EvmFacilitatorSigner.from_private_key(mock_evm_private_key)
+
+    contract = MagicMock()
+    contract.functions.balanceOf.return_value.call = AsyncMock(side_effect=RuntimeError("boom"))
+    mock_w3 = MagicMock()
+    mock_w3.eth.contract.return_value = contract
+    signer._ensure_async_web3_client = MagicMock(return_value=mock_w3)
+
+    with pytest.raises(RuntimeError, match="boom"):
+        await signer.check_balance("0x0000000000000000000000000000000000000002", "eip155:1")
+
+
+@pytest.mark.anyio
+async def test_evm_write_contract_raises_on_contract_error(mock_evm_private_key):
+    signer = EvmFacilitatorSigner.from_private_key(mock_evm_private_key)
+
+    broken_call = MagicMock()
+    broken_call.build_transaction = AsyncMock(side_effect=RuntimeError("boom"))
+    contract = MagicMock()
+    contract.functions.transfer = MagicMock(return_value=broken_call)
+    mock_w3 = MagicMock()
+    mock_w3.eth.contract.return_value = contract
+    mock_w3.eth.get_transaction_count = AsyncMock(return_value=1)
+    chain_id = asyncio.Future()
+    chain_id.set_result(1)
+    mock_w3.eth.chain_id = chain_id
+    signer._ensure_async_web3_client = MagicMock(return_value=mock_w3)
+
+    with pytest.raises(RuntimeError, match="boom"):
+        await signer.write_contract(
+            contract_address="0x0000000000000000000000000000000000000001",
+            abi=[],
+            method="transfer",
+            args=["0x0000000000000000000000000000000000000002", 1],
+            network="eip155:1",
+        )
