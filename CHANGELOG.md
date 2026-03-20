@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Refactored client and facilitator signers to accept wallet instances and resolve addresses through async factory methods
-- Standardized signer integration around the agent-wallet `BaseWallet` capability surface for message, typed-data, and transaction signing
+- Standardized signer integration around the agent-wallet `Wallet` capability surface for message, typed-data, and transaction signing
 - Normalized TRON transaction signing by extracting signatures from wallet-signed transaction payloads when wallets return full signed transaction JSON
 
 ## [0.4.2] - 2026-03-11

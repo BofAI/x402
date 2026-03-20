@@ -12,7 +12,7 @@ import {
   type Chain,
 } from 'viem';
 import { mainnet, sepolia, bsc, bscTestnet } from 'viem/chains';
-import { createWalletProvider, resolveWalletProvider } from '@bankofai/agent-wallet';
+import { resolveWalletProvider } from '@bankofai/agent-wallet';
 import type { AgentWallet } from './signer.js';
 import type { ClientSigner } from '../client/x402Client.js';
 import {
@@ -39,52 +39,27 @@ export class EvmClientSigner implements ClientSigner {
   private wallet!: AgentWallet;
   private _address: string = '';
   private publicClients: Map<number, PublicClient> = new Map();
-  private _initPromise: Promise<void> | null = null;
 
   /**
-   * Create signer from a wallet + address, or from a raw private-key string.
+   * Create signer from a wallet.
    *
-   * When constructed with a private key the signer initialises lazily;
-   * all async methods wait for initialisation automatically.
+   * Prefer the async factory ``create()``.
    */
-  constructor(privateKey: string);
-  constructor(wallet: AgentWallet, address: string);
-  constructor(walletOrPrivateKey: AgentWallet | string, address?: string) {
-    if (typeof walletOrPrivateKey === 'string') {
-      this._initPromise = this._initFromPrivateKey(walletOrPrivateKey);
-    } else {
-      this.wallet = walletOrPrivateKey;
-      this._address = address!;
-    }
+  constructor(wallet: AgentWallet) {
+    this.wallet = wallet;
   }
 
   /** Async factory: resolve active agent wallet and create signer. */
   static async create(): Promise<EvmClientSigner> {
     const provider = resolveWalletProvider({ network: 'eip155' });
     const wallet = await provider.getActiveWallet();
-    const address = await wallet.getAddress();
-    return new EvmClientSigner(wallet as unknown as AgentWallet, address);
-  }
-
-  /** Create signer from a raw private-key hex string (backward-compat). */
-  static async fromPrivateKey(privateKey: string): Promise<EvmClientSigner> {
-    const signer = new EvmClientSigner(privateKey);
-    await signer._ensureReady();
+    const signer = new EvmClientSigner(wallet as unknown as AgentWallet);
+    signer.setAddress(await wallet.getAddress());
     return signer;
   }
 
-  private async _initFromPrivateKey(privateKey: string): Promise<void> {
-    const provider = createWalletProvider({ privateKey, network: 'eip155' });
-    const wallet = await provider.getActiveWallet();
-    this.wallet = wallet as unknown as AgentWallet;
-    this._address = await wallet.getAddress();
-  }
-
-  private async _ensureReady(): Promise<void> {
-    if (this._initPromise) {
-      await this._initPromise;
-      this._initPromise = null;
-    }
+  setAddress(address: string): void {
+    this._address = address;
   }
 
   getAddress(): string {
@@ -96,7 +71,6 @@ export class EvmClientSigner implements ClientSigner {
   }
 
   async signMessage(message: Uint8Array): Promise<string> {
-    await this._ensureReady();
     return this.wallet.signMessage(message);
   }
 
@@ -106,7 +80,6 @@ export class EvmClientSigner implements ClientSigner {
     message: Record<string, unknown>,
     primaryType: string
   ): Promise<string> {
-    await this._ensureReady();
     const fullData = {
       types: { EIP712Domain: [], ...types },
       domain,
@@ -118,7 +91,6 @@ export class EvmClientSigner implements ClientSigner {
   }
 
   async checkBalance(token: string, network: string, address?: string): Promise<bigint> {
-    await this._ensureReady();
     const chainId = this.parseNetworkToChainId(network);
     const client = this.getPublicClient(chainId, network);
     try {
@@ -142,7 +114,6 @@ export class EvmClientSigner implements ClientSigner {
     _amount: bigint,
     network: string,
   ): Promise<bigint> {
-    await this._ensureReady();
     const chainId = this.parseNetworkToChainId(network);
     const client = this.getPublicClient(chainId, network);
     const spender = getPaymentPermitAddress(network) as Hex;
@@ -169,7 +140,6 @@ export class EvmClientSigner implements ClientSigner {
     network: string,
     mode: 'auto' | 'interactive' | 'skip' = 'auto',
   ): Promise<boolean> {
-    await this._ensureReady();
     if (mode === 'skip') return true;
 
     const currentAllowance = await this.checkAllowance(token, amount, network);

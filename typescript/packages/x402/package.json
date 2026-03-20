@@ -1,6 +1,6 @@
 {
   "name": "@bankofai/x402",
-  "version": "0.5.0",
+  "version": "0.5.0-beta.4",
   "description": "x402 TypeScript SDK (TRON and EVM support)",
   "keywords": [
     "x402",
@@ -28,7 +28,7 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "dependencies": {
-    "@bankofai/agent-wallet": "^2.2.1",
+    "@bankofai/agent-wallet": "^2.3.0-beta.1",
     "@gasfree/gasfree-sdk": "^1.1.2",
     "viem": "^2.45.2"
   },

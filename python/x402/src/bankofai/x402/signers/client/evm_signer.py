@@ -1,7 +1,7 @@
 """
 EvmClientSigner - EVM client signer implementation
 
-Accepts any wallet object that exposes the agent-wallet BaseWallet interface
+Accepts any wallet object that exposes the agent-wallet Wallet interface
 (get_address, sign_message, sign_typed_data, sign_transaction).
 The signer is agnostic about how the wallet was created (private key, hosted, etc.).
 """
@@ -24,11 +24,10 @@ class EvmClientSigner(ClientSigner):
     def __init__(self, wallet: Any) -> None:
         """Create signer from a wallet.
 
-        Prefer the async factory ``create()`` which resolves the address
-        automatically and stores it on the instance.
+        Prefer the async factory ``create()``.
 
         Args:
-            wallet: Any object implementing the BaseWallet interface
+            wallet: Any object implementing the Wallet interface
                     (get_address, sign_message, sign_typed_data, sign_transaction).
         """
         self._wallet = wallet
@@ -42,22 +41,6 @@ class EvmClientSigner(ClientSigner):
         from agent_wallet import resolve_wallet_provider
 
         provider = resolve_wallet_provider(network="eip155")
-        wallet = await provider.get_active_wallet()
-        signer = cls(wallet)
-        signer.set_address(await wallet.get_address())
-        return signer
-
-    @classmethod
-    async def from_private_key(cls, private_key: str) -> "EvmClientSigner":
-        """Create signer from a raw private-key hex string (backward-compat).
-
-        Uses agent-wallet's ``create_wallet_provider`` internally.
-        """
-        from agent_wallet import PrivateKeyProviderOptions, create_wallet_provider
-
-        provider = create_wallet_provider(
-            PrivateKeyProviderOptions(private_key=private_key, network="eip155")
-        )
         wallet = await provider.get_active_wallet()
         signer = cls(wallet)
         signer.set_address(await wallet.get_address())
