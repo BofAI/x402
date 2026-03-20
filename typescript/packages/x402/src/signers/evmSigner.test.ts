@@ -22,7 +22,8 @@ describe('EvmClientSigner', () => {
 
   it('should initialize with wallet and address', () => {
     const wallet = createMockWallet(expectedAddress);
-    const signer = new EvmClientSigner(wallet, expectedAddress);
+    const signer = new EvmClientSigner(wallet);
+    signer.setAddress(expectedAddress);
     expect(signer.getAddress().toLowerCase()).toBe(
       expectedAddress.toLowerCase(),
     );
@@ -43,7 +44,8 @@ describe('EvmClientSigner', () => {
 
   it('should delegate signMessage to wallet', async () => {
     const wallet = createMockWallet(expectedAddress);
-    const signer = new EvmClientSigner(wallet, expectedAddress);
+    const signer = new EvmClientSigner(wallet);
+    signer.setAddress(expectedAddress);
     const message = new TextEncoder().encode('hello world');
     const signature = await signer.signMessage(message);
 
@@ -53,7 +55,8 @@ describe('EvmClientSigner', () => {
 
   it('should delegate signTypedData to wallet', async () => {
     const wallet = createMockWallet(expectedAddress);
-    const signer = new EvmClientSigner(wallet, expectedAddress);
+    const signer = new EvmClientSigner(wallet);
+    signer.setAddress(expectedAddress);
     const domain = {
       name: 'Test',
       version: '1',

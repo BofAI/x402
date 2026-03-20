@@ -121,6 +121,7 @@ async def test_evm_check_balance_raises_on_contract_error(mock_evm_private_key):
 @pytest.mark.anyio
 async def test_evm_write_contract_raises_on_contract_error(mock_evm_private_key):
     from eth_account import Account
+    import asyncio
 
     address = Account.from_key(mock_evm_private_key).address
     wallet = MagicMock()
@@ -139,7 +140,9 @@ async def test_evm_write_contract_raises_on_contract_error(mock_evm_private_key)
     mock_w3 = MagicMock()
     mock_w3.eth.contract.return_value = contract
     mock_w3.eth.get_transaction_count = AsyncMock(return_value=1)
-    mock_w3.eth.chain_id = AsyncMock(return_value=1)
+    chain_id = asyncio.Future()
+    chain_id.set_result(1)
+    mock_w3.eth.chain_id = chain_id
     signer._ensure_async_web3_client = MagicMock(return_value=mock_w3)
 
     with pytest.raises(RuntimeError, match="boom"):
