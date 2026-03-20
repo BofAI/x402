@@ -36,8 +36,6 @@ jobs:
           which zip
           which jq
           which python3
-          which node
-          which npm
 
       - name: Create source archive
         id: archive
@@ -91,6 +89,7 @@ jobs:
             echo "$RESP" | jq .
 
             CURRENT_STATUS=$(echo "$RESP" | jq -r '.status // empty')
+
             if [ "$CURRENT_STATUS" = "completed" ]; then
               FINAL_STATUS="completed"
               break
@@ -109,8 +108,6 @@ jobs:
             exit 1
           fi
 
-          echo "final_status=$FINAL_STATUS" >> "$GITHUB_OUTPUT"
-
       - name: Fetch final report html
         shell: bash
         run: |
@@ -127,101 +124,181 @@ jobs:
             exit 1
           fi
 
-      - name: Install Playwright
+      - name: Convert html to readable full text
         shell: bash
         run: |
-          mkdir -p /tmp/audit-render
-          cd /tmp/audit-render
-          if [ ! -f package.json ]; then
-            npm init -y >/dev/null 2>&1
-          fi
-          npm install playwright >/dev/null 2>&1
-          npx playwright install chromium
+          python3 <<'PY'
+          import re
+          from html.parser import HTMLParser
+          from pathlib import Path
 
-      - name: Render report html to long PNG
-        shell: bash
-        run: |
-          cd /tmp/audit-render
-          cat > render.js <<'EOF'
-          const { chromium } = require('playwright');
-          const path = require('path');
+          html = Path("/tmp/audit-report.html").read_text(encoding="utf-8", errors="ignore")
 
-          (async () => {
-            const browser = await chromium.launch({ headless: true });
-            const page = await browser.newPage({
-              viewport: { width: 1440, height: 1200 },
-              deviceScaleFactor: 1.5
-            });
+          class ReportParser(HTMLParser):
+              BLOCK_TAGS = {
+                  "p", "div", "section", "article", "header", "footer", "aside", "main",
+                  "table", "thead", "tbody", "tfoot", "tr", "ul", "ol", "blockquote"
+              }
+              HEADER_TAGS = {"h1", "h2", "h3", "h4", "h5", "h6"}
+              SKIP_TAGS = {"style", "script", "head", "svg", "noscript"}
+              CELL_TAGS = {"td", "th"}
 
-            const filePath = 'file://' + path.resolve('/tmp/audit-report.html');
-            await page.goto(filePath, { waitUntil: 'networkidle' });
-            await page.screenshot({
-              path: '/tmp/audit-report.png',
-              fullPage: true
-            });
+              def __init__(self):
+                  super().__init__()
+                  self.parts = []
+                  self.in_pre = False
+                  self.skip_depth = 0
 
-            await browser.close();
-          })();
-          EOF
-          node render.js
+              def _push(self, text):
+                  self.parts.append(text)
 
-          if [ ! -s /tmp/audit-report.png ]; then
-            echo "Failed to render PNG"
-            exit 1
-          fi
+              def handle_starttag(self, tag, attrs):
+                  if tag in self.SKIP_TAGS:
+                      self.skip_depth += 1
+                      return
+                  if self.skip_depth > 0:
+                      return
 
-      - name: Upload audit artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: audit-pr-${{ github.event.repository.name }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            /tmp/audit-report.html
-            /tmp/audit-report.png
-          if-no-files-found: error
-          retention-days: 7
+                  if tag in self.HEADER_TAGS:
+                      self._push("\n\n")
+                  elif tag in self.BLOCK_TAGS:
+                      self._push("\n")
+                  elif tag == "br":
+                      self._push("\n")
+                  elif tag == "li":
+                      self._push("\n- ")
+                  elif tag in self.CELL_TAGS:
+                      self._push(" | ")
+                  elif tag == "pre":
+                      self._push("\n\n")
+                      self.in_pre = True
+                  elif tag == "code" and not self.in_pre:
+                      self._push("`")
 
-      - name: Write summary
-        run: |
-          {
-            echo "## Audit PR result"
-            echo ""
-            echo "- status: completed"
-            echo "- report_path: ${{ steps.submit.outputs.report_url }}"
-            echo "- status_path: ${{ steps.submit.outputs.status_url }}"
-            echo "- artifact: audit-pr-${{ github.event.repository.name }}-${{ github.run_id }}-${{ github.run_attempt }}"
-          } >> "$GITHUB_STEP_SUMMARY"
+              def handle_endtag(self, tag):
+                  if tag in self.SKIP_TAGS:
+                      if self.skip_depth > 0:
+                          self.skip_depth -= 1
+                      return
+                  if self.skip_depth > 0:
+                      return
 
-      - name: Comment summary to PR
+                  if tag in self.HEADER_TAGS:
+                      self._push("\n")
+                  elif tag in self.BLOCK_TAGS:
+                      self._push("\n")
+                  elif tag == "tr":
+                      self._push("\n")
+                  elif tag == "pre":
+                      self._push("\n\n")
+                      self.in_pre = False
+                  elif tag == "code" and not self.in_pre:
+                      self._push("`")
+
+              def handle_data(self, data):
+                  if self.skip_depth > 0:
+                      return
+                  if not data:
+                      return
+                  self._push(data)
+
+          parser = ReportParser()
+          parser.feed(html)
+          text = "".join(parser.parts)
+
+          # 去除明显的样式/CSS残留
+          filtered_lines = []
+          css_like = re.compile(
+              r'^\s*([.#:]?[-_a-zA-Z][\w\-:#.,\s>*\[\]="\']*)\s*\{\s*$|^\s*--[\w\-]+\s*:\s*.+;?\s*$'
+          )
+
+          for raw_line in text.splitlines():
+              line = raw_line.rstrip()
+
+              if not line.strip():
+                  filtered_lines.append("")
+                  continue
+
+              # 清理多余空白
+              if " | " not in line:
+                  line = re.sub(r'[ \t]+', ' ', line).strip()
+
+              stripped = line.strip()
+
+              # 过滤明显非正文内容
+              if stripped.startswith("@charset"):
+                  continue
+              if stripped.startswith(":root"):
+                  continue
+              if css_like.match(stripped):
+                  continue
+              if stripped in {"{", "}", "};"}:
+                  continue
+
+              filtered_lines.append(line)
+
+          # 合并空行，避免过于稀疏
+          cleaned = []
+          blank = False
+          for line in filtered_lines:
+              if line.strip():
+                  cleaned.append(line.strip())
+                  blank = False
+              else:
+                  if not blank:
+                      cleaned.append("")
+                  blank = True
+
+          output = "\n".join(cleaned).strip() + "\n"
+          Path("/tmp/audit-report.txt").write_text(output, encoding="utf-8")
+          PY
+
+      - name: Comment full report to PR
         uses: actions/github-script@v7
         env:
           REPORT_PATH: ${{ steps.submit.outputs.report_url }}
           STATUS_PATH: ${{ steps.submit.outputs.status_url }}
-          ARTIFACT_NAME: audit-pr-${{ github.event.repository.name }}-${{ github.run_id }}-${{ github.run_attempt }}
           RUN_GROUP: github-pr-${{ github.run_id }}-${{ github.run_attempt }}
         with:
           script: |
+            const fs = require('fs');
+
+            const reportText = fs.readFileSync('/tmp/audit-report.txt', 'utf8').trim();
             const reportPath = process.env.REPORT_PATH || '';
             const statusPath = process.env.STATUS_PATH || '';
-            const artifactName = process.env.ARTIFACT_NAME || '';
             const runGroup = process.env.RUN_GROUP || 'unknown';
 
-            const body = [
+            const header = [
               `[AUDIT-PR][source=pull_request][run=${runGroup}]`,
               '',
               'Status: completed',
               `Report path: ${reportPath}`,
               `Status path: ${statusPath}`,
-              `Artifact: ${artifactName}`,
               '',
-              'The full audit report has been rendered as a long PNG and uploaded as a GitHub Actions artifact in this workflow run.'
             ].join('\n');
 
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.payload.pull_request.number,
-              body
-            });
+            const fullText = `${header}${reportText}`;
+            const limit = 60000;
+            const chunks = [];
+
+            for (let i = 0; i < fullText.length; i += limit) {
+              chunks.push(fullText.slice(i, i + limit));
+            }
+
+            for (let i = 0; i < chunks.length; i++) {
+              const body = [
+                `[AUDIT-PR][source=pull_request][run=${runGroup}][part ${i + 1}/${chunks.length}]`,
+                '',
+                chunks[i]
+              ].join('\n');
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body
+              });
+            }
 
   audit-by-comment:
     name: Audit by PR comment
@@ -259,8 +336,6 @@ jobs:
           which zip
           which jq
           which python3
-          which node
-          which npm
 
       - name: Create source archive
         id: archive
@@ -314,6 +389,7 @@ jobs:
             echo "$RESP" | jq .
 
             CURRENT_STATUS=$(echo "$RESP" | jq -r '.status // empty')
+
             if [ "$CURRENT_STATUS" = "completed" ]; then
               FINAL_STATUS="completed"
               break
@@ -332,8 +408,6 @@ jobs:
             exit 1
           fi
 
-          echo "final_status=$FINAL_STATUS" >> "$GITHUB_OUTPUT"
-
       - name: Fetch final report html
         shell: bash
         run: |
@@ -350,87 +424,174 @@ jobs:
             exit 1
           fi
 
-      - name: Install Playwright
+      - name: Convert html to readable full text
         shell: bash
         run: |
-          mkdir -p /tmp/audit-render
-          cd /tmp/audit-render
-          if [ ! -f package.json ]; then
-            npm init -y >/dev/null 2>&1
-          fi
-          npm install playwright >/dev/null 2>&1
-          npx playwright install chromium
+          python3 <<'PY'
+          import re
+          from html.parser import HTMLParser
+          from pathlib import Path
 
-      - name: Render report html to long PNG
-        shell: bash
-        run: |
-          cd /tmp/audit-render
-          cat > render.js <<'EOF'
-          const { chromium } = require('playwright');
-          const path = require('path');
+          html = Path("/tmp/audit-report.html").read_text(encoding="utf-8", errors="ignore")
 
-          (async () => {
-            const browser = await chromium.launch({ headless: true });
-            const page = await browser.newPage({
-              viewport: { width: 1440, height: 1200 },
-              deviceScaleFactor: 1.5
-            });
+          class ReportParser(HTMLParser):
+              BLOCK_TAGS = {
+                  "p", "div", "section", "article", "header", "footer", "aside", "main",
+                  "table", "thead", "tbody", "tfoot", "tr", "ul", "ol", "blockquote"
+              }
+              HEADER_TAGS = {"h1", "h2", "h3", "h4", "h5", "h6"}
+              SKIP_TAGS = {"style", "script", "head", "svg", "noscript"}
+              CELL_TAGS = {"td", "th"}
 
-            const filePath = 'file://' + path.resolve('/tmp/audit-report.html');
-            await page.goto(filePath, { waitUntil: 'networkidle' });
-            await page.screenshot({
-              path: '/tmp/audit-report.png',
-              fullPage: true
-            });
+              def __init__(self):
+                  super().__init__()
+                  self.parts = []
+                  self.in_pre = False
+                  self.skip_depth = 0
 
-            await browser.close();
-          })();
-          EOF
-          node render.js
+              def _push(self, text):
+                  self.parts.append(text)
 
-          if [ ! -s /tmp/audit-report.png ]; then
-            echo "Failed to render PNG"
-            exit 1
-          fi
+              def handle_starttag(self, tag, attrs):
+                  if tag in self.SKIP_TAGS:
+                      self.skip_depth += 1
+                      return
+                  if self.skip_depth > 0:
+                      return
 
-      - name: Upload audit artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: audit-pr-${{ github.event.repository.name }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            /tmp/audit-report.html
-            /tmp/audit-report.png
-          if-no-files-found: error
-          retention-days: 7
+                  if tag in self.HEADER_TAGS:
+                      self._push("\n\n")
+                  elif tag in self.BLOCK_TAGS:
+                      self._push("\n")
+                  elif tag == "br":
+                      self._push("\n")
+                  elif tag == "li":
+                      self._push("\n- ")
+                  elif tag in self.CELL_TAGS:
+                      self._push(" | ")
+                  elif tag == "pre":
+                      self._push("\n\n")
+                      self.in_pre = True
+                  elif tag == "code" and not self.in_pre:
+                      self._push("`")
 
-      - name: Comment summary to PR
+              def handle_endtag(self, tag):
+                  if tag in self.SKIP_TAGS:
+                      if self.skip_depth > 0:
+                          self.skip_depth -= 1
+                      return
+                  if self.skip_depth > 0:
+                      return
+
+                  if tag in self.HEADER_TAGS:
+                      self._push("\n")
+                  elif tag in self.BLOCK_TAGS:
+                      self._push("\n")
+                  elif tag == "tr":
+                      self._push("\n")
+                  elif tag == "pre":
+                      self._push("\n\n")
+                      self.in_pre = False
+                  elif tag == "code" and not self.in_pre:
+                      self._push("`")
+
+              def handle_data(self, data):
+                  if self.skip_depth > 0:
+                      return
+                  if not data:
+                      return
+                  self._push(data)
+
+          parser = ReportParser()
+          parser.feed(html)
+          text = "".join(parser.parts)
+
+          filtered_lines = []
+          css_like = re.compile(
+              r'^\s*([.#:]?[-_a-zA-Z][\w\-:#.,\s>*\[\]="\']*)\s*\{\s*$|^\s*--[\w\-]+\s*:\s*.+;?\s*$'
+          )
+
+          for raw_line in text.splitlines():
+              line = raw_line.rstrip()
+
+              if not line.strip():
+                  filtered_lines.append("")
+                  continue
+
+              if " | " not in line:
+                  line = re.sub(r'[ \t]+', ' ', line).strip()
+
+              stripped = line.strip()
+
+              if stripped.startswith("@charset"):
+                  continue
+              if stripped.startswith(":root"):
+                  continue
+              if css_like.match(stripped):
+                  continue
+              if stripped in {"{", "}", "};"}:
+                  continue
+
+              filtered_lines.append(line)
+
+          cleaned = []
+          blank = False
+          for line in filtered_lines:
+              if line.strip():
+                  cleaned.append(line.strip())
+                  blank = False
+              else:
+                  if not blank:
+                      cleaned.append("")
+                  blank = True
+
+          output = "\n".join(cleaned).strip() + "\n"
+          Path("/tmp/audit-report.txt").write_text(output, encoding="utf-8")
+          PY
+
+      - name: Comment full report to PR
         uses: actions/github-script@v7
         env:
           REPORT_PATH: ${{ steps.submit.outputs.report_url }}
           STATUS_PATH: ${{ steps.submit.outputs.status_url }}
-          ARTIFACT_NAME: audit-pr-${{ github.event.repository.name }}-${{ github.run_id }}-${{ github.run_attempt }}
           RUN_GROUP: github-pr-comment-${{ github.run_id }}-${{ github.run_attempt }}
         with:
           script: |
+            const fs = require('fs');
+
+            const reportText = fs.readFileSync('/tmp/audit-report.txt', 'utf8').trim();
             const reportPath = process.env.REPORT_PATH || '';
             const statusPath = process.env.STATUS_PATH || '';
-            const artifactName = process.env.ARTIFACT_NAME || '';
             const runGroup = process.env.RUN_GROUP || 'unknown';
 
-            const body = [
+            const header = [
               `[AUDIT-PR][source=comment][/audit-pr][run=${runGroup}]`,
               '',
               'Status: completed',
               `Report path: ${reportPath}`,
               `Status path: ${statusPath}`,
-              `Artifact: ${artifactName}`,
               '',
-              'The full audit report has been rendered as a long PNG and uploaded as a GitHub Actions artifact in this workflow run.'
             ].join('\n');
 
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body
-            });
+            const fullText = `${header}${reportText}`;
+            const limit = 60000;
+            const chunks = [];
+
+            for (let i = 0; i < fullText.length; i += limit) {
+              chunks.push(fullText.slice(i, i + limit));
+            }
+
+            for (let i = 0; i < chunks.length; i++) {
+              const body = [
+                `[AUDIT-PR][source=comment][/audit-pr][run=${runGroup}][part ${i + 1}/${chunks.length}]`,
+                '',
+                chunks[i]
+              ].join('\n');
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body
+              });
+            }
