@@ -1,6 +1,8 @@
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from eth_account import Account
 
 from bankofai.x402.signers.facilitator import EvmFacilitatorSigner
 
@@ -8,8 +10,6 @@ from bankofai.x402.signers.facilitator import EvmFacilitatorSigner
 @pytest.mark.anyio
 async def test_evm_facilitator_signer_creation(mock_evm_private_key):
     """Test EVM facilitator signer creation"""
-    from eth_account import Account
-
     address = Account.from_key(mock_evm_private_key).address
     wallet = MagicMock()
     wallet.get_address = AsyncMock(return_value=address)
@@ -27,7 +27,6 @@ async def test_evm_facilitator_signer_creation(mock_evm_private_key):
 @pytest.mark.anyio
 async def test_evm_verify_typed_data(mock_evm_private_key):
     """Test EVM signature verification"""
-    from eth_account import Account
 
     domain = {
         "name": "PaymentPermit",
@@ -36,8 +35,6 @@ async def test_evm_verify_typed_data(mock_evm_private_key):
     }
     types = {"Test": [{"name": "content", "type": "string"}]}
     message = {"content": "test"}
-
-    from eth_account.messages import encode_typed_data
 
     from bankofai.x402.abi import PAYMENT_PERMIT_EIP712_DOMAIN_TYPE
 
@@ -55,6 +52,8 @@ async def test_evm_verify_typed_data(mock_evm_private_key):
 
     typed_data = {"types": full_types, "primaryType": "Test", "domain": domain, "message": message}
 
+    from eth_account.messages import encode_typed_data
+
     encoded = encode_typed_data(full_message=typed_data)
     signed = Account.sign_message(encoded, private_key=mock_evm_private_key)
     signature = signed.signature.hex()
@@ -70,7 +69,6 @@ async def test_evm_verify_typed_data(mock_evm_private_key):
 @pytest.mark.anyio
 async def test_evm_verify_typed_data_invalid(mock_evm_private_key):
     """Test invalid signature verification"""
-    from eth_account import Account
 
     address = Account.from_key(mock_evm_private_key).address
     wallet = MagicMock()
@@ -96,7 +94,6 @@ async def test_evm_verify_typed_data_invalid(mock_evm_private_key):
 
 @pytest.mark.anyio
 async def test_evm_check_balance_raises_on_contract_error(mock_evm_private_key):
-    from eth_account import Account
 
     address = Account.from_key(mock_evm_private_key).address
     wallet = MagicMock()
@@ -120,9 +117,6 @@ async def test_evm_check_balance_raises_on_contract_error(mock_evm_private_key):
 
 @pytest.mark.anyio
 async def test_evm_write_contract_raises_on_contract_error(mock_evm_private_key):
-    import asyncio
-    from eth_account import Account
-
     address = Account.from_key(mock_evm_private_key).address
     wallet = MagicMock()
     wallet.get_address = AsyncMock(return_value=address)
