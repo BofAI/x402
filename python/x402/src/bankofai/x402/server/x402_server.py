@@ -19,6 +19,7 @@ from bankofai.x402.types import (
     SettleResponse,
     VerifyResponse,
 )
+from bankofai.x402.utils.address import checksum_evm_address
 
 if TYPE_CHECKING:
     from bankofai.x402.facilitator.facilitator_client import FacilitatorClient
@@ -153,6 +154,7 @@ class X402Server:
             requirements = await mechanism.enhance_payment_requirements(
                 requirements, config.delivery_mode
             )
+            requirements = self._normalize_evm_requirements(requirements)
             requirements_list.append(requirements)
 
         if self._facilitator:
@@ -192,11 +194,33 @@ class X402Server:
                         req.extra = PaymentRequirementsExtra()
                     fee_quote.fee.facilitator_id = facilitator.facilitator_id
                     req.extra.fee = fee_quote.fee
+                    req = self._normalize_evm_requirements(req)
                     supported.append(req)
         else:
             raise ValueError("Facilitator is not set")
 
         return supported
+
+    @staticmethod
+    def _normalize_evm_requirements(
+        requirements: PaymentRequirements,
+    ) -> PaymentRequirements:
+        if not requirements.network.startswith("eip155:"):
+            return requirements
+
+        requirements.asset = checksum_evm_address(requirements.asset, strict=True)
+        requirements.pay_to = checksum_evm_address(requirements.pay_to, strict=True)
+
+        if requirements.extra and requirements.extra.fee:
+            requirements.extra.fee.fee_to = checksum_evm_address(
+                requirements.extra.fee.fee_to, strict=True
+            )
+            if requirements.extra.fee.caller:
+                requirements.extra.fee.caller = checksum_evm_address(
+                    requirements.extra.fee.caller, strict=True
+                )
+
+        return requirements
 
     def create_payment_required_response(
         self,

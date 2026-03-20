@@ -134,3 +134,39 @@ def evm_address_to_tron(evm_addr: str) -> str:
     except Exception as e:
         logger.warning(f"Failed to convert EVM address {evm_addr}: {e}, using as-is")
         return evm_addr
+
+
+def checksum_evm_address(addr: str, *, strict: bool = False) -> str:
+    """Normalize EVM address to checksum format when possible.
+
+    Accepts lower/uppercase hex with or without 0x prefix. Falls back to the
+    original string if web3 isn't available or if normalization fails.
+    """
+    if not isinstance(addr, str) or not addr:
+        return addr
+
+    candidate = addr
+    if not candidate.startswith("0x") and len(candidate) == 40:
+        if all(c in "0123456789abcdefABCDEF" for c in candidate):
+            candidate = "0x" + candidate
+
+    if not (candidate.startswith("0x") and len(candidate) == 42):
+        if strict and (candidate.startswith("0x") or len(candidate) == 40):
+            raise ValueError(f"Invalid EVM address length: {addr}")
+        return addr
+
+    if not all(c in "0123456789abcdefABCDEF" for c in candidate[2:]):
+        if strict:
+            raise ValueError(f"Invalid EVM address hex: {addr}")
+        return addr
+
+    try:
+        from web3 import Web3
+
+        return Web3.to_checksum_address(candidate)
+    except (ImportError, ModuleNotFoundError):
+        return addr
+    except Exception as exc:
+        if strict:
+            raise ValueError(f"Invalid EVM address checksum: {addr}") from exc
+        return addr

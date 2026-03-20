@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from bankofai.x402.encoding import decode_payment_payload, encode_payment_payload
 from bankofai.x402.server import ResourceConfig, X402Server
 from bankofai.x402.types import PaymentPayload, PaymentRequirements
+from bankofai.x402.utils.address import checksum_evm_address
 
 if TYPE_CHECKING:
     from bankofai.x402.utils.tx_verification import TransactionVerificationResult
@@ -90,6 +91,8 @@ class X402Middleware:
             )
         price_list = prices
         scheme_list = schemes
+        if network.startswith("eip155:"):
+            pay_to = checksum_evm_address(pay_to, strict=True)
 
         # Validate all token symbols at startup
         from bankofai.x402.tokens import TokenRegistry
@@ -144,7 +147,13 @@ class X402Middleware:
                         status_code=400,
                     )
 
-                requirements = (await self._server.build_payment_requirements([config]))[0]
+                try:
+                    requirements = (await self._server.build_payment_requirements([config]))[0]
+                except Exception as e:
+                    return JSONResponse(
+                        content={"error": f"Invalid payment configuration: {str(e)}"},
+                        status_code=500,
+                    )
 
                 settle_result = await self._server.settle_payment(payload, requirements)
                 if not settle_result.success:
@@ -272,7 +281,13 @@ class X402Middleware:
         error: str | None = None,
     ) -> JSONResponse:
         """Return 402 payment required response"""
-        requirements_list = await self._server.build_payment_requirements(configs)
+        try:
+            requirements_list = await self._server.build_payment_requirements(configs)
+        except Exception as e:
+            return JSONResponse(
+                content={"error": f"Invalid payment configuration: {str(e)}"},
+                status_code=500,
+            )
         if not requirements_list:
             return JSONResponse(
                 content={"error": "No supported payment options available"},

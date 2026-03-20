@@ -14,6 +14,7 @@ from bankofai.x402.config import NetworkConfig
 from bankofai.x402.exceptions import InsufficientAllowanceError, SignatureCreationError
 from bankofai.x402.signers.client.base import ClientSigner
 from bankofai.x402.signers.utils import resolve_provider_uri
+from bankofai.x402.utils.address import checksum_evm_address
 
 logger = logging.getLogger(__name__)
 
@@ -100,37 +101,36 @@ class EvmClientSigner(ClientSigner):
             w3 = self._ensure_async_web3_client(network)
             if not w3:
                 return 0
-            target_address = address or self.get_address()
-            contract = w3.eth.contract(address=token, abi=ERC20_ABI)
+
+            target_address = checksum_evm_address(address or self._address)
+            token_address = checksum_evm_address(token)
+            contract = w3.eth.contract(address=token_address, abi=ERC20_ABI)
             return await contract.functions.balanceOf(target_address).call()
         except (ImportError, ModuleNotFoundError):
             logger.warning("web3 not available, returning 0 balance")
             return 0
         except Exception as e:
-            logger.error(
-                "Failed to check ERC20 balance",
-                extra={"token": token, "network": network, "error": str(e)},
-            )
-            return 0
+            logger.error("Failed to check ERC20 balance: %s", e)
+            raise
 
     async def check_allowance(self, token: str, amount: int, network: str) -> int:
         """Check ERC20 allowance"""
         try:
-            spender = self._get_spender_address(network)
+            spender = checksum_evm_address(self._get_spender_address(network))
             w3 = self._ensure_async_web3_client(network)
             if not spender or not w3:
                 return 0
-            contract = w3.eth.contract(address=token, abi=ERC20_ABI)
-            return await contract.functions.allowance(self.get_address(), spender).call()
+
+            token_address = checksum_evm_address(token)
+            owner_address = checksum_evm_address(self._address)
+            contract = w3.eth.contract(address=token_address, abi=ERC20_ABI)
+            return await contract.functions.allowance(owner_address, spender).call()
         except (ImportError, ModuleNotFoundError):
             logger.warning("web3 not available, returning 0 allowance")
             return 0
         except Exception as e:
-            logger.error(
-                "Failed to check ERC20 allowance",
-                extra={"token": token, "spender": spender, "network": network, "error": str(e)},
-            )
-            return 0
+            logger.error("Failed to check ERC20 allowance: %s", e)
+            raise
 
     async def ensure_allowance(
         self,
@@ -155,14 +155,15 @@ class EvmClientSigner(ClientSigner):
             if not w3:
                 raise InsufficientAllowanceError("Web3 provider not configured")
 
-            spender = self._get_spender_address(network)
-            contract = w3.eth.contract(address=token, abi=ERC20_ABI)
-            address = self.get_address()
+            spender = checksum_evm_address(self._get_spender_address(network))
+            token_address = checksum_evm_address(token)
+            from_address = checksum_evm_address(self._address)
+            contract = w3.eth.contract(address=token_address, abi=ERC20_ABI)
 
             tx = await contract.functions.approve(spender, 2**256 - 1).build_transaction(
                 {
-                    "from": address,
-                    "nonce": await w3.eth.get_transaction_count(address),
+                    "from": from_address,
+                    "nonce": await w3.eth.get_transaction_count(from_address),
                     "chainId": await w3.eth.chain_id,
                 }
             )

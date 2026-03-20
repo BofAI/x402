@@ -11,6 +11,7 @@ from typing import Any
 
 from bankofai.x402.signers.facilitator.base import FacilitatorSigner
 from bankofai.x402.signers.utils import resolve_provider_uri
+from bankofai.x402.utils.address import checksum_evm_address
 
 logger = logging.getLogger(__name__)
 
@@ -107,13 +108,14 @@ class EvmFacilitatorSigner(FacilitatorSigner):
 
         from bankofai.x402.abi import ERC20_ABI
 
-        target_address = address or self.get_address()
+        target_address = checksum_evm_address(address or self._address)
+        token_address = checksum_evm_address(token)
         try:
-            contract = w3.eth.contract(address=token, abi=ERC20_ABI)
+            contract = w3.eth.contract(address=token_address, abi=ERC20_ABI)
             return await contract.functions.balanceOf(target_address).call()
         except Exception as e:
             logger.error(f"Failed to check balance for {target_address}: {e}")
-            return 0
+            raise
 
     async def write_contract(
         self,
@@ -132,14 +134,18 @@ class EvmFacilitatorSigner(FacilitatorSigner):
             import json
 
             abi_list = json.loads(abi) if isinstance(abi, str) else abi
-            contract = w3.eth.contract(address=contract_address, abi=abi_list)
+            contract_addr = checksum_evm_address(contract_address)
+            contract = w3.eth.contract(address=contract_addr, abi=abi_list)
             func = getattr(contract.functions, method)
-            address = self.get_address()
+            checked_args = [
+                checksum_evm_address(arg) if isinstance(arg, str) else arg for arg in args
+            ]
 
-            tx = await func(*args).build_transaction(
+            from_address = checksum_evm_address(self._address)
+            tx = await func(*checked_args).build_transaction(
                 {
-                    "from": address,
-                    "nonce": await w3.eth.get_transaction_count(address),
+                    "from": from_address,
+                    "nonce": await w3.eth.get_transaction_count(from_address),
                     "chainId": await w3.eth.chain_id,
                 }
             )
@@ -154,7 +160,7 @@ class EvmFacilitatorSigner(FacilitatorSigner):
                 exc_info=True,
                 extra={"method": method, "contract": contract_address},
             )
-            return None
+            raise
 
     async def wait_for_transaction_receipt(
         self,

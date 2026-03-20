@@ -5,7 +5,11 @@ Address converter interface and implementations
 from abc import ABC, abstractmethod
 from typing import Any
 
-from bankofai.x402.utils.address import normalize_tron_address, tron_address_to_evm
+from bankofai.x402.utils.address import (
+    checksum_evm_address,
+    normalize_tron_address,
+    tron_address_to_evm,
+)
 
 
 class AddressConverter(ABC):
@@ -43,17 +47,22 @@ class EvmAddressConverter(AddressConverter):
 
     def normalize(self, address: str) -> str:
         """EVM addresses do not need normalization"""
-        return address
+        return checksum_evm_address(address)
 
     def to_evm_format(self, address: str) -> str:
         """Already in EVM format"""
-        return address
+        return checksum_evm_address(address)
 
     def get_zero_address(self) -> str:
         return self.ZERO_ADDRESS
 
     def convert_message_addresses(self, message: dict[str, Any]) -> dict[str, Any]:
-        """EVM addresses do not need conversion"""
+        """Normalize EVM addresses to checksum format"""
+        message["buyer"] = checksum_evm_address(message["buyer"])
+        message["caller"] = checksum_evm_address(message["caller"])
+        message["payment"]["payToken"] = checksum_evm_address(message["payment"]["payToken"])
+        message["payment"]["payTo"] = checksum_evm_address(message["payment"]["payTo"])
+        message["fee"]["feeTo"] = checksum_evm_address(message["fee"]["feeTo"])
         return message
 
 

@@ -91,7 +91,7 @@ async def test_tron_signer_check_allowance():
 
 @pytest.mark.anyio
 async def test_evm_signer_check_allowance():
-    """Test EVM signer allowance check (without web3)"""
+    """Test EVM signer allowance check propagates contract failures"""
     wallet = MagicMock()
     wallet.get_address = AsyncMock(return_value="0x1111111111111111111111111111111111111111")
 
@@ -100,11 +100,20 @@ async def test_evm_signer_check_allowance():
 
     with patch("agent_wallet.resolve_wallet_provider", return_value=provider):
         signer = await EvmClientSigner.create()
-    signer._ensure_async_web3_client = MagicMock(return_value=None)
 
-    # Should return 0 when no web3 client available
-    allowance = await signer.check_allowance("0xTestToken", 1000000, "eip155:1")
-    assert allowance == 0
+    contract = MagicMock()
+    contract.functions.allowance.return_value.call = AsyncMock(side_effect=RuntimeError("boom"))
+    mock_w3 = MagicMock()
+    mock_w3.eth.contract.return_value = contract
+    signer._ensure_async_web3_client = MagicMock(return_value=mock_w3)
+    signer._get_spender_address = MagicMock(
+        return_value="0x0000000000000000000000000000000000000001"
+    )
+
+    with pytest.raises(RuntimeError, match="boom"):
+        await signer.check_allowance(
+            "0x0000000000000000000000000000000000000002", 1000000, "eip155:1"
+        )
 
 
 @pytest.mark.anyio
@@ -173,7 +182,7 @@ async def test_evm_signer_sign_typed_data():
 
 @pytest.mark.anyio
 async def test_evm_signer_check_balance():
-    """Test EVM signer balance check (without web3)"""
+    """Test EVM signer balance check propagates contract failures"""
     wallet = MagicMock()
     wallet.get_address = AsyncMock(return_value="0x1111111111111111111111111111111111111111")
 
@@ -182,7 +191,12 @@ async def test_evm_signer_check_balance():
 
     with patch("agent_wallet.resolve_wallet_provider", return_value=provider):
         signer = await EvmClientSigner.create()
-    signer._ensure_async_web3_client = MagicMock(return_value=None)
 
-    balance = await signer.check_balance("0xTestToken", "eip155:1")
-    assert balance == 0
+    contract = MagicMock()
+    contract.functions.balanceOf.return_value.call = AsyncMock(side_effect=RuntimeError("boom"))
+    mock_w3 = MagicMock()
+    mock_w3.eth.contract.return_value = contract
+    signer._ensure_async_web3_client = MagicMock(return_value=mock_w3)
+
+    with pytest.raises(RuntimeError, match="boom"):
+        await signer.check_balance("0x0000000000000000000000000000000000000002", "eip155:1")
