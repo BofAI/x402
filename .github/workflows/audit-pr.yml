@@ -83,12 +83,15 @@ jobs:
           fi
 
           FINAL_STATUS=""
+          FINAL_RESPONSE=""
+
           for i in $(seq 1 40); do
             RESP=$(curl -s "${{ vars.AUDIT_SERVICE_URL }}${STATUS_PATH}")
             echo "Poll #$i:"
             echo "$RESP" | jq .
 
             CURRENT_STATUS=$(echo "$RESP" | jq -r '.status // empty')
+            FINAL_RESPONSE="$RESP"
 
             if [ "$CURRENT_STATUS" = "completed" ]; then
               FINAL_STATUS="completed"
@@ -108,6 +111,9 @@ jobs:
             exit 1
           fi
 
+          echo "$FINAL_RESPONSE" > /tmp/audit-status.json
+          echo "final_status=$FINAL_STATUS" >> "$GITHUB_OUTPUT"
+
       - name: Fetch final report html
         shell: bash
         run: |
@@ -124,108 +130,100 @@ jobs:
             exit 1
           fi
 
-      - name: Convert html to readable full text
+      - name: Convert report html to markdown
         shell: bash
         run: |
           python3 <<'PY'
+          import json
           import re
           from html.parser import HTMLParser
           from pathlib import Path
 
           html = Path("/tmp/audit-report.html").read_text(encoding="utf-8", errors="ignore")
 
-          class ReportParser(HTMLParser):
-              BLOCK_TAGS = {
-                  "p", "div", "section", "article", "header", "footer", "aside", "main",
-                  "table", "thead", "tbody", "tfoot", "tr", "ul", "ol", "blockquote"
-              }
-              HEADER_TAGS = {"h1", "h2", "h3", "h4", "h5", "h6"}
-              SKIP_TAGS = {"style", "script", "head", "svg", "noscript"}
-              CELL_TAGS = {"td", "th"}
-
+          class Parser(HTMLParser):
+              SKIP = {"style", "script", "head", "svg", "noscript"}
+              HEADERS = {"h1", "h2", "h3", "h4", "h5", "h6"}
+              BLOCKS = {"p", "div", "section", "article", "header", "footer", "aside", "main",
+                        "table", "thead", "tbody", "tfoot", "tr", "ul", "ol", "blockquote"}
               def __init__(self):
                   super().__init__()
                   self.parts = []
-                  self.in_pre = False
                   self.skip_depth = 0
+                  self.in_pre = False
+                  self.in_code = False
+                  self.current_tag = None
 
-              def _push(self, text):
-                  self.parts.append(text)
+              def push(self, s):
+                  self.parts.append(s)
 
               def handle_starttag(self, tag, attrs):
-                  if tag in self.SKIP_TAGS:
+                  self.current_tag = tag
+                  if tag in self.SKIP:
                       self.skip_depth += 1
                       return
-                  if self.skip_depth > 0:
+                  if self.skip_depth:
                       return
-
-                  if tag in self.HEADER_TAGS:
-                      self._push("\n\n")
-                  elif tag in self.BLOCK_TAGS:
-                      self._push("\n")
+                  if tag in self.HEADERS:
+                      self.push("\n\n")
+                  elif tag in self.BLOCKS:
+                      self.push("\n")
                   elif tag == "br":
-                      self._push("\n")
+                      self.push("\n")
                   elif tag == "li":
-                      self._push("\n- ")
-                  elif tag in self.CELL_TAGS:
-                      self._push(" | ")
+                      self.push("\n- ")
+                  elif tag in {"td", "th"}:
+                      self.push(" | ")
                   elif tag == "pre":
-                      self._push("\n\n")
+                      self.push("\n\n```text\n")
                       self.in_pre = True
                   elif tag == "code" and not self.in_pre:
-                      self._push("`")
+                      self.push("`")
+                      self.in_code = True
 
               def handle_endtag(self, tag):
-                  if tag in self.SKIP_TAGS:
-                      if self.skip_depth > 0:
+                  if tag in self.SKIP:
+                      if self.skip_depth:
                           self.skip_depth -= 1
                       return
-                  if self.skip_depth > 0:
+                  if self.skip_depth:
                       return
-
-                  if tag in self.HEADER_TAGS:
-                      self._push("\n")
-                  elif tag in self.BLOCK_TAGS:
-                      self._push("\n")
+                  if tag in self.HEADERS:
+                      self.push("\n")
+                  elif tag in self.BLOCKS:
+                      self.push("\n")
                   elif tag == "tr":
-                      self._push("\n")
+                      self.push("\n")
                   elif tag == "pre":
-                      self._push("\n\n")
+                      self.push("\n```\n\n")
                       self.in_pre = False
-                  elif tag == "code" and not self.in_pre:
-                      self._push("`")
+                  elif tag == "code" and self.in_code:
+                      self.push("`")
+                      self.in_code = False
 
               def handle_data(self, data):
-                  if self.skip_depth > 0:
+                  if self.skip_depth:
                       return
                   if not data:
                       return
-                  self._push(data)
+                  self.push(data)
 
-          parser = ReportParser()
+          parser = Parser()
           parser.feed(html)
           text = "".join(parser.parts)
 
-          # 去除明显的样式/CSS残留
-          filtered_lines = []
-          css_like = re.compile(
-              r'^\s*([.#:]?[-_a-zA-Z][\w\-:#.,\s>*\[\]="\']*)\s*\{\s*$|^\s*--[\w\-]+\s*:\s*.+;?\s*$'
-          )
+          lines = []
+          css_like = re.compile(r'^\s*([.#:]?[-_a-zA-Z][\w\-:#.,\s>*\[\]="\']*)\s*\{\s*$|^\s*--[\w\-]+\s*:\s*.+;?\s*$')
 
-          for raw_line in text.splitlines():
-              line = raw_line.rstrip()
+          for raw in text.splitlines():
+              line = raw.rstrip()
 
               if not line.strip():
-                  filtered_lines.append("")
+                  lines.append("")
                   continue
-
-              # 清理多余空白
-              if " | " not in line:
-                  line = re.sub(r'[ \t]+', ' ', line).strip()
 
               stripped = line.strip()
 
-              # 过滤明显非正文内容
               if stripped.startswith("@charset"):
                   continue
               if stripped.startswith(":root"):
@@ -235,54 +233,187 @@ jobs:
               if stripped in {"{", "}", "};"}:
                   continue
 
-              filtered_lines.append(line)
+              if not stripped.startswith("```"):
+                  line = re.sub(r"[ \t]+", " ", line).strip()
 
-          # 合并空行，避免过于稀疏
+              lines.append(line)
+
           cleaned = []
           blank = False
-          for line in filtered_lines:
+          for line in lines:
               if line.strip():
-                  cleaned.append(line.strip())
+                  cleaned.append(line)
                   blank = False
               else:
                   if not blank:
                       cleaned.append("")
                   blank = True
 
-          output = "\n".join(cleaned).strip() + "\n"
-          Path("/tmp/audit-report.txt").write_text(output, encoding="utf-8")
+          text = "\n".join(cleaned).strip()
+
+          # 基础重排
+          replacements = {
+              "Code Review Report": "## Code Review Report",
+              "PR Overview": "### PR Overview",
+              "Branch Information": "### Branch Information",
+              "Commit History": "### Commit History",
+              "Files Changed": "- Files Changed",
+              "Lines Added": "- Lines Added",
+              "Lines Removed": "- Lines Removed",
+              "Commits": "- Commits",
+              "From Branch": "- From Branch",
+              "To Branch": "- To Branch",
+              "Project": "- Project",
+              "PR:": "- PR:",
+              "Review Date": "- Review Date",
+              "Reviewer": "- Reviewer",
+          }
+
+          for src, dst in replacements.items():
+              text = re.sub(rf'(?m)^{re.escape(src)}\s*$', dst, text)
+
+          # 删除残留表头
+          text = re.sub(r'(?m)^\|\s*Property\s*$', '', text)
+          text = re.sub(r'(?m)^\|\s*Value\s*$', '', text)
+          text = re.sub(r'(?m)^\|\s*Hash\s*$', '', text)
+          text = re.sub(r'(?m)^\|\s*Message\s*$', '', text)
+
+          # 转换简单键值对
+          pairs = [
+              ("Project", "- Project"),
+              ("Review Date", "- Review Date"),
+              ("Reviewer", "- Reviewer"),
+              ("From Branch", "- From Branch"),
+              ("To Branch", "- To Branch"),
+              ("Commits", "- Commits"),
+              ("Files Changed", "- Files Changed"),
+              ("Lines Added", "- Lines Added"),
+              ("Lines Removed", "- Lines Removed"),
+          ]
+          for key, bullet in pairs:
+              text = re.sub(
+                  rf'(?ms)^\|\s*{re.escape(key)}\s*$\n^\|\s*(.+?)\s*$',
+                  lambda m: f"{bullet}: {m.group(1).strip()}",
+                  text
+              )
+
+          # PR 行优化
+          text = re.sub(r'(?m)^PR:\s*(.+)$', r'- PR: \1', text)
+
+          # commit history 转列表
+          commit_lines = text.splitlines()
+          rebuilt = []
+          i = 0
+          in_commit = False
+          commit_index = 1
+
+          while i < len(commit_lines):
+              line = commit_lines[i].strip()
+
+              if line == "### Commit History":
+                  in_commit = True
+                  commit_index = 1
+                  rebuilt.append(line)
+                  i += 1
+                  continue
+
+              if in_commit:
+                  if line.startswith("### ") and line != "### Commit History":
+                      in_commit = False
+                      rebuilt.append(line)
+                      i += 1
+                      continue
+
+                  m_hash = re.match(r'^\|\s*([0-9a-f]{6,40})\s*$', line)
+                  if m_hash and i + 1 < len(commit_lines):
+                      next_line = commit_lines[i + 1].strip()
+                      m_msg = re.match(r'^\|\s*(.+)\s*$', next_line)
+                      if m_msg:
+                          rebuilt.append(f"{commit_index}. `{m_hash.group(1)}` {m_msg.group(1).strip()}")
+                          commit_index += 1
+                          i += 2
+                          continue
+
+                  if line and not line.startswith("|"):
+                      rebuilt.append(line)
+
+                  i += 1
+                  continue
+
+              rebuilt.append(commit_lines[i])
+              i += 1
+
+          text = "\n".join(rebuilt)
+
+          # 顶部摘要抽取
+          def extract(pattern):
+              m = re.search(pattern, text, re.I | re.M)
+              return m.group(1).strip() if m else ""
+
+          conclusion = "completed"
+          status_json_path = Path("/tmp/audit-status.json")
+          if status_json_path.exists():
+              try:
+                  status_data = json.loads(status_json_path.read_text(encoding="utf-8"))
+                  conclusion = status_data.get("conclusion") or status_data.get("status") or conclusion
+              except Exception:
+                  pass
+
+          project = extract(r'^- Project:\s*(.+)$')
+          pr_line = extract(r'^- PR:\s*(.+)$')
+          review_date = extract(r'^- Review Date:\s*(.+)$')
+          reviewer = extract(r'^- Reviewer:\s*(.+)$')
+
+          summary = []
+          summary.append("## Audit PR Report")
+          summary.append("")
+          summary.append(f"**Status:** {conclusion}")
+          if project:
+              summary.append(f"**Project:** {project}")
+          if pr_line:
+              summary.append(f"**PR:** {pr_line}")
+          if review_date:
+              summary.append(f"**Review Date:** {review_date}")
+          if reviewer:
+              summary.append(f"**Reviewer:** {reviewer}")
+          summary.append(f"**Report path:** ${{{{REPORT_PATH}}}}")
+          summary.append(f"**Status path:** ${{{{STATUS_PATH}}}}")
+          summary.append("")
+          summary.append("---")
+          summary.append("")
+          summary.append(text)
+
+          final_text = "\n".join(summary)
+          final_text = re.sub(r'\n{3,}', '\n\n', final_text).strip() + "\n"
+          Path("/tmp/audit-report.md").write_text(final_text, encoding="utf-8")
+          PY
+
+      - name: Replace placeholders in markdown
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          p = Path("/tmp/audit-report.md")
+          text = p.read_text(encoding="utf-8")
+          text = text.replace("${{REPORT_PATH}}", "${{ steps.submit.outputs.report_url }}")
+          text = text.replace("${{STATUS_PATH}}", "${{ steps.submit.outputs.status_url }}")
+          p.write_text(text, encoding="utf-8")
           PY
 
       - name: Comment full report to PR
         uses: actions/github-script@v7
         env:
-          REPORT_PATH: ${{ steps.submit.outputs.report_url }}
-          STATUS_PATH: ${{ steps.submit.outputs.status_url }}
           RUN_GROUP: github-pr-${{ github.run_id }}-${{ github.run_attempt }}
         with:
           script: |
             const fs = require('fs');
-
-            const reportText = fs.readFileSync('/tmp/audit-report.txt', 'utf8').trim();
-            const reportPath = process.env.REPORT_PATH || '';
-            const statusPath = process.env.STATUS_PATH || '';
             const runGroup = process.env.RUN_GROUP || 'unknown';
+            const reportText = fs.readFileSync('/tmp/audit-report.md', 'utf8').trim();
 
-            const header = [
-              `[AUDIT-PR][source=pull_request][run=${runGroup}]`,
-              '',
-              'Status: completed',
-              `Report path: ${reportPath}`,
-              `Status path: ${statusPath}`,
-              '',
-            ].join('\n');
-
-            const fullText = `${header}${reportText}`;
             const limit = 60000;
             const chunks = [];
-
-            for (let i = 0; i < fullText.length; i += limit) {
-              chunks.push(fullText.slice(i, i + limit));
+            for (let i = 0; i < reportText.length; i += limit) {
+              chunks.push(reportText.slice(i, i + limit));
             }
 
             for (let i = 0; i < chunks.length; i++) {
@@ -383,12 +514,15 @@ jobs:
           fi
 
           FINAL_STATUS=""
+          FINAL_RESPONSE=""
+
           for i in $(seq 1 40); do
             RESP=$(curl -s "${{ vars.AUDIT_SERVICE_URL }}${STATUS_PATH}")
             echo "Poll #$i:"
             echo "$RESP" | jq .
 
             CURRENT_STATUS=$(echo "$RESP" | jq -r '.status // empty')
+            FINAL_RESPONSE="$RESP"
 
             if [ "$CURRENT_STATUS" = "completed" ]; then
               FINAL_STATUS="completed"
@@ -407,6 +541,9 @@ jobs:
             echo "Audit did not complete within timeout"
             exit 1
           fi
+
+          echo "$FINAL_RESPONSE" > /tmp/audit-status.json
+          echo "final_status=$FINAL_STATUS" >> "$GITHUB_OUTPUT"
 
       - name: Fetch final report html
         shell: bash
@@ -428,98 +565,93 @@ jobs:
         shell: bash
         run: |
           python3 <<'PY'
+          import json
           import re
           from html.parser import HTMLParser
           from pathlib import Path
 
           html = Path("/tmp/audit-report.html").read_text(encoding="utf-8", errors="ignore")
 
-          class ReportParser(HTMLParser):
-              BLOCK_TAGS = {
-                  "p", "div", "section", "article", "header", "footer", "aside", "main",
-                  "table", "thead", "tbody", "tfoot", "tr", "ul", "ol", "blockquote"
-              }
-              HEADER_TAGS = {"h1", "h2", "h3", "h4", "h5", "h6"}
-              SKIP_TAGS = {"style", "script", "head", "svg", "noscript"}
-              CELL_TAGS = {"td", "th"}
-
+          class Parser(HTMLParser):
+              SKIP = {"style", "script", "head", "svg", "noscript"}
+              HEADERS = {"h1", "h2", "h3", "h4", "h5", "h6"}
+              BLOCKS = {"p", "div", "section", "article", "header", "footer", "aside", "main",
+                        "table", "thead", "tbody", "tfoot", "tr", "ul", "ol", "blockquote"}
               def __init__(self):
                   super().__init__()
                   self.parts = []
-                  self.in_pre = False
                   self.skip_depth = 0
+                  self.in_pre = False
+                  self.in_code = False
+                  self.current_tag = None
 
-              def _push(self, text):
-                  self.parts.append(text)
+              def push(self, s):
+                  self.parts.append(s)
 
               def handle_starttag(self, tag, attrs):
-                  if tag in self.SKIP_TAGS:
+                  self.current_tag = tag
+                  if tag in self.SKIP:
                       self.skip_depth += 1
                       return
-                  if self.skip_depth > 0:
+                  if self.skip_depth:
                       return
-
-                  if tag in self.HEADER_TAGS:
-                      self._push("\n\n")
-                  elif tag in self.BLOCK_TAGS:
-                      self._push("\n")
+                  if tag in self.HEADERS:
+                      self.push("\n\n")
+                  elif tag in self.BLOCKS:
+                      self.push("\n")
                   elif tag == "br":
-                      self._push("\n")
+                      self.push("\n")
                   elif tag == "li":
-                      self._push("\n- ")
-                  elif tag in self.CELL_TAGS:
-                      self._push(" | ")
+                      self.push("\n- ")
+                  elif tag in {"td", "th"}:
+                      self.push(" | ")
                   elif tag == "pre":
-                      self._push("\n\n")
+                      self.push("\n\n```text\n")
                       self.in_pre = True
                   elif tag == "code" and not self.in_pre:
-                      self._push("`")
+                      self.push("`")
+                      self.in_code = True
 
               def handle_endtag(self, tag):
-                  if tag in self.SKIP_TAGS:
-                      if self.skip_depth > 0:
+                  if tag in self.SKIP:
+                      if self.skip_depth:
                           self.skip_depth -= 1
                       return
-                  if self.skip_depth > 0:
+                  if self.skip_depth:
                       return
-
-                  if tag in self.HEADER_TAGS:
-                      self._push("\n")
-                  elif tag in self.BLOCK_TAGS:
-                      self._push("\n")
+                  if tag in self.HEADERS:
+                      self.push("\n")
+                  elif tag in self.BLOCKS:
+                      self.push("\n")
                   elif tag == "tr":
-                      self._push("\n")
+                      self.push("\n")
                   elif tag == "pre":
-                      self._push("\n\n")
+                      self.push("\n```\n\n")
                       self.in_pre = False
-                  elif tag == "code" and not self.in_pre:
-                      self._push("`")
+                  elif tag == "code" and self.in_code:
+                      self.push("`")
+                      self.in_code = False
 
               def handle_data(self, data):
-                  if self.skip_depth > 0:
+                  if self.skip_depth:
                       return
                   if not data:
                       return
-                  self._push(data)
+                  self.push(data)
 
-          parser = ReportParser()
+          parser = Parser()
           parser.feed(html)
           text = "".join(parser.parts)
 
-          filtered_lines = []
-          css_like = re.compile(
-              r'^\s*([.#:]?[-_a-zA-Z][\w\-:#.,\s>*\[\]="\']*)\s*\{\s*$|^\s*--[\w\-]+\s*:\s*.+;?\s*$'
-          )
+          lines = []
+          css_like = re.compile(r'^\s*([.#:]?[-_a-zA-Z][\w\-:#.,\s>*\[\]="\']*)\s*\{\s*$|^\s*--[\w\-]+\s*:\s*.+;?\s*$')
 
-          for raw_line in text.splitlines():
-              line = raw_line.rstrip()
+          for raw in text.splitlines():
+              line = raw.rstrip()
 
               if not line.strip():
-                  filtered_lines.append("")
+                  lines.append("")
                   continue
-
-              if " | " not in line:
-                  line = re.sub(r'[ \t]+', ' ', line).strip()
 
               stripped = line.strip()
 
@@ -532,53 +664,181 @@ jobs:
               if stripped in {"{", "}", "};"}:
                   continue
 
-              filtered_lines.append(line)
+              if not stripped.startswith("```"):
+                  line = re.sub(r"[ \t]+", " ", line).strip()
+
+              lines.append(line)
 
           cleaned = []
           blank = False
-          for line in filtered_lines:
+          for line in lines:
               if line.strip():
-                  cleaned.append(line.strip())
+                  cleaned.append(line)
                   blank = False
               else:
                   if not blank:
                       cleaned.append("")
                   blank = True
 
-          output = "\n".join(cleaned).strip() + "\n"
-          Path("/tmp/audit-report.txt").write_text(output, encoding="utf-8")
+          text = "\n".join(cleaned).strip()
+
+          replacements = {
+              "Code Review Report": "## Code Review Report",
+              "PR Overview": "### PR Overview",
+              "Branch Information": "### Branch Information",
+              "Commit History": "### Commit History",
+              "Files Changed": "- Files Changed",
+              "Lines Added": "- Lines Added",
+              "Lines Removed": "- Lines Removed",
+              "Commits": "- Commits",
+              "From Branch": "- From Branch",
+              "To Branch": "- To Branch",
+              "Project": "- Project",
+              "PR:": "- PR:",
+              "Review Date": "- Review Date",
+              "Reviewer": "- Reviewer",
+          }
+
+          for src, dst in replacements.items():
+              text = re.sub(rf'(?m)^{re.escape(src)}\s*$', dst, text)
+
+          text = re.sub(r'(?m)^\|\s*Property\s*$', '', text)
+          text = re.sub(r'(?m)^\|\s*Value\s*$', '', text)
+          text = re.sub(r'(?m)^\|\s*Hash\s*$', '', text)
+          text = re.sub(r'(?m)^\|\s*Message\s*$', '', text)
+
+          pairs = [
+              ("Project", "- Project"),
+              ("Review Date", "- Review Date"),
+              ("Reviewer", "- Reviewer"),
+              ("From Branch", "- From Branch"),
+              ("To Branch", "- To Branch"),
+              ("Commits", "- Commits"),
+              ("Files Changed", "- Files Changed"),
+              ("Lines Added", "- Lines Added"),
+              ("Lines Removed", "- Lines Removed"),
+          ]
+          for key, bullet in pairs:
+              text = re.sub(
+                  rf'(?ms)^\|\s*{re.escape(key)}\s*$\n^\|\s*(.+?)\s*$',
+                  lambda m: f"{bullet}: {m.group(1).strip()}",
+                  text
+              )
+
+          text = re.sub(r'(?m)^PR:\s*(.+)$', r'- PR: \1', text)
+
+          commit_lines = text.splitlines()
+          rebuilt = []
+          i = 0
+          in_commit = False
+          commit_index = 1
+
+          while i < len(commit_lines):
+              line = commit_lines[i].strip()
+
+              if line == "### Commit History":
+                  in_commit = True
+                  commit_index = 1
+                  rebuilt.append(line)
+                  i += 1
+                  continue
+
+              if in_commit:
+                  if line.startswith("### ") and line != "### Commit History":
+                      in_commit = False
+                      rebuilt.append(line)
+                      i += 1
+                      continue
+
+                  m_hash = re.match(r'^\|\s*([0-9a-f]{6,40})\s*$', line)
+                  if m_hash and i + 1 < len(commit_lines):
+                      next_line = commit_lines[i + 1].strip()
+                      m_msg = re.match(r'^\|\s*(.+)\s*$', next_line)
+                      if m_msg:
+                          rebuilt.append(f"{commit_index}. `{m_hash.group(1)}` {m_msg.group(1).strip()}")
+                          commit_index += 1
+                          i += 2
+                          continue
+
+                  if line and not line.startswith("|"):
+                      rebuilt.append(line)
+
+                  i += 1
+                  continue
+
+              rebuilt.append(commit_lines[i])
+              i += 1
+
+          text = "\n".join(rebuilt)
+
+          def extract(pattern):
+              m = re.search(pattern, text, re.I | re.M)
+              return m.group(1).strip() if m else ""
+
+          conclusion = "completed"
+          status_json_path = Path("/tmp/audit-status.json")
+          if status_json_path.exists():
+              try:
+                  status_data = json.loads(status_json_path.read_text(encoding="utf-8"))
+                  conclusion = status_data.get("conclusion") or status_data.get("status") or conclusion
+              except Exception:
+                  pass
+
+          project = extract(r'^- Project:\s*(.+)$')
+          pr_line = extract(r'^- PR:\s*(.+)$')
+          review_date = extract(r'^- Review Date:\s*(.+)$')
+          reviewer = extract(r'^- Reviewer:\s*(.+)$')
+
+          summary = []
+          summary.append("## Audit PR Report")
+          summary.append("")
+          summary.append(f"**Status:** {conclusion}")
+          if project:
+              summary.append(f"**Project:** {project}")
+          if pr_line:
+              summary.append(f"**PR:** {pr_line}")
+          if review_date:
+              summary.append(f"**Review Date:** {review_date}")
+          if reviewer:
+              summary.append(f"**Reviewer:** {reviewer}")
+          summary.append(f"**Report path:** ${{{{REPORT_PATH}}}}")
+          summary.append(f"**Status path:** ${{{{STATUS_PATH}}}}")
+          summary.append("")
+          summary.append("---")
+          summary.append("")
+          summary.append(text)
+
+          final_text = "\n".join(summary)
+          final_text = re.sub(r'\n{3,}', '\n\n', final_text).strip() + "\n"
+          Path("/tmp/audit-report.md").write_text(final_text, encoding="utf-8")
+          PY
+
+      - name: Replace placeholders in markdown
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          p = Path("/tmp/audit-report.md")
+          text = p.read_text(encoding="utf-8")
+          text = text.replace("${{REPORT_PATH}}", "${{ steps.submit.outputs.report_url }}")
+          text = text.replace("${{STATUS_PATH}}", "${{ steps.submit.outputs.status_url }}")
+          p.write_text(text, encoding="utf-8")
           PY
 
       - name: Comment full report to PR
         uses: actions/github-script@v7
         env:
-          REPORT_PATH: ${{ steps.submit.outputs.report_url }}
-          STATUS_PATH: ${{ steps.submit.outputs.status_url }}
           RUN_GROUP: github-pr-comment-${{ github.run_id }}-${{ github.run_attempt }}
         with:
           script: |
             const fs = require('fs');
-
-            const reportText = fs.readFileSync('/tmp/audit-report.txt', 'utf8').trim();
-            const reportPath = process.env.REPORT_PATH || '';
-            const statusPath = process.env.STATUS_PATH || '';
             const runGroup = process.env.RUN_GROUP || 'unknown';
+            const reportText = fs.readFileSync('/tmp/audit-report.md', 'utf8').trim();
 
-            const header = [
-              `[AUDIT-PR][source=comment][/audit-pr][run=${runGroup}]`,
-              '',
-              'Status: completed',
-              `Report path: ${reportPath}`,
-              `Status path: ${statusPath}`,
-              '',
-            ].join('\n');
-
-            const fullText = `${header}${reportText}`;
             const limit = 60000;
             const chunks = [];
-
-            for (let i = 0; i < fullText.length; i += limit) {
-              chunks.push(fullText.slice(i, i + limit));
+            for (let i = 0; i < reportText.length; i += limit) {
+              chunks.push(reportText.slice(i, i + limit));
             }
 
             for (let i = 0; i < chunks.length; i++) {
