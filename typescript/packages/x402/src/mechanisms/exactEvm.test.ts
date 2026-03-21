@@ -1,12 +1,22 @@
 import { describe, it, expect, vi } from 'vitest';
 import { ExactPermitEvmClientMechanism } from './exactEvm.js';
 import { EvmClientSigner } from '../signers/evmSigner.js';
+import type { AgentWallet } from '../signers/signer.js';
 import { PermitValidationError } from '../errors.js';
 
+function createMockWallet(address: string): AgentWallet {
+  return {
+    getAddress: vi.fn().mockResolvedValue(address),
+    signMessage: vi.fn().mockResolvedValue('0xdeadbeef'),
+    signTypedData: vi.fn().mockResolvedValue('0x' + 'ab'.repeat(65)),
+    signTransaction: vi.fn().mockResolvedValue('0x1234'),
+  };
+}
+
 describe('ExactPermitEvmClientMechanism', () => {
-  const privateKey =
-    '0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
-  const signer = EvmClientSigner.fromPrivateKey(privateKey);
+  const mockAddress = '0xFCAd0B19bB29D4674531d6f115237E16AfCE377c';
+  const wallet = createMockWallet(mockAddress);
+  const signer = new EvmClientSigner(wallet, mockAddress);
   const mechanism = new ExactPermitEvmClientMechanism(signer);
 
   const requirements = {

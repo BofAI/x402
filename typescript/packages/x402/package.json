@@ -28,6 +28,7 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "dependencies": {
+    "@bankofai/agent-wallet": "^2.3.0",
     "@gasfree/gasfree-sdk": "^1.1.2",
     "viem": "^2.45.2"
   },

@@ -1,32 +1,56 @@
 """
 TronFacilitatorSigner - TRON facilitator signer implementation
+
+Accepts any wallet object that exposes the agent-wallet Wallet interface
+(get_address, sign_message, sign_typed_data, sign_transaction).
+The signer is agnostic about how the wallet was created (private key, hosted, etc.).
 """
 
 import asyncio
+import json as json_module
 import time
 from typing import Any
 
 from bankofai.x402.signers.facilitator.base import FacilitatorSigner
-from bankofai.x402.wallet import TronPrivateKeyWallet, Wallet
 
 
 class TronFacilitatorSigner(FacilitatorSigner):
     """TRON facilitator signer implementation"""
 
-    def __init__(self, wallet: Wallet) -> None:
+    def __init__(self, wallet: Any) -> None:
+        """Create signer from a wallet.
+
+        Prefer the async factory ``create()``.
+
+        Args:
+            wallet: Any object implementing the Wallet interface
+                    (get_address, sign_message, sign_typed_data, sign_transaction).
+        """
         self._wallet = wallet
-        self._address = wallet.get_address()
+        self._address: str | None = None
         self._async_tron_clients: dict[str, Any] = {}
 
     @classmethod
-    def from_wallet(cls, wallet: Wallet) -> "TronFacilitatorSigner":
-        """Create signer from a Wallet instance."""
-        return cls(wallet)
+    async def create(cls) -> "TronFacilitatorSigner":
+        """Async factory: resolve active agent wallet and create signer."""
+        from agent_wallet import resolve_wallet_provider
 
-    @classmethod
-    def from_private_key(cls, private_key: str) -> "TronFacilitatorSigner":
-        """Create signer from private key (convenience factory)."""
-        return cls(TronPrivateKeyWallet(private_key))
+        provider = resolve_wallet_provider(network="tron")
+        wallet = await provider.get_active_wallet()
+        signer = cls(wallet)
+        signer.set_address(await wallet.get_address())
+        return signer
+
+    @staticmethod
+    def _extract_tron_signature(result: str) -> str:
+        """Extract signature hex from agent-wallet's sign_transaction result."""
+        if isinstance(result, str) and result.strip().startswith("{"):
+            signed = json_module.loads(result)
+            sigs = signed.get("signature", [])
+            if not sigs:
+                raise ValueError("Wallet returned signed tx without signature")
+            result = sigs[0]
+        return result
 
     def _ensure_async_tron_client(self, network: str) -> Any:
         """Lazy initialize async tron_client for the given network.
@@ -44,7 +68,12 @@ class TronFacilitatorSigner(FacilitatorSigner):
         return self._async_tron_clients[network]
 
     def get_address(self) -> str:
+        if not self._address:
+            raise ValueError("Signer address has not been initialized")
         return self._address
+
+    def set_address(self, address: str) -> None:
+        self._address = address
 
     async def verify_typed_data(
         self,
@@ -134,7 +163,7 @@ class TronFacilitatorSigner(FacilitatorSigner):
 
         from bankofai.x402.abi import ERC20_ABI
 
-        target_address = address or self._address
+        target_address = address or self.get_address()
         try:
             contract = await client.get_contract(token)
             contract.abi = ERC20_ABI
@@ -210,12 +239,13 @@ class TronFacilitatorSigner(FacilitatorSigner):
             # Normalize contract address to ensure valid Base58Check format
             normalized_address = self._normalize_tron_address(contract_address)
             logger.info(f"Normalized contract address: {contract_address} -> {normalized_address}")
+            address = self.get_address()
 
             # Log account resources before transaction
             try:
-                account_info = await client.get_account(self._address)
-                account_resource = await client.get_account_resource(self._address)
-                logger.info(f"Account address: {self._address}")
+                account_info = await client.get_account(address)
+                account_resource = await client.get_account_resource(address)
+                logger.info(f"Account address: {address}")
                 logger.info(
                     f"Account balance: {account_info.get('balance', 0) / 1_000_000:.6f} TRX"
                 )
@@ -253,13 +283,14 @@ class TronFacilitatorSigner(FacilitatorSigner):
             logger.info("Building transaction with fee_limit=1,000,000,000 SUN (1000 TRX)")
             # AsyncTron: func(*args) returns a coroutine, need to await it first
             txn_builder = await func(*args)
-            txn_builder = txn_builder.with_owner(self._address).fee_limit(1_000_000_000)
+            txn_builder = txn_builder.with_owner(address).fee_limit(1_000_000_000)
             txn = await txn_builder.build()
             # Sign the transaction via wallet
             unsigned_payload = _build_unsigned_tx_payload(txn)
-            signed_payload = await self._wallet.sign_transaction(unsigned_payload)
+            raw_result = await self._wallet.sign_transaction(unsigned_payload)
+            sig_hex = self._extract_tron_signature(raw_result)
 
-            txn._signature = [signed_payload]
+            txn._signature = [sig_hex]
 
             # Log transaction details before broadcast
             try:

@@ -117,102 +117,103 @@ async def protected_endpoint():
 ### 3. Client (Buyer)
 Clients handle the `402` challenge-response loop automatically using the SDK.
 
-**TRON — TypeScript Example:**
-```typescript
-import 'dotenv/config'
-import {
-  X402Client, X402FetchClient,
-  ExactPermitTronClientMechanism, ExactGasFreeClientMechanism,
-  TronClientSigner, SufficientBalancePolicy,
-  GasFreeAPIClient, getGasFreeApiBaseUrl,
-} from '@bankofai/x402'
+ **TRON — TypeScript Example:**
+ ```typescript
+ import 'dotenv/config'
+ import {
+   X402Client, X402FetchClient,
+   ExactPermitTronClientMechanism, ExactGasFreeClientMechanism,
+   TronClientSigner, SufficientBalancePolicy,
+   GasFreeAPIClient, getGasFreeApiBaseUrl,
+ } from '@bankofai/x402'
 
-const signer = new TronClientSigner(process.env.TRON_PRIVATE_KEY!)
+ const signer = await TronClientSigner.create()
 
-const x402 = new X402Client()
+ const x402 = new X402Client()
 
-// Register both exact_permit and exact_gasfree mechanisms
-x402.register('tron:*', new ExactPermitTronClientMechanism(signer))
-x402.register('tron:*', new ExactGasFreeClientMechanism(signer, {
-  'tron:nile': new GasFreeAPIClient(getGasFreeApiBaseUrl('tron:nile')),
-  'tron:mainnet': new GasFreeAPIClient(getGasFreeApiBaseUrl('tron:mainnet')),
-}))
-x402.registerPolicy(SufficientBalancePolicy)
+ // Register both exact_permit and exact_gasfree mechanisms
+ x402.register('tron:*', new ExactPermitTronClientMechanism(signer))
+ x402.register('tron:*', new ExactGasFreeClientMechanism(signer, {
+   'tron:nile': new GasFreeAPIClient(getGasFreeApiBaseUrl('tron:nile')),
+   'tron:mainnet': new GasFreeAPIClient(getGasFreeApiBaseUrl('tron:mainnet')),
+ }))
+ x402.registerPolicy(SufficientBalancePolicy)
 
-const client = new X402FetchClient(x402)
+ const client = new X402FetchClient(x402)
 
-// The SDK handles the 402 flow automatically
-// Demo service: https://x402-demo.bankofai.io/protected-nile
-const response = await client.get('http://localhost:8000/protected')
-const data = await response.json()
-```
+ // The SDK handles the 402 flow automatically
+ // Demo service: https://x402-demo.bankofai.io/protected-nile
+ const response = await client.get('http://localhost:8000/protected')
+ const data = await response.json()
+ ```
 
-**TRON — Python Example:**
-```python
-import asyncio, httpx
-from bankofai.x402.clients import X402Client, X402HttpClient, SufficientBalancePolicy
-from bankofai.x402.mechanisms.tron.exact_permit import ExactPermitTronClientMechanism
-from bankofai.x402.mechanisms.tron.exact_gasfree.client import ExactGasFreeClientMechanism
-from bankofai.x402.signers.client import TronClientSigner
-from bankofai.x402.utils.gasfree import GasFreeAPIClient
-from bankofai.x402.config import NetworkConfig
+ **TRON — Python Example:**
+ ```python
+ import asyncio, httpx
+ from bankofai.x402.clients import X402Client, X402HttpClient, SufficientBalancePolicy
+ from bankofai.x402.mechanisms.tron.exact_permit import ExactPermitTronClientMechanism
+ from bankofai.x402.mechanisms.tron.exact_gasfree.client import ExactGasFreeClientMechanism
+ from bankofai.x402.signers.client import TronClientSigner
+ from bankofai.x402.utils.gasfree import GasFreeAPIClient
+ from bankofai.x402.config import NetworkConfig
 
-signer = TronClientSigner.from_private_key("YOUR_TRON_PRIVATE_KEY")
+ gasfree_clients = {
+     "tron:nile": GasFreeAPIClient(NetworkConfig.get_gasfree_api_base_url("tron:nile")),
+     "tron:mainnet": GasFreeAPIClient(NetworkConfig.get_gasfree_api_base_url("tron:mainnet")),
+ }
 
-gasfree_clients = {
-    "tron:nile": GasFreeAPIClient(NetworkConfig.get_gasfree_api_base_url("tron:nile")),
-    "tron:mainnet": GasFreeAPIClient(NetworkConfig.get_gasfree_api_base_url("tron:mainnet")),
-}
+ async def main():
+     signer = await TronClientSigner.create()
 
-x402 = X402Client()
-x402.register("tron:*", ExactPermitTronClientMechanism(signer))
-x402.register("tron:*", ExactGasFreeClientMechanism(signer, clients=gasfree_clients))
-x402.register_policy(SufficientBalancePolicy)
+     x402 = X402Client()
+     x402.register("tron:*", ExactPermitTronClientMechanism(signer))
+     x402.register("tron:*", ExactGasFreeClientMechanism(signer, clients=gasfree_clients))
+     x402.register_policy(SufficientBalancePolicy)
 
-async def main():
-    async with httpx.AsyncClient(timeout=120) as http:
-        client = X402HttpClient(http, x402)
-        response = await client.get("http://localhost:8000/protected")
-        print(response.json())
+     async with httpx.AsyncClient(timeout=120) as http:
+         client = X402HttpClient(http, x402)
+         response = await client.get("http://localhost:8000/protected")
+         print(response.json())
 
 asyncio.run(main())
 ```
 
-**EVM (BSC) — TypeScript Example:**
-```typescript
-import 'dotenv/config'
-import {
-  X402Client, X402FetchClient,
-  ExactPermitEvmClientMechanism, ExactEvmClientMechanism,
-  EvmClientSigner, SufficientBalancePolicy,
-} from '@bankofai/x402'
+ **EVM (BSC) — TypeScript Example:**
+ ```typescript
+ import 'dotenv/config'
+ import {
+   X402Client, X402FetchClient,
+   ExactPermitEvmClientMechanism, ExactEvmClientMechanism,
+   EvmClientSigner, SufficientBalancePolicy,
+ } from '@bankofai/x402'
 
-const signer = new EvmClientSigner(process.env.BSC_PRIVATE_KEY!)
+ const signer = await EvmClientSigner.create()
 
-const x402 = new X402Client()
-x402.register('eip155:*', new ExactPermitEvmClientMechanism(signer))
-x402.register('eip155:*', new ExactEvmClientMechanism(signer))
-x402.registerPolicy(SufficientBalancePolicy)
+ const x402 = new X402Client()
+ x402.register('eip155:*', new ExactPermitEvmClientMechanism(signer))
+ x402.register('eip155:*', new ExactEvmClientMechanism(signer))
+ x402.registerPolicy(SufficientBalancePolicy)
 
-const client = new X402FetchClient(x402)
+ const client = new X402FetchClient(x402)
 
-// The SDK handles the 402 flow automatically
-// Demo service: https://x402-demo.bankofai.io/protected-bsc-testnet
-const response = await client.get('http://localhost:8000/protected')
-const data = await response.json()
-```
+ // The SDK handles the 402 flow automatically
+ // Demo service: https://x402-demo.bankofai.io/protected-bsc-testnet
+ const response = await client.get('http://localhost:8000/protected')
+ const data = await response.json()
+ ```
 
 ### 4. Agent (Buyer)
-AI agents can handle x402 payments autonomously by using the specialized payment skill.
+ AI agents can handle x402 payments autonomously by using the specialized payment skill.
 
-**Configuration:**
-Set your wallet credentials in the environment. The `TRON_GRID_API_KEY` is recommended to avoid rate limits on TRON RPC nodes.
+ **Configuration:**
+ Configure `agent-wallet` first, then let the signer factories resolve the active wallet. The `TRON_GRID_API_KEY` is recommended to avoid rate limits on TRON RPC nodes. For wallet setup instructions and supported configuration modes, see `https://github.com/BofAI/agent-wallet`.
 
-```bash
-# Set your wallet and network credentials
-export TRON_PRIVATE_KEY="your_private_key_here"
-export TRON_GRID_API_KEY="your_trongrid_api_key_here"  # Recommended
-```
+ ```bash
+ # Example: configure agent-wallet via environment
+ # See https://github.com/BofAI/agent-wallet for the full setup guide
+ export AGENT_WALLET_PRIVATE_KEY="your_private_key_here"
+ export TRON_GRID_API_KEY="your_trongrid_api_key_here"  # Recommended
+ ```
 
 **Using with Agentic Tools:**
 You can add the [**x402-payment**](https://github.com/BofAI/skills/tree/main/x402-payment) skill to your favorite agentic tools:
@@ -299,9 +300,8 @@ The x402 protocol supports multiple payment schemes to accommodate different use
 
 ### Configuration
 Environment variables for development:
-- `TRON_PRIVATE_KEY`: Required for TRON signing operations (Client/Facilitator).
+- Configure wallet access through `agent-wallet`. See `https://github.com/BofAI/agent-wallet` for supported environment variables and providers.
 - `TRON_GRID_API_KEY`: Recommended for higher TRON RPC limits.
-- `BSC_PRIVATE_KEY`: Required for BSC signing operations (Client/Facilitator).
 
 ### Testing
 ```bash

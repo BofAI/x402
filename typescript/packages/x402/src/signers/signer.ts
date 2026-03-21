@@ -14,36 +14,73 @@ import {
   UnsupportedNetworkError,
   TRON_RPC_URLS,
 } from '../index.js';
+import { resolveWalletProvider } from '@bankofai/agent-wallet';
 import { TronWeb as TronWebClass } from 'tronweb';
 import type { TronWeb, TypedDataDomain, TypedDataField } from './types.js';
-import type { Wallet } from '../wallet/types.js';
-import { TronPrivateKeyWallet } from '../wallet/tronPrivateKeyWallet.js';
+
+/**
+ * Minimal wallet interface expected by signers.
+ * Compatible with agent-wallet's Wallet + Eip712Capable.
+ */
+export interface AgentWallet {
+  getAddress(): Promise<string>;
+  signMessage(msg: Uint8Array): Promise<string>;
+  signTypedData(data: Record<string, unknown>): Promise<string>;
+  signTransaction(payload: Record<string, unknown>): Promise<string>;
+}
 
 /** ERC20 function selectors */
 const ERC20_ALLOWANCE_SELECTOR = 'allowance(address,address)';
 const ERC20_APPROVE_SELECTOR = 'approve(address,uint256)';
 
 /**
- * TRON client signer implementation using TronWeb's signTypedData
+ * TRON client signer implementation.
+ *
+ * Accepts any wallet conforming to the AgentWallet interface.
+ * The signer is agnostic about how the wallet was created
+ * (private key, hosted, etc.).
  */
 export class TronClientSigner implements ClientSigner {
-  private wallet: Wallet;
-  private address: string; // Base58 format
+  private wallet!: AgentWallet;
+  private address: string = ''; // Base58 format
   private tronWebInstances: Map<string, TronWeb> = new Map();
 
-  constructor(wallet: Wallet) {
+  /**
+   * Create signer from a wallet.
+   *
+   * Prefer the async factory ``create()``.
+   */
+  constructor(wallet: AgentWallet) {
     this.wallet = wallet;
-    this.address = wallet.getAddress();
   }
 
-  /** Create signer from a Wallet instance. */
-  static fromWallet(wallet: Wallet): TronClientSigner {
-    return new TronClientSigner(wallet);
+  /** Async factory: resolve active agent wallet and create signer. */
+  static async create(): Promise<TronClientSigner> {
+    const provider = resolveWalletProvider({ network: 'tron' });
+    const wallet = await provider.getActiveWallet();
+    const signer = new TronClientSigner(wallet as unknown as AgentWallet);
+    signer.setAddress(await wallet.getAddress());
+    return signer;
   }
 
-  /** Create signer from private key (convenience factory). */
-  static fromPrivateKey(privateKey: string): TronClientSigner {
-    return new TronClientSigner(new TronPrivateKeyWallet(privateKey));
+  setAddress(address: string): void {
+    this.address = address;
+  }
+
+  /**
+   * Extract signature hex from agent-wallet's signTransaction result.
+   * agent-wallet's TronWallet returns a JSON string with the full signed tx.
+   */
+  private extractTronSignature(result: string): string {
+    if (typeof result === 'string' && result.trim().startsWith('{')) {
+      const signed = JSON.parse(result);
+      const sigs = signed.signature;
+      if (!Array.isArray(sigs) || sigs.length === 0) {
+        throw new Error('Wallet returned signed tx without signature');
+      }
+      return sigs[0];
+    }
+    return result;
   }
 
   /**
@@ -216,8 +253,9 @@ export class TronClientSigner implements ClientSigner {
         throw new InsufficientAllowanceError('Failed to build approve transaction');
       }
 
-      // Sign transaction via wallet (returns signature hex without 0x)
-      const sigHex = await this.wallet.signTransaction(tx.transaction as Record<string, unknown>);
+      // Sign transaction via wallet and extract signature
+      const rawResult = await this.wallet.signTransaction(tx.transaction as Record<string, unknown>);
+      const sigHex = this.extractTronSignature(rawResult);
       const signedTx = { ...(tx.transaction as Record<string, unknown>), signature: [sigHex] };
 
       // Broadcast transaction

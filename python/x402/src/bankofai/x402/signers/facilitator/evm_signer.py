@@ -1,5 +1,9 @@
 """
 EvmFacilitatorSigner - EVM facilitator signer implementation
+
+Accepts any wallet object that exposes the agent-wallet Wallet interface
+(get_address, sign_message, sign_typed_data, sign_transaction).
+The signer is agnostic about how the wallet was created (private key, hosted, etc.).
 """
 
 import logging
@@ -8,7 +12,6 @@ from typing import Any
 from bankofai.x402.signers.facilitator.base import FacilitatorSigner
 from bankofai.x402.signers.utils import resolve_provider_uri
 from bankofai.x402.utils.address import checksum_evm_address
-from bankofai.x402.wallet import EvmPrivateKeyWallet, Wallet
 
 logger = logging.getLogger(__name__)
 
@@ -16,24 +19,38 @@ logger = logging.getLogger(__name__)
 class EvmFacilitatorSigner(FacilitatorSigner):
     """EVM facilitator signer implementation using web3.py"""
 
-    def __init__(self, wallet: Wallet) -> None:
+    def __init__(self, wallet: Any) -> None:
+        """Create signer from a wallet.
+
+        Prefer the async factory ``create()``.
+
+        Args:
+            wallet: Any object implementing the Wallet interface
+                    (get_address, sign_message, sign_typed_data, sign_transaction).
+        """
         self._wallet = wallet
-        self._address = wallet.get_address()
+        self._address: str | None = None
         self._async_web3_clients: dict[str, Any] = {}
-        logger.debug("EvmFacilitatorSigner initialized", extra={"address": self._address})
+        logger.debug("EvmFacilitatorSigner initialized")
 
     @classmethod
-    def from_wallet(cls, wallet: Wallet) -> "EvmFacilitatorSigner":
-        """Create signer from a Wallet instance."""
-        return cls(wallet)
+    async def create(cls) -> "EvmFacilitatorSigner":
+        """Async factory: resolve active agent wallet and create signer."""
+        from agent_wallet import resolve_wallet_provider
 
-    @classmethod
-    def from_private_key(cls, private_key: str) -> "EvmFacilitatorSigner":
-        """Create signer from private key (convenience factory)."""
-        return cls(EvmPrivateKeyWallet(private_key))
+        provider = resolve_wallet_provider(network="eip155")
+        wallet = await provider.get_active_wallet()
+        signer = cls(wallet)
+        signer.set_address(await wallet.get_address())
+        return signer
 
     def get_address(self) -> str:
+        if not self._address:
+            raise ValueError("Signer address has not been initialized")
         return self._address
+
+    def set_address(self, address: str) -> None:
+        self._address = address
 
     def _ensure_async_web3_client(self, network: str) -> Any:
         """Lazy initialize async web3 client for the given network."""

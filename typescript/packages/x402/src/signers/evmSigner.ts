@@ -3,19 +3,17 @@
  */
 
 import {
-  createWalletClient,
   createPublicClient,
   http,
-  type WalletClient,
   type PublicClient,
-  type Account,
   type Hex,
   parseAbi,
-  type Transport,
+  encodeFunctionData,
   type Chain,
 } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
 import { mainnet, sepolia, bsc, bscTestnet } from 'viem/chains';
+import { resolveWalletProvider } from '@bankofai/agent-wallet';
+import type { AgentWallet } from './signer.js';
 import type { ClientSigner } from '../client/x402Client.js';
 import {
   getPaymentPermitAddress,
@@ -23,8 +21,6 @@ import {
   InsufficientAllowanceError,
   UnsupportedNetworkError,
 } from '../index.js';
-import type { Wallet } from '../wallet/types.js';
-import { EvmPrivateKeyWallet } from '../wallet/evmPrivateKeyWallet.js';
 
 const ERC20_ABI = parseAbi([
   'function allowance(address owner, address spender) view returns (uint256)',
@@ -32,24 +28,38 @@ const ERC20_ABI = parseAbi([
   'function balanceOf(address account) view returns (uint256)',
 ]);
 
+/**
+ * EVM client signer implementation.
+ *
+ * Accepts any wallet conforming to the AgentWallet interface.
+ * The signer is agnostic about how the wallet was created
+ * (private key, hosted, etc.).
+ */
 export class EvmClientSigner implements ClientSigner {
-  private wallet: Wallet;
-  private _address: string;
+  private wallet!: AgentWallet;
+  private _address: string = '';
   private publicClients: Map<number, PublicClient> = new Map();
 
-  constructor(wallet: Wallet) {
+  /**
+   * Create signer from a wallet.
+   *
+   * Prefer the async factory ``create()``.
+   */
+  constructor(wallet: AgentWallet) {
     this.wallet = wallet;
-    this._address = wallet.getAddress();
   }
 
-  /** Create signer from a Wallet instance. */
-  static fromWallet(wallet: Wallet): EvmClientSigner {
-    return new EvmClientSigner(wallet);
+  /** Async factory: resolve active agent wallet and create signer. */
+  static async create(): Promise<EvmClientSigner> {
+    const provider = resolveWalletProvider({ network: 'eip155' });
+    const wallet = await provider.getActiveWallet();
+    const signer = new EvmClientSigner(wallet as unknown as AgentWallet);
+    signer.setAddress(await wallet.getAddress());
+    return signer;
   }
 
-  /** Create signer from private key (convenience factory). */
-  static fromPrivateKey(privateKey: string): EvmClientSigner {
-    return new EvmClientSigner(new EvmPrivateKeyWallet(privateKey));
+  setAddress(address: string): void {
+    this._address = address;
   }
 
   getAddress(): string {
@@ -142,27 +152,39 @@ export class EvmClientSigner implements ClientSigner {
     const chainId = this.parseNetworkToChainId(network);
     const client = this.getPublicClient(chainId, network);
     const spender = getPaymentPermitAddress(network) as Hex;
-    const chain = this.getChain(chainId);
 
     try {
-      const rpcUrl = resolveRpcUrl(network);
-
-      // Build approve transaction and sign via wallet
-      const account = privateKeyToAccount('0x0000000000000000000000000000000000000000000000000000000000000001');
-      const tempWalletClient = createWalletClient({
-        account,
-        chain: chain,
-        transport: http(rpcUrl),
-      });
-
-      // Use wallet's signTransaction to sign the approval
-      const hash = await tempWalletClient.writeContract({
-        address: token as Hex,
+      // Build approve calldata
+      const data = encodeFunctionData({
         abi: ERC20_ABI,
         functionName: 'approve',
         args: [spender, BigInt(2) ** BigInt(256) - BigInt(1)],
+      });
+
+      // Prepare transaction via public client
+      const nonce = await client.getTransactionCount({ address: this._address as Hex });
+      const gasPrice = await client.getGasPrice();
+      const gas = await client.estimateGas({
         account: this._address as Hex,
-      } as any);
+        to: token as Hex,
+        data,
+      });
+
+      const tx = {
+        from: this._address,
+        to: token,
+        data,
+        nonce,
+        gas: Number(gas),
+        gasPrice: Number(gasPrice),
+        chainId,
+      };
+
+      // Sign via wallet and broadcast
+      const signedTxHex = await this.wallet.signTransaction(tx);
+      const hash = await client.sendRawTransaction({
+        serializedTransaction: `0x${signedTxHex.replace(/^0x/, '')}` as Hex,
+      });
 
       const receipt = await client.waitForTransactionReceipt({ hash });
 

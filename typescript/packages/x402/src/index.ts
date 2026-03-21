@@ -23,9 +23,6 @@ export * from './mechanisms/index.js';
 // EVM ExactPermit Mechanism
 export * from './mechanisms/exactEvm.js';
 
-// Wallet
-export * from './wallet/index.js';
-
 // TRON Signer
 export * from './signers/signer.js';
 // EVM Signer

@@ -11,9 +11,18 @@ if ! command -v pnpm >/dev/null 2>&1; then
   echo "pnpm not found. Install pnpm >= 8." >&2
   exit 1
 fi
+if ! command -v node >/dev/null 2>&1; then
+  echo "node not found. Install Node.js >= 18." >&2
+  exit 1
+fi
 
 registry_url="${NPM_REGISTRY:-https://registry.npmjs.org}"
-tag="${NPM_TAG:-latest}"
+package_version="$(node -p "require('./packages/x402/package.json').version")"
+default_tag="latest"
+if [[ "${package_version}" == *-* ]]; then
+  default_tag="beta"
+fi
+tag="${NPM_TAG:-${default_tag}}"
 
 publish_args=(--tag "${tag}" --access public)
 if [[ "${NO_GIT_CHECKS:-1}" == "1" ]]; then

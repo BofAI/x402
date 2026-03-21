@@ -147,6 +147,7 @@ class ExactBaseClientMechanism(ClientMechanism):
             domain=domain,
             types=TRANSFER_AUTH_EIP712_TYPES,
             message=message,
+            primary_type=TRANSFER_AUTH_PRIMARY_TYPE,
         )
 
         return PaymentPayload(
