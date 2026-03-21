@@ -1,15 +1,17 @@
 # v0.5.0 - Wallet-Based Signer Standardization
 
-Release date: March 21, 2026
+Release date: March 18, 2026
 
 ## What's New
 
-- **Breaking change: signer initialization now uses `create()`**: Signers no longer support direct initialization from a private key. Use `create()` instead, which constructs the agent wallet internally and resolves signer setup through the new wallet-based flow. For agent-wallet initialization details, see the [agent-wallet Quick Start](https://github.com/BofAI/agent-wallet/tree/main/packages/typescript#quick-start).
+- **Breaking change: signer initialization now uses `create()`**: Signers no longer support direct initialization from a private key. Use `create()` instead, which constructs the agent wallet internally and resolves signer setup through the new wallet-based flow. Before calling `create()`, configure agent-wallet through its supported environment variables or local wallet configuration.
 - **Unified wallet capability surface**: Signer integration is now standardized around the agent-wallet `Wallet` interface for message signing, typed-data signing, and transaction signing. This creates a single capability model across supported signer flows.
 
 ## Breaking Changes
 
 ### Migration Example
+
+The `create()` flow expects agent-wallet to be configured first. In static mode, this typically means setting `AGENT_WALLET_PRIVATE_KEY` or `AGENT_WALLET_MNEMONIC`. In local mode, configure `AGENT_WALLET_PASSWORD` and optionally `AGENT_WALLET_DIR`.
 
 #### Python Client
 
@@ -39,7 +41,9 @@ const tronSigner = await TronClientSigner.create();
 const evmSigner = await EvmClientSigner.create();
 ```
 
-#### Facilitator
+#### Facilitator (Python only)
+
+The TypeScript SDK does not expose a separate facilitator signer. Facilitator-side signing is handled in the Python server implementation.
 
 ```python
 # old
@@ -52,3 +56,8 @@ bsc_signer = EvmFacilitatorSigner.from_private_key(BSC_PRIVATE_KEY)
 tron_signer = await TronFacilitatorSigner.create()
 bsc_signer = await EvmFacilitatorSigner.create()
 ```
+
+## Affected SDKs
+
+- **Python**: `bankofai-x402==0.5.0`
+- **TypeScript**: `@bankofai/x402@0.5.0`
