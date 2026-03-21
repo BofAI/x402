@@ -18,8 +18,8 @@ importers:
   packages/x402:
     dependencies:
       '@bankofai/agent-wallet':
-        specifier: ^2.3.0-beta.4
-        version: 2.3.0-beta.4(@types/node@20.19.31)(typescript@5.9.3)
+        specifier: ^2.3.0
+        version: 2.3.0(@types/node@20.19.31)(typescript@5.9.3)
       '@gasfree/gasfree-sdk':
         specifier: ^1.1.2
         version: 1.1.2
@@ -56,8 +56,8 @@ packages:
     resolution: {integrity: sha512-2WJMeRQPHKSPemqk/awGrAiuFfzBmOIPXKizAsVhWH9YJqLZ0H+HS4c8loHGgW6utJ3E/ejXQUsiGaQy2NZ9Fw==}
     engines: {node: '>=6.9.0'}
 
-  '@bankofai/agent-wallet@2.3.0-beta.4':
-    resolution: {integrity: sha512-48FbbA2VJgG50pKRPV1AFsx5g6UfHNZrdZj4igH14aK3D8IeFgR1xGF1sZOAIm7TKb1MBF6203nLWgzu+c7i4A==}
+  '@bankofai/agent-wallet@2.3.0':
+    resolution: {integrity: sha512-Jezo0ffhZrsF0HQMV74wTJlLUtHoY4d7TeYbjqjkWketCqBdhiX9/90hS4qwk99QZwnbt+1HRUschOaSA1wkRw==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
@@ -1364,7 +1364,7 @@ snapshots:
     dependencies:
       regenerator-runtime: 0.14.1
 
-  '@bankofai/agent-wallet@2.3.0-beta.4(@types/node@20.19.31)(typescript@5.9.3)':
+  '@bankofai/agent-wallet@2.3.0(@types/node@20.19.31)(typescript@5.9.3)':
     dependencies:
       '@inquirer/prompts': 8.3.2(@types/node@20.19.31)
       '@noble/curves': 1.9.1
