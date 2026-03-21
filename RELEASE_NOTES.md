@@ -1,37 +1,77 @@
-# v0.4.2 - GasFree Activate Fee Support
+# v0.5.0 - Wallet-Based Signer Standardization
 
-Release date: March 11, 2026
+Release date: March 18, 2026
 
 ## What's New
 
-- **GasFree activateFee in maxFee calculation**: When a TRON GasFree account has not been activated yet (`active: false`), the `activateFee` returned by the GasFree API is now automatically added to `maxFee`. This prevents transaction failures where the fee allowance was too low to cover both the transfer fee and the one-time account activation cost.
+- **Breaking change: signer initialization now uses `create()`**: Signers no longer support direct initialization from a private key. Use `create()` instead, which constructs the agent wallet internally and resolves signer setup through the new wallet-based flow. Before calling `create()`, configure agent-wallet through its supported environment variables or local wallet configuration.
+- **Unified wallet capability surface**: Signer integration is now standardized around the agent-wallet `Wallet` interface for message signing, typed-data signing, and transaction signing. This creates a single capability model across supported signer flows.
 
 ## How It Works
 
-The GasFree API returns per-asset fee information including an optional `activateFee` field:
-```json
-{
-  "active": false,
-  "assets": [{
-    "tokenAddress": "TXYZop...",
-    "transferFee": "1000000",
-    "activateFee": "2050000"
-  }]
-}
+`create()` resolves the agent wallet using this order:
+
+1. `AGENT_WALLET_PRIVATE_KEY`for static wallet mode
+2. `AGENT_WALLET_PASSWORD` with optional `AGENT_WALLET_DIR` for local wallet mode
+3. Raises a configuration error if no valid wallet configuration is found
+
+Once resolved, the signer wraps the agent-wallet `Wallet` interface, which supports:
+
+- `sign_message()` / `signMessage()` for message signing
+- `sign_typed_data()` / `signTypedData()` for typed-data signing
+- `sign_transaction()` / `signTransaction()` for transaction signing
+
+## Breaking Changes
+
+### Migration Example
+
+The `create()` flow expects agent-wallet to be configured first. In static mode, this typically means setting `AGENT_WALLET_PRIVATE_KEY` or `AGENT_WALLET_MNEMONIC`. In local mode, configure `AGENT_WALLET_PASSWORD` and optionally `AGENT_WALLET_DIR`.
+
+#### Python Client
+
+```python
+# old
+tron_signer = TronClientSigner.from_private_key(TRON_PRIVATE_KEY)
+evm_signer = EvmClientSigner.from_private_key(BSC_PRIVATE_KEY)
 ```
 
-The `maxFee` calculation follows this order:
+```python
+# new
+tron_signer = await TronClientSigner.create()
+evm_signer = await EvmClientSigner.create()
+```
 
-1. `baseFee = max(transferFee, facilitatorFee)`
-2. If `baseFee == 0` and no fee info provided → fallback to 1 token (e.g. `1000000` for USDT)
-3. If `active` is `false` and `activateFee > 0` → `maxFee = baseFee + activateFee`
+#### TypeScript Client
 
-When `active` is `true` (account already activated):
-- `maxFee = baseFee` (unchanged behavior, activateFee is ignored)
+```ts
+// old
+const tronSigner = new TronClientSigner(TRON_PRIVATE_KEY);
+const evmSigner = new EvmClientSigner(BSC_PRIVATE_KEY);
+```
+
+```ts
+// new
+const tronSigner = await TronClientSigner.create();
+const evmSigner = await EvmClientSigner.create();
+```
+
+#### Facilitator (Python only)
+
+The TypeScript SDK does not expose a separate facilitator signer. Facilitator-side signing is handled in the Python server implementation.
+
+```python
+# old
+tron_signer = TronFacilitatorSigner.from_private_key(TRON_PRIVATE_KEY)
+bsc_signer = EvmFacilitatorSigner.from_private_key(BSC_PRIVATE_KEY)
+```
+
+```python
+# new
+tron_signer = await TronFacilitatorSigner.create()
+bsc_signer = await EvmFacilitatorSigner.create()
+```
 
 ## Affected SDKs
 
-- **Python**: `bankofai-x402==0.4.2`
-- **TypeScript**: `@bankofai/x402@0.4.2`
-
-Both SDKs implement identical logic with full test coverage.
+- **Python**: `bankofai-x402==0.5.0`
+- **TypeScript**: `@bankofai/x402@0.5.0`
