@@ -7,6 +7,20 @@ Release date: March 18, 2026
 - **Breaking change: signer initialization now uses `create()`**: Signers no longer support direct initialization from a private key. Use `create()` instead, which constructs the agent wallet internally and resolves signer setup through the new wallet-based flow. Before calling `create()`, configure agent-wallet through its supported environment variables or local wallet configuration.
 - **Unified wallet capability surface**: Signer integration is now standardized around the agent-wallet `Wallet` interface for message signing, typed-data signing, and transaction signing. This creates a single capability model across supported signer flows.
 
+## How It Works
+
+`create()` resolves the agent wallet using this order:
+
+1. `AGENT_WALLET_PRIVATE_KEY` or `AGENT_WALLET_MNEMONIC` for static wallet mode
+2. `AGENT_WALLET_PASSWORD` with optional `AGENT_WALLET_DIR` for local wallet mode
+3. Raises a configuration error if no valid wallet configuration is found
+
+Once resolved, the signer wraps the agent-wallet `Wallet` interface, which supports:
+
+- `sign_message()` / `signMessage()` for message signing
+- `sign_typed_data()` / `signTypedData()` for typed-data signing
+- `sign_transaction()` / `signTransaction()` for transaction signing
+
 ## Breaking Changes
 
 ### Migration Example
