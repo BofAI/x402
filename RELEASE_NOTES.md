@@ -11,7 +11,7 @@ Release date: March 18, 2026
 
 `create()` resolves the agent wallet using this order:
 
-1. `AGENT_WALLET_PRIVATE_KEY` or `AGENT_WALLET_MNEMONIC` for static wallet mode
+1. `AGENT_WALLET_PRIVATE_KEY`for static wallet mode
 2. `AGENT_WALLET_PASSWORD` with optional `AGENT_WALLET_DIR` for local wallet mode
 3. Raises a configuration error if no valid wallet configuration is found
 
