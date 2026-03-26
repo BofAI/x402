@@ -58,9 +58,7 @@ def mock_api_client():
                 ],
             }
         )
-        client_instance.get_providers = AsyncMock(
-            return_value=[{"address": MERCHANT_ADDRESS}]
-        )
+        client_instance.get_providers = AsyncMock(return_value=[{"address": MERCHANT_ADDRESS}])
         yield client_instance
 
 
