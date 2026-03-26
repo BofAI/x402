@@ -13,7 +13,26 @@ import {
 } from '../index.js';
 import { GASFREE_TYPES, GasFreeAPIClient } from '../utils/gasfree.js';
 import { findByAddress } from '../tokens.js';
-import { TronAddressConverter } from '../address.js';
+import { TronAddressConverter, ZERO_ADDRESS_HEX } from '../address.js';
+
+function requireEvmAddress(
+  raw: unknown,
+  fieldName: string,
+  converter: TronAddressConverter
+): string {
+  if (raw === null || raw === undefined) {
+    throw new Error(`GasFree TIP-712: address field "${fieldName}" is null or undefined`);
+  }
+
+  const converted = converter.toEvmFormat(String(raw));
+  if (converted === ZERO_ADDRESS_HEX) {
+    throw new Error(
+      `GasFree TIP-712: could not convert "${fieldName}" value "${raw}" to EVM format`
+    );
+  }
+
+  return converted;
+}
 
 export class ExactGasFreeClientMechanism implements ClientMechanism {
   private signer: ClientSigner;
@@ -136,14 +155,26 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
 
     const signingDomain = {
       ...domain,
-      verifyingContract: addressConverter.toEvmFormat(String(domain.verifyingContract)),
+      verifyingContract: requireEvmAddress(
+        domain.verifyingContract,
+        'verifyingContract',
+        addressConverter
+      ),
     };
     const signingMessage = {
       ...message,
-      token: addressConverter.toEvmFormat(String(message.token)),
-      serviceProvider: addressConverter.toEvmFormat(String(message.serviceProvider)),
-      user: addressConverter.toEvmFormat(String(message.user)),
-      receiver: addressConverter.toEvmFormat(String(message.receiver)),
+      // Explicitly convert known address fields to EVM 0x format.
+      // Do not use convertMessageAddresses() here — the message also contains
+      // numeric fields whose string representations should not be treated
+      // as addresses.
+      token: requireEvmAddress(message.token, 'token', addressConverter),
+      serviceProvider: requireEvmAddress(
+        message.serviceProvider,
+        'serviceProvider',
+        addressConverter
+      ),
+      user: requireEvmAddress(message.user, 'user', addressConverter),
+      receiver: requireEvmAddress(message.receiver, 'receiver', addressConverter),
     };
 
     const signature = await this.signer.signTypedData(
