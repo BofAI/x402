@@ -31,6 +31,18 @@ class ClientMechanism(ABC):
         """
         return None
 
+    async def resolve_balance_check_context(
+        self,
+        requirements: PaymentRequirements,
+    ) -> dict[str, int | str] | None:
+        """Resolve a scheme-specific balance check context.
+
+        Return a dict with:
+        - address: address to check balance against
+        - extra_needed: extra amount (e.g. fees) to add to required amount
+        """
+        return None
+
     @abstractmethod
     async def create_payment_payload(
         self,

@@ -25,6 +25,14 @@ export interface ClientMechanism {
    * Used by X402Client to auto-register balance-aware policies.
    */
   getSigner?(): ClientSigner;
+
+  /**
+   * Resolve a scheme-specific balance check context.
+   * When provided, policies can use the returned address and extra required amount.
+   */
+  resolveBalanceCheckContext?(
+    requirements: PaymentRequirements
+  ): Promise<{ address: string; extraNeeded?: bigint } | null>;
   
   /** Create payment payload */
   createPaymentPayload(
@@ -160,6 +168,13 @@ export class X402Client {
    */
   registerGasFree(signer: ClientSigner, clients: Record<string, GasFreeAPIClient> = {}): X402Client {
     return this.register('tron:*', new ExactGasFreeClientMechanism(signer, clients));
+  }
+
+  /**
+   * Resolve a mechanism instance for scheme+network.
+   */
+  resolveMechanism(scheme: string, network: string): ClientMechanism | null {
+    return this.findMechanism(scheme, network);
   }
 
   /**

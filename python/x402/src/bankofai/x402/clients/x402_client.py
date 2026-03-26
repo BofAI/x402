@@ -29,6 +29,12 @@ class ClientMechanism(Protocol):
         """Return the signer used by this mechanism, or None."""
         ...
 
+    async def resolve_balance_check_context(
+        self, requirements: PaymentRequirements
+    ) -> dict[str, int | str] | None:
+        """Resolve a scheme-specific balance check context."""
+        ...
+
     async def create_payment_payload(
         self,
         requirements: PaymentRequirements,
@@ -122,6 +128,10 @@ class X402Client:
         if mechanism is not None and hasattr(mechanism, "get_signer"):
             return mechanism.get_signer()
         return None
+
+    def resolve_mechanism(self, scheme: str, network: str) -> ClientMechanism | None:
+        """Resolve a mechanism from registered mechanisms for the given scheme+network."""
+        return self._find_mechanism(scheme, network)
 
     def register(self, network_pattern: str, mechanism: ClientMechanism) -> "X402Client":
         """

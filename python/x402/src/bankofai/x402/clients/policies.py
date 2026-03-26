@@ -59,15 +59,32 @@ class SufficientBalancePolicy:
                 affordable.append(req)
                 continue
 
+            balance_address = None
+            extra_needed_override = None
+            mechanism = self._client.resolve_mechanism(req.scheme, req.network)
+            if mechanism is not None and hasattr(mechanism, "resolve_balance_check_context"):
+                try:
+                    context = await mechanism.resolve_balance_check_context(req)
+                    if context:
+                        balance_address = context.get("address")
+                        extra_needed_override = context.get("extra_needed")
+                except Exception:
+                    # Failed to resolve scheme-specific balance context; fallback to signer address.
+                    pass
+
             try:
-                balance = await signer.check_balance(req.asset, req.network)
+                balance = await signer.check_balance(
+                    req.asset, req.network, address=balance_address
+                )
             except Exception:
                 # Signer cannot query this network; keep the requirement.
                 affordable.append(req)
                 continue
 
             needed = int(req.amount)
-            if hasattr(req, "extra") and req.extra and hasattr(req.extra, "fee"):
+            if extra_needed_override is not None:
+                needed += int(extra_needed_override)
+            elif hasattr(req, "extra") and req.extra and hasattr(req.extra, "fee"):
                 fee = req.extra.fee
                 if fee and hasattr(fee, "fee_amount"):
                     needed += int(fee.fee_amount)

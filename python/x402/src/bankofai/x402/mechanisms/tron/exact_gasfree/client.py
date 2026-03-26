@@ -58,6 +58,37 @@ class ExactGasFreeClientMechanism(ClientMechanism):
     def get_signer(self) -> Any:
         return self._signer
 
+    async def resolve_balance_check_context(
+        self, requirements: PaymentRequirements
+    ) -> dict[str, int | str] | None:
+        network = requirements.network
+        user_address = self._signer.get_address()
+        api_client = self._get_api_client(network)
+
+        account_info = await api_client.get_address_info(user_address)
+        gasfree_address = account_info.get("gasFreeAddress")
+        if not gasfree_address:
+            return None
+
+        is_active = account_info.get("active", False)
+        assets = account_info.get("assets", [])
+        transfer_fee = 0
+        activate_fee = 0
+        target_token = self._address_converter.normalize(requirements.asset)
+        for asset in assets:
+            if asset.get("tokenAddress") == target_token:
+                transfer_fee = int(asset.get("transferFee", 0))
+                activate_fee = int(asset.get("activateFee", 0))
+                break
+
+        fee_info = requirements.extra.fee if requirements.extra else None
+        facilitator_fee = int(fee_info.fee_amount or "0") if fee_info else 0
+        max_fee_val = max(transfer_fee, facilitator_fee)
+        if not is_active and activate_fee > 0:
+            max_fee_val += activate_fee
+
+        return {"address": gasfree_address, "extra_needed": max_fee_val}
+
     async def create_payment_payload(
         self,
         requirements: PaymentRequirements,

@@ -52,8 +52,24 @@ export class SufficientBalancePolicy implements PaymentPolicy {
       }
 
       let balance: bigint;
+      let extraNeededOverride: bigint | null = null;
+      let balanceAddress: string | undefined;
+      const mechanism = this.client.resolveMechanism(req.scheme, req.network);
+      if (mechanism?.resolveBalanceCheckContext) {
+        try {
+          const context = await mechanism.resolveBalanceCheckContext(req);
+          if (context?.address) {
+            balanceAddress = context.address;
+            if (typeof context.extraNeeded === 'bigint') {
+              extraNeededOverride = context.extraNeeded;
+            }
+          }
+        } catch {
+          // Failed to resolve scheme-specific balance context; fallback to signer address.
+        }
+      }
       try {
-        balance = await signer.checkBalance(req.asset, req.network);
+        balance = await signer.checkBalance(req.asset, req.network, balanceAddress);
       } catch {
         // Signer cannot query this network; keep the requirement.
         affordable.push(req);
@@ -61,7 +77,9 @@ export class SufficientBalancePolicy implements PaymentPolicy {
       }
 
       let needed = BigInt(req.amount);
-      if (req.extra?.fee?.feeAmount) {
+      if (extraNeededOverride !== null) {
+        needed += extraNeededOverride;
+      } else if (req.extra?.fee?.feeAmount) {
         needed += BigInt(req.extra.fee.feeAmount);
       }
       const decimals = getDecimals(req);

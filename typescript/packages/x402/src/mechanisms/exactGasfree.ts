@@ -55,6 +55,29 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
     return 'exact_gasfree';
   }
 
+  async resolveBalanceCheckContext(
+    requirements: PaymentRequirements
+  ): Promise<{ address: string; extraNeeded?: bigint } | null> {
+    const apiClient = this.getApiClient(requirements.network);
+    const userAddress = await this.signer.getAddress();
+    const accountInfo = await apiClient.getAddressInfo(userAddress);
+    const gasfreeAddress = accountInfo.gasFreeAddress;
+    if (!gasfreeAddress) {
+      return null;
+    }
+
+    const assetInfo = accountInfo.assets?.find((a: any) => a.tokenAddress === requirements.asset);
+    const transferFee = BigInt(assetInfo?.transferFee || '0');
+    const activateFee = BigInt(assetInfo?.activateFee || '0');
+    const facilitatorFee = BigInt(requirements.extra?.fee?.feeAmount || '0');
+    let maxFeeBig = transferFee > facilitatorFee ? transferFee : facilitatorFee;
+    if (!accountInfo.active && activateFee > 0n) {
+      maxFeeBig += activateFee;
+    }
+
+    return { address: gasfreeAddress, extraNeeded: maxFeeBig };
+  }
+
   async createPaymentPayload(
     requirements: PaymentRequirements,
     resource: string,
