@@ -337,7 +337,7 @@ export function createFacilitatorTronSigner(
       return typeof txId === "string" ? txId : ((txId as { txid?: string }).txid ?? String(txId));
     },
     async waitForTransactionReceipt(args) {
-      const maxAttempts = 30;
+      const maxAttempts = 120;
       const delayMs = 1000;
 
       for (let attempt = 0; attempt < maxAttempts; attempt += 1) {

@@ -85,6 +85,7 @@ class ExactSvmScheme:
     def create_payment_payload(
         self,
         requirements: PaymentRequirements,
+        context=None,
     ) -> dict[str, Any]:
         """Create signed SPL TransferChecked inner payload.
 

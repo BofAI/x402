@@ -21,6 +21,7 @@ except ImportError as e:
 
 from .constants import EIP1271_MAGIC_VALUE, IS_VALID_SIGNATURE_ABI, TX_STATUS_SUCCESS
 from .types import TransactionReceipt, TypedDataDomain, TypedDataField
+from .utils import resolve_evm_rpc_url
 
 # ERC20 ABI for balance checks
 _ERC20_BALANCE_ABI = [
@@ -61,14 +62,25 @@ class EthAccountSigner:
         account: eth_account LocalAccount instance.
     """
 
-    def __init__(self, account: LocalAccount) -> None:
+    def __init__(
+        self,
+        account: LocalAccount,
+        rpc_url: str | None = None,
+        network: str | None = None,
+    ) -> None:
         """Initialize signer with eth_account LocalAccount.
 
         Args:
             account: eth_account LocalAccount instance (from Account.from_key,
                 Account.from_mnemonic, etc.).
+            rpc_url: Optional Ethereum RPC endpoint for nonce + gas data.
+            network: Optional CAIP-2 network (e.g., eip155:84532) used to
+                resolve chain-specific default RPC URL when rpc_url is not set.
         """
         self._account = account
+        if rpc_url is None:
+            rpc_url = resolve_evm_rpc_url(network)
+        self._w3 = Web3(Web3.HTTPProvider(rpc_url)) if rpc_url else None
 
     @property
     def address(self) -> str:
@@ -110,10 +122,11 @@ class EthAccountSigner:
         if isinstance(domain, TypedDataDomain):
             domain_dict = {
                 "name": domain.name,
-                "version": domain.version,
                 "chainId": domain.chain_id,
                 "verifyingContract": domain.verifying_contract,
             }
+            if domain.version:
+                domain_dict["version"] = domain.version
         else:
             domain_dict = domain
 
@@ -124,6 +137,46 @@ class EthAccountSigner:
             message_data=message,
         )
         return bytes(signed.signature)
+
+    def get_transaction_count(self, address: str) -> int:
+        """Get transaction count (nonce) for address."""
+        if not self._w3:
+            raise ValueError("RPC URL required for get_transaction_count")
+        return int(self._w3.eth.get_transaction_count(Web3.to_checksum_address(address)))
+
+    def get_gas_price(self) -> int:
+        """Get current gas price for legacy transactions."""
+        if not self._w3:
+            raise ValueError("RPC URL required for get_gas_price")
+        return int(self._w3.eth.gas_price)
+
+    def estimate_fees_per_gas(self) -> tuple[int, int] | None:
+        """Estimate EIP-1559 fees (maxFeePerGas, maxPriorityFeePerGas).
+
+        Returns None if the connected network does not expose baseFeePerGas.
+        """
+        if not self._w3:
+            raise ValueError("RPC URL required for estimate_fees_per_gas")
+        try:
+            block = self._w3.eth.get_block("pending")
+            base_fee = block.get("baseFeePerGas")
+            if base_fee is None:
+                return None
+            max_priority_fee = int(self._w3.eth.max_priority_fee)
+            max_fee = int(base_fee) * 2 + max_priority_fee
+            return max_fee, max_priority_fee
+        except Exception:
+            return None
+
+    def sign_transaction(self, tx: dict[str, Any]) -> bytes:
+        """Sign an EIP-1559 transaction dict and return raw bytes."""
+        signed = self._account.sign_transaction(tx)
+        raw = getattr(signed, "rawTransaction", None)
+        if raw is None:
+            raw = getattr(signed, "raw_transaction", None)
+        if raw is None:
+            raise AttributeError("SignedTransaction missing raw transaction bytes")
+        return raw if isinstance(raw, (bytes, bytearray)) else bytes(raw)
 
 
 class FacilitatorWeb3Signer:
@@ -249,14 +302,15 @@ class FacilitatorWeb3Signer:
             True if signature is valid.
         """
         # Build full types including EIP712Domain
-        full_types: dict[str, list[dict[str, str]]] = {
-            "EIP712Domain": [
-                {"name": "name", "type": "string"},
-                {"name": "version", "type": "string"},
-                {"name": "chainId", "type": "uint256"},
-                {"name": "verifyingContract", "type": "address"},
-            ]
-        }
+        domain_fields = [
+            {"name": "name", "type": "string"},
+            {"name": "chainId", "type": "uint256"},
+            {"name": "verifyingContract", "type": "address"},
+        ]
+        if domain.version:
+            domain_fields.insert(1, {"name": "version", "type": "string"})
+
+        full_types: dict[str, list[dict[str, str]]] = {"EIP712Domain": domain_fields}
         for type_name, fields in types.items():
             full_types[type_name] = [
                 {"name": f.name, "type": f.type} if isinstance(f, TypedDataField) else f
@@ -269,15 +323,18 @@ class FacilitatorWeb3Signer:
             msg_copy["nonce"] = "0x" + msg_copy["nonce"].hex()
 
         try:
+            domain_dict = {
+                "name": domain.name,
+                "chainId": domain.chain_id,
+                "verifyingContract": domain.verifying_contract,
+            }
+            if domain.version:
+                domain_dict["version"] = domain.version
+
             typed_data = {
                 "types": full_types,
                 "primaryType": primary_type,
-                "domain": {
-                    "name": domain.name,
-                    "version": domain.version,
-                    "chainId": domain.chain_id,
-                    "verifyingContract": domain.verifying_contract,
-                },
+                "domain": domain_dict,
                 "message": msg_copy,
             }
 

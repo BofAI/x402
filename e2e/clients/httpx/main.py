@@ -8,12 +8,14 @@ from eth_account import Account
 
 # Import from new x402 package
 from bankofai.x402 import x402Client
-from bankofai.x402.http import decode_payment_response_header
+from bankofai.x402.http import decode_payment_response_header, decode_payment_required_header
 from bankofai.x402.http.clients import x402_httpx_transport
 from bankofai.x402.mechanisms.evm import EthAccountSigner
 from bankofai.x402.mechanisms.evm.exact import register_exact_evm_client
 from bankofai.x402.mechanisms.svm import KeypairSigner
 from bankofai.x402.mechanisms.svm.exact import register_exact_svm_client
+from bankofai.x402.mechanisms.tron.signers import ClientTronSigner
+from bankofai.x402.mechanisms.tron.exact import register_exact_tron_client
 import httpx
 
 # Load environment variables
@@ -22,6 +24,8 @@ load_dotenv()
 # Get environment variables
 evm_private_key = os.getenv("EVM_PRIVATE_KEY")
 svm_private_key = os.getenv("SVM_PRIVATE_KEY")
+tron_private_key = os.getenv("TRON_PRIVATE_KEY")
+tron_rpc_url = os.getenv("TRON_RPC_URL")
 base_url = os.getenv("RESOURCE_SERVER_URL")
 endpoint_path = os.getenv("ENDPOINT_PATH")
 
@@ -54,9 +58,17 @@ async def main():
         svm_signer = KeypairSigner.from_base58(svm_private_key)
         register_exact_svm_client(client, svm_signer)
 
+    # Register TRON exact scheme if private key is available
+    if tron_private_key:
+        tron_signer = ClientTronSigner(
+            private_key=tron_private_key,
+            full_node=tron_rpc_url or "https://nile.trongrid.io",
+        )
+        register_exact_tron_client(client, tron_signer)
+
     # Create httpx client with x402 payment transport and increased timeout
-    # Set timeout to 30 seconds to handle busy servers during test runs
-    timeout = httpx.Timeout(30.0, connect=10.0)
+    # Set timeout to 90 seconds to handle slow on-chain settlement during test runs
+    timeout = httpx.Timeout(90.0, connect=10.0)
     async with httpx.AsyncClient(
         base_url=base_url,
         timeout=timeout,
@@ -76,6 +88,7 @@ async def main():
                 "data": response_data,
                 "status_code": response.status_code,
                 "payment_response": None,
+                "payment_required": None,
             }
 
             # Check for payment response header (V2: PAYMENT-RESPONSE, V1: X-PAYMENT-RESPONSE)
@@ -85,6 +98,13 @@ async def main():
             if payment_header:
                 payment_response = decode_payment_response_header(payment_header)
                 result["payment_response"] = payment_response.model_dump()
+
+            payment_required_header = response.headers.get("PAYMENT-REQUIRED") or response.headers.get(
+                "X-PAYMENT"
+            )
+            if payment_required_header:
+                payment_required = decode_payment_required_header(payment_required_header)
+                result["payment_required"] = payment_required.model_dump()
 
             # Output structured result as JSON for proxy to parse
             print(json.dumps(result))

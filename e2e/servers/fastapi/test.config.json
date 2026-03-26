@@ -25,11 +25,35 @@
       "transferMethod": "eip3009"
     },
     {
+      "path": "/protected-permit2",
+      "method": "GET",
+      "description": "Protected endpoint requiring Permit2 payment",
+      "requiresPayment": true,
+      "protocolFamily": "evm",
+      "transferMethod": "permit2"
+    },
+    {
       "path": "/protected-svm",
       "method": "GET",
       "description": "Protected endpoint requiring SVM (Solana) payment",
       "requiresPayment": true,
       "protocolFamily": "svm"
+    },
+    {
+      "path": "/protected-tron",
+      "method": "GET",
+      "description": "Protected endpoint requiring TRON payment",
+      "requiresPayment": true,
+      "protocolFamily": "tron",
+      "transferMethod": "transferWithAuthorization"
+    },
+    {
+      "path": "/protected-tron-permit2",
+      "method": "GET",
+      "description": "Protected endpoint requiring TRON Permit2 payment",
+      "requiresPayment": true,
+      "protocolFamily": "tron",
+      "transferMethod": "permit2"
     },
     {
       "path": "/health",
@@ -50,6 +74,7 @@
     ],
     "optional": [
       "SVM_PAYEE_ADDRESS",
+      "TRON_PAYEE_ADDRESS",
       "PORT",
       "FACILITATOR_URL"
     ]

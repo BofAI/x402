@@ -65,10 +65,10 @@ describe("ExactTronScheme (Client)", () => {
       expect(result.payload).not.toHaveProperty("permit2Authorization");
     });
 
-    it("should create TIP-712 payload with eip3009 method", async () => {
+    it("should create TIP-712 payload with transferWithAuthorization method", async () => {
       const reqs = {
         ...tip712Requirements,
-        extra: { ...tip712Requirements.extra, assetTransferMethod: "eip3009" },
+        extra: { ...tip712Requirements.extra, assetTransferMethod: "transferWithAuthorization" },
       };
       const client = new ExactTronScheme(mockSigner);
       const result = await client.createPaymentPayload(2, reqs);

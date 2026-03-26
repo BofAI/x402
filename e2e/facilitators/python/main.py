@@ -28,6 +28,11 @@ from bankofai.x402.mechanisms.evm import FacilitatorWeb3Signer
 from bankofai.x402.mechanisms.evm.exact import register_exact_evm_facilitator
 from bankofai.x402.mechanisms.svm import FacilitatorKeypairSigner
 from bankofai.x402.mechanisms.svm.exact import register_exact_svm_facilitator
+from bankofai.x402.mechanisms.tron.signers import FacilitatorTronSigner
+from bankofai.x402.mechanisms.tron.exact import register_exact_tron_facilitator
+from bankofai.x402.extensions.trc20_approval_gas_sponsoring import (
+    create_trc20_approval_gas_sponsoring_extension,
+)
 
 from bazaar import BazaarCatalog
 
@@ -47,6 +52,8 @@ if not os.environ.get("EVM_PRIVATE_KEY"):
 
 if not os.environ.get("SVM_PRIVATE_KEY"):
     print("⚠️  SVM_PRIVATE_KEY not set — SVM payment support disabled")
+if not os.environ.get("TRON_PRIVATE_KEY"):
+    print("⚠️  TRON_PRIVATE_KEY not set — TRON payment support disabled")
 
 # Initialize the EVM signer from private key
 evm_rpc_url = os.environ.get("EVM_RPC_URL") or "https://bsc-testnet-rpc.publicnode.com"
@@ -62,6 +69,16 @@ if os.environ.get("SVM_PRIVATE_KEY"):
     svm_keypair = Keypair.from_base58_string(os.environ["SVM_PRIVATE_KEY"])
     svm_signer = FacilitatorKeypairSigner(svm_keypair)
     print(f"SVM Facilitator account: {svm_signer.get_addresses()[0]}")
+
+# Initialize the TRON signer from private key (optional)
+tron_signer = None
+if os.environ.get("TRON_PRIVATE_KEY"):
+    tron_full_node = os.environ.get("TRON_RPC_URL") or "https://nile.trongrid.io"
+    tron_signer = FacilitatorTronSigner(
+        private_key=os.environ["TRON_PRIVATE_KEY"],
+        full_node=tron_full_node,
+    )
+    print(f"TRON Facilitator account: {tron_signer.get_addresses()[0]}")
 
 
 def _handle_after_verify(ctx: Any) -> None:
@@ -120,7 +137,7 @@ facilitator = (
 register_exact_evm_facilitator(
     facilitator,
     evm_signer,
-    networks="eip155:97",  # BSC Testnet
+    networks=os.environ.get("EVM_NETWORK", "eip155:97"),  # BSC Testnet default
     deploy_erc4337_with_eip6492=True,
 )
 
@@ -130,6 +147,17 @@ if svm_signer:
         facilitator,
         svm_signer,
         networks="solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",  # Devnet
+    )
+
+# Register TRON schemes (V1 and V2) if configured
+if tron_signer:
+    facilitator.register_extension(
+        create_trc20_approval_gas_sponsoring_extension(tron_signer)
+    )
+    register_exact_tron_facilitator(
+        facilitator,
+        tron_signer,
+        networks=os.environ.get("TRON_NETWORK", "tron:nile"),
     )
 
 

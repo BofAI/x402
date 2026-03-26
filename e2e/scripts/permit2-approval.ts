@@ -25,8 +25,8 @@ import { bscTestnet } from 'viem/chains';
 
 config();
 
-// Permit2 canonical address (same on all EVM chains)
-const PERMIT2_ADDRESS = '0x000000000022D473030F116dDEE9F6B43aC78BA3';
+// BSC uses PancakeSwap's Permit2 deployment (not the canonical address).
+const PERMIT2_ADDRESS = '0x31c2F6fcFf4F8759b3Bd5Bf0e1084A055615c768';
 
 // Known tokens on BSC Testnet
 const TOKENS: Record<string, { address: `0x${string}`; decimals: number; name: string }> = {

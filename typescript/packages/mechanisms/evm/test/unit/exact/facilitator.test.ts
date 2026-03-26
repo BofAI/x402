@@ -6,6 +6,8 @@ import { PaymentRequirements, PaymentPayload } from "@bankofai/x402-core/types";
 import { x402ExactPermit2ProxyAddress, PERMIT2_ADDRESS } from "../../../src/constants";
 import { ERC20_APPROVAL_GAS_SPONSORING } from "@bankofai/x402-extensions";
 
+const permit2FacilitatorAddress = "0x1111111111111111111111111111111111111111";
+
 // Mock viem's transaction parsing utilities for ERC-20 approval tests
 // Uses importOriginal to preserve all other viem exports (getAddress, etc.)
 vi.mock("viem", async importOriginal => {
@@ -267,7 +269,12 @@ describe("ExactEvmScheme (Facilitator)", () => {
         asset: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
         payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
         maxTimeoutSeconds: 300,
-        extra: { name: "USDC", version: "2", assetTransferMethod: "permit2" },
+        extra: {
+          name: "USDC",
+          version: "2",
+          assetTransferMethod: "permit2",
+          permit2FacilitatorAddress,
+        },
       };
 
       // Mock readContract to return sufficient allowance and balance
@@ -288,6 +295,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
             deadline: "999999999999",
             witness: {
               to: requirements.payTo,
+              facilitator: permit2FacilitatorAddress,
               validAfter: "0",
             },
           },
@@ -310,7 +318,12 @@ describe("ExactEvmScheme (Facilitator)", () => {
         asset: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
         payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
         maxTimeoutSeconds: 300,
-        extra: { name: "USDC", version: "2", assetTransferMethod: "permit2" },
+        extra: {
+          name: "USDC",
+          version: "2",
+          assetTransferMethod: "permit2",
+          permit2FacilitatorAddress,
+        },
       };
 
       // Mock readContract to return zero allowance
@@ -331,6 +344,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
             deadline: "999999999999",
             witness: {
               to: requirements.payTo,
+              facilitator: permit2FacilitatorAddress,
               validAfter: "0",
             },
           },
@@ -354,7 +368,12 @@ describe("ExactEvmScheme (Facilitator)", () => {
         asset: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
         payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
         maxTimeoutSeconds: 300,
-        extra: { name: "USDC", version: "2", assetTransferMethod: "permit2" },
+        extra: {
+          name: "USDC",
+          version: "2",
+          assetTransferMethod: "permit2",
+          permit2FacilitatorAddress,
+        },
       };
 
       const permit2Payload: PaymentPayload = {
@@ -372,6 +391,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
             deadline: "1", // Expired deadline
             witness: {
               to: requirements.payTo,
+              facilitator: permit2FacilitatorAddress,
               validAfter: "0",
             },
           },
@@ -395,7 +415,12 @@ describe("ExactEvmScheme (Facilitator)", () => {
         asset: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
         payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
         maxTimeoutSeconds: 300,
-        extra: { name: "USDC", version: "2", assetTransferMethod: "permit2" },
+        extra: {
+          name: "USDC",
+          version: "2",
+          assetTransferMethod: "permit2",
+          permit2FacilitatorAddress,
+        },
       };
 
       const permit2Payload: PaymentPayload = {
@@ -413,6 +438,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
             deadline: "999999999999",
             witness: {
               to: requirements.payTo,
+              facilitator: permit2FacilitatorAddress,
               validAfter: "0",
             },
           },
@@ -436,7 +462,12 @@ describe("ExactEvmScheme (Facilitator)", () => {
         asset: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
         payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
         maxTimeoutSeconds: 300,
-        extra: { name: "USDC", version: "2", assetTransferMethod: "permit2" },
+        extra: {
+          name: "USDC",
+          version: "2",
+          assetTransferMethod: "permit2",
+          permit2FacilitatorAddress,
+        },
       };
 
       const permit2Payload: PaymentPayload = {
@@ -454,6 +485,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
             deadline: "999999999999",
             witness: {
               to: "0x0000000000000000000000000000000000000001", // Wrong recipient
+              facilitator: permit2FacilitatorAddress,
               validAfter: "0",
             },
           },
@@ -479,7 +511,12 @@ describe("ExactEvmScheme (Facilitator)", () => {
         asset: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
         payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
         maxTimeoutSeconds: 300,
-        extra: { name: "USDC", version: "2", assetTransferMethod: "permit2" },
+        extra: {
+          name: "USDC",
+          version: "2",
+          assetTransferMethod: "permit2",
+          permit2FacilitatorAddress,
+        },
       };
 
       // Mock readContract to return sufficient allowance and balance
@@ -500,6 +537,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
             deadline: "999999999999",
             witness: {
               to: requirements.payTo,
+              facilitator: permit2FacilitatorAddress,
               validAfter: "0",
             },
           },
@@ -524,7 +562,12 @@ describe("ExactEvmScheme (Facilitator)", () => {
         asset: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
         payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
         maxTimeoutSeconds: 300,
-        extra: { name: "USDC", version: "2", assetTransferMethod: "permit2" },
+        extra: {
+          name: "USDC",
+          version: "2",
+          assetTransferMethod: "permit2",
+          permit2FacilitatorAddress,
+        },
       };
 
       // Mock readContract to return zero allowance
@@ -545,6 +588,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
             deadline: "999999999999",
             witness: {
               to: requirements.payTo,
+              facilitator: permit2FacilitatorAddress,
               validAfter: "0",
             },
           },
@@ -641,7 +685,12 @@ describe("ExactEvmScheme (Facilitator)", () => {
         asset: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
         payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
         maxTimeoutSeconds: 60,
-        extra: { assetTransferMethod: "permit2", name: "USDC", version: "2" },
+        extra: {
+          assetTransferMethod: "permit2",
+          name: "USDC",
+          version: "2",
+          permit2FacilitatorAddress,
+        },
       };
 
       // Create a Permit2 payload
@@ -697,7 +746,12 @@ describe("ExactEvmScheme (Facilitator)", () => {
         asset: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
         payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
         maxTimeoutSeconds: 60,
-        extra: { assetTransferMethod: "permit2", name: "USDC", version: "2" },
+        extra: {
+          assetTransferMethod: "permit2",
+          name: "USDC",
+          version: "2",
+          permit2FacilitatorAddress,
+        },
       };
 
       const permit2ClientSigner: ClientEvmSigner = {
@@ -734,7 +788,12 @@ describe("ExactEvmScheme (Facilitator)", () => {
         asset: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
         payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
         maxTimeoutSeconds: 60,
-        extra: { assetTransferMethod: "permit2", name: "USDC", version: "2" },
+        extra: {
+          assetTransferMethod: "permit2",
+          name: "USDC",
+          version: "2",
+          permit2FacilitatorAddress,
+        },
       };
 
       const permit2ClientSigner: ClientEvmSigner = {
@@ -782,7 +841,12 @@ describe("ExactEvmScheme (Facilitator)", () => {
       asset: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
       payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
       maxTimeoutSeconds: 60,
-      extra: { assetTransferMethod: "permit2", name: "USDC", version: "2" },
+      extra: {
+        assetTransferMethod: "permit2",
+        name: "USDC",
+        version: "2",
+        permit2FacilitatorAddress,
+      },
     };
 
     function makePermit2Payload(extensions?: Record<string, unknown>): PaymentPayload {
@@ -802,6 +866,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
             deadline: (now + 300).toString(),
             witness: {
               to: permit2Requirements.payTo,
+              facilitator: permit2FacilitatorAddress,
               validAfter: "0",
             },
           },
@@ -955,7 +1020,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
       asset: TOKEN_ADDRESS,
       payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
       maxTimeoutSeconds: 60,
-      extra: { assetTransferMethod: "permit2" },
+      extra: { assetTransferMethod: "permit2", permit2FacilitatorAddress },
     };
 
     function makeErc20Permit2Payload(extensions?: Record<string, unknown>): PaymentPayload {
@@ -975,6 +1040,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
             deadline: (now + 300).toString(),
             witness: {
               to: erc20Requirements.payTo,
+              facilitator: permit2FacilitatorAddress,
               validAfter: "0",
             },
           },
@@ -1177,7 +1243,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
       asset: TOKEN_ADDRESS,
       payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
       maxTimeoutSeconds: 60,
-      extra: { assetTransferMethod: "permit2" },
+      extra: { assetTransferMethod: "permit2", permit2FacilitatorAddress },
     };
 
     function makeErc20Permit2Payload(extensions?: Record<string, unknown>): PaymentPayload {
@@ -1197,6 +1263,7 @@ describe("ExactEvmScheme (Facilitator)", () => {
             deadline: (now + 300).toString(),
             witness: {
               to: erc20Requirements.payTo,
+              facilitator: permit2FacilitatorAddress,
               validAfter: "0",
             },
           },

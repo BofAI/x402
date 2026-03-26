@@ -99,10 +99,21 @@ export class ExactEvmScheme implements SchemeNetworkServer {
     },
     extensionKeys: string[],
   ): Promise<PaymentRequirements> {
-    // Mark unused parameters to satisfy linter
-    void supportedKind;
     void extensionKeys;
-    return Promise.resolve(paymentRequirements);
+    const existingMethod = paymentRequirements.extra?.assetTransferMethod as string | undefined;
+    const permit2FacilitatorAddress =
+      (paymentRequirements.extra?.permit2FacilitatorAddress as string | undefined) ??
+      (supportedKind.extra?.permit2FacilitatorAddress as string | undefined);
+
+    return Promise.resolve({
+      ...paymentRequirements,
+      extra: {
+        ...paymentRequirements.extra,
+        ...(existingMethod === "permit2" && permit2FacilitatorAddress
+          ? { permit2FacilitatorAddress }
+          : {}),
+      },
+    });
   }
 
   /**

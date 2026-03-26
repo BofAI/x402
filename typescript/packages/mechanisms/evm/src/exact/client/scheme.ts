@@ -7,7 +7,7 @@ import {
 import { EIP2612_GAS_SPONSORING, ERC20_APPROVAL_GAS_SPONSORING } from "@bankofai/x402-extensions";
 import { ClientEvmSigner } from "../../signer";
 import { AssetTransferMethod } from "../../types";
-import { PERMIT2_ADDRESS, erc20AllowanceAbi } from "../../constants";
+import { erc20AllowanceAbi, getPermit2Address } from "../../constants";
 import { getAddress } from "viem";
 import { getEvmChainId } from "../../utils";
 import { createEIP3009Payload } from "./eip3009";
@@ -126,6 +126,7 @@ export class ExactEvmScheme implements SchemeNetworkClient {
 
     const chainId = getEvmChainId(requirements.network);
     const tokenAddress = getAddress(requirements.asset) as `0x${string}`;
+    const permit2Address = getPermit2Address(requirements.network);
 
     // Check if user already has sufficient Permit2 allowance
     try {
@@ -133,7 +134,7 @@ export class ExactEvmScheme implements SchemeNetworkClient {
         address: tokenAddress,
         abi: erc20AllowanceAbi,
         functionName: "allowance",
-        args: [this.signer.address, PERMIT2_ADDRESS],
+        args: [this.signer.address, permit2Address],
       })) as bigint;
 
       if (allowance >= BigInt(requirements.amount)) {
@@ -156,6 +157,7 @@ export class ExactEvmScheme implements SchemeNetworkClient {
       tokenAddress,
       tokenName,
       tokenVersion,
+      requirements.network,
       chainId,
       deadline,
       requirements.amount,
@@ -202,6 +204,7 @@ export class ExactEvmScheme implements SchemeNetworkClient {
 
     const chainId = getEvmChainId(requirements.network);
     const tokenAddress = getAddress(requirements.asset) as `0x${string}`;
+    const permit2Address = getPermit2Address(requirements.network);
 
     // Check if user already has sufficient Permit2 allowance
     try {
@@ -209,7 +212,7 @@ export class ExactEvmScheme implements SchemeNetworkClient {
         address: tokenAddress,
         abi: erc20AllowanceAbi,
         functionName: "allowance",
-        args: [this.signer.address, PERMIT2_ADDRESS],
+        args: [this.signer.address, permit2Address],
       })) as bigint;
 
       if (allowance >= BigInt(requirements.amount)) {
@@ -220,7 +223,12 @@ export class ExactEvmScheme implements SchemeNetworkClient {
     }
 
     // Sign the approve(Permit2, MaxUint256) transaction
-    const info = await signErc20ApprovalTransaction(this.signer, tokenAddress, chainId);
+    const info = await signErc20ApprovalTransaction(
+      this.signer,
+      tokenAddress,
+      requirements.network,
+      chainId,
+    );
 
     return {
       [ERC20_APPROVAL_GAS_SPONSORING.key]: { info },

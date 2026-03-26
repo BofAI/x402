@@ -6,7 +6,8 @@
     "evm",
     "svm",
     "aptos",
-    "stellar"
+    "stellar",
+    "tron"
   ],
   "x402Versions": [
     1,
@@ -23,12 +24,16 @@
   "environment": {
     "required": [
       "PORT",
-      "EVM_PRIVATE_KEY"
+      "EVM_PRIVATE_KEY",
+      "TRON_PRIVATE_KEY"
     ],
     "optional": [
       "SVM_PRIVATE_KEY",
       "APTOS_PRIVATE_KEY",
       "STELLAR_PRIVATE_KEY",
+      "TRON_NETWORK",
+      "TRON_RPC_URL",
+      "TRON_GRID_API_KEY",
       "EVM_NETWORK",
       "SVM_NETWORK",
       "APTOS_NETWORK",

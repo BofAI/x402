@@ -143,7 +143,8 @@ class x402AsyncTransport(AsyncBaseTransport):
         except PaymentError:
             raise
         except Exception as e:
-            raise PaymentError(f"Failed to handle payment: {e}") from e
+            error_detail = f"{type(e).__name__}: {e}" if str(e) else type(e).__name__
+            raise PaymentError(f"Failed to handle payment: {error_detail}") from e
 
     async def aclose(self) -> None:
         """Close the underlying transport."""

@@ -27,7 +27,7 @@ class MockSchemeClient:
         self.scheme = scheme
         self.create_calls: list = []
 
-    def create_payment_payload(self, requirements):
+    def create_payment_payload(self, requirements, context=None):
         self.create_calls.append(requirements)
         return {"mock": "payload", "network": requirements.network}
 
@@ -40,7 +40,7 @@ class MockSchemeClientV1:
     def __init__(self, scheme: str = "mock-v1"):
         self.scheme = scheme
 
-    def create_payment_payload(self, requirements):
+    def create_payment_payload(self, requirements, context=None):
         return {"mock": "v1-payload", "network": requirements.network}
 
 
@@ -485,6 +485,81 @@ class TestX402ClientAutoAdaptive:
         result_v2 = client.create_payment_payload(v2_required)
         assert isinstance(result_v2, PaymentPayload)
         assert result_v2.x402_version == 2
+
+
+class TestClientExtensionMerging:
+    """Tests for client-side extension merging."""
+
+    @pytest.mark.asyncio
+    async def test_client_merges_scheme_extensions(self):
+        from bankofai.x402.schemas import PaymentPayload, PaymentRequired, PaymentRequirements
+
+        class MockSchemeClientWithExtensions(MockSchemeClient):
+            def create_payment_payload(self, requirements, context=None):
+                return {"mock": "payload"}, {"extA": {"info": {"ok": True}}}
+
+        client = x402Client()
+        client.register("eip155:8453", MockSchemeClientWithExtensions())
+
+        payment_required = PaymentRequired(
+            x402_version=2,
+            accepts=[
+                PaymentRequirements(
+                    scheme="mock",
+                    network="eip155:8453",
+                    asset="0x0000000000000000000000000000000000000000",
+                    amount="1000000",
+                    pay_to="0x1234567890123456789012345678901234567890",
+                    max_timeout_seconds=300,
+                ),
+            ],
+            extensions={"serverExt": {"info": {"server": True}}},
+        )
+
+        result = await client.create_payment_payload(payment_required)
+
+        assert isinstance(result, PaymentPayload)
+        assert result.extensions is not None
+        assert "serverExt" in result.extensions
+        assert "extA" in result.extensions
+
+    @pytest.mark.asyncio
+    async def test_client_passes_context_extensions_to_scheme(self):
+        from bankofai.x402.schemas import PaymentPayload, PaymentRequired, PaymentRequirements
+
+        class MockSchemeClientWithContext(MockSchemeClient):
+            def __init__(self):
+                super().__init__()
+                self.last_context = None
+
+            def create_payment_payload(self, requirements, context=None):
+                self.last_context = context
+                return {"mock": "payload"}
+
+        client = x402Client()
+        mock = MockSchemeClientWithContext()
+        client.register("eip155:8453", mock)
+
+        payment_required = PaymentRequired(
+            x402_version=2,
+            accepts=[
+                PaymentRequirements(
+                    scheme="mock",
+                    network="eip155:8453",
+                    asset="0x0000000000000000000000000000000000000000",
+                    amount="1000000",
+                    pay_to="0x1234567890123456789012345678901234567890",
+                    max_timeout_seconds=300,
+                ),
+            ],
+            extensions={"serverExt": {"info": {"server": True}}},
+        )
+
+        result = await client.create_payment_payload(payment_required)
+
+        assert isinstance(result, PaymentPayload)
+        assert mock.last_context is not None
+        assert mock.last_context.extensions == payment_required.extensions
 
 
 class TestX402ClientV1Hooks:

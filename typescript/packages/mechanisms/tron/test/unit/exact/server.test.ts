@@ -128,11 +128,11 @@ describe("ExactTronScheme (Server)", () => {
           x402Version: 2,
           scheme: "exact",
           network: "tron:nile",
-          extra: { supportedAssetTransferMethods: ["eip3009", "permit2"] },
+          extra: { supportedAssetTransferMethods: ["transferWithAuthorization", "permit2"] },
         },
         [],
       );
-      expect(result.extra?.assetTransferMethod).toBe("eip3009");
+      expect(result.extra?.assetTransferMethod).toBe("transferWithAuthorization");
     });
 
     it("should not override existing assetTransferMethod", async () => {
@@ -142,7 +142,7 @@ describe("ExactTronScheme (Server)", () => {
           x402Version: 2,
           scheme: "exact",
           network: "tron:nile",
-          extra: { supportedAssetTransferMethods: ["eip3009", "permit2"] },
+          extra: { supportedAssetTransferMethods: ["transferWithAuthorization", "permit2"] },
         },
         [],
       );
@@ -157,7 +157,7 @@ describe("ExactTronScheme (Server)", () => {
           scheme: "exact",
           network: "tron:nile",
           extra: {
-            supportedAssetTransferMethods: ["eip3009", "permit2"],
+            supportedAssetTransferMethods: ["transferWithAuthorization", "permit2"],
             permit2FacilitatorAddress: "TSForFRqxmZdJ6Yfx2rNaFykhuQLc9cTMR",
           },
         },
@@ -168,7 +168,7 @@ describe("ExactTronScheme (Server)", () => {
       expect(result.extra?.permit2FacilitatorAddress).toBe("TSForFRqxmZdJ6Yfx2rNaFykhuQLc9cTMR");
     });
 
-    it("should use first method if eip3009 not in supported list", async () => {
+    it("should use first method if transferWithAuthorization not in supported list", async () => {
       const result = await server.enhancePaymentRequirements(
         baseRequirements,
         {
