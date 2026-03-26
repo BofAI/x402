@@ -81,6 +81,13 @@ class TestGasFreeClient:
         # Verify primary_type was passed
         mock_signer.sign_typed_data.assert_called_once()
         assert mock_signer.sign_typed_data.call_args.kwargs["primary_type"] == GASFREE_PRIMARY_TYPE
+        domain = mock_signer.sign_typed_data.call_args.kwargs["domain"]
+        message = mock_signer.sign_typed_data.call_args.kwargs["message"]
+        assert domain["verifyingContract"].startswith("0x")
+        assert message["token"].startswith("0x")
+        assert message["serviceProvider"].startswith("0x")
+        assert message["user"].startswith("0x")
+        assert message["receiver"].startswith("0x")
 
     @pytest.mark.anyio
     async def test_max_fee_adjustment(self, mock_signer, nile_requirements, mock_api_client):

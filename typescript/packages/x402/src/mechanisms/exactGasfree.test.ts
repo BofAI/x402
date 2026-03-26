@@ -66,6 +66,13 @@ describe('ExactGasFreeClientMechanism', () => {
     expect(payload.x402Version).toBe(2);
     expect(payload.payload.signature).toBe('0x' + 'ab'.repeat(65));
     expect(payload.extensions?.gasfreeAddress).toBe('TLCvf7MktLG7XkbJRyUwnvCeDnaEXYkcbC');
+
+    const [domain, _types, message] = mockSigner.signTypedData.mock.calls[0];
+    expect(String(domain.verifyingContract).startsWith('0x')).toBe(true);
+    expect(String(message.token).startsWith('0x')).toBe(true);
+    expect(String(message.serviceProvider).startsWith('0x')).toBe(true);
+    expect(String(message.user).startsWith('0x')).toBe(true);
+    expect(String(message.receiver).startsWith('0x')).toBe(true);
   });
 
   it('should adjust maxFee to protocol minimum', async () => {

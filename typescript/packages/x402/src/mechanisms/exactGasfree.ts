@@ -13,6 +13,7 @@ import {
 } from '../index.js';
 import { GASFREE_TYPES, GasFreeAPIClient } from '../utils/gasfree.js';
 import { findByAddress } from '../tokens.js';
+import { TronAddressConverter } from '../address.js';
 
 export class ExactGasFreeClientMechanism implements ClientMechanism {
   private signer: ClientSigner;
@@ -118,6 +119,7 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
     const deadline = (extensions as any)?.paymentPermitContext?.meta?.validBefore || Math.floor(Date.now() / 1000) + 3600;
     
     const gasFree = new TronGasFree({ chainId });
+    const addressConverter = new TronAddressConverter();
 
     // 5. Sign TIP-712 typed data
     const { domain, types, message } = gasFree.assembleGasFreeTransactionJson({
@@ -131,8 +133,25 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
       version: '1',
       nonce: accountInfo.nonce.toString(),
     });
-    
-    const signature = await this.signer.signTypedData(domain, types, message, GASFREE_PRIMARY_TYPE);
+
+    const signingDomain = {
+      ...domain,
+      verifyingContract: addressConverter.toEvmFormat(String(domain.verifyingContract)),
+    };
+    const signingMessage = {
+      ...message,
+      token: addressConverter.toEvmFormat(String(message.token)),
+      serviceProvider: addressConverter.toEvmFormat(String(message.serviceProvider)),
+      user: addressConverter.toEvmFormat(String(message.user)),
+      receiver: addressConverter.toEvmFormat(String(message.receiver)),
+    };
+
+    const signature = await this.signer.signTypedData(
+      signingDomain,
+      types,
+      signingMessage,
+      GASFREE_PRIMARY_TYPE
+    );
 
     // 6. Build PaymentPermit structure
     const paymentPermit: PaymentPermit = {
