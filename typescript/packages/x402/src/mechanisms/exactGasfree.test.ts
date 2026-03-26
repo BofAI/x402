@@ -3,6 +3,41 @@ import { ExactGasFreeClientMechanism } from './exactGasfree.js';
 import { GasFreeAPIClient } from '../utils/gasfree.js';
 import { PaymentRequirements, ClientSigner } from '../index.js';
 
+const assembleGasFreeTransactionJson = vi.fn((params: any) => ({
+  domain: {
+    name: 'GasFreeController',
+    version: 'V1.0.0',
+    chainId: 1,
+    verifyingContract: params.serviceProvider,
+  },
+  types: {
+    PermitTransfer: [],
+  },
+  message: {
+    token: params.token,
+    serviceProvider: params.serviceProvider,
+    user: params.user,
+    receiver: params.receiver,
+    value: params.value,
+    maxFee: params.maxFee,
+    deadline: params.deadline,
+    version: params.version,
+    nonce: params.nonce,
+  },
+}));
+
+vi.mock('@gasfree/gasfree-sdk', () => {
+  return {
+    default: {
+      TronGasFree: class {
+        assembleGasFreeTransactionJson(params: any) {
+          return assembleGasFreeTransactionJson(params);
+        }
+      },
+    },
+  };
+});
+
 vi.mock('../utils/gasfree.js', () => {
   return {
     GasFreeAPIClient: vi.fn().mockImplementation(() => {
@@ -37,6 +72,7 @@ describe('ExactGasFreeClientMechanism', () => {
   let mockApiClient: any;
 
   beforeEach(() => {
+    assembleGasFreeTransactionJson.mockClear();
     mockApiClient = new GasFreeAPIClient('url');
     mockSigner = {
       getAddress: vi.fn().mockReturnValue(MOCK_ADDR),
@@ -66,6 +102,13 @@ describe('ExactGasFreeClientMechanism', () => {
     expect(payload.x402Version).toBe(2);
     expect(payload.payload.signature).toBe('0x' + 'ab'.repeat(65));
     expect(payload.extensions?.gasfreeAddress).toBe('TLCvf7MktLG7XkbJRyUwnvCeDnaEXYkcbC');
+
+    const [domain, _types, message] = mockSigner.signTypedData.mock.calls[0];
+    expect(domain.verifyingContract).toMatch(/^0x[0-9a-fA-F]{40}$/);
+    expect(message.token).toMatch(/^0x[0-9a-fA-F]{40}$/);
+    expect(message.serviceProvider).toMatch(/^0x[0-9a-fA-F]{40}$/);
+    expect(message.user).toMatch(/^0x[0-9a-fA-F]{40}$/);
+    expect(message.receiver).toMatch(/^0x[0-9a-fA-F]{40}$/);
   });
 
   it('should adjust maxFee to protocol minimum', async () => {
@@ -140,6 +183,49 @@ describe('ExactGasFreeClientMechanism', () => {
 
     // maxFee should be transferFee (1000000) + activateFee (2050000) = 3050000
     expect(payload.payload.paymentPermit?.fee.feeAmount).toBe('3050000');
+  });
+
+  it('should throw when address conversion fails', async () => {
+    assembleGasFreeTransactionJson.mockImplementationOnce(() => ({
+      domain: {
+        name: 'GasFreeController',
+        version: 'V1.0.0',
+        chainId: 1,
+        verifyingContract: 'invalid',
+      },
+      types: {
+        PermitTransfer: [],
+      },
+      message: {
+        token: 'invalid',
+        serviceProvider: 'invalid',
+        user: 'invalid',
+        receiver: 'invalid',
+        value: '1',
+        maxFee: '1',
+        deadline: '1',
+        version: '1',
+        nonce: '1',
+      },
+    }));
+
+    const requirements: PaymentRequirements = {
+      scheme: 'exact_gasfree',
+      network: 'tron:nile',
+      amount: '1000000',
+      asset: USDT_ADDRESS,
+      payTo: MOCK_ADDR,
+      extra: {
+        fee: {
+          feeTo: MOCK_ADDR,
+          feeAmount: '0',
+        },
+      },
+    };
+
+    await expect(
+      mechanism.createPaymentPayload(requirements, 'https://example.com/res')
+    ).rejects.toThrow('GasFree TIP-712: could not convert');
   });
 
   it('should NOT include activateFee when account is already activated', async () => {

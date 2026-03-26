@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-03-26
+
+### Fixed
+- TypeScript GasFree TIP-712 signing now converts all address fields to EVM `0x` format before signing
+
+### Added
+- Tests to assert GasFree TIP-712 signing uses EVM-formatted addresses (TypeScript and Python)
+
 ## [0.5.0] - 2026-03-18
 
 ### Changed

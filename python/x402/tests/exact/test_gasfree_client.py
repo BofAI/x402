@@ -12,6 +12,7 @@ from bankofai.x402.types import FeeInfo, PaymentRequirements, PaymentRequirement
 
 USDT_ADDRESS = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf"
 PROVIDER_ADDRESS = "TKtWbdzEq5ss9vTS9kwRhBp5mXmBfBns3E"
+MERCHANT_ADDRESS = "THKbWd2g5aS9tY59xk8hp5xMnbE8m3B3E"
 
 
 @pytest.fixture
@@ -30,7 +31,7 @@ def nile_requirements():
         network="tron:nile",
         amount="1000000",
         asset=USDT_ADDRESS,
-        payTo="TMerchantAddr12345678901234567890",
+        payTo=MERCHANT_ADDRESS,
         maxTimeoutSeconds=3600,
         extra=PaymentRequirementsExtra(
             fee=FeeInfo(feeTo=PROVIDER_ADDRESS, feeAmount="0"),
@@ -57,9 +58,7 @@ def mock_api_client():
                 ],
             }
         )
-        client_instance.get_providers = AsyncMock(
-            return_value=[{"address": "TMerchantAddr12345678901234567890"}]
-        )
+        client_instance.get_providers = AsyncMock(return_value=[{"address": MERCHANT_ADDRESS}])
         yield client_instance
 
 
@@ -81,6 +80,13 @@ class TestGasFreeClient:
         # Verify primary_type was passed
         mock_signer.sign_typed_data.assert_called_once()
         assert mock_signer.sign_typed_data.call_args.kwargs["primary_type"] == GASFREE_PRIMARY_TYPE
+        domain = mock_signer.sign_typed_data.call_args.kwargs["domain"]
+        message = mock_signer.sign_typed_data.call_args.kwargs["message"]
+        assert domain["verifyingContract"].startswith("0x")
+        assert message["token"].startswith("0x")
+        assert message["serviceProvider"].startswith("0x")
+        assert message["user"].startswith("0x")
+        assert message["receiver"].startswith("0x")
 
     @pytest.mark.anyio
     async def test_max_fee_adjustment(self, mock_signer, nile_requirements, mock_api_client):
@@ -115,7 +121,7 @@ class TestGasFreeClient:
             network="tron:nile",
             amount="1000000",
             asset=USDT_ADDRESS,
-            payTo="TMerchantAddr12345678901234567890",
+            payTo=MERCHANT_ADDRESS,
         )
 
         mechanism = ExactGasFreeClientMechanism(mock_signer, clients={"tron:nile": mock_api_client})
@@ -270,7 +276,7 @@ class TestGasFreeClient:
             network="tron:nile",
             amount="1000000",
             asset=USDT_ADDRESS,
-            payTo="TMerchantAddr12345678901234567890",
+            payTo=MERCHANT_ADDRESS,
             maxTimeoutSeconds=3600,
             extra=PaymentRequirementsExtra(
                 fee=FeeInfo(feeTo=PROVIDER_ADDRESS, feeAmount="5000000"),
@@ -343,7 +349,7 @@ class TestGasFreeClient:
             network="tron:nile",
             amount="1000000",
             asset=USDT_ADDRESS,
-            payTo="TMerchantAddr12345678901234567890",
+            payTo=MERCHANT_ADDRESS,
         )
 
         mechanism = ExactGasFreeClientMechanism(mock_signer, clients={"tron:nile": mock_api_client})

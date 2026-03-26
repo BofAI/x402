@@ -13,6 +13,26 @@ import {
 } from '../index.js';
 import { GASFREE_TYPES, GasFreeAPIClient } from '../utils/gasfree.js';
 import { findByAddress } from '../tokens.js';
+import { TronAddressConverter, ZERO_ADDRESS_HEX } from '../address.js';
+
+function requireEvmAddress(
+  raw: unknown,
+  fieldName: string,
+  converter: TronAddressConverter
+): string {
+  if (raw === null || raw === undefined) {
+    throw new Error(`GasFree TIP-712: address field "${fieldName}" is null or undefined`);
+  }
+
+  const converted = converter.toEvmFormat(String(raw));
+  if (converted === ZERO_ADDRESS_HEX) {
+    throw new Error(
+      `GasFree TIP-712: could not convert "${fieldName}" value "${raw}" to EVM format`
+    );
+  }
+
+  return converted;
+}
 
 export class ExactGasFreeClientMechanism implements ClientMechanism {
   private signer: ClientSigner;
@@ -118,6 +138,7 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
     const deadline = (extensions as any)?.paymentPermitContext?.meta?.validBefore || Math.floor(Date.now() / 1000) + 3600;
     
     const gasFree = new TronGasFree({ chainId });
+    const addressConverter = new TronAddressConverter();
 
     // 5. Sign TIP-712 typed data
     const { domain, types, message } = gasFree.assembleGasFreeTransactionJson({
@@ -131,8 +152,37 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
       version: '1',
       nonce: accountInfo.nonce.toString(),
     });
-    
-    const signature = await this.signer.signTypedData(domain, types, message, GASFREE_PRIMARY_TYPE);
+
+    const signingDomain = {
+      ...domain,
+      verifyingContract: requireEvmAddress(
+        domain.verifyingContract,
+        'verifyingContract',
+        addressConverter
+      ),
+    };
+    const signingMessage = {
+      ...message,
+      // Explicitly convert known address fields to EVM 0x format.
+      // Do not use convertMessageAddresses() here — the message also contains
+      // numeric fields whose string representations should not be treated
+      // as addresses.
+      token: requireEvmAddress(message.token, 'token', addressConverter),
+      serviceProvider: requireEvmAddress(
+        message.serviceProvider,
+        'serviceProvider',
+        addressConverter
+      ),
+      user: requireEvmAddress(message.user, 'user', addressConverter),
+      receiver: requireEvmAddress(message.receiver, 'receiver', addressConverter),
+    };
+
+    const signature = await this.signer.signTypedData(
+      signingDomain,
+      types,
+      signingMessage,
+      GASFREE_PRIMARY_TYPE
+    );
 
     // 6. Build PaymentPermit structure
     const paymentPermit: PaymentPermit = {
