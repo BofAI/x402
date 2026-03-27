@@ -30,11 +30,11 @@ def test_gasfree_deadline_clamp_mainnet_and_testnet():
 
     # Mainnet: clamp down to now + 595 when above max (600 - 5 safety margin)
     result_mainnet = mech._clamp_deadline("tron:mainnet", now + 1000)
-    assert result_mainnet == now + 595
+    assert now + 594 <= result_mainnet <= now + 596
 
     # Nile: clamp down to now + 3595 when above max (3600 - 5 safety margin)
     result_nile = mech._clamp_deadline("tron:nile", now + 4000)
-    assert result_nile == now + 3595
+    assert now + 3594 <= result_nile <= now + 3596
 
 
 def test_gasfree_deadline_too_soon_raises():

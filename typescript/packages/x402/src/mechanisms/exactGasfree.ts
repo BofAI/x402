@@ -74,7 +74,7 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
       );
     }
     if (deadlineSeconds > maxDeadline) {
-      console.debug(
+      console.warn(
         '[GASFREE SIGN] deadline clamped',
         { network, from: deadlineSeconds, to: maxDeadline }
       );

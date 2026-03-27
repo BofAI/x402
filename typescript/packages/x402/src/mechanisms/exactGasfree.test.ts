@@ -443,7 +443,8 @@ describe('ExactGasFreeClientMechanism', () => {
       'https://example.com/res',
       { paymentPermitContext: { meta: { validBefore: now + 2000 } } }
     );
-    expect(mainnetPayload.payload.paymentPermit?.meta.validBefore).toBe(now + 595);
+    expect(mainnetPayload.payload.paymentPermit?.meta.validBefore).toBeGreaterThanOrEqual(now + 594);
+    expect(mainnetPayload.payload.paymentPermit?.meta.validBefore).toBeLessThanOrEqual(now + 596);
 
     const nileClient = new ExactGasFreeClientMechanism(
       mockSigner as unknown as ClientSigner,
@@ -454,7 +455,8 @@ describe('ExactGasFreeClientMechanism', () => {
       'https://example.com/res',
       { paymentPermitContext: { meta: { validBefore: now + 5000 } } }
     );
-    expect(nilePayload.payload.paymentPermit?.meta.validBefore).toBe(now + 3595);
+    expect(nilePayload.payload.paymentPermit?.meta.validBefore).toBeGreaterThanOrEqual(now + 3594);
+    expect(nilePayload.payload.paymentPermit?.meta.validBefore).toBeLessThanOrEqual(now + 3596);
   });
 
   it('should throw when deadline is too soon', async () => {

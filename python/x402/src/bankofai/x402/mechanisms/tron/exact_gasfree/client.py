@@ -60,9 +60,6 @@ class ExactGasFreeClientMechanism(ClientMechanism):
 
     def _clamp_deadline(self, network: str, deadline_seconds: int) -> int:
         now = int(time.time())
-        min_delta = 0
-        max_delta = 2**31 - 1
-
         if network == "tron:mainnet":
             # GasFree mainnet bounds: >= 50s, <= 600s. We add 5s to min and subtract 5s from max.
             min_delta = 55
@@ -79,9 +76,11 @@ class ExactGasFreeClientMechanism(ClientMechanism):
                 f"GasFree deadline too soon for {network}: {deadline_seconds} < {min_deadline}"
             )
         if deadline_seconds > max_deadline:
-            self._logger.debug(
-                f"[GASFREE SIGN] deadline clamped: network={network} "
-                f"from={deadline_seconds} to={max_deadline}"
+            self._logger.warning(
+                "[GASFREE SIGN] deadline clamped: network=%s from=%d to=%d",
+                network,
+                deadline_seconds,
+                max_deadline,
             )
             return max_deadline
         return deadline_seconds
