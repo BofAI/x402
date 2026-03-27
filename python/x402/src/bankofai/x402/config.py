@@ -44,7 +44,7 @@ class NetworkConfig:
 
     # GasFreeController contract addresses
     GASFREE_CONTROLLER_ADDRESSES: Dict[str, str] = {
-        "tron:mainnet": "TFFAMLQZybALab4uxHA9RBE7pxhUAjfF3U",
+        "tron:mainnet": "TFFAMQLZybALaLb4uxHA9RBE7pxhUAjF3U",
         "tron:shasta": "TQghdCeVDA6CnuNVTUhfaAyPfTetqZWNpm",
         "tron:nile": "THQGuFzL87ZqhxkgqYEryRAd7gqFqL5rdc",
     }
