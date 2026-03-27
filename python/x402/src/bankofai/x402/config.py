@@ -44,7 +44,6 @@ class NetworkConfig:
 
     # GasFreeController contract addresses
     GASFREE_CONTROLLER_ADDRESSES: Dict[str, str] = {
-        # Source: @gasfree/gasfree-sdk (TronGasFree assembleGasFreeTransactionJson) for chainId 728126428
         "tron:mainnet": "TFFAMQLZybALaLb4uxHA9RBE7pxhUAjF3U",
         "tron:shasta": "TQghdCeVDA6CnuNVTUhfaAyPfTetqZWNpm",
         "tron:nile": "THQGuFzL87ZqhxkgqYEryRAd7gqFqL5rdc",
