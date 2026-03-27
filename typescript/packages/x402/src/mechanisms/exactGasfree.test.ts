@@ -422,4 +422,68 @@ describe('ExactGasFreeClientMechanism', () => {
     await expect(mechanism.createPaymentPayload(requirements, 'url'))
       .rejects.toThrow('GasFree is not configured for network: tron:mainnet');
   });
+
+  it('should clamp deadline above max for mainnet and nile', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-03-27T00:00:00Z'));
+    const now = Math.floor(Date.now() / 1000);
+    const baseReq: PaymentRequirements = {
+      scheme: 'exact_gasfree',
+      network: 'tron:mainnet',
+      amount: '1000000',
+      asset: USDT_ADDRESS,
+      payTo: MOCK_ADDR,
+      extra: { fee: { feeTo: MOCK_ADDR, feeAmount: '0' } },
+    };
+
+    const mainnetClient = new ExactGasFreeClientMechanism(
+      mockSigner as unknown as ClientSigner,
+      { 'tron:mainnet': mockApiClient }
+    );
+    const mainnetPayload = await mainnetClient.createPaymentPayload(
+      baseReq,
+      'https://example.com/res',
+      { paymentPermitContext: { meta: { validBefore: now + 2000 } } }
+    );
+    expect(mainnetPayload.payload.paymentPermit?.meta.validBefore).toBe(now + 595);
+
+    const nileClient = new ExactGasFreeClientMechanism(
+      mockSigner as unknown as ClientSigner,
+      { 'tron:nile': mockApiClient }
+    );
+    const nilePayload = await nileClient.createPaymentPayload(
+      { ...baseReq, network: 'tron:nile' },
+      'https://example.com/res',
+      { paymentPermitContext: { meta: { validBefore: now + 5000 } } }
+    );
+    expect(nilePayload.payload.paymentPermit?.meta.validBefore).toBe(now + 3595);
+
+    vi.useRealTimers();
+  });
+
+  it('should throw when deadline is too soon', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-03-27T00:00:00Z'));
+    const now = Math.floor(Date.now() / 1000);
+    const requirements: PaymentRequirements = {
+      scheme: 'exact_gasfree',
+      network: 'tron:nile',
+      amount: '1000000',
+      asset: USDT_ADDRESS,
+      payTo: MOCK_ADDR,
+      extra: { fee: { feeTo: MOCK_ADDR, feeAmount: '0' } },
+    };
+
+    const client = new ExactGasFreeClientMechanism(
+      mockSigner as unknown as ClientSigner,
+      { 'tron:nile': mockApiClient }
+    );
+    await expect(
+      client.createPaymentPayload(requirements, 'https://example.com/res', {
+        paymentPermitContext: { meta: { validBefore: now + 10 } },
+      })
+    ).rejects.toThrow('deadline too soon');
+
+    vi.useRealTimers();
+  });
 });

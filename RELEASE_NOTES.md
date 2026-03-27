@@ -1,11 +1,14 @@
-# v0.5.2 - GasFree Mainnet Controller Align
+# v0.5.4 - GasFree Deadline Bounds (Refined)
 
 Release date: March 27, 2026
 
 ## What's New
 
-- **Mainnet GasFreeController aligned**: Python config now matches the GasFree SDK-provided mainnet controller address to prevent signature verification mismatches.
-- **GasFree signing debug logs**: TypeScript GasFree client logs signer, domain, and message to aid troubleshooting.
+- **Deadline bounds enforced**: GasFree client clamps `deadline/validBefore` to provider limits.
+  - mainnet: 50–600s (with +5s min / −5s max safety margin)
+  - non-mainnet: 50–3600s (with +5s min / −5s max safety margin)
+- **Cleaner defaults**: GasFree fallback deadline now uses the per-network max to avoid unnecessary clamp warnings.
+- **Clamp logging**: logs when the deadline is reduced to the provider max.
 
 ## Breaking Changes
 
@@ -13,5 +16,11 @@ None.
 
 ## Affected SDKs
 
-- **Python**: `bankofai-x402==0.5.2`
-- **TypeScript**: `@bankofai/x402@0.5.2`
+- **Python**: `bankofai-x402==0.5.4`
+- **TypeScript**: `@bankofai/x402@0.5.4`
+
+## Previously Released (0.5.3)
+
+The following changes were released in 0.5.3 and are not new in 0.5.4:
+- Deadline bounds and safety margin enforcement
+- Clamp logging for out-of-range deadlines

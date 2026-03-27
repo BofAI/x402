@@ -2,6 +2,7 @@
 Tests for ExactGasFreeClientMechanism.
 """
 
+import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -13,6 +14,38 @@ from bankofai.x402.types import FeeInfo, PaymentRequirements, PaymentRequirement
 USDT_ADDRESS = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf"
 PROVIDER_ADDRESS = "TKtWbdzEq5ss9vTS9kwRhBp5mXmBfBns3E"
 MERCHANT_ADDRESS = "THKbWd2g5aS9tY59xk8hp5xMnbE8m3B3E"
+
+
+def _make_gasfree_mechanism():
+    mech = ExactGasFreeClientMechanism.__new__(ExactGasFreeClientMechanism)
+    import logging
+
+    mech._logger = logging.getLogger("test")
+    return mech
+
+
+def test_gasfree_deadline_clamp_mainnet_and_testnet(monkeypatch):
+    mech = _make_gasfree_mechanism()
+    fixed_now = 1_700_000_000
+    monkeypatch.setattr(time, "time", lambda: fixed_now)
+    now = int(time.time())
+
+    # Mainnet: clamp down to now + 595 when above max (600 - 5 safety margin)
+    result_mainnet = mech._clamp_deadline("tron:mainnet", now + 1000)
+    assert now + 594 <= result_mainnet <= now + 596
+
+    # Nile: clamp down to now + 3595 when above max (3600 - 5 safety margin)
+    result_nile = mech._clamp_deadline("tron:nile", now + 4000)
+    assert now + 3594 <= result_nile <= now + 3596
+
+
+def test_gasfree_deadline_too_soon_raises(monkeypatch):
+    mech = _make_gasfree_mechanism()
+    fixed_now = 1_700_000_000
+    monkeypatch.setattr(time, "time", lambda: fixed_now)
+    now = int(time.time())
+    with pytest.raises(ValueError, match="deadline too soon"):
+        mech._clamp_deadline("tron:mainnet", now + 10)
 
 
 @pytest.fixture

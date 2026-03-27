@@ -58,6 +58,33 @@ class ExactGasFreeClientMechanism(ClientMechanism):
     def get_signer(self) -> Any:
         return self._signer
 
+    def _get_deadline_bounds(self, network: str) -> tuple[int, int]:
+        if network == "tron:mainnet":
+            # GasFree mainnet bounds: >= 50s, <= 600s. We add 5s to min and subtract 5s from max.
+            return 55, 595
+        # Non-mainnet bounds: >= 50s, <= 3600s. We add 5s to min and subtract 5s from max.
+        return 55, 3595
+
+    def _clamp_deadline(self, network: str, deadline_seconds: int) -> int:
+        now = int(time.time())
+        min_delta, max_delta = self._get_deadline_bounds(network)
+
+        min_deadline = now + min_delta
+        max_deadline = now + max_delta
+        if deadline_seconds < min_deadline:
+            raise ValueError(
+                f"GasFree deadline too soon for {network}: {deadline_seconds} < {min_deadline}"
+            )
+        if deadline_seconds > max_deadline:
+            self._logger.warning(
+                "[GASFREE SIGN] deadline clamped: network=%s from=%d to=%d",
+                network,
+                deadline_seconds,
+                max_deadline,
+            )
+            return max_deadline
+        return deadline_seconds
+
     async def create_payment_payload(
         self,
         requirements: PaymentRequirements,
@@ -143,9 +170,11 @@ class ExactGasFreeClientMechanism(ClientMechanism):
             if asset_balance < required_total:
                 raise InsufficientGasFreeBalance(gasfree_address, required_total, asset_balance)
 
-        deadline = (extensions or {}).get("paymentPermitContext", {}).get("meta", {}).get(
+        _min_delta, max_delta = self._get_deadline_bounds(network)
+        deadline_raw = (extensions or {}).get("paymentPermitContext", {}).get("meta", {}).get(
             "validBefore"
-        ) or int(time.time()) + 3600
+        ) or int(time.time()) + max_delta
+        deadline = self._clamp_deadline(network, int(deadline_raw))
 
         self._logger.debug(f"[GASFREE] User Wallet: {user_address}")
         self._logger.debug(f"[GASFREE] GasFree Address: {gasfree_address}")
