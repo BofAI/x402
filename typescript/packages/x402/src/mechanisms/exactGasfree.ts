@@ -51,6 +51,38 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
     throw new Error(`GasFree is not configured for network: ${network}`);
   }
 
+  private clampDeadline(network: string, deadlineSeconds: number): number {
+    const now = Math.floor(Date.now() / 1000);
+    let minDelta = 0;
+    let maxDelta = Number.POSITIVE_INFINITY;
+
+    if (network === 'tron:mainnet') {
+      // GasFree mainnet bounds: >= 50s, <= 600s. We subtract 5s as a safety margin.
+      minDelta = 50;
+      maxDelta = 595;
+    } else if (network === 'tron:nile' || network === 'tron:shasta') {
+      // GasFree testnets bounds: >= 50s, <= 3600s. We subtract 5s as a safety margin.
+      minDelta = 50;
+      maxDelta = 3595;
+    }
+
+    const minDeadline = now + minDelta;
+    const maxDeadline = now + maxDelta;
+    if (deadlineSeconds < minDeadline) {
+      throw new Error(
+        `GasFree deadline too soon for ${network}: ${deadlineSeconds} < ${minDeadline}`
+      );
+    }
+    if (deadlineSeconds > maxDeadline) {
+      console.debug(
+        '[GASFREE SIGN] deadline clamped',
+        { network, from: deadlineSeconds, to: maxDeadline }
+      );
+      return maxDeadline;
+    }
+    return deadlineSeconds;
+  }
+
   scheme(): string {
     return 'exact_gasfree';
   }
@@ -135,7 +167,10 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
       }
     }
 
-    const deadline = (extensions as any)?.paymentPermitContext?.meta?.validBefore || Math.floor(Date.now() / 1000) + 3600;
+    const deadlineRaw =
+      (extensions as any)?.paymentPermitContext?.meta?.validBefore ||
+      Math.floor(Date.now() / 1000) + 3600;
+    const deadline = this.clampDeadline(requirements.network, Number(deadlineRaw));
     
     const gasFree = new TronGasFree({ chainId });
     const addressConverter = new TronAddressConverter();

@@ -58,6 +58,35 @@ class ExactGasFreeClientMechanism(ClientMechanism):
     def get_signer(self) -> Any:
         return self._signer
 
+    def _clamp_deadline(self, network: str, deadline_seconds: int) -> int:
+        now = int(time.time())
+        min_delta = 0
+        max_delta = 2**31 - 1
+
+        if network == "tron:mainnet":
+            # GasFree mainnet bounds: >= 50s, <= 600s. We subtract 5s as a safety margin.
+            min_delta = 50
+            max_delta = 595
+        elif network in ("tron:nile", "tron:shasta"):
+            # GasFree testnets bounds: >= 50s, <= 3600s. We subtract 5s as a safety margin.
+            min_delta = 50
+            max_delta = 3595
+
+        min_deadline = now + min_delta
+        max_deadline = now + max_delta
+        if deadline_seconds < min_deadline:
+            raise ValueError(
+                f"GasFree deadline too soon for {network}: "
+                f"{deadline_seconds} < {min_deadline}"
+            )
+        if deadline_seconds > max_deadline:
+            self._logger.debug(
+                f"[GASFREE SIGN] deadline clamped: network={network} "
+                f"from={deadline_seconds} to={max_deadline}"
+            )
+            return max_deadline
+        return deadline_seconds
+
     async def create_payment_payload(
         self,
         requirements: PaymentRequirements,
@@ -143,9 +172,10 @@ class ExactGasFreeClientMechanism(ClientMechanism):
             if asset_balance < required_total:
                 raise InsufficientGasFreeBalance(gasfree_address, required_total, asset_balance)
 
-        deadline = (extensions or {}).get("paymentPermitContext", {}).get("meta", {}).get(
+        deadline_raw = (extensions or {}).get("paymentPermitContext", {}).get("meta", {}).get(
             "validBefore"
         ) or int(time.time()) + 3600
+        deadline = self._clamp_deadline(network, int(deadline_raw))
 
         self._logger.debug(f"[GASFREE] User Wallet: {user_address}")
         self._logger.debug(f"[GASFREE] GasFree Address: {gasfree_address}")
