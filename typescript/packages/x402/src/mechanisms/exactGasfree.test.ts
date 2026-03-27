@@ -424,6 +424,8 @@ describe('ExactGasFreeClientMechanism', () => {
   });
 
   it('should clamp deadline above max for mainnet and nile', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-03-27T00:00:00Z'));
     const now = Math.floor(Date.now() / 1000);
     const baseReq: PaymentRequirements = {
       scheme: 'exact_gasfree',
@@ -443,8 +445,7 @@ describe('ExactGasFreeClientMechanism', () => {
       'https://example.com/res',
       { paymentPermitContext: { meta: { validBefore: now + 2000 } } }
     );
-    expect(mainnetPayload.payload.paymentPermit?.meta.validBefore).toBeGreaterThanOrEqual(now + 594);
-    expect(mainnetPayload.payload.paymentPermit?.meta.validBefore).toBeLessThanOrEqual(now + 596);
+    expect(mainnetPayload.payload.paymentPermit?.meta.validBefore).toBe(now + 595);
 
     const nileClient = new ExactGasFreeClientMechanism(
       mockSigner as unknown as ClientSigner,
@@ -455,11 +456,14 @@ describe('ExactGasFreeClientMechanism', () => {
       'https://example.com/res',
       { paymentPermitContext: { meta: { validBefore: now + 5000 } } }
     );
-    expect(nilePayload.payload.paymentPermit?.meta.validBefore).toBeGreaterThanOrEqual(now + 3594);
-    expect(nilePayload.payload.paymentPermit?.meta.validBefore).toBeLessThanOrEqual(now + 3596);
+    expect(nilePayload.payload.paymentPermit?.meta.validBefore).toBe(now + 3595);
+
+    vi.useRealTimers();
   });
 
   it('should throw when deadline is too soon', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-03-27T00:00:00Z'));
     const now = Math.floor(Date.now() / 1000);
     const requirements: PaymentRequirements = {
       scheme: 'exact_gasfree',
@@ -479,5 +483,7 @@ describe('ExactGasFreeClientMechanism', () => {
         paymentPermitContext: { meta: { validBefore: now + 10 } },
       })
     ).rejects.toThrow('deadline too soon');
+
+    vi.useRealTimers();
   });
 });

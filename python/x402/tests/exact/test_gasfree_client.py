@@ -24,8 +24,10 @@ def _make_gasfree_mechanism():
     return mech
 
 
-def test_gasfree_deadline_clamp_mainnet_and_testnet():
+def test_gasfree_deadline_clamp_mainnet_and_testnet(monkeypatch):
     mech = _make_gasfree_mechanism()
+    fixed_now = 1_700_000_000
+    monkeypatch.setattr(time, "time", lambda: fixed_now)
     now = int(time.time())
 
     # Mainnet: clamp down to now + 595 when above max (600 - 5 safety margin)
@@ -37,8 +39,10 @@ def test_gasfree_deadline_clamp_mainnet_and_testnet():
     assert now + 3594 <= result_nile <= now + 3596
 
 
-def test_gasfree_deadline_too_soon_raises():
+def test_gasfree_deadline_too_soon_raises(monkeypatch):
     mech = _make_gasfree_mechanism()
+    fixed_now = 1_700_000_000
+    monkeypatch.setattr(time, "time", lambda: fixed_now)
     now = int(time.time())
     with pytest.raises(ValueError, match="deadline too soon"):
         mech._clamp_deadline("tron:mainnet", now + 10)
