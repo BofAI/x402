@@ -57,12 +57,12 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
     let maxDelta = Number.POSITIVE_INFINITY;
 
     if (network === 'tron:mainnet') {
-      // GasFree mainnet bounds: >= 50s, <= 600s. We subtract 5s as a safety margin.
-      minDelta = 50;
+      // GasFree mainnet bounds: >= 50s, <= 600s. We add 5s to min and subtract 5s from max.
+      minDelta = 55;
       maxDelta = 595;
-    } else if (network === 'tron:nile' || network === 'tron:shasta') {
-      // GasFree testnets bounds: >= 50s, <= 3600s. We subtract 5s as a safety margin.
-      minDelta = 50;
+    } else {
+      // Non-mainnet bounds: >= 50s, <= 3600s. We add 5s to min and subtract 5s from max.
+      minDelta = 55;
       maxDelta = 3595;
     }
 

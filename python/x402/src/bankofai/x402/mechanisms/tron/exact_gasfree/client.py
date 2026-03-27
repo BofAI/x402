@@ -64,12 +64,12 @@ class ExactGasFreeClientMechanism(ClientMechanism):
         max_delta = 2**31 - 1
 
         if network == "tron:mainnet":
-            # GasFree mainnet bounds: >= 50s, <= 600s. We subtract 5s as a safety margin.
-            min_delta = 50
+            # GasFree mainnet bounds: >= 50s, <= 600s. We add 5s to min and subtract 5s from max.
+            min_delta = 55
             max_delta = 595
-        elif network in ("tron:nile", "tron:shasta"):
-            # GasFree testnets bounds: >= 50s, <= 3600s. We subtract 5s as a safety margin.
-            min_delta = 50
+        else:
+            # Non-mainnet bounds: >= 50s, <= 3600s. We add 5s to min and subtract 5s from max.
+            min_delta = 55
             max_delta = 3595
 
         min_deadline = now + min_delta

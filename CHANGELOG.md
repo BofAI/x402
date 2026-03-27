@@ -8,7 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.5.3] - 2026-03-27
 
 ### Fixed
-- Clamp GasFree client deadlines to provider bounds (mainnet: 50–600s, nile/shasta: 50–3600s)
+- Clamp GasFree client deadlines to provider bounds (mainnet: 50–600s, others: 50–3600s)
+- Add a 5s safety margin: +5s to min and −5s to max to absorb clock drift and network latency
 - When above provider max, clamp down (never extend beyond max); when below min, fail fast
 
 ### Added

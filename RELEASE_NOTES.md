@@ -5,8 +5,8 @@ Release date: March 27, 2026
 ## What's New
 
 - **Deadline bounds enforced**: GasFree client clamps `deadline/validBefore` to provider limits.
-  - mainnet: 50–600s (with 5s safety margin on max)
-  - nile/shasta: 50–3600s (with 5s safety margin on max)
+  - mainnet: 50–600s (with +5s min / −5s max safety margin)
+  - non-mainnet: 50–3600s (with +5s min / −5s max safety margin)
 - **Clamp logging**: logs when the deadline is reduced to the provider max.
 
 ## Breaking Changes
