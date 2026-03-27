@@ -76,8 +76,7 @@ class ExactGasFreeClientMechanism(ClientMechanism):
         max_deadline = now + max_delta
         if deadline_seconds < min_deadline:
             raise ValueError(
-                f"GasFree deadline too soon for {network}: "
-                f"{deadline_seconds} < {min_deadline}"
+                f"GasFree deadline too soon for {network}: {deadline_seconds} < {min_deadline}"
             )
         if deadline_seconds > max_deadline:
             self._logger.debug(
