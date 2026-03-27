@@ -58,16 +58,16 @@ class ExactGasFreeClientMechanism(ClientMechanism):
     def get_signer(self) -> Any:
         return self._signer
 
-    def _clamp_deadline(self, network: str, deadline_seconds: int) -> int:
-        now = int(time.time())
+    def _get_deadline_bounds(self, network: str) -> tuple[int, int]:
         if network == "tron:mainnet":
             # GasFree mainnet bounds: >= 50s, <= 600s. We add 5s to min and subtract 5s from max.
-            min_delta = 55
-            max_delta = 595
-        else:
-            # Non-mainnet bounds: >= 50s, <= 3600s. We add 5s to min and subtract 5s from max.
-            min_delta = 55
-            max_delta = 3595
+            return 55, 595
+        # Non-mainnet bounds: >= 50s, <= 3600s. We add 5s to min and subtract 5s from max.
+        return 55, 3595
+
+    def _clamp_deadline(self, network: str, deadline_seconds: int) -> int:
+        now = int(time.time())
+        min_delta, max_delta = self._get_deadline_bounds(network)
 
         min_deadline = now + min_delta
         max_deadline = now + max_delta
@@ -170,9 +170,10 @@ class ExactGasFreeClientMechanism(ClientMechanism):
             if asset_balance < required_total:
                 raise InsufficientGasFreeBalance(gasfree_address, required_total, asset_balance)
 
+        _min_delta, max_delta = self._get_deadline_bounds(network)
         deadline_raw = (extensions or {}).get("paymentPermitContext", {}).get("meta", {}).get(
             "validBefore"
-        ) or int(time.time()) + 3600
+        ) or int(time.time()) + max_delta
         deadline = self._clamp_deadline(network, int(deadline_raw))
 
         self._logger.debug(f"[GASFREE] User Wallet: {user_address}")
