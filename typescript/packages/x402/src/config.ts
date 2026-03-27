@@ -41,7 +41,8 @@ export const PAYMENT_PERMIT_ADDRESSES: Record<string, string> = {
 
 /** GasFreeController contract addresses */
 export const GASFREE_CONTROLLER_ADDRESSES: Record<string, string> = {
-  'tron:mainnet': 'TFFAMLQZybALab4uxHA9RBE7pxhUAjfF3U',
+  // Source: @gasfree/gasfree-sdk (TronGasFree assembleGasFreeTransactionJson) for chainId 728126428
+  'tron:mainnet': 'TFFAMQLZybALaLb4uxHA9RBE7pxhUAjF3U',
   'tron:shasta': 'TQghdCeVDA6CnuNVTUhfaAyPfTetqZWNpm',
   'tron:nile': 'THQGuFzL87ZqhxkgqYEryRAd7gqFqL5rdc',
 };

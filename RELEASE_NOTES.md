@@ -6,6 +6,7 @@ Release date: March 27, 2026
 
 - **Mainnet GasFreeController aligned**: Python config now matches the GasFree SDK-provided mainnet controller address to prevent signature verification mismatches.
 - **GasFree signing debug logs**: TypeScript GasFree client logs signer, domain, and message to aid troubleshooting.
+- **Version metadata corrected**: Python `__version__` now matches `pyproject.toml` (0.5.1 previously reported 0.5.0).
 
 ## Breaking Changes
 

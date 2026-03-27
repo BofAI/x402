@@ -177,11 +177,15 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
       receiver: requireEvmAddress(message.receiver, 'receiver', addressConverter),
     };
 
-    console.debug('[GASFREE SIGN] network', requirements.network, 'chainId', chainId);
-    console.debug('[GASFREE SIGN] verifyingContract raw', domain.verifyingContract);
-    console.debug('[GASFREE SIGN] signer', userAddress);
-    console.debug('[GASFREE SIGN] domain', JSON.stringify(signingDomain));
-    console.debug('[GASFREE SIGN] message', JSON.stringify(signingMessage));
+    const debugEnabled =
+      typeof process !== 'undefined' && process.env?.X402_DEBUG_GASFREE === '1';
+    if (debugEnabled) {
+      console.debug('[GASFREE SIGN] network', requirements.network, 'chainId', chainId);
+      console.debug('[GASFREE SIGN] verifyingContract raw', domain.verifyingContract);
+      console.debug('[GASFREE SIGN] signer', userAddress);
+      console.debug('[GASFREE SIGN] domain', JSON.stringify(signingDomain));
+      console.debug('[GASFREE SIGN] message', JSON.stringify(signingMessage));
+    }
 
     const signature = await this.signer.signTypedData(
       signingDomain,

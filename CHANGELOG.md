@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Align TRON mainnet GasFreeController address with GasFree SDK to prevent TIP-712 signature verification mismatches
+- Python `__version__` now matches `pyproject.toml` (0.5.1 reported 0.5.0)
 
 ### Added
 - GasFree client signing logs (signer, domain, message) to aid signature debugging
