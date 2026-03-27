@@ -227,8 +227,6 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
       },
     };
 
-    console.debug('[GASFREE SIGN] payment payload', JSON.stringify(payload));
-
     return payload;
   }
 }
