@@ -1,11 +1,11 @@
-# v0.5.1 - GasFree TIP-712 Address Fix
+# v0.5.2 - GasFree Mainnet Controller Align
 
-Release date: March 26, 2026
+Release date: March 27, 2026
 
 ## What's New
 
-- **GasFree TIP-712 signing now uses EVM addresses**: The TypeScript GasFree client converts all address fields to EVM `0x` format before signing to ensure signatures match the expected domain/message encoding.
-- **Stronger test coverage**: Added tests in both TypeScript and Python to assert that GasFree TIP-712 signing uses EVM-formatted addresses.
+- **Mainnet GasFreeController aligned**: Python config now matches the GasFree SDK-provided mainnet controller address to prevent signature verification mismatches.
+- **GasFree signing debug logs**: TypeScript GasFree client logs signer, domain, and message to aid troubleshooting.
 
 ## Breaking Changes
 
@@ -13,5 +13,5 @@ None.
 
 ## Affected SDKs
 
-- **Python**: `bankofai-x402==0.5.1`
-- **TypeScript**: `@bankofai/x402@0.5.1`
+- **Python**: `bankofai-x402==0.5.2`
+- **TypeScript**: `@bankofai/x402@0.5.2`
