@@ -177,6 +177,12 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
       receiver: requireEvmAddress(message.receiver, 'receiver', addressConverter),
     };
 
+    console.debug('[GASFREE SIGN] network', requirements.network, 'chainId', chainId);
+    console.debug('[GASFREE SIGN] verifyingContract raw', domain.verifyingContract);
+    console.debug('[GASFREE SIGN] signer', userAddress);
+    console.debug('[GASFREE SIGN] domain', JSON.stringify(signingDomain));
+    console.debug('[GASFREE SIGN] message', JSON.stringify(signingMessage));
+
     const signature = await this.signer.signTypedData(
       signingDomain,
       types,
@@ -206,7 +212,7 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
       },
     };
 
-    return {
+    const payload: PaymentPayload = {
       x402Version: 2,
       resource: { url: resource },
       accepted: requirements,
@@ -220,5 +226,9 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
         scheme: 'exact_gasfree',
       },
     };
+
+    console.debug('[GASFREE SIGN] payment payload', JSON.stringify(payload));
+
+    return payload;
   }
 }
