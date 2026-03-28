@@ -105,8 +105,8 @@ class GasFreeAPIClient:
                     response.raise_for_status()
                 result = response.json()
                 if result.get("code") != 200:
-                    message = result.get("message") or result.get("reason")
-                    raise RuntimeError(f"API business error: {message} - Body: {response.text}")
+                    err_msg = result.get("message") or result.get("reason")
+                    raise RuntimeError(f"API business error: {err_msg} - Body: {response.text}")
                 data = result.get("data")
                 if data is None:
                     raise RuntimeError(f"GasFree API returned null data for address {user}")
@@ -192,6 +192,7 @@ class GasFreeAPIClient:
         while time.time() - start_time < timeout:
             try:
                 status_data = await self.get_status(trace_id)
+                error_count = 0  # reset on successful poll
             except Exception as e:
                 error_count += 1
                 logger.warning(
@@ -259,12 +260,15 @@ class GasFreeAPIClient:
                     response.raise_for_status()
                 result = response.json()
                 if result.get("code") != 200:
-                    message = result.get("message") or result.get("reason")
-                    raise RuntimeError(f"API business error: {message} - Body: {response.text}")
+                    err_msg = result.get("message") or result.get("reason")
+                    raise RuntimeError(f"API business error: {err_msg} - Body: {response.text}")
                 data = result.get("data")
                 if data is None:
                     raise RuntimeError("GasFree submit API returned null data")
-                return data.get("id")  # Returns traceId
+                trace_id = data.get("id")
+                if not trace_id:
+                    raise RuntimeError("GasFree submit API returned data without 'id' field")
+                return trace_id
             except Exception as e:
                 if isinstance(e, httpx.HTTPStatusError):
                     logger.error(f"HTTP Status Error Body: {e.response.text}")

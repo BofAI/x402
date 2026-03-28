@@ -130,6 +130,29 @@ class TestGasFreeAPIClient:
             await client.wait_for_success("trace-123", timeout=5, poll_interval=0.1, max_errors=2)
 
     @pytest.mark.anyio
+    async def test_wait_for_success_resets_error_count_after_success(self):
+        client = GasFreeAPIClient("https://api.example.com")
+        call_count = 0
+
+        async def mock_get_status(trace_id):
+            nonlocal call_count
+            call_count += 1
+            # fail, succeed (WAITING), fail, fail → should NOT abort at max_errors=2
+            if call_count in (1, 3, 4):
+                raise RuntimeError("transient error")
+            if call_count == 2:
+                return {"state": "WAITING"}
+            return {"state": "SUCCEED", "txnHash": "0xhash"}
+
+        client.get_status = mock_get_status
+        result = await client.wait_for_success(
+            "trace-123", timeout=5, poll_interval=0.1, max_errors=3
+        )
+
+        assert result["state"] == "SUCCEED"
+        assert call_count == 5
+
+    @pytest.mark.anyio
     async def test_get_address_info_raises_on_null_data(self):
         client = GasFreeAPIClient("https://api.example.com")
         mock_response = {"code": 200, "data": None}
@@ -181,6 +204,32 @@ class TestGasFreeAPIClient:
                 raise_for_status=lambda: None,
             )
             with pytest.raises(RuntimeError, match="null data"):
+                await client.submit(domain={}, message=message, signature="0xabc")
+
+    @pytest.mark.anyio
+    async def test_submit_raises_on_missing_id(self):
+        client = GasFreeAPIClient("https://api.example.com")
+        mock_response = {"code": 200, "data": {"state": "WAITING"}}
+
+        message = {
+            "token": "0xtoken",
+            "serviceProvider": "0xprovider",
+            "user": "0xuser",
+            "receiver": "0xreceiver",
+            "value": "100",
+            "maxFee": "10",
+            "deadline": 1000,
+            "version": 1,
+            "nonce": 1,
+        }
+
+        with patch("httpx.AsyncClient.post") as mock_post:
+            mock_post.return_value = AsyncMock(
+                status_code=200,
+                json=lambda: mock_response,
+                raise_for_status=lambda: None,
+            )
+            with pytest.raises(RuntimeError, match="without 'id' field"):
                 await client.submit(domain={}, message=message, signature="0xabc")
 
 

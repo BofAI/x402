@@ -180,6 +180,39 @@ describe('GasFreeAPIClient', () => {
       .rejects.toThrow('aborted after 2 consecutive errors');
   });
 
+  it('should reset error count after successful poll', async () => {
+    let callCount = 0;
+    (fetch as any).mockImplementation(async () => {
+      callCount++;
+      // fail, succeed (WAITING), fail, fail → should NOT abort at maxErrors=2
+      // because the success in between resets the counter
+      if (callCount === 1 || callCount === 3 || callCount === 4) {
+        return { ok: false, status: 503, text: async () => 'Service Unavailable' };
+      }
+      if (callCount === 2) {
+        return {
+          ok: true,
+          text: async () => JSON.stringify({
+            code: 200,
+            data: { id: 'trace-123', state: 'WAITING' },
+          }),
+        };
+      }
+      // 5th call succeeds
+      return {
+        ok: true,
+        text: async () => JSON.stringify({
+          code: 200,
+          data: { id: 'trace-123', state: 'SUCCEED', txnHash: '0xabc' },
+        }),
+      };
+    });
+
+    const result = await client.waitForSuccess('trace-123', 10000, 100, 3);
+    expect(result.state).toBe('SUCCEED');
+    expect(callCount).toBe(5);
+  });
+
   it('should throw on null data from getAddressInfo', async () => {
     (fetch as any).mockResolvedValue({
       ok: true,
@@ -214,6 +247,22 @@ describe('GasFreeAPIClient', () => {
 
     await expect(client.submit({}, message, '0xabc'))
       .rejects.toThrow('null data');
+  });
+
+  it('should throw on submit data without id field', async () => {
+    (fetch as any).mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({ code: 200, data: { state: 'WAITING' } }),
+    });
+
+    const message = {
+      token: '0xtoken', serviceProvider: '0xprovider', user: '0xuser',
+      receiver: '0xreceiver', value: 100, maxFee: 10, deadline: 1000,
+      version: 1, nonce: 1,
+    };
+
+    await expect(client.submit({}, message, '0xabc'))
+      .rejects.toThrow('without id field');
   });
 
   it('should get nonce', async () => {

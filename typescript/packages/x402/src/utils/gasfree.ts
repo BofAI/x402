@@ -35,7 +35,7 @@ export interface GasFreeAddressInfo {
 
 export interface GasFreeSubmitResponseData {
   id: string;
-  state?: 'WAITING' | 'INPROGRESS' | 'CONFIRMING' | 'SUCCEED' | 'FAILED';
+  state: 'WAITING' | 'INPROGRESS' | 'CONFIRMING' | 'SUCCEED' | 'FAILED';
   createdAt: string;
   accountAddress: string;
   gasFreeAddress: string;
@@ -185,7 +185,7 @@ export class GasFreeAPIClient {
       console.error(`GasFree config API business error at ${url}: ${result.message || result.reason}`);
       throw new Error(`GasFree config API error: ${result.message || result.reason}`);
     }
-    if (!result.data) {
+    if (result.data == null) {
       throw new Error('GasFree config API returned null data');
     }
     return result.data.providers;
@@ -224,7 +224,7 @@ export class GasFreeAPIClient {
       console.error(`GasFree API business error at ${url}: ${result.message || result.reason} - Body: ${bodyText}`);
       throw new Error(`GasFree API error: ${result.message || result.reason} - Body: ${bodyText}`);
     }
-    if (!result.data) {
+    if (result.data == null) {
       throw new Error(`GasFree API returned null data for address ${user}`);
     }
     return result.data;
@@ -268,6 +268,7 @@ export class GasFreeAPIClient {
       let statusData: GasFreeSubmitResponseData | null;
       try {
         statusData = await this.getStatus(traceId);
+        errorCount = 0; // reset on successful poll
       } catch (err) {
         errorCount++;
         console.warn(`GasFree status poll failed for ${traceId} (error #${errorCount}): ${err}, retrying...`);
@@ -277,7 +278,7 @@ export class GasFreeAPIClient {
         await new Promise((resolve) => setTimeout(resolve, pollInterval));
         continue;
       }
-      if (!statusData) {
+      if (statusData == null) {
         console.debug(`GasFree transaction ${traceId} status not yet available, waiting...`);
         await new Promise((resolve) => setTimeout(resolve, pollInterval));
         continue;
@@ -342,8 +343,11 @@ export class GasFreeAPIClient {
         console.error(`GasFree submit API business error at ${url}: ${result.message || result.reason} - Body: ${bodyText}`);
         throw new Error(`GasFree submit API error: ${result.message || result.reason} - Body: ${bodyText}`);
       }
-      if (!result.data) {
+      if (result.data == null) {
         throw new Error('GasFree submit API returned null data');
+      }
+      if (result.data.id == null) {
+        throw new Error('GasFree submit API returned data without id field');
       }
       return result.data.id;
     } catch (error) {
