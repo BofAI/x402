@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.5] - 2026-03-28
+
+### Fixed
+- Handle null `data` in GasFree status API responses that caused `AttributeError` / `TypeError` during settlement polling
+- Retry transient HTTP errors during `waitForSuccess` polling instead of crashing the settlement flow
+- Explicit null guards on all GasFree API response `data` fields (`getAddressInfo`, `getProviders`, `submit`)
+- Use `is None` checks in Python for precision (avoids false positives on empty dicts)
+
+### Changed
+- `GasFreeResponse<T>.data` typed as `T | null` in TypeScript to reflect actual API contract
+- `getStatus` / `get_status` return type widened to nullable
+- Timeout error messages now include error count for better observability
+
 ## [0.5.4] - 2026-03-27
 
 ### Fixed

@@ -1,14 +1,18 @@
-# v0.5.4 - GasFree Deadline Bounds (Refined)
+# v0.5.5 - GasFree Null Response Handling
 
-Release date: March 27, 2026
+Release date: March 28, 2026
 
-## What's New
+## Fixes
 
-- **Deadline bounds enforced**: GasFree client clamps `deadline/validBefore` to provider limits.
-  - mainnet: 50–600s (with +5s min / −5s max safety margin)
-  - non-mainnet: 50–3600s (with +5s min / −5s max safety margin)
-- **Cleaner defaults**: GasFree fallback deadline now uses the per-network max to avoid unnecessary clamp warnings.
-- **Clamp logging**: logs when the deadline is reduced to the provider max.
+- **Settlement crash on null status data**: GasFree status API can return `{"code": 200, "data": null}` when polled immediately after submission. This caused `AttributeError` in Python / `TypeError` in TypeScript, failing the settlement even though the on-chain transaction succeeded.
+- **Transient HTTP errors crash polling loop**: `waitForSuccess` now catches transient errors (e.g. 500/503) during status polling and retries instead of aborting the settlement.
+- **Silent null propagation**: `getAddressInfo`, `getProviders`, and `submit` previously returned `None`/`null` silently when the API responded with null data. They now throw explicit errors.
+
+## Improvements
+
+- **Timeout diagnostics**: Timeout error messages now include the number of errors encountered during polling for easier debugging.
+- **Type accuracy**: `GasFreeResponse<T>.data` typed as `T | null` in TypeScript; `get_status` return type widened to `Dict | None` in Python to reflect actual API behavior.
+- **Null check precision**: Python null guards use `is None` instead of `not data` to avoid false positives on empty dicts.
 
 ## Breaking Changes
 
@@ -16,11 +20,5 @@ None.
 
 ## Affected SDKs
 
-- **Python**: `bankofai-x402==0.5.4`
-- **TypeScript**: `@bankofai/x402@0.5.4`
-
-## Previously Released (0.5.3)
-
-The following changes were released in 0.5.3 and are not new in 0.5.4:
-- Deadline bounds and safety margin enforcement
-- Clamp logging for out-of-range deadlines
+- **Python**: `bankofai-x402==0.5.5`
+- **TypeScript**: `@bankofai/x402@0.5.5`
