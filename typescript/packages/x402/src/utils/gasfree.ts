@@ -11,7 +11,7 @@ export interface GasFreeResponse<T> {
   code: number;
   reason: string | null;
   message: string | null;
-  data: T;
+  data: T | null;
 }
 
 export interface GasFreeAsset {
@@ -185,6 +185,9 @@ export class GasFreeAPIClient {
       console.error(`GasFree config API business error at ${url}: ${result.message || result.reason}`);
       throw new Error(`GasFree config API error: ${result.message || result.reason}`);
     }
+    if (!result.data) {
+      throw new Error('GasFree config API returned null data');
+    }
     return result.data.providers;
   }
 
@@ -221,13 +224,16 @@ export class GasFreeAPIClient {
       console.error(`GasFree API business error at ${url}: ${result.message || result.reason} - Body: ${bodyText}`);
       throw new Error(`GasFree API error: ${result.message || result.reason} - Body: ${bodyText}`);
     }
+    if (!result.data) {
+      throw new Error(`GasFree API returned null data for address ${user}`);
+    }
     return result.data;
   }
 
   /**
    * Get status of a submitted GasFree transaction
    */
-  async getStatus(traceId: string): Promise<GasFreeSubmitResponseData> {
+  async getStatus(traceId: string): Promise<GasFreeSubmitResponseData | null> {
     const path = `/api/v1/gasfree/${traceId}`;
     const url = `${this.baseUrl}${path}`;
     const headers = await this.getHeaders('GET', path);
@@ -257,8 +263,20 @@ export class GasFreeAPIClient {
     const startTime = Date.now();
 
     while (Date.now() - startTime < timeout) {
-      const statusData = await this.getStatus(traceId);
-      const state = statusData.state.toUpperCase();
+      let statusData: GasFreeSubmitResponseData | null;
+      try {
+        statusData = await this.getStatus(traceId);
+      } catch (err) {
+        console.warn(`GasFree status poll failed for ${traceId}: ${err}, retrying...`);
+        await new Promise((resolve) => setTimeout(resolve, pollInterval));
+        continue;
+      }
+      if (!statusData) {
+        console.debug(`GasFree transaction ${traceId} status not yet available, waiting...`);
+        await new Promise((resolve) => setTimeout(resolve, pollInterval));
+        continue;
+      }
+      const state = (statusData.state || '').toUpperCase();
       const txnState = (statusData.txnState || '').toUpperCase();
 
       // 1. Immediate return for successful or "good enough" states
@@ -317,6 +335,9 @@ export class GasFreeAPIClient {
       if (result.code !== 200) {
         console.error(`GasFree submit API business error at ${url}: ${result.message || result.reason} - Body: ${bodyText}`);
         throw new Error(`GasFree submit API error: ${result.message || result.reason} - Body: ${bodyText}`);
+      }
+      if (!result.data) {
+        throw new Error('GasFree submit API returned null data');
       }
       return result.data.id;
     } catch (error) {

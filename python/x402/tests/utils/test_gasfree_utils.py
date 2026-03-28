@@ -83,6 +83,25 @@ class TestGasFreeAPIClient:
         assert trace_id == "trace-123"
 
 
+    @pytest.mark.anyio
+    async def test_wait_for_success_handles_null_status_data(self):
+        client = GasFreeAPIClient("https://api.example.com")
+        call_count = 0
+
+        async def mock_get_status(trace_id):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                return None  # GasFree API returns {"code": 200, "data": null}
+            return {"state": "SUCCEED", "txnHash": "0xhash123"}
+
+        client.get_status = mock_get_status
+        result = await client.wait_for_success("trace-123", timeout=5, poll_interval=0.1)
+
+        assert result["state"] == "SUCCEED"
+        assert call_count == 2
+
+
 def test_get_gasfree_domain():
     domain = get_gasfree_domain(1, "THKbWd2g5aS9tY59xk8hp5xMnbE8m3B3E")
     assert domain["name"] == "GasFreeController"

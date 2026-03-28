@@ -115,6 +115,32 @@ describe('GasFreeAPIClient', () => {
     expect(result.state).toBe('SUCCEED');
   });
 
+  it('should handle null status data in waitForSuccess', async () => {
+    let callCount = 0;
+    (fetch as any).mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) {
+        // First poll returns null data
+        return {
+          ok: true,
+          text: async () => JSON.stringify({ code: 200, data: null }),
+        };
+      }
+      // Second poll returns success
+      return {
+        ok: true,
+        text: async () => JSON.stringify({
+          code: 200,
+          data: { id: 'trace-123', state: 'SUCCEED', txnHash: '0xabc' },
+        }),
+      };
+    });
+
+    const result = await client.waitForSuccess('trace-123', 5000, 100);
+    expect(result.state).toBe('SUCCEED');
+    expect(callCount).toBe(2);
+  });
+
   it('should get nonce', async () => {
     vi.spyOn(client, 'getAddressInfo').mockResolvedValue({
       nonce: 42,

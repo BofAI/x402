@@ -107,7 +107,10 @@ class GasFreeAPIClient:
                 if result.get("code") != 200:
                     message = result.get("message") or result.get("reason")
                     raise RuntimeError(f"API business error: {message} - Body: {response.text}")
-                return result.get("data", {})
+                data = result.get("data")
+                if not data:
+                    raise RuntimeError(f"GasFree API returned null data for address {user}")
+                return data
             except Exception as e:
                 if isinstance(e, httpx.HTTPStatusError):
                     logger.error(f"HTTP Status Error Body: {e.response.text}")
@@ -130,7 +133,9 @@ class GasFreeAPIClient:
                     raise RuntimeError(
                         f"API business error: {result.get('message') or result.get('reason')}"
                     )
-                data = result.get("data", {})
+                data = result.get("data")
+                if not data:
+                    raise RuntimeError("GasFree config API returned null data")
                 return data.get("providers", [])
             except Exception as e:
                 logger.error(f"Failed to get providers from GasFree API: {e}")
@@ -145,8 +150,11 @@ class GasFreeAPIClient:
             logger.warning(f"Failed to get nonce from GasFree API: {e}. Defaulting to 0.")
             return 0
 
-    async def get_status(self, trace_id: str) -> Dict[str, Any]:
-        """Get status of a submitted GasFree transaction"""
+    async def get_status(self, trace_id: str) -> Dict[str, Any] | None:
+        """Get status of a submitted GasFree transaction.
+
+        Returns None if the API returned null data (e.g. status not yet available).
+        """
         path = f"/api/v1/gasfree/{trace_id}"
         async with httpx.AsyncClient() as client:
             url = f"{self.base_url}{path}"
@@ -161,8 +169,9 @@ class GasFreeAPIClient:
                     raise RuntimeError(
                         f"API business error: {result.get('message') or result.get('reason')}"
                     )
-                data = result.get("data", {})
-                logger.info(f"GasFree Status Response for {trace_id}: {json.dumps(data)}")
+                data = result.get("data")
+                if data:
+                    logger.info(f"GasFree Status Response for {trace_id}: {json.dumps(data)}")
                 return data
             except Exception as e:
                 logger.error(f"Failed to get GasFree transaction status: {e}")
@@ -176,7 +185,16 @@ class GasFreeAPIClient:
         logger.info(f"Start polling for GasFree transaction {trace_id} (timeout={timeout}s)...")
 
         while time.time() - start_time < timeout:
-            status_data = await self.get_status(trace_id)
+            try:
+                status_data = await self.get_status(trace_id)
+            except Exception as e:
+                logger.warning(f"GasFree status poll failed for {trace_id}: {e}, retrying...")
+                await asyncio.sleep(poll_interval)
+                continue
+            if not status_data:
+                logger.debug(f"GasFree transaction {trace_id} status not yet available, waiting...")
+                await asyncio.sleep(poll_interval)
+                continue
             state = (status_data.get("state") or "").upper()
             txn_state = (status_data.get("txnState") or "").upper()
 
@@ -227,7 +245,9 @@ class GasFreeAPIClient:
                 if result.get("code") != 200:
                     message = result.get("message") or result.get("reason")
                     raise RuntimeError(f"API business error: {message} - Body: {response.text}")
-                data = result.get("data", {})
+                data = result.get("data")
+                if not data:
+                    raise RuntimeError("GasFree submit API returned null data")
                 return data.get("id")  # Returns traceId
             except Exception as e:
                 if isinstance(e, httpx.HTTPStatusError):
