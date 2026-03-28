@@ -10,12 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Handle null `data` in GasFree status API responses that caused `AttributeError` / `TypeError` during settlement polling
 - Retry transient HTTP errors during `waitForSuccess` polling instead of crashing the settlement flow
+- Abort polling after `max_errors` (default: 3) consecutive failures to avoid silently retrying permanent errors until timeout
+- Reset error counter after each successful poll so only truly consecutive errors trigger abort
 - Explicit null guards on all GasFree API response `data` fields (`getAddressInfo`, `getProviders`, `submit`)
-- Use `is None` checks in Python for precision (avoids false positives on empty dicts)
+- Guard `submit` return value against missing `id` field
+- Fix variable shadowing in Python `submit` (`message` parameter shadowed by local)
+- Use `is None` / `== null` checks for precision (avoids false positives on falsy values)
 
 ### Changed
 - `GasFreeResponse<T>.data` typed as `T | null` in TypeScript to reflect actual API contract
 - `getStatus` / `get_status` return type widened to nullable
+- `waitForSuccess` / `wait_for_success` accepts `max_errors` / `maxErrors` parameter (default: 3)
 - Timeout error messages now include error count for better observability
 
 ## [0.5.4] - 2026-03-27
