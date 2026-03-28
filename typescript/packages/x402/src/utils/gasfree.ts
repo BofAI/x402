@@ -11,7 +11,7 @@ export interface GasFreeResponse<T> {
   code: number;
   reason: string | null;
   message: string | null;
-  data: T;
+  data: T | null;
 }
 
 export interface GasFreeAsset {
@@ -185,6 +185,9 @@ export class GasFreeAPIClient {
       console.error(`GasFree config API business error at ${url}: ${result.message || result.reason}`);
       throw new Error(`GasFree config API error: ${result.message || result.reason}`);
     }
+    if (result.data == null) {
+      throw new Error('GasFree config API returned null data');
+    }
     return result.data.providers;
   }
 
@@ -221,13 +224,16 @@ export class GasFreeAPIClient {
       console.error(`GasFree API business error at ${url}: ${result.message || result.reason} - Body: ${bodyText}`);
       throw new Error(`GasFree API error: ${result.message || result.reason} - Body: ${bodyText}`);
     }
+    if (result.data == null) {
+      throw new Error(`GasFree API returned null data for address ${user}`);
+    }
     return result.data;
   }
 
   /**
    * Get status of a submitted GasFree transaction
    */
-  async getStatus(traceId: string): Promise<GasFreeSubmitResponseData> {
+  async getStatus(traceId: string): Promise<GasFreeSubmitResponseData | null> {
     const path = `/api/v1/gasfree/${traceId}`;
     const url = `${this.baseUrl}${path}`;
     const headers = await this.getHeaders('GET', path);
@@ -252,13 +258,32 @@ export class GasFreeAPIClient {
   async waitForSuccess(
     traceId: string,
     timeout: number = 120000,
-    pollInterval: number = 5000
+    pollInterval: number = 5000,
+    maxErrors: number = 3
   ): Promise<GasFreeSubmitResponseData> {
     const startTime = Date.now();
+    let errorCount = 0;
 
     while (Date.now() - startTime < timeout) {
-      const statusData = await this.getStatus(traceId);
-      const state = statusData.state.toUpperCase();
+      let statusData: GasFreeSubmitResponseData | null;
+      try {
+        statusData = await this.getStatus(traceId);
+        errorCount = 0; // reset on successful poll
+      } catch (err) {
+        errorCount++;
+        console.warn(`GasFree status poll failed for ${traceId} (error #${errorCount}): ${err}, retrying...`);
+        if (errorCount >= maxErrors) {
+          throw new Error(`GasFree status polling aborted after ${errorCount} consecutive errors: ${err}`);
+        }
+        await new Promise((resolve) => setTimeout(resolve, pollInterval));
+        continue;
+      }
+      if (statusData == null) {
+        console.debug(`GasFree transaction ${traceId} status not yet available, waiting...`);
+        await new Promise((resolve) => setTimeout(resolve, pollInterval));
+        continue;
+      }
+      const state = (statusData.state ?? '').toUpperCase();
       const txnState = (statusData.txnState || '').toUpperCase();
 
       // 1. Immediate return for successful or "good enough" states
@@ -274,7 +299,7 @@ export class GasFreeAPIClient {
       await new Promise((resolve) => setTimeout(resolve, pollInterval));
     }
 
-    throw new Error(`GasFree transaction ${traceId} timed out after ${timeout / 1000}s`);
+    throw new Error(`GasFree transaction ${traceId} timed out after ${timeout / 1000}s (${errorCount} errors encountered)`);
   }
 
   /**
@@ -317,6 +342,12 @@ export class GasFreeAPIClient {
       if (result.code !== 200) {
         console.error(`GasFree submit API business error at ${url}: ${result.message || result.reason} - Body: ${bodyText}`);
         throw new Error(`GasFree submit API error: ${result.message || result.reason} - Body: ${bodyText}`);
+      }
+      if (result.data == null) {
+        throw new Error('GasFree submit API returned null data');
+      }
+      if (result.data.id == null) {
+        throw new Error('GasFree submit API returned data without id field');
       }
       return result.data.id;
     } catch (error) {

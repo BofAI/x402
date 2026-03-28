@@ -82,6 +82,156 @@ class TestGasFreeAPIClient:
 
         assert trace_id == "trace-123"
 
+    @pytest.mark.anyio
+    async def test_wait_for_success_handles_null_status_data(self):
+        client = GasFreeAPIClient("https://api.example.com")
+        call_count = 0
+
+        async def mock_get_status(trace_id):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                return None  # GasFree API returns {"code": 200, "data": null}
+            return {"state": "SUCCEED", "txnHash": "0xhash123"}
+
+        client.get_status = mock_get_status
+        result = await client.wait_for_success("trace-123", timeout=5, poll_interval=0.1)
+
+        assert result["state"] == "SUCCEED"
+        assert call_count == 2
+
+    @pytest.mark.anyio
+    async def test_wait_for_success_retries_on_transient_error(self):
+        client = GasFreeAPIClient("https://api.example.com")
+        call_count = 0
+
+        async def mock_get_status(trace_id):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise RuntimeError("transient network error")
+            return {"state": "SUCCEED", "txnHash": "0xhash123"}
+
+        client.get_status = mock_get_status
+        result = await client.wait_for_success("trace-123", timeout=5, poll_interval=0.1)
+
+        assert result["state"] == "SUCCEED"
+        assert call_count == 2
+
+    @pytest.mark.anyio
+    async def test_wait_for_success_aborts_after_max_errors(self):
+        client = GasFreeAPIClient("https://api.example.com")
+
+        async def mock_get_status(trace_id):
+            raise RuntimeError("persistent error")
+
+        client.get_status = mock_get_status
+        with pytest.raises(RuntimeError, match="aborted after 2 consecutive errors"):
+            await client.wait_for_success("trace-123", timeout=5, poll_interval=0.1, max_errors=2)
+
+    @pytest.mark.anyio
+    async def test_wait_for_success_resets_error_count_after_success(self):
+        client = GasFreeAPIClient("https://api.example.com")
+        call_count = 0
+
+        async def mock_get_status(trace_id):
+            nonlocal call_count
+            call_count += 1
+            # fail, succeed (WAITING), fail, fail → should NOT abort at max_errors=2
+            if call_count in (1, 3, 4):
+                raise RuntimeError("transient error")
+            if call_count == 2:
+                return {"state": "WAITING"}
+            return {"state": "SUCCEED", "txnHash": "0xhash"}
+
+        client.get_status = mock_get_status
+        result = await client.wait_for_success(
+            "trace-123", timeout=5, poll_interval=0.1, max_errors=3
+        )
+
+        assert result["state"] == "SUCCEED"
+        assert call_count == 5
+
+    @pytest.mark.anyio
+    async def test_get_address_info_raises_on_null_data(self):
+        client = GasFreeAPIClient("https://api.example.com")
+        mock_response = {"code": 200, "data": None}
+
+        with patch("httpx.AsyncClient.get") as mock_get:
+            mock_get.return_value = AsyncMock(
+                status_code=200,
+                json=lambda: mock_response,
+                raise_for_status=lambda: None,
+            )
+            with pytest.raises(RuntimeError, match="null data"):
+                await client.get_address_info("0x123")
+
+    @pytest.mark.anyio
+    async def test_get_providers_raises_on_null_data(self):
+        client = GasFreeAPIClient("https://api.example.com")
+        mock_response = {"code": 200, "data": None}
+
+        with patch("httpx.AsyncClient.get") as mock_get:
+            mock_get.return_value = AsyncMock(
+                status_code=200,
+                json=lambda: mock_response,
+                raise_for_status=lambda: None,
+            )
+            with pytest.raises(RuntimeError, match="null data"):
+                await client.get_providers()
+
+    @pytest.mark.anyio
+    async def test_submit_raises_on_null_data(self):
+        client = GasFreeAPIClient("https://api.example.com")
+        mock_response = {"code": 200, "data": None}
+
+        message = {
+            "token": "0xtoken",
+            "serviceProvider": "0xprovider",
+            "user": "0xuser",
+            "receiver": "0xreceiver",
+            "value": "100",
+            "maxFee": "10",
+            "deadline": 1000,
+            "version": 1,
+            "nonce": 1,
+        }
+
+        with patch("httpx.AsyncClient.post") as mock_post:
+            mock_post.return_value = AsyncMock(
+                status_code=200,
+                json=lambda: mock_response,
+                raise_for_status=lambda: None,
+            )
+            with pytest.raises(RuntimeError, match="null data"):
+                await client.submit(domain={}, message=message, signature="0xabc")
+
+    @pytest.mark.anyio
+    async def test_submit_raises_on_missing_id(self):
+        client = GasFreeAPIClient("https://api.example.com")
+        mock_response = {"code": 200, "data": {"state": "WAITING"}}
+
+        message = {
+            "token": "0xtoken",
+            "serviceProvider": "0xprovider",
+            "user": "0xuser",
+            "receiver": "0xreceiver",
+            "value": "100",
+            "maxFee": "10",
+            "deadline": 1000,
+            "version": 1,
+            "nonce": 1,
+        }
+
+        with patch("httpx.AsyncClient.post") as mock_post:
+            mock_post.return_value = AsyncMock(
+                status_code=200,
+                json=lambda: mock_response,
+                raise_for_status=lambda: None,
+            )
+            with pytest.raises(RuntimeError, match="without 'id' field"):
+                await client.submit(domain={}, message=message, signature="0xabc")
+
 
 def test_get_gasfree_domain():
     domain = get_gasfree_domain(1, "THKbWd2g5aS9tY59xk8hp5xMnbE8m3B3E")

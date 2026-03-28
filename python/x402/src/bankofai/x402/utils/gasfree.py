@@ -105,9 +105,12 @@ class GasFreeAPIClient:
                     response.raise_for_status()
                 result = response.json()
                 if result.get("code") != 200:
-                    message = result.get("message") or result.get("reason")
-                    raise RuntimeError(f"API business error: {message} - Body: {response.text}")
-                return result.get("data", {})
+                    err_msg = result.get("message") or result.get("reason")
+                    raise RuntimeError(f"API business error: {err_msg} - Body: {response.text}")
+                data = result.get("data")
+                if data is None:
+                    raise RuntimeError(f"GasFree API returned null data for address {user}")
+                return data
             except Exception as e:
                 if isinstance(e, httpx.HTTPStatusError):
                     logger.error(f"HTTP Status Error Body: {e.response.text}")
@@ -130,7 +133,9 @@ class GasFreeAPIClient:
                     raise RuntimeError(
                         f"API business error: {result.get('message') or result.get('reason')}"
                     )
-                data = result.get("data", {})
+                data = result.get("data")
+                if data is None:
+                    raise RuntimeError("GasFree config API returned null data")
                 return data.get("providers", [])
             except Exception as e:
                 logger.error(f"Failed to get providers from GasFree API: {e}")
@@ -145,8 +150,11 @@ class GasFreeAPIClient:
             logger.warning(f"Failed to get nonce from GasFree API: {e}. Defaulting to 0.")
             return 0
 
-    async def get_status(self, trace_id: str) -> Dict[str, Any]:
-        """Get status of a submitted GasFree transaction"""
+    async def get_status(self, trace_id: str) -> Dict[str, Any] | None:
+        """Get status of a submitted GasFree transaction.
+
+        Returns None if the API returned null data (e.g. status not yet available).
+        """
         path = f"/api/v1/gasfree/{trace_id}"
         async with httpx.AsyncClient() as client:
             url = f"{self.base_url}{path}"
@@ -161,22 +169,46 @@ class GasFreeAPIClient:
                     raise RuntimeError(
                         f"API business error: {result.get('message') or result.get('reason')}"
                     )
-                data = result.get("data", {})
-                logger.info(f"GasFree Status Response for {trace_id}: {json.dumps(data)}")
+                data = result.get("data")
+                if data is not None:
+                    logger.info(f"GasFree Status Response for {trace_id}: {json.dumps(data)}")
                 return data
             except Exception as e:
                 logger.error(f"Failed to get GasFree transaction status: {e}")
                 raise
 
     async def wait_for_success(
-        self, trace_id: str, timeout: int = 120, poll_interval: int = 5
+        self,
+        trace_id: str,
+        timeout: int = 120,
+        poll_interval: int = 5,
+        max_errors: int = 3,
     ) -> Dict[str, Any]:
         """Wait for a GasFree transaction to reach a terminal state or ON_CHAIN state"""
         start_time = time.time()
+        error_count = 0
         logger.info(f"Start polling for GasFree transaction {trace_id} (timeout={timeout}s)...")
 
         while time.time() - start_time < timeout:
-            status_data = await self.get_status(trace_id)
+            try:
+                status_data = await self.get_status(trace_id)
+                error_count = 0  # reset on successful poll
+            except Exception as e:
+                error_count += 1
+                logger.warning(
+                    f"GasFree status poll failed for {trace_id}"
+                    f" (error #{error_count}): {e}, retrying..."
+                )
+                if error_count >= max_errors:
+                    raise RuntimeError(
+                        f"GasFree status polling aborted after {error_count} consecutive errors"
+                    ) from e
+                await asyncio.sleep(poll_interval)
+                continue
+            if not status_data:
+                logger.debug(f"GasFree transaction {trace_id} status not yet available, waiting...")
+                await asyncio.sleep(poll_interval)
+                continue
             state = (status_data.get("state") or "").upper()
             txn_state = (status_data.get("txnState") or "").upper()
 
@@ -195,7 +227,10 @@ class GasFreeAPIClient:
 
             await asyncio.sleep(poll_interval)
 
-        raise TimeoutError(f"GasFree transaction {trace_id} timed out after {timeout}s")
+        raise TimeoutError(
+            f"GasFree transaction {trace_id} timed out after {timeout}s"
+            f" ({error_count} errors encountered)"
+        )
 
     async def submit(self, domain: Dict[str, Any], message: Dict[str, Any], signature: str) -> str:
         """Submit a signed GasFree transaction to the official relayer"""
@@ -225,10 +260,15 @@ class GasFreeAPIClient:
                     response.raise_for_status()
                 result = response.json()
                 if result.get("code") != 200:
-                    message = result.get("message") or result.get("reason")
-                    raise RuntimeError(f"API business error: {message} - Body: {response.text}")
-                data = result.get("data", {})
-                return data.get("id")  # Returns traceId
+                    err_msg = result.get("message") or result.get("reason")
+                    raise RuntimeError(f"API business error: {err_msg} - Body: {response.text}")
+                data = result.get("data")
+                if data is None:
+                    raise RuntimeError("GasFree submit API returned null data")
+                trace_id = data.get("id")
+                if not trace_id:
+                    raise RuntimeError("GasFree submit API returned data without 'id' field")
+                return trace_id
             except Exception as e:
                 if isinstance(e, httpx.HTTPStatusError):
                     logger.error(f"HTTP Status Error Body: {e.response.text}")

@@ -89,7 +89,8 @@ describe('GasFreeAPIClient', () => {
     });
 
     const status = await client.getStatus('trace-123');
-    expect(status.state).toBe('SUCCEED');
+    expect(status).not.toBeNull();
+    expect(status!.state).toBe('SUCCEED');
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('/api/v1/gasfree/trace-123'),
       expect.objectContaining({
@@ -113,6 +114,155 @@ describe('GasFreeAPIClient', () => {
 
     const result = await client.waitForSuccess('trace-123', 1000, 100);
     expect(result.state).toBe('SUCCEED');
+  });
+
+  it('should handle null status data in waitForSuccess', async () => {
+    let callCount = 0;
+    (fetch as any).mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) {
+        // First poll returns null data
+        return {
+          ok: true,
+          text: async () => JSON.stringify({ code: 200, data: null }),
+        };
+      }
+      // Second poll returns success
+      return {
+        ok: true,
+        text: async () => JSON.stringify({
+          code: 200,
+          data: { id: 'trace-123', state: 'SUCCEED', txnHash: '0xabc' },
+        }),
+      };
+    });
+
+    const result = await client.waitForSuccess('trace-123', 5000, 100);
+    expect(result.state).toBe('SUCCEED');
+    expect(callCount).toBe(2);
+  });
+
+  it('should retry on transient error in waitForSuccess', async () => {
+    let callCount = 0;
+    (fetch as any).mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) {
+        // First poll throws a transient network error
+        return {
+          ok: false,
+          status: 503,
+          text: async () => 'Service Unavailable',
+        };
+      }
+      // Second poll returns success
+      return {
+        ok: true,
+        text: async () => JSON.stringify({
+          code: 200,
+          data: { id: 'trace-123', state: 'SUCCEED', txnHash: '0xabc' },
+        }),
+      };
+    });
+
+    const result = await client.waitForSuccess('trace-123', 5000, 100);
+    expect(result.state).toBe('SUCCEED');
+    expect(callCount).toBe(2);
+  });
+
+  it('should abort polling after max consecutive errors', async () => {
+    (fetch as any).mockImplementation(async () => ({
+      ok: false,
+      status: 500,
+      text: async () => 'Internal Server Error',
+    }));
+
+    await expect(client.waitForSuccess('trace-123', 10000, 100, 2))
+      .rejects.toThrow('aborted after 2 consecutive errors');
+  });
+
+  it('should reset error count after successful poll', async () => {
+    let callCount = 0;
+    (fetch as any).mockImplementation(async () => {
+      callCount++;
+      // fail, succeed (WAITING), fail, fail → should NOT abort at maxErrors=2
+      // because the success in between resets the counter
+      if (callCount === 1 || callCount === 3 || callCount === 4) {
+        return { ok: false, status: 503, text: async () => 'Service Unavailable' };
+      }
+      if (callCount === 2) {
+        return {
+          ok: true,
+          text: async () => JSON.stringify({
+            code: 200,
+            data: { id: 'trace-123', state: 'WAITING' },
+          }),
+        };
+      }
+      // 5th call succeeds
+      return {
+        ok: true,
+        text: async () => JSON.stringify({
+          code: 200,
+          data: { id: 'trace-123', state: 'SUCCEED', txnHash: '0xabc' },
+        }),
+      };
+    });
+
+    const result = await client.waitForSuccess('trace-123', 10000, 100, 3);
+    expect(result.state).toBe('SUCCEED');
+    expect(callCount).toBe(5);
+  });
+
+  it('should throw on null data from getAddressInfo', async () => {
+    (fetch as any).mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({ code: 200, data: null }),
+    });
+
+    await expect(client.getAddressInfo('0x123'))
+      .rejects.toThrow('null data');
+  });
+
+  it('should throw on null data from getProviders', async () => {
+    (fetch as any).mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({ code: 200, data: null }),
+    });
+
+    await expect(client.getProviders())
+      .rejects.toThrow('null data');
+  });
+
+  it('should throw on null data from submit', async () => {
+    (fetch as any).mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({ code: 200, data: null }),
+    });
+
+    const message = {
+      token: '0xtoken', serviceProvider: '0xprovider', user: '0xuser',
+      receiver: '0xreceiver', value: 100, maxFee: 10, deadline: 1000,
+      version: 1, nonce: 1,
+    };
+
+    await expect(client.submit({}, message, '0xabc'))
+      .rejects.toThrow('null data');
+  });
+
+  it('should throw on submit data without id field', async () => {
+    (fetch as any).mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({ code: 200, data: { state: 'WAITING' } }),
+    });
+
+    const message = {
+      token: '0xtoken', serviceProvider: '0xprovider', user: '0xuser',
+      receiver: '0xreceiver', value: 100, maxFee: 10, deadline: 1000,
+      version: 1, nonce: 1,
+    };
+
+    await expect(client.submit({}, message, '0xabc'))
+      .rejects.toThrow('without id field');
   });
 
   it('should get nonce', async () => {
