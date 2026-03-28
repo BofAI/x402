@@ -170,7 +170,7 @@ class GasFreeAPIClient:
                         f"API business error: {result.get('message') or result.get('reason')}"
                     )
                 data = result.get("data")
-                if data:
+                if data is not None:
                     logger.info(f"GasFree Status Response for {trace_id}: {json.dumps(data)}")
                 return data
             except Exception as e:
@@ -178,7 +178,11 @@ class GasFreeAPIClient:
                 raise
 
     async def wait_for_success(
-        self, trace_id: str, timeout: int = 120, poll_interval: int = 5
+        self,
+        trace_id: str,
+        timeout: int = 120,
+        poll_interval: int = 5,
+        max_errors: int = 3,
     ) -> Dict[str, Any]:
         """Wait for a GasFree transaction to reach a terminal state or ON_CHAIN state"""
         start_time = time.time()
@@ -194,6 +198,10 @@ class GasFreeAPIClient:
                     f"GasFree status poll failed for {trace_id}"
                     f" (error #{error_count}): {e}, retrying..."
                 )
+                if error_count >= max_errors:
+                    raise RuntimeError(
+                        f"GasFree status polling aborted after {error_count} consecutive errors"
+                    ) from e
                 await asyncio.sleep(poll_interval)
                 continue
             if not status_data:

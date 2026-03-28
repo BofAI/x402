@@ -169,6 +169,53 @@ describe('GasFreeAPIClient', () => {
     expect(callCount).toBe(2);
   });
 
+  it('should abort polling after max consecutive errors', async () => {
+    (fetch as any).mockImplementation(async () => ({
+      ok: false,
+      status: 500,
+      text: async () => 'Internal Server Error',
+    }));
+
+    await expect(client.waitForSuccess('trace-123', 10000, 100, 2))
+      .rejects.toThrow('aborted after 2 consecutive errors');
+  });
+
+  it('should throw on null data from getAddressInfo', async () => {
+    (fetch as any).mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({ code: 200, data: null }),
+    });
+
+    await expect(client.getAddressInfo('0x123'))
+      .rejects.toThrow('null data');
+  });
+
+  it('should throw on null data from getProviders', async () => {
+    (fetch as any).mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({ code: 200, data: null }),
+    });
+
+    await expect(client.getProviders())
+      .rejects.toThrow('null data');
+  });
+
+  it('should throw on null data from submit', async () => {
+    (fetch as any).mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({ code: 200, data: null }),
+    });
+
+    const message = {
+      token: '0xtoken', serviceProvider: '0xprovider', user: '0xuser',
+      receiver: '0xreceiver', value: 100, maxFee: 10, deadline: 1000,
+      version: 1, nonce: 1,
+    };
+
+    await expect(client.submit({}, message, '0xabc'))
+      .rejects.toThrow('null data');
+  });
+
   it('should get nonce', async () => {
     vi.spyOn(client, 'getAddressInfo').mockResolvedValue({
       nonce: 42,

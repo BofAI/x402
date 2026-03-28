@@ -118,6 +118,71 @@ class TestGasFreeAPIClient:
         assert result["state"] == "SUCCEED"
         assert call_count == 2
 
+    @pytest.mark.anyio
+    async def test_wait_for_success_aborts_after_max_errors(self):
+        client = GasFreeAPIClient("https://api.example.com")
+
+        async def mock_get_status(trace_id):
+            raise RuntimeError("persistent error")
+
+        client.get_status = mock_get_status
+        with pytest.raises(RuntimeError, match="aborted after 2 consecutive errors"):
+            await client.wait_for_success("trace-123", timeout=5, poll_interval=0.1, max_errors=2)
+
+    @pytest.mark.anyio
+    async def test_get_address_info_raises_on_null_data(self):
+        client = GasFreeAPIClient("https://api.example.com")
+        mock_response = {"code": 200, "data": None}
+
+        with patch("httpx.AsyncClient.get") as mock_get:
+            mock_get.return_value = AsyncMock(
+                status_code=200,
+                json=lambda: mock_response,
+                raise_for_status=lambda: None,
+            )
+            with pytest.raises(RuntimeError, match="null data"):
+                await client.get_address_info("0x123")
+
+    @pytest.mark.anyio
+    async def test_get_providers_raises_on_null_data(self):
+        client = GasFreeAPIClient("https://api.example.com")
+        mock_response = {"code": 200, "data": None}
+
+        with patch("httpx.AsyncClient.get") as mock_get:
+            mock_get.return_value = AsyncMock(
+                status_code=200,
+                json=lambda: mock_response,
+                raise_for_status=lambda: None,
+            )
+            with pytest.raises(RuntimeError, match="null data"):
+                await client.get_providers()
+
+    @pytest.mark.anyio
+    async def test_submit_raises_on_null_data(self):
+        client = GasFreeAPIClient("https://api.example.com")
+        mock_response = {"code": 200, "data": None}
+
+        message = {
+            "token": "0xtoken",
+            "serviceProvider": "0xprovider",
+            "user": "0xuser",
+            "receiver": "0xreceiver",
+            "value": "100",
+            "maxFee": "10",
+            "deadline": 1000,
+            "version": 1,
+            "nonce": 1,
+        }
+
+        with patch("httpx.AsyncClient.post") as mock_post:
+            mock_post.return_value = AsyncMock(
+                status_code=200,
+                json=lambda: mock_response,
+                raise_for_status=lambda: None,
+            )
+            with pytest.raises(RuntimeError, match="null data"):
+                await client.submit(domain={}, message=message, signature="0xabc")
+
 
 def test_get_gasfree_domain():
     domain = get_gasfree_domain(1, "THKbWd2g5aS9tY59xk8hp5xMnbE8m3B3E")

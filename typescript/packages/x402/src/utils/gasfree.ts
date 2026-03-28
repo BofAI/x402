@@ -35,7 +35,7 @@ export interface GasFreeAddressInfo {
 
 export interface GasFreeSubmitResponseData {
   id: string;
-  state: 'WAITING' | 'INPROGRESS' | 'CONFIRMING' | 'SUCCEED' | 'FAILED';
+  state?: 'WAITING' | 'INPROGRESS' | 'CONFIRMING' | 'SUCCEED' | 'FAILED';
   createdAt: string;
   accountAddress: string;
   gasFreeAddress: string;
@@ -258,7 +258,8 @@ export class GasFreeAPIClient {
   async waitForSuccess(
     traceId: string,
     timeout: number = 120000,
-    pollInterval: number = 5000
+    pollInterval: number = 5000,
+    maxErrors: number = 3
   ): Promise<GasFreeSubmitResponseData> {
     const startTime = Date.now();
     let errorCount = 0;
@@ -270,6 +271,9 @@ export class GasFreeAPIClient {
       } catch (err) {
         errorCount++;
         console.warn(`GasFree status poll failed for ${traceId} (error #${errorCount}): ${err}, retrying...`);
+        if (errorCount >= maxErrors) {
+          throw new Error(`GasFree status polling aborted after ${errorCount} consecutive errors: ${err}`);
+        }
         await new Promise((resolve) => setTimeout(resolve, pollInterval));
         continue;
       }
@@ -278,7 +282,7 @@ export class GasFreeAPIClient {
         await new Promise((resolve) => setTimeout(resolve, pollInterval));
         continue;
       }
-      const state = (statusData.state || '').toUpperCase();
+      const state = (statusData.state ?? '').toUpperCase();
       const txnState = (statusData.txnState || '').toUpperCase();
 
       // 1. Immediate return for successful or "good enough" states
