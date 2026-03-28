@@ -108,7 +108,7 @@ class GasFreeAPIClient:
                     message = result.get("message") or result.get("reason")
                     raise RuntimeError(f"API business error: {message} - Body: {response.text}")
                 data = result.get("data")
-                if not data:
+                if data is None:
                     raise RuntimeError(f"GasFree API returned null data for address {user}")
                 return data
             except Exception as e:
@@ -134,7 +134,7 @@ class GasFreeAPIClient:
                         f"API business error: {result.get('message') or result.get('reason')}"
                     )
                 data = result.get("data")
-                if not data:
+                if data is None:
                     raise RuntimeError("GasFree config API returned null data")
                 return data.get("providers", [])
             except Exception as e:
@@ -182,13 +182,18 @@ class GasFreeAPIClient:
     ) -> Dict[str, Any]:
         """Wait for a GasFree transaction to reach a terminal state or ON_CHAIN state"""
         start_time = time.time()
+        error_count = 0
         logger.info(f"Start polling for GasFree transaction {trace_id} (timeout={timeout}s)...")
 
         while time.time() - start_time < timeout:
             try:
                 status_data = await self.get_status(trace_id)
             except Exception as e:
-                logger.warning(f"GasFree status poll failed for {trace_id}: {e}, retrying...")
+                error_count += 1
+                logger.warning(
+                    f"GasFree status poll failed for {trace_id}"
+                    f" (error #{error_count}): {e}, retrying..."
+                )
                 await asyncio.sleep(poll_interval)
                 continue
             if not status_data:
@@ -213,7 +218,10 @@ class GasFreeAPIClient:
 
             await asyncio.sleep(poll_interval)
 
-        raise TimeoutError(f"GasFree transaction {trace_id} timed out after {timeout}s")
+        raise TimeoutError(
+            f"GasFree transaction {trace_id} timed out after {timeout}s"
+            f" ({error_count} errors encountered)"
+        )
 
     async def submit(self, domain: Dict[str, Any], message: Dict[str, Any], signature: str) -> str:
         """Submit a signed GasFree transaction to the official relayer"""
@@ -246,7 +254,7 @@ class GasFreeAPIClient:
                     message = result.get("message") or result.get("reason")
                     raise RuntimeError(f"API business error: {message} - Body: {response.text}")
                 data = result.get("data")
-                if not data:
+                if data is None:
                     raise RuntimeError("GasFree submit API returned null data")
                 return data.get("id")  # Returns traceId
             except Exception as e:

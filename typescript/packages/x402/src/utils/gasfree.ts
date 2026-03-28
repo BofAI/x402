@@ -261,13 +261,15 @@ export class GasFreeAPIClient {
     pollInterval: number = 5000
   ): Promise<GasFreeSubmitResponseData> {
     const startTime = Date.now();
+    let errorCount = 0;
 
     while (Date.now() - startTime < timeout) {
       let statusData: GasFreeSubmitResponseData | null;
       try {
         statusData = await this.getStatus(traceId);
       } catch (err) {
-        console.warn(`GasFree status poll failed for ${traceId}: ${err}, retrying...`);
+        errorCount++;
+        console.warn(`GasFree status poll failed for ${traceId} (error #${errorCount}): ${err}, retrying...`);
         await new Promise((resolve) => setTimeout(resolve, pollInterval));
         continue;
       }
@@ -292,7 +294,7 @@ export class GasFreeAPIClient {
       await new Promise((resolve) => setTimeout(resolve, pollInterval));
     }
 
-    throw new Error(`GasFree transaction ${traceId} timed out after ${timeout / 1000}s`);
+    throw new Error(`GasFree transaction ${traceId} timed out after ${timeout / 1000}s (${errorCount} errors encountered)`);
   }
 
   /**

@@ -89,7 +89,8 @@ describe('GasFreeAPIClient', () => {
     });
 
     const status = await client.getStatus('trace-123');
-    expect(status.state).toBe('SUCCEED');
+    expect(status).not.toBeNull();
+    expect(status!.state).toBe('SUCCEED');
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('/api/v1/gasfree/trace-123'),
       expect.objectContaining({
@@ -124,6 +125,33 @@ describe('GasFreeAPIClient', () => {
         return {
           ok: true,
           text: async () => JSON.stringify({ code: 200, data: null }),
+        };
+      }
+      // Second poll returns success
+      return {
+        ok: true,
+        text: async () => JSON.stringify({
+          code: 200,
+          data: { id: 'trace-123', state: 'SUCCEED', txnHash: '0xabc' },
+        }),
+      };
+    });
+
+    const result = await client.waitForSuccess('trace-123', 5000, 100);
+    expect(result.state).toBe('SUCCEED');
+    expect(callCount).toBe(2);
+  });
+
+  it('should retry on transient error in waitForSuccess', async () => {
+    let callCount = 0;
+    (fetch as any).mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) {
+        // First poll throws a transient network error
+        return {
+          ok: false,
+          status: 503,
+          text: async () => 'Service Unavailable',
         };
       }
       // Second poll returns success
