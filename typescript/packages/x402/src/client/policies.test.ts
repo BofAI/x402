@@ -110,7 +110,7 @@ describe('SufficientBalancePolicy', () => {
     expect(result).toHaveLength(1);
   });
 
-  it('drops requirement when fallback has no signer', async () => {
+  it('keeps requirement when no checkBalance and no signer (cannot determine balance)', async () => {
     const client = new X402Client();
     const mechanism = makeMechanism({});
     client.register('tron:*', mechanism);

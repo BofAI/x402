@@ -118,7 +118,7 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
   ): Promise<PaymentPayload> {
     const chainId = getChainId(requirements.network);
     const apiClient = this.getApiClient(requirements.network);
-    const userAddress = await this.signer.getAddress();
+    const userAddress = this.signer.getAddress();
 
     // 1. Fetch account info
     console.debug(`Fetching account info for ${userAddress} from GasFree API...`);
