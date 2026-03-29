@@ -10,6 +10,7 @@ import {
   GASFREE_PRIMARY_TYPE,
   getChainId,
   getGasFreeApiBaseUrl,
+  UnsupportedNetworkError,
 } from '../index.js';
 import { GASFREE_TYPES, GasFreeAPIClient, type GasFreeAddressInfo } from '../utils/gasfree.js';
 import { findByAddress } from '../tokens.js';
@@ -48,7 +49,7 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
     if (client) {
       return client;
     }
-    throw new Error(`GasFree is not configured for network: ${network}`);
+    throw new UnsupportedNetworkError(`GasFree is not configured for network: ${network}`);
   }
 
   private getDeadlineBounds(network: string): { minDelta: number; maxDelta: number } {

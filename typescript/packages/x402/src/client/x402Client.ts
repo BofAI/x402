@@ -27,7 +27,7 @@ export interface ClientMechanism {
   getSigner?(): ClientSigner;
   
   /** Check token balance for this mechanism's payment scheme */
-  checkBalance(token: string, network: string): Promise<bigint>;
+  checkBalance?(token: string, network: string): Promise<bigint>;
 
   /** Create payment payload */
   createPaymentPayload(

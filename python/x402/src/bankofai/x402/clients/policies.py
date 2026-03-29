@@ -59,8 +59,13 @@ class SufficientBalancePolicy:
 
             try:
                 balance = await mechanism.check_balance(req.asset, req.network)
-            except Exception:
-                # Mechanism cannot query balance; keep the requirement.
+            except Exception as exc:
+                logger.warning(
+                    "check_balance() raised for %s on %s; keeping requirement: %s",
+                    req.asset,
+                    req.network,
+                    exc,
+                )
                 affordable.append(req)
                 continue
 

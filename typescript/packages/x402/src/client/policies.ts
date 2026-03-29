@@ -51,9 +51,20 @@ export class SufficientBalancePolicy implements PaymentPolicy {
 
       let balance: bigint;
       try {
-        balance = await mechanism.checkBalance(req.asset, req.network);
-      } catch {
-        // Mechanism cannot query balance; keep the requirement.
+        if (mechanism.checkBalance) {
+          balance = await mechanism.checkBalance(req.asset, req.network);
+        } else {
+          const signer = mechanism.getSigner?.();
+          if (!signer) {
+            // Cannot determine balance; keep the requirement and let
+            // createPaymentPayload decide.
+            affordable.push(req);
+            continue;
+          }
+          balance = await signer.checkBalance(req.asset, req.network);
+        }
+      } catch (err) {
+        console.warn(`[x402] checkBalance raised for ${req.asset} on ${req.network}; keeping requirement.`, err);
         affordable.push(req);
         continue;
       }
