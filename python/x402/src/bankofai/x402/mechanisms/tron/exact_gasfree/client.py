@@ -58,15 +58,23 @@ class ExactGasFreeClientMechanism(ClientMechanism):
     def get_signer(self) -> Any:
         return self._signer
 
-    async def check_balance(self, token: str, network: str) -> int:
-        """Check balance in the gasfree wallet."""
-        api_client = self._get_api_client(network)
-        user_address = self._signer.get_address()
-        account_info = await api_client.get_address_info(user_address)
+    async def _check_gasfree_balance(
+        self, token: str, network: str, account_info: dict | None = None
+    ) -> int:
+        if account_info is None:
+            api_client = self._get_api_client(network)
+            user_address = self._signer.get_address()
+            account_info = await api_client.get_address_info(user_address)
         gasfree_address = account_info.get("gasFreeAddress")
         if not gasfree_address:
-            raise RuntimeError(f"Could not retrieve GasFree address for {user_address}")
+            raise RuntimeError(
+                f"Could not retrieve GasFree address for {self._signer.get_address()}"
+            )
         return await self._signer.check_balance(token, network, address=gasfree_address)
+
+    async def check_balance(self, token: str, network: str) -> int:
+        """Check balance in the gasfree wallet."""
+        return await self._check_gasfree_balance(token, network)
 
     def _get_deadline_bounds(self, network: str) -> tuple[int, int]:
         if network == "tron:mainnet":
@@ -172,7 +180,9 @@ class ExactGasFreeClientMechanism(ClientMechanism):
         skip_balance_check = (extensions or {}).get("skipBalanceCheck", False)
         if not skip_balance_check:
             self._logger.debug(f"Verifying balance for {gasfree_address}...")
-            asset_balance = await self.check_balance(requirements.asset, network)
+            asset_balance = await self._check_gasfree_balance(
+                requirements.asset, network, account_info
+            )
             required_total = int(requirements.amount) + max_fee_val
             if asset_balance < required_total:
                 raise InsufficientGasFreeBalance(gasfree_address, required_total, asset_balance)

@@ -11,7 +11,7 @@ import {
   getChainId,
   getGasFreeApiBaseUrl,
 } from '../index.js';
-import { GASFREE_TYPES, GasFreeAPIClient } from '../utils/gasfree.js';
+import { GASFREE_TYPES, GasFreeAPIClient, type GasFreeAddressInfo } from '../utils/gasfree.js';
 import { findByAddress } from '../tokens.js';
 import { TronAddressConverter, ZERO_ADDRESS_HEX } from '../address.js';
 
@@ -89,12 +89,25 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
     return this.signer;
   }
 
-  async checkBalance(token: string, network: string): Promise<bigint> {
-    const apiClient = this.getApiClient(network);
-    const userAddress = this.signer.getAddress();
-    const accountInfo = await apiClient.getAddressInfo(userAddress);
+  private async checkGasFreeBalance(
+    token: string,
+    network: string,
+    accountInfo?: GasFreeAddressInfo
+  ): Promise<bigint> {
+    if (!accountInfo) {
+      const apiClient = this.getApiClient(network);
+      const userAddress = this.signer.getAddress();
+      accountInfo = await apiClient.getAddressInfo(userAddress);
+    }
     const gasfreeAddress = accountInfo.gasFreeAddress;
+    if (!gasfreeAddress) {
+      throw new Error(`Could not retrieve GasFree address for ${this.signer.getAddress()}`);
+    }
     return this.signer.checkBalance(token, network, gasfreeAddress);
+  }
+
+  async checkBalance(token: string, network: string): Promise<bigint> {
+    return this.checkGasFreeBalance(token, network);
   }
 
   async createPaymentPayload(
@@ -168,7 +181,7 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
       if (!asset) {
         throw new Error(`Asset ${requirements.asset} not found in GasFree account ${gasfreeAddress}.`);
       }
-      const assetBalance = await this.checkBalance(requirements.asset, requirements.network);
+      const assetBalance = await this.checkGasFreeBalance(requirements.asset, requirements.network, accountInfo);
       const requiredTotal = BigInt(requirements.amount) + maxFeeBig;
       if (assetBalance < requiredTotal) {
         throw new Error(`Insufficient balance in GasFree wallet ${gasfreeAddress}.`);

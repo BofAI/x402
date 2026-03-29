@@ -18,17 +18,18 @@ function getDecimals(req: PaymentRequirements): number {
  * Policy that filters out requirements with insufficient balance.
  *
  * When the server accepts multiple tokens (e.g. USDT and USDD),
- * this policy checks the user's on-chain balance for each option
- * and removes requirements the user cannot afford.
+ * this policy checks the balance for each payment option via the
+ * mechanism's checkBalance() and removes requirements the user
+ * cannot afford.
  *
- * Signers are auto-resolved from registered mechanisms via the
+ * Mechanisms are auto-resolved from registered entries via the
  * X402Client instance passed at construction time.
  *
  * Usage:
  *   x402.registerPolicy(SufficientBalancePolicy);
  *
- * Requirements whose network has no matching signer are kept as-is
- * (not filtered out), so downstream mechanism matching can still work.
+ * If no mechanism is registered for a requirement's scheme+network,
+ * that requirement is skipped (excluded from results).
  *
  * If all requirements are unaffordable, returns an empty array so the
  * caller can raise an appropriate error.
