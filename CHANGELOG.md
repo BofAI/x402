@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.6] - 2026-03-29
+
+### Fixed
+- `SufficientBalancePolicy` now checks balance via the mechanism's `check_balance()` / `checkBalance()` method instead of querying the signer's wallet directly — fixes incorrect balance lookups for GasFree payments where spendable balance lives in a separate custodial address
+- Eliminated redundant GasFree API call in `create_payment_payload` by reusing the `_check_gasfree_balance` helper
+- Removed unnecessary `await` on synchronous `getAddress()` in TypeScript GasFree mechanism
+- Fixed misleading test name that said "drops" but asserted "keeps"
+
+### Added
+- `check_balance()` / `checkBalance()` method on `ClientMechanism` interface — mechanisms can override to check balance at the correct address for their payment scheme
+- `resolve_mechanism()` / `resolveMechanism()` public method on `X402Client` for policies to look up mechanisms by scheme+network
+- Policy test suites for both Python and TypeScript covering sufficient/insufficient balance, missing mechanism, exception resilience, and all-unaffordable scenarios
+
+### Changed
+- `SufficientBalancePolicy` now drops requirements with no matching mechanism (previously kept them); safe within the `X402Client` pipeline where mechanism filtering already runs upstream
+
 ## [0.5.5] - 2026-03-28
 
 ### Fixed

@@ -1,27 +1,25 @@
-# v0.5.5 - GasFree Null Response Handling
+# v0.5.6 - GasFree Balance Check Fix
 
-Release date: March 28, 2026
+Release date: March 29, 2026
 
 ## Fixes
 
-- **Settlement crash on null status data**: GasFree status API can return `{"code": 200, "data": null}` when polled immediately after submission. This caused `AttributeError` in Python / `TypeError` in TypeScript, failing the settlement even though the on-chain transaction succeeded.
-- **Transient HTTP errors crash polling loop**: `waitForSuccess` now catches transient errors (e.g. 500/503) during status polling and retries instead of aborting the settlement.
-- **Permanent errors retried until timeout**: Polling now aborts after `max_errors` (default: 3) consecutive failures, preventing silent 120s hangs on permanent errors like invalid traceId or auth failures.
-- **Silent null propagation**: `getAddressInfo`, `getProviders`, and `submit` previously returned `None`/`null` silently when the API responded with null data. They now throw explicit errors.
-- **Missing submit id guard**: `submit` now throws if the API returns data without an `id` field, instead of silently returning `None` typed as `str`.
+- **Wrong balance checked for GasFree payments**: `SufficientBalancePolicy` was querying the user's own wallet address for balance, but GasFree payments hold spendable balance in a separate custodial gasfree wallet. The policy now delegates balance checking to each mechanism via `check_balance()` / `checkBalance()`, which knows the correct address to query.
+- **Redundant GasFree API call**: `create_payment_payload` in the GasFree mechanism made a second `getAddressInfo` call that was already performed during balance checking. The shared `_check_gasfree_balance` helper now eliminates this duplication.
+- **Unnecessary `await` on sync method**: Removed `await` on the synchronous `getAddress()` call in TypeScript GasFree mechanism.
+- **Misleading test name**: Renamed test that said "drops requirement" but actually asserted the requirement was kept.
 
-## Improvements
+## New
 
-- **Consecutive error tracking**: Error counter resets after each successful poll, so only truly consecutive errors count toward the `max_errors` abort threshold.
-- **Timeout diagnostics**: Timeout error messages now include the number of errors encountered during polling for easier debugging.
-- **Type accuracy**: `GasFreeResponse<T>.data` typed as `T | null` in TypeScript; `get_status` return type widened to `Dict | None` in Python to reflect actual API behavior.
-- **Null check precision**: Uses `is None` / `== null` for null checks to avoid false positives on other falsy values.
+- **Mechanism-level balance checking**: `ClientMechanism` now exposes `check_balance()` / `checkBalance()`. The base class default delegates to the signer's wallet; `ExactGasFreeClientMechanism` overrides it to query the gasfree custodial address.
+- **`resolve_mechanism()` / `resolveMechanism()`**: New public method on `X402Client` for policies to look up a mechanism by scheme and network.
+- **Policy test suites**: Comprehensive tests for `SufficientBalancePolicy` in both Python (pytest-anyio) and TypeScript (vitest).
 
 ## Breaking Changes
 
-None.
+None for standard `X402Client` usage. Direct callers of `SufficientBalancePolicy.apply()` should note that requirements with no matching mechanism are now dropped instead of passed through.
 
 ## Affected SDKs
 
-- **Python**: `bankofai-x402==0.5.5`
-- **TypeScript**: `@bankofai/x402@0.5.5`
+- **Python**: `bankofai-x402==0.5.6`
+- **TypeScript**: `@bankofai/x402@0.5.6`
