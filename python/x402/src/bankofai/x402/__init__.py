@@ -37,7 +37,7 @@ from bankofai.x402.types import (
     VerifyResponse,
 )
 
-__version__ = "0.5.5"
+__version__ = "0.5.6"
 __all__ = [
     "__version__",
     # Types

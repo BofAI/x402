@@ -18,17 +18,18 @@ function getDecimals(req: PaymentRequirements): number {
  * Policy that filters out requirements with insufficient balance.
  *
  * When the server accepts multiple tokens (e.g. USDT and USDD),
- * this policy checks the user's on-chain balance for each option
- * and removes requirements the user cannot afford.
+ * this policy checks the balance for each payment option via the
+ * mechanism's checkBalance() and removes requirements the user
+ * cannot afford.
  *
- * Signers are auto-resolved from registered mechanisms via the
+ * Mechanisms are auto-resolved from registered entries via the
  * X402Client instance passed at construction time.
  *
  * Usage:
  *   x402.registerPolicy(SufficientBalancePolicy);
  *
- * Requirements whose network has no matching signer are kept as-is
- * (not filtered out), so downstream mechanism matching can still work.
+ * If no mechanism is registered for a requirement's scheme+network,
+ * that requirement is skipped (excluded from results).
  *
  * If all requirements are unaffordable, returns an empty array so the
  * caller can raise an appropriate error.
@@ -43,19 +44,28 @@ export class SufficientBalancePolicy implements PaymentPolicy {
   async apply(requirements: PaymentRequirements[]): Promise<PaymentRequirements[]> {
     const affordable: PaymentRequirements[] = [];
     for (const req of requirements) {
-      const signer = this.client.resolveSigner(req.scheme, req.network);
-      if (!signer) {
-        // No signer for this network — keep the requirement so mechanism
-        // matching can still select it (balance check is best-effort).
-        affordable.push(req);
+      const mechanism = this.client.resolveMechanism(req.scheme, req.network);
+      if (!mechanism) {
+        console.debug(`[x402] No mechanism for scheme=${req.scheme} network=${req.network} (skipped)`);
         continue;
       }
 
       let balance: bigint;
       try {
-        balance = await signer.checkBalance(req.asset, req.network);
-      } catch {
-        // Signer cannot query this network; keep the requirement.
+        if (mechanism.checkBalance) {
+          balance = await mechanism.checkBalance(req.asset, req.network);
+        } else {
+          const signer = mechanism.getSigner?.();
+          if (!signer) {
+            // Cannot determine balance; keep the requirement and let
+            // createPaymentPayload decide.
+            affordable.push(req);
+            continue;
+          }
+          balance = await signer.checkBalance(req.asset, req.network);
+        }
+      } catch (err) {
+        console.warn(`[x402] checkBalance raised for ${req.asset} on ${req.network}; keeping requirement.`, err);
         affordable.push(req);
         continue;
       }

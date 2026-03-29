@@ -2,10 +2,13 @@
 Client mechanism base interface
 """
 
+import logging
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
 from bankofai.x402.types import PaymentPayload, PaymentRequirements
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from bankofai.x402.signers.client.base import ClientSigner
@@ -30,6 +33,21 @@ class ClientMechanism(ABC):
         Subclasses holding a signer should override this method.
         """
         return None
+
+    async def check_balance(self, token: str, network: str) -> int:
+        """Check token balance for this mechanism's payment scheme.
+
+        Default delegates to the signer's own address.
+        Override in subclasses where the balance location differs
+        (e.g., gasfree wallets).
+        """
+        signer = self.get_signer()
+        if signer is None:
+            raise RuntimeError(
+                f"{self.__class__.__name__}.check_balance() called but get_signer() "
+                f"returned None. Override check_balance() or get_signer()."
+            )
+        return await signer.check_balance(token, network)
 
     @abstractmethod
     async def create_payment_payload(

@@ -10,8 +10,9 @@ import {
   GASFREE_PRIMARY_TYPE,
   getChainId,
   getGasFreeApiBaseUrl,
+  UnsupportedNetworkError,
 } from '../index.js';
-import { GASFREE_TYPES, GasFreeAPIClient } from '../utils/gasfree.js';
+import { GASFREE_TYPES, GasFreeAPIClient, type GasFreeAddressInfo } from '../utils/gasfree.js';
 import { findByAddress } from '../tokens.js';
 import { TronAddressConverter, ZERO_ADDRESS_HEX } from '../address.js';
 
@@ -48,7 +49,7 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
     if (client) {
       return client;
     }
-    throw new Error(`GasFree is not configured for network: ${network}`);
+    throw new UnsupportedNetworkError(`GasFree is not configured for network: ${network}`);
   }
 
   private getDeadlineBounds(network: string): { minDelta: number; maxDelta: number } {
@@ -85,6 +86,31 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
     return 'exact_gasfree';
   }
 
+  getSigner(): ClientSigner {
+    return this.signer;
+  }
+
+  private async checkGasFreeBalance(
+    token: string,
+    network: string,
+    accountInfo?: GasFreeAddressInfo
+  ): Promise<bigint> {
+    if (!accountInfo) {
+      const apiClient = this.getApiClient(network);
+      const userAddress = this.signer.getAddress();
+      accountInfo = await apiClient.getAddressInfo(userAddress);
+    }
+    const gasfreeAddress = accountInfo.gasFreeAddress;
+    if (!gasfreeAddress) {
+      throw new Error(`Could not retrieve GasFree address for ${this.signer.getAddress()}`);
+    }
+    return this.signer.checkBalance(token, network, gasfreeAddress);
+  }
+
+  async checkBalance(token: string, network: string): Promise<bigint> {
+    return this.checkGasFreeBalance(token, network);
+  }
+
   async createPaymentPayload(
     requirements: PaymentRequirements,
     resource: string,
@@ -92,7 +118,7 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
   ): Promise<PaymentPayload> {
     const chainId = getChainId(requirements.network);
     const apiClient = this.getApiClient(requirements.network);
-    const userAddress = await this.signer.getAddress();
+    const userAddress = this.signer.getAddress();
 
     // 1. Fetch account info
     console.debug(`Fetching account info for ${userAddress} from GasFree API...`);
@@ -153,15 +179,13 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
     // 4. Balance verification
     const skipBalanceCheck = (extensions as any)?.skipBalanceCheck || false;
     if (!skipBalanceCheck) {
-      if (asset) {
-          // Fetch balance directly from the contract for the gasfreeAddress
-          const assetBalance = await this.signer.checkBalance(requirements.asset, requirements.network, gasfreeAddress);
-          const requiredTotal = BigInt(requirements.amount) + maxFeeBig;
-          if (assetBalance < requiredTotal) {
-            throw new Error(`Insufficient balance in GasFree wallet ${gasfreeAddress}.`);
-          }
-      } else {
+      if (!asset) {
         throw new Error(`Asset ${requirements.asset} not found in GasFree account ${gasfreeAddress}.`);
+      }
+      const assetBalance = await this.checkGasFreeBalance(requirements.asset, requirements.network, accountInfo);
+      const requiredTotal = BigInt(requirements.amount) + maxFeeBig;
+      if (assetBalance < requiredTotal) {
+        throw new Error(`Insufficient balance in GasFree wallet ${gasfreeAddress}.`);
       }
     }
 

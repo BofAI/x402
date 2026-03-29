@@ -26,18 +26,19 @@ class SufficientBalancePolicy:
     """Policy that filters out requirements with insufficient balance.
 
     When the server accepts multiple tokens (e.g. USDT and USDD),
-    this policy checks the user's on-chain balance for each option
-    and removes requirements the user cannot afford.
+    this policy checks the balance for each payment option via the
+    mechanism's check_balance() and removes requirements the user
+    cannot afford.
 
-    Signers are auto-resolved from registered mechanisms via the
+    Mechanisms are auto-resolved from registered entries via the
     X402Client instance passed at construction time.
 
     Usage::
 
         client.register_policy(SufficientBalancePolicy)
 
-    Requirements whose network has no matching signer are kept as-is
-    (not filtered out), so downstream mechanism matching can still work.
+    If no mechanism is registered for a requirement's scheme+network,
+    that requirement is skipped (excluded from results).
 
     If all requirements are unaffordable, returns an empty list so the
     caller can raise an appropriate error.
@@ -52,17 +53,24 @@ class SufficientBalancePolicy:
     ) -> list[PaymentRequirements]:
         affordable: list[PaymentRequirements] = []
         for req in requirements:
-            signer = self._client.resolve_signer(req.scheme, req.network)
-            if signer is None:
-                # No signer for this network — keep the requirement so
-                # mechanism matching can still select it.
-                affordable.append(req)
+            mechanism = self._client.resolve_mechanism(req.scheme, req.network)
+            if mechanism is None:
+                logger.debug(
+                    "No mechanism for scheme=%s network=%s (skipped)",
+                    req.scheme,
+                    req.network,
+                )
                 continue
 
             try:
-                balance = await signer.check_balance(req.asset, req.network)
-            except Exception:
-                # Signer cannot query this network; keep the requirement.
+                balance = await mechanism.check_balance(req.asset, req.network)
+            except Exception as exc:
+                logger.warning(
+                    "check_balance() raised for %s on %s; keeping requirement: %s",
+                    req.asset,
+                    req.network,
+                    exc,
+                )
                 affordable.append(req)
                 continue
 
