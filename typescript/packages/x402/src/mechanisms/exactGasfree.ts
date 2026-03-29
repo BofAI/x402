@@ -85,6 +85,18 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
     return 'exact_gasfree';
   }
 
+  getSigner(): ClientSigner {
+    return this.signer;
+  }
+
+  async checkBalance(token: string, network: string): Promise<bigint> {
+    const apiClient = this.getApiClient(network);
+    const userAddress = this.signer.getAddress();
+    const accountInfo = await apiClient.getAddressInfo(userAddress);
+    const gasfreeAddress = accountInfo.gasFreeAddress;
+    return this.signer.checkBalance(token, network, gasfreeAddress);
+  }
+
   async createPaymentPayload(
     requirements: PaymentRequirements,
     resource: string,
@@ -153,15 +165,13 @@ export class ExactGasFreeClientMechanism implements ClientMechanism {
     // 4. Balance verification
     const skipBalanceCheck = (extensions as any)?.skipBalanceCheck || false;
     if (!skipBalanceCheck) {
-      if (asset) {
-          // Fetch balance directly from the contract for the gasfreeAddress
-          const assetBalance = await this.signer.checkBalance(requirements.asset, requirements.network, gasfreeAddress);
-          const requiredTotal = BigInt(requirements.amount) + maxFeeBig;
-          if (assetBalance < requiredTotal) {
-            throw new Error(`Insufficient balance in GasFree wallet ${gasfreeAddress}.`);
-          }
-      } else {
+      if (!asset) {
         throw new Error(`Asset ${requirements.asset} not found in GasFree account ${gasfreeAddress}.`);
+      }
+      const assetBalance = await this.checkBalance(requirements.asset, requirements.network);
+      const requiredTotal = BigInt(requirements.amount) + maxFeeBig;
+      if (assetBalance < requiredTotal) {
+        throw new Error(`Insufficient balance in GasFree wallet ${gasfreeAddress}.`);
       }
     }
 

@@ -26,6 +26,9 @@ export interface ClientMechanism {
    */
   getSigner?(): ClientSigner;
   
+  /** Check token balance for this mechanism's payment scheme */
+  checkBalance(token: string, network: string): Promise<bigint>;
+
   /** Create payment payload */
   createPaymentPayload(
     requirements: PaymentRequirements,
@@ -131,6 +134,13 @@ export class X402Client {
   resolveSigner(scheme: string, network: string): ClientSigner | null {
     const mechanism = this.findMechanism(scheme, network);
     return mechanism?.getSigner?.() ?? null;
+  }
+
+  /**
+   * Resolve a mechanism for the given scheme+network.
+   */
+  resolveMechanism(scheme: string, network: string): ClientMechanism | null {
+    return this.findMechanism(scheme, network);
   }
 
   /**

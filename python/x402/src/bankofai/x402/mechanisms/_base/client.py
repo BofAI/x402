@@ -31,6 +31,18 @@ class ClientMechanism(ABC):
         """
         return None
 
+    async def check_balance(self, token: str, network: str) -> int:
+        """Check token balance for this mechanism's payment scheme.
+
+        Default delegates to the signer's own address.
+        Override in subclasses where the balance location differs
+        (e.g., gasfree wallets).
+        """
+        signer = self.get_signer()
+        if signer is None:
+            return 0
+        return await signer.check_balance(token, network)
+
     @abstractmethod
     async def create_payment_payload(
         self,

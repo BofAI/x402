@@ -46,6 +46,10 @@ export class ExactEvmClientMechanism implements ClientMechanism {
     return SCHEME_EXACT;
   }
 
+  async checkBalance(token: string, network: string): Promise<bigint> {
+    return this.signer.checkBalance(token, network);
+  }
+
   async createPaymentPayload(
     requirements: PaymentRequirements,
     resource: string,

@@ -43,19 +43,16 @@ export class SufficientBalancePolicy implements PaymentPolicy {
   async apply(requirements: PaymentRequirements[]): Promise<PaymentRequirements[]> {
     const affordable: PaymentRequirements[] = [];
     for (const req of requirements) {
-      const signer = this.client.resolveSigner(req.scheme, req.network);
-      if (!signer) {
-        // No signer for this network — keep the requirement so mechanism
-        // matching can still select it (balance check is best-effort).
-        affordable.push(req);
+      const mechanism = this.client.resolveMechanism(req.scheme, req.network);
+      if (!mechanism) {
         continue;
       }
 
       let balance: bigint;
       try {
-        balance = await signer.checkBalance(req.asset, req.network);
+        balance = await mechanism.checkBalance(req.asset, req.network);
       } catch {
-        // Signer cannot query this network; keep the requirement.
+        // Mechanism cannot query balance; keep the requirement.
         affordable.push(req);
         continue;
       }

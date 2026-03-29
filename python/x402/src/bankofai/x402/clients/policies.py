@@ -52,17 +52,14 @@ class SufficientBalancePolicy:
     ) -> list[PaymentRequirements]:
         affordable: list[PaymentRequirements] = []
         for req in requirements:
-            signer = self._client.resolve_signer(req.scheme, req.network)
-            if signer is None:
-                # No signer for this network — keep the requirement so
-                # mechanism matching can still select it.
-                affordable.append(req)
+            mechanism = self._client.resolve_mechanism(req.scheme, req.network)
+            if mechanism is None:
                 continue
 
             try:
-                balance = await signer.check_balance(req.asset, req.network)
+                balance = await mechanism.check_balance(req.asset, req.network)
             except Exception:
-                # Signer cannot query this network; keep the requirement.
+                # Mechanism cannot query balance; keep the requirement.
                 affordable.append(req)
                 continue
 
