@@ -46,6 +46,7 @@ export class SufficientBalancePolicy implements PaymentPolicy {
     for (const req of requirements) {
       const mechanism = this.client.resolveMechanism(req.scheme, req.network);
       if (!mechanism) {
+        console.debug(`[x402] No mechanism for scheme=${req.scheme} network=${req.network} (skipped)`);
         continue;
       }
 

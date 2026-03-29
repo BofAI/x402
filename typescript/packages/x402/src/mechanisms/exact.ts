@@ -43,10 +43,6 @@ export class ExactPermitTronClientMechanism implements ClientMechanism {
     return 'exact_permit';
   }
 
-  async checkBalance(token: string, network: string): Promise<bigint> {
-    return this.signer.checkBalance(token, network);
-  }
-
   async createPaymentPayload(
     requirements: PaymentRequirements,
     resource: string,

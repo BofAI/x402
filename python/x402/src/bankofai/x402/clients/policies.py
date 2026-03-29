@@ -55,6 +55,11 @@ class SufficientBalancePolicy:
         for req in requirements:
             mechanism = self._client.resolve_mechanism(req.scheme, req.network)
             if mechanism is None:
+                logger.debug(
+                    "No mechanism for scheme=%s network=%s (skipped)",
+                    req.scheme,
+                    req.network,
+                )
                 continue
 
             try:
