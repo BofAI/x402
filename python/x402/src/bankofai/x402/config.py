@@ -130,4 +130,3 @@ class NetworkConfig:
         if not url:
             raise UnsupportedNetworkError(f"No GasFree API URL configured for network: {network}")
         return url
-

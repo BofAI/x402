@@ -35,7 +35,15 @@ GASFREE_TYPES = {
 
 
 class GasFreeAPIClient:
-    def __init__(self, base_url: str):
+    def __init__(self, base_url: str, api_key: str | None = None, api_secret: str | None = None):
+        if api_key or api_secret:
+            import warnings
+
+            warnings.warn(
+                "api_key and api_secret are deprecated and ignored by the BankOfAI proxy.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         self.base_url = base_url.rstrip("/")
 
     def _get_headers(self) -> Dict[str, str]:
