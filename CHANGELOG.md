@@ -15,9 +15,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - HMAC-SHA256 signature authentication from `GasFreeAPIClient` — the BankOfAI proxy handles auth transparently
 - `getGasFreeApiKey()` / `get_gasfree_api_key()` and `getGasFreeApiSecret()` / `get_gasfree_api_secret()` config helpers — no longer needed
 
-### Deprecated
-- `GasFreeAPIClient` constructor `apiKey`/`apiSecret` parameters (Python: `api_key`/`api_secret`) — accepted but ignored with a deprecation warning
-
 ## [0.5.7] - 2026-03-30
 
 ### Added

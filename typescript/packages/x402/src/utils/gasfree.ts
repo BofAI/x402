@@ -80,11 +80,7 @@ export const GASFREE_TYPES = {
 export class GasFreeAPIClient {
   private baseUrl: string;
 
-  /** @deprecated apiKey and apiSecret are no longer needed with the BankOfAI proxy */
-  constructor(baseUrl: string, apiKey?: string, apiSecret?: string) {
-    if (apiKey || apiSecret) {
-      console.warn('[x402] GasFreeAPIClient: apiKey/apiSecret are deprecated and ignored by the BankOfAI proxy.');
-    }
+  constructor(baseUrl: string) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
   }
 
