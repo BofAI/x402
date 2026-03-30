@@ -75,12 +75,45 @@ export const TRON_RPC_URLS: Record<string, string> = {
   'tron:nile': 'https://nile.trongrid.io',
 };
 
+/** Fallback RPC URLs used when TRON_GRID_API_KEY is not set */
+export const TRON_FALLBACK_RPC_URLS: Record<string, string> = {
+  'tron:mainnet': 'https://hptg.bankofai.io',
+};
+
+/**
+ * Get the appropriate TRON RPC URL for a network.
+ * Uses fallback URLs when TRON_GRID_API_KEY is not set.
+ */
+const _warnedNetworks = new Set<string>();
+
+export function getTronRpcUrl(network: string): string | undefined {
+  const apiKey = typeof process !== 'undefined' ? process.env?.TRON_GRID_API_KEY : undefined;
+  if (!apiKey) {
+    const fallback = TRON_FALLBACK_RPC_URLS[network];
+    if (fallback) {
+      if (!_warnedNetworks.has(network)) {
+        _warnedNetworks.add(network);
+        console.warn(
+          `[x402] TRON_GRID_API_KEY is not set. Routing ${network} RPC calls ` +
+          `to fallback endpoint: ${fallback}. Set TRON_GRID_API_KEY to use TronGrid.`
+        );
+      }
+      return fallback;
+    }
+    return TRON_RPC_URLS[network];
+  }
+  return TRON_RPC_URLS[network];
+}
+
 /**
  * Resolve a network identifier to an RPC URL.
  * Returns the URL from the built-in map, or undefined if not configured.
  */
 export function resolveRpcUrl(network: string): string | undefined {
-  return EVM_RPC_URLS[network] ?? TRON_RPC_URLS[network];
+  if (network.startsWith('tron:')) {
+    return getTronRpcUrl(network);
+  }
+  return EVM_RPC_URLS[network];
 }
 
 /** Zero address for TRON */

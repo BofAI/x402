@@ -12,7 +12,7 @@ import {
   SignatureCreationError,
   InsufficientAllowanceError,
   UnsupportedNetworkError,
-  TRON_RPC_URLS,
+  getTronRpcUrl,
 } from '../index.js';
 import { resolveWalletProvider } from '@bankofai/agent-wallet';
 import { TronWeb as TronWebClass } from 'tronweb';
@@ -87,7 +87,7 @@ export class TronClientSigner implements ClientSigner {
    * Get or create a TronWeb instance for the given network.
    */
   private getTronWeb(network?: string): TronWeb {
-    const host = network ? TRON_RPC_URLS[network] : undefined;
+    const host = network ? getTronRpcUrl(network) : undefined;
     const key = host ?? '__default__';
     let tw = this.tronWebInstances.get(key);
     if (!tw) {
