@@ -14,11 +14,16 @@ from tronpy.providers.async_http import AsyncHTTPProvider
 
 logger = logging.getLogger(__name__)
 
+TRON_MAINNET_FALLBACK_URL = "https://hptg.bankofai.io"
+
 
 def create_async_tron_client(network: str) -> Any:
     """Create an AsyncTron client for the given network.
 
-    Automatically uses TronGrid API key from TRON_GRID_API_KEY env var if set.
+    When TRON_GRID_API_KEY env var is set, uses TronGrid with the API key.
+    When not set and network is mainnet, uses the BankOfAI fallback RPC
+    (https://hptg.bankofai.io). For other networks without an API key,
+    tronpy defaults are used.
 
     Args:
         network: TRON network name (e.g. "nile", "mainnet") or full identifier (e.g. "tron:nile")
@@ -33,12 +38,12 @@ def create_async_tron_client(network: str) -> Any:
     api_key = os.getenv("TRON_GRID_API_KEY")
     if not api_key:
         if network == "mainnet":
-            fallback_url = "https://hptg.bankofai.io"
-            logger.info(
-                "TRON_GRID_API_KEY is not set. Using fallback RPC for mainnet: %s",
-                fallback_url,
+            logger.warning(
+                "TRON_GRID_API_KEY is not set. Mainnet RPC calls will be routed to %s. "
+                "Set TRON_GRID_API_KEY to use TronGrid.",
+                TRON_MAINNET_FALLBACK_URL,
             )
-            provider = AsyncHTTPProvider(endpoint_uri=fallback_url)
+            provider = AsyncHTTPProvider(endpoint_uri=TRON_MAINNET_FALLBACK_URL)
             return AsyncTron(provider=provider, network=network)
 
         logger.warning(

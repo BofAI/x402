@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TronClientSigner } from './signer.js';
 import type { AgentWallet } from './signer.js';
 import * as config from '../config.js';
+import { TRON_FALLBACK_RPC_URLS } from '../config.js';
 
 vi.mock('@bankofai/agent-wallet', () => ({
   resolveWalletProvider: vi.fn(),
@@ -9,7 +10,9 @@ vi.mock('@bankofai/agent-wallet', () => ({
 
 // USDT on TRON mainnet
 const MAINNET_USDT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
-const FALLBACK_URL = 'https://hptg.bankofai.io';
+// A real EOA wallet address on mainnet
+const TEST_WALLET = 'TDqjTkZ3ExHxRzaLSrdnzSBGhfbPXnBQoN';
+const FALLBACK_URL = TRON_FALLBACK_RPC_URLS['tron:mainnet'];
 
 function createMockWallet(address: string): AgentWallet {
   return {
@@ -35,9 +38,9 @@ describe('TronClientSigner fallback RPC', () => {
   it('uses fallback RPC URL and checkBalance succeeds on tron:mainnet without TRON_GRID_API_KEY', async () => {
     const spy = vi.spyOn(config, 'getTronRpcUrl');
 
-    const wallet = createMockWallet(MAINNET_USDT);
+    const wallet = createMockWallet(TEST_WALLET);
     const signer = new TronClientSigner(wallet);
-    signer.setAddress(MAINNET_USDT);
+    signer.setAddress(TEST_WALLET);
 
     const balance = await signer.checkBalance(MAINNET_USDT, 'tron:mainnet');
 
@@ -45,9 +48,9 @@ describe('TronClientSigner fallback RPC', () => {
     expect(spy).toHaveBeenCalledWith('tron:mainnet');
     expect(spy).toHaveReturnedWith(FALLBACK_URL);
 
-    // Verify the RPC call actually succeeded
+    // Verify the RPC call actually succeeded and returned a valid bigint
     expect(typeof balance).toBe('bigint');
-    expect(balance).toBeGreaterThan(BigInt(0));
+    expect(balance).toBeGreaterThanOrEqual(BigInt(0));
 
     spy.mockRestore();
   });

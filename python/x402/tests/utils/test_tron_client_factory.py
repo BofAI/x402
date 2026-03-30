@@ -7,9 +7,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 from tronpy.providers.async_http import AsyncHTTPProvider
 
-from bankofai.x402.utils.tron_client import create_async_tron_client
-
-FALLBACK_URL = "https://hptg.bankofai.io"
+from bankofai.x402.utils.tron_client import (
+    TRON_MAINNET_FALLBACK_URL,
+    create_async_tron_client,
+)
 
 
 class TestCreateAsyncTronClientFallback:
@@ -25,7 +26,7 @@ class TestCreateAsyncTronClientFallback:
 
         create_async_tron_client("mainnet")
 
-        mock_provider_cls.assert_called_once_with(endpoint_uri="https://hptg.bankofai.io")
+        mock_provider_cls.assert_called_once_with(endpoint_uri=TRON_MAINNET_FALLBACK_URL)
         mock_tron_cls.assert_called_once_with(provider=mock_provider, network="mainnet")
 
     @patch("bankofai.x402.utils.tron_client.AsyncTron")
@@ -38,7 +39,7 @@ class TestCreateAsyncTronClientFallback:
 
         create_async_tron_client("tron:mainnet")
 
-        mock_provider_cls.assert_called_once_with(endpoint_uri="https://hptg.bankofai.io")
+        mock_provider_cls.assert_called_once_with(endpoint_uri=TRON_MAINNET_FALLBACK_URL)
         mock_tron_cls.assert_called_once_with(provider=mock_provider, network="mainnet")
 
     @patch("bankofai.x402.utils.tron_client.AsyncTron")
@@ -75,14 +76,14 @@ class TestFallbackClientFunctional:
         """Without API key, mainnet client provider must point to the fallback URL."""
         client = create_async_tron_client("tron:mainnet")
         assert isinstance(client.provider, AsyncHTTPProvider)
-        assert client.provider.endpoint_uri == FALLBACK_URL
+        assert client.provider.endpoint_uri == TRON_MAINNET_FALLBACK_URL
 
     @pytest.mark.anyio
     @patch.dict("os.environ", {}, clear=True)
     async def test_fallback_client_can_fetch_block(self):
         """The fallback client should be able to fetch the latest block."""
         client = create_async_tron_client("tron:mainnet")
-        assert client.provider.endpoint_uri == FALLBACK_URL
+        assert client.provider.endpoint_uri == TRON_MAINNET_FALLBACK_URL
         async with client:
             block = await client.get_latest_block()
             assert block is not None

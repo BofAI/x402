@@ -87,7 +87,15 @@ export const TRON_FALLBACK_RPC_URLS: Record<string, string> = {
 export function getTronRpcUrl(network: string): string | undefined {
   const apiKey = typeof process !== 'undefined' ? process.env?.TRON_GRID_API_KEY : undefined;
   if (!apiKey) {
-    return TRON_FALLBACK_RPC_URLS[network] ?? TRON_RPC_URLS[network];
+    const fallback = TRON_FALLBACK_RPC_URLS[network];
+    if (fallback) {
+      console.warn(
+        `[x402] TRON_GRID_API_KEY is not set. Routing ${network} RPC calls ` +
+        `to fallback endpoint: ${fallback}. Set TRON_GRID_API_KEY to use TronGrid.`
+      );
+      return fallback;
+    }
+    return TRON_RPC_URLS[network];
   }
   return TRON_RPC_URLS[network];
 }
@@ -97,7 +105,10 @@ export function getTronRpcUrl(network: string): string | undefined {
  * Returns the URL from the built-in map, or undefined if not configured.
  */
 export function resolveRpcUrl(network: string): string | undefined {
-  return EVM_RPC_URLS[network] ?? TRON_RPC_URLS[network];
+  if (network.startsWith('tron:')) {
+    return getTronRpcUrl(network);
+  }
+  return EVM_RPC_URLS[network];
 }
 
 /** Zero address for TRON */
