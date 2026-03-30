@@ -39,6 +39,15 @@ class GasFreeAPIClient:
         self.base_url = base_url.rstrip("/")
         self._client = httpx.AsyncClient(timeout=30.0)
 
+    async def aclose(self) -> None:
+        await self._client.aclose()
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        await self.aclose()
+
     def _get_headers(self) -> Dict[str, str]:
         """Generate headers for API requests"""
         return {"Content-Type": "application/json"}
