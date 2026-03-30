@@ -75,6 +75,23 @@ export const TRON_RPC_URLS: Record<string, string> = {
   'tron:nile': 'https://nile.trongrid.io',
 };
 
+/** Fallback RPC URLs used when TRON_GRID_API_KEY is not set */
+export const TRON_FALLBACK_RPC_URLS: Record<string, string> = {
+  'tron:mainnet': 'https://hptg.bankofai.io',
+};
+
+/**
+ * Get the appropriate TRON RPC URL for a network.
+ * Uses fallback URLs when TRON_GRID_API_KEY is not set.
+ */
+export function getTronRpcUrl(network: string): string | undefined {
+  const apiKey = typeof process !== 'undefined' ? process.env?.TRON_GRID_API_KEY : undefined;
+  if (!apiKey) {
+    return TRON_FALLBACK_RPC_URLS[network] ?? TRON_RPC_URLS[network];
+  }
+  return TRON_RPC_URLS[network];
+}
+
 /**
  * Resolve a network identifier to an RPC URL.
  * Returns the URL from the built-in map, or undefined if not configured.

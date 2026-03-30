@@ -32,11 +32,19 @@ def create_async_tron_client(network: str) -> Any:
 
     api_key = os.getenv("TRON_GRID_API_KEY")
     if not api_key:
+        if network == "mainnet":
+            fallback_url = "https://hptg.bankofai.io"
+            logger.info(
+                "TRON_GRID_API_KEY is not set. Using fallback RPC for mainnet: %s",
+                fallback_url,
+            )
+            provider = AsyncHTTPProvider(endpoint_uri=fallback_url)
+            return AsyncTron(provider=provider, network=network)
+
         logger.warning(
-            "TRON_GRID_API_KEY is not set. Mainnet requests may be rate-limited or fail; "
+            "TRON_GRID_API_KEY is not set. Requests may be rate-limited or fail; "
             "set TRON_GRID_API_KEY in your environment/.env to use TronGrid reliably."
         )
-
         logger.info("Creating AsyncTron client for network=%s", network)
         return AsyncTron(network=network)
 
