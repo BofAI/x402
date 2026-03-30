@@ -84,15 +84,20 @@ export const TRON_FALLBACK_RPC_URLS: Record<string, string> = {
  * Get the appropriate TRON RPC URL for a network.
  * Uses fallback URLs when TRON_GRID_API_KEY is not set.
  */
+const _warnedNetworks = new Set<string>();
+
 export function getTronRpcUrl(network: string): string | undefined {
   const apiKey = typeof process !== 'undefined' ? process.env?.TRON_GRID_API_KEY : undefined;
   if (!apiKey) {
     const fallback = TRON_FALLBACK_RPC_URLS[network];
     if (fallback) {
-      console.warn(
-        `[x402] TRON_GRID_API_KEY is not set. Routing ${network} RPC calls ` +
-        `to fallback endpoint: ${fallback}. Set TRON_GRID_API_KEY to use TronGrid.`
-      );
+      if (!_warnedNetworks.has(network)) {
+        _warnedNetworks.add(network);
+        console.warn(
+          `[x402] TRON_GRID_API_KEY is not set. Routing ${network} RPC calls ` +
+          `to fallback endpoint: ${fallback}. Set TRON_GRID_API_KEY to use TronGrid.`
+        );
+      }
       return fallback;
     }
     return TRON_RPC_URLS[network];

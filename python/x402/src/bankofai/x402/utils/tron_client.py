@@ -44,6 +44,11 @@ def create_async_tron_client(network: str) -> Any:
                 TRON_MAINNET_FALLBACK_URL,
             )
             provider = AsyncHTTPProvider(endpoint_uri=TRON_MAINNET_FALLBACK_URL)
+            logger.info(
+                "Creating AsyncTron client with fallback provider for network=%s (%s)",
+                network,
+                TRON_MAINNET_FALLBACK_URL,
+            )
             return AsyncTron(provider=provider, network=network)
 
         logger.warning(
