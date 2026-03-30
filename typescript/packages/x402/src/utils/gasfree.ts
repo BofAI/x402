@@ -1,7 +1,6 @@
 import {
   GASFREE_PRIMARY_TYPE,
 } from '../abi.js';
-import { getGasFreeApiKey, getGasFreeApiSecret } from '../config.js';
 
 /**
  * GasFree utility functions for API interaction and domain helpers.
@@ -80,89 +79,18 @@ export const GASFREE_TYPES = {
 
 export class GasFreeAPIClient {
   private baseUrl: string;
-  private apiKey?: string;
-  private apiSecret?: string;
 
-  constructor(baseUrl: string, apiKey?: string, apiSecret?: string) {
+  constructor(baseUrl: string) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
-
-    // Fallback to environment variables if keys are missing
-    if (!apiKey || !apiSecret) {
-      let network = 'tron:mainnet';
-      if (this.baseUrl.includes('open-test')) {
-        if (this.baseUrl.includes('nile')) network = 'tron:nile';
-        else if (this.baseUrl.includes('shasta')) network = 'tron:shasta';
-      }
-      this.apiKey = apiKey || getGasFreeApiKey(network);
-      this.apiSecret = apiSecret || getGasFreeApiSecret(network);
-    } else {
-      this.apiKey = apiKey;
-      this.apiSecret = apiSecret;
-    }
   }
 
   /**
-   * Generate HMAC signature for authentication
+   * Get headers for API requests
    */
-  private async generateSignature(method: string, path: string, timestamp: number): Promise<string> {
-    if (!this.apiSecret) return '';
-
-    const message = `${method.toUpperCase()}${path}${timestamp}`;
-    console.debug(`GasFree HMAC base string: ${message}`);
-    
-    // Check if we are in Node.js environment
-    if (typeof process !== 'undefined' && process.versions && process.versions.node) {
-      const crypto = await import('node:crypto');
-      return crypto
-        .createHmac('sha256', this.apiSecret)
-        .update(message)
-        .digest('base64');
-    } else {
-      // Browser implementation using Web Crypto API
-      const encoder = new TextEncoder();
-      const keyData = encoder.encode(this.apiSecret);
-      const msgData = encoder.encode(message);
-      
-      const cryptoKey = await globalThis.crypto.subtle.importKey(
-        'raw',
-        keyData,
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['sign']
-      );
-      
-      const signature = await globalThis.crypto.subtle.sign('HMAC', cryptoKey, msgData);
-      return btoa(String.fromCharCode(...new Uint8Array(signature)));
-    }
-  }
-
-  /**
-   * Get headers with authentication if keys are provided
-   */
-  private async getHeaders(method: string, path: string): Promise<Record<string, string>> {
-    const headers: Record<string, string> = {
+  private getHeaders(): Record<string, string> {
+    return {
       'Content-Type': 'application/json',
     };
-
-    if (this.apiKey && this.apiSecret) {
-      const timestamp = Math.floor(Date.now() / 1000);
-      
-      // The Provider expects the FULL path including /nile or /tron for signature
-      let fullPath = path;
-      const urlParts = this.baseUrl.split('/');
-      if (urlParts.length > 3) {
-        const prefix = '/' + urlParts.slice(3).join('/');
-        if (!fullPath.startsWith(prefix)) {
-          fullPath = prefix + path;
-        }
-      }
-
-      const signature = await this.generateSignature(method, fullPath, timestamp);
-      headers['Timestamp'] = timestamp.toString();
-      headers['Authorization'] = `ApiKey ${this.apiKey}:${signature}`;
-    }
-
-    return headers;
   }
 
   /**
@@ -171,7 +99,7 @@ export class GasFreeAPIClient {
   async getProviders(): Promise<GasFreeProvider[]> {
     const path = '/api/v1/config/provider/all';
     const url = `${this.baseUrl}${path}`;
-    const headers = await this.getHeaders('GET', path);
+    const headers = this.getHeaders();
     
     const response = await fetch(url, { headers });
     const bodyText = await response.text();
@@ -210,7 +138,7 @@ export class GasFreeAPIClient {
   async getAddressInfo(user: string): Promise<GasFreeAddressInfo> {
     const path = `/api/v1/address/${user}`;
     const url = `${this.baseUrl}${path}`;
-    const headers = await this.getHeaders('GET', path);
+    const headers = this.getHeaders();
 
     const response = await fetch(url, { headers });
     const bodyText = await response.text();
@@ -236,7 +164,7 @@ export class GasFreeAPIClient {
   async getStatus(traceId: string): Promise<GasFreeSubmitResponseData | null> {
     const path = `/api/v1/gasfree/${traceId}`;
     const url = `${this.baseUrl}${path}`;
-    const headers = await this.getHeaders('GET', path);
+    const headers = this.getHeaders();
     const response = await fetch(url, { headers });
     const bodyText = await response.text();
 
@@ -324,7 +252,7 @@ export class GasFreeAPIClient {
     };
 
     try {
-      const headers = await this.getHeaders('POST', path);
+      const headers = this.getHeaders();
       const response = await fetch(url, {
         method: 'POST',
         headers,

@@ -1,6 +1,4 @@
 import asyncio
-import base64
-import hmac
 import json
 import logging
 import time
@@ -37,60 +35,12 @@ GASFREE_TYPES = {
 
 
 class GasFreeAPIClient:
-    def __init__(self, base_url: str, api_key: str | None = None, api_secret: str | None = None):
-        from bankofai.x402.config import NetworkConfig
-
+    def __init__(self, base_url: str):
         self.base_url = base_url.rstrip("/")
 
-        # If keys are missing, try to infer the network from base_url to fetch env-specific keys
-        if not api_key or not api_secret:
-            network = "tron:mainnet"
-            if "open-test" in base_url:
-                if "nile" in base_url:
-                    network = "tron:nile"
-                elif "shasta" in base_url:
-                    network = "tron:shasta"
-
-            self.api_key = api_key or NetworkConfig.get_gasfree_api_key(network)
-            self.api_secret = api_secret or NetworkConfig.get_gasfree_api_secret(network)
-        else:
-            self.api_key = api_key
-            self.api_secret = api_secret
-
-    def _generate_signature(self, method: str, path: str, timestamp: int) -> str:
-        """Generate HMAC signature for authentication"""
-        if not self.api_secret:
-            return ""
-
-        message = f"{method}{path}{timestamp}"
-        signature_bytes = hmac.new(
-            self.api_secret.encode("utf-8"), message.encode("utf-8"), digestmod="sha256"
-        ).digest()
-        return base64.b64encode(signature_bytes).decode("utf-8")
-
-    def _get_headers(self, method: str, path: str) -> Dict[str, str]:
-        """Generate headers with authentication"""
-        headers = {"Content-Type": "application/json"}
-        if not self.api_key or not self.api_secret:
-            return headers
-
-        # Ensure path includes the network prefix if it's not already there
-        full_path = path
-        base_url_parts = self.base_url.split("/")
-        # If base_url is https://open-test.gasfree.io/nile, the prefix is /nile
-        prefix = ""
-        if len(base_url_parts) > 3:
-            prefix = "/" + "/".join(base_url_parts[3:])
-            if not full_path.startswith(prefix):
-                full_path = prefix + path
-
-        timestamp = int(time.time())
-        signature = self._generate_signature(method, full_path, timestamp)
-
-        headers.update(
-            {"Timestamp": str(timestamp), "Authorization": f"ApiKey {self.api_key}:{signature}"}
-        )
-        return headers
+    def _get_headers(self) -> Dict[str, str]:
+        """Generate headers for API requests"""
+        return {"Content-Type": "application/json"}
 
     async def get_address_info(self, user: str) -> Dict[str, Any]:
         """Get full account info (activation, balance, nonce) for a user"""
@@ -98,7 +48,7 @@ class GasFreeAPIClient:
         async with httpx.AsyncClient() as client:
             url = f"{self.base_url}{path}"
             try:
-                headers = self._get_headers("GET", path)
+                headers = self._get_headers()
                 response = await client.get(url, headers=headers)
                 if response.status_code != 200:
                     logger.error(f"GasFree API error {response.status_code}: {response.text}")
@@ -123,7 +73,7 @@ class GasFreeAPIClient:
         async with httpx.AsyncClient() as client:
             url = f"{self.base_url}{path}"
             try:
-                headers = self._get_headers("GET", path)
+                headers = self._get_headers()
                 response = await client.get(url, headers=headers)
                 if response.status_code != 200:
                     logger.error(f"GasFree API error {response.status_code}: {response.text}")
@@ -159,7 +109,7 @@ class GasFreeAPIClient:
         async with httpx.AsyncClient() as client:
             url = f"{self.base_url}{path}"
             try:
-                headers = self._get_headers("GET", path)
+                headers = self._get_headers()
                 response = await client.get(url, headers=headers)
                 if response.status_code != 200:
                     logger.error(f"GasFree API error {response.status_code}: {response.text}")
@@ -253,7 +203,7 @@ class GasFreeAPIClient:
             }
 
             try:
-                headers = self._get_headers("POST", path)
+                headers = self._get_headers()
                 response = await client.post(url, json=payload, headers=headers)
                 if response.status_code != 200:
                     logger.error(f"GasFree API error {response.status_code}: {response.text}")

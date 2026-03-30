@@ -9,7 +9,6 @@ import {
   ClientSigner,
   GASFREE_PRIMARY_TYPE,
   getChainId,
-  getGasFreeApiBaseUrl,
   UnsupportedNetworkError,
 } from '../index.js';
 import { GASFREE_TYPES, GasFreeAPIClient, type GasFreeAddressInfo } from '../utils/gasfree.js';

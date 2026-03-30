@@ -51,9 +51,9 @@ class NetworkConfig:
 
     # GasFree API Base URLs
     GASFREE_API_BASE_URLS: Dict[str, str] = {
-        "tron:mainnet": "https://open.gasfree.io/tron",
-        "tron:shasta": "https://open-test.gasfree.io/shasta",
-        "tron:nile": "https://open-test.gasfree.io/nile",
+        "tron:mainnet": "https://facilitator.bankofai.io/mainnet",
+        "tron:shasta": "https://facilitator.bankofai.io/shasta",
+        "tron:nile": "https://facilitator.bankofai.io/nile",
     }
 
     # RPC URLs for EVM networks
@@ -126,32 +126,8 @@ class NetworkConfig:
     @classmethod
     def get_gasfree_api_base_url(cls, network: str) -> str:
         """Get GasFree API Base URL for network"""
-        return cls.GASFREE_API_BASE_URLS.get(network, "https://api.gasfree.io/v1")
+        url = cls.GASFREE_API_BASE_URLS.get(network)
+        if not url:
+            raise UnsupportedNetworkError(f"No GasFree API URL configured for network: {network}")
+        return url
 
-    @classmethod
-    def get_gasfree_api_key(cls, network: str) -> str | None:
-        """Get GasFree API Key from environment"""
-        import os
-
-        # 1. Try network-specific key (e.g. GASFREE_API_KEY_NILE)
-        suffix = network.split(":")[-1].upper()
-        key = os.environ.get(f"GASFREE_API_KEY_{suffix}")
-        if key:
-            return key
-
-        # 2. Fallback to generic key
-        return os.environ.get("GASFREE_API_KEY")
-
-    @classmethod
-    def get_gasfree_api_secret(cls, network: str) -> str | None:
-        """Get GasFree API Secret from environment"""
-        import os
-
-        # 1. Try network-specific secret (e.g. GASFREE_API_SECRET_NILE)
-        suffix = network.split(":")[-1].upper()
-        secret = os.environ.get(f"GASFREE_API_SECRET_{suffix}")
-        if secret:
-            return secret
-
-        # 2. Fallback to generic secret
-        return os.environ.get("GASFREE_API_SECRET")
