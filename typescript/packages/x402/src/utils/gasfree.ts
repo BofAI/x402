@@ -78,6 +78,8 @@ export const GASFREE_TYPES = {
   ],
 } as const;
 
+const DEFAULT_TIMEOUT_MS = 30000;
+
 export class GasFreeAPIClient {
   private baseUrl: string;
   private apiKey?: string;
@@ -173,7 +175,7 @@ export class GasFreeAPIClient {
     const url = `${this.baseUrl}${path}`;
     const headers = await this.getHeaders('GET', path);
     
-    const response = await fetch(url, { headers });
+    const response = await fetch(url, { headers, signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS) });
     const bodyText = await response.text();
 
     if (!response.ok) {
@@ -212,7 +214,7 @@ export class GasFreeAPIClient {
     const url = `${this.baseUrl}${path}`;
     const headers = await this.getHeaders('GET', path);
 
-    const response = await fetch(url, { headers });
+    const response = await fetch(url, { headers, signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS) });
     const bodyText = await response.text();
 
     if (!response.ok) {
@@ -237,7 +239,7 @@ export class GasFreeAPIClient {
     const path = `/api/v1/gasfree/${traceId}`;
     const url = `${this.baseUrl}${path}`;
     const headers = await this.getHeaders('GET', path);
-    const response = await fetch(url, { headers });
+    const response = await fetch(url, { headers, signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS) });
     const bodyText = await response.text();
 
     if (!response.ok) {
@@ -329,6 +331,7 @@ export class GasFreeAPIClient {
         method: 'POST',
         headers,
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
       });
 
       const bodyText = await response.text();
