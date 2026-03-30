@@ -1,25 +1,24 @@
-# v0.5.6 - GasFree Balance Check Fix
+# v0.5.7 - Fallback RPC for TRON Mainnet
 
-Release date: March 29, 2026
-
-## Fixes
-
-- **Wrong balance checked for GasFree payments**: `SufficientBalancePolicy` was querying the user's own wallet address for balance, but GasFree payments hold spendable balance in a separate custodial gasfree wallet. The policy now delegates balance checking to each mechanism via `check_balance()` / `checkBalance()`, which knows the correct address to query.
-- **Redundant GasFree API call**: `create_payment_payload` in the GasFree mechanism made a second `getAddressInfo` call that was already performed during balance checking. The shared `_check_gasfree_balance` helper now eliminates this duplication.
-- **Unnecessary `await` on sync method**: Removed `await` on the synchronous `getAddress()` call in TypeScript GasFree mechanism.
-- **Misleading test name**: Renamed test that said "drops requirement" but actually asserted the requirement was kept.
+Release date: March 30, 2026
 
 ## New
 
-- **Mechanism-level balance checking**: `ClientMechanism` now exposes `check_balance()` / `checkBalance()`. The base class default delegates to the signer's wallet; `ExactGasFreeClientMechanism` overrides it to query the gasfree custodial address.
-- **`resolve_mechanism()` / `resolveMechanism()`**: New public method on `X402Client` for policies to look up a mechanism by scheme and network.
-- **Policy test suites**: Comprehensive tests for `SufficientBalancePolicy` in both Python (pytest-anyio) and TypeScript (vitest).
+- **Fallback RPC endpoint for mainnet**: When `TRON_GRID_API_KEY` is not set, the SDK now automatically routes TRON mainnet RPC calls to `https://hptg.bankofai.io` instead of the rate-limited TronGrid endpoint. This eliminates setup friction for developers who don't have a TronGrid API key. When `TRON_GRID_API_KEY` is set, behavior is unchanged.
+- **Warning on fallback usage**: Both Python (`logger.warning`) and TypeScript (`console.warn`) emit a one-time warning when the fallback endpoint is activated, so operators are aware of the routing.
+- **`getTronRpcUrl()` helper** (TypeScript): New exported function for fallback-aware TRON RPC URL resolution.
+- **`TRON_MAINNET_FALLBACK_URL` constant** (Python): Exported constant for the fallback endpoint URL.
+
+## Changes
+
+- `resolveRpcUrl()` in TypeScript now delegates to `getTronRpcUrl()` for TRON networks, ensuring fallback logic applies consistently across all URL resolution paths.
+- `TronClientSigner.getTronWeb()` uses the new helper instead of directly indexing `TRON_RPC_URLS`.
 
 ## Breaking Changes
 
-None for standard `X402Client` usage. Direct callers of `SufficientBalancePolicy.apply()` should note that requirements with no matching mechanism are now dropped instead of passed through.
+None. Existing behavior when `TRON_GRID_API_KEY` is set is fully preserved.
 
 ## Affected SDKs
 
-- **Python**: `bankofai-x402==0.5.6`
-- **TypeScript**: `@bankofai/x402@0.5.6`
+- **Python**: `bankofai-x402==0.5.7`
+- **TypeScript**: `@bankofai/x402@0.5.7`

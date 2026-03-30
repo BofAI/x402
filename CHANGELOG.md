@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.7] - 2026-03-30
+
+### Added
+- Fallback RPC endpoint (`https://hptg.bankofai.io`) for TRON mainnet when `TRON_GRID_API_KEY` is not set — eliminates rate-limit failures for developers without a TronGrid API key
+- `getTronRpcUrl()` helper in TypeScript for fallback-aware RPC URL resolution
+- `TRON_MAINNET_FALLBACK_URL` constant in Python for consistent fallback endpoint reference
+- Warning messages (Python `logger.warning`, TypeScript `console.warn`) when the fallback endpoint is in use
+
+### Changed
+- `resolveRpcUrl()` in TypeScript now delegates to `getTronRpcUrl()` for TRON networks, ensuring fallback logic is applied consistently
+- `TronClientSigner.getTronWeb()` uses `getTronRpcUrl()` instead of directly indexing `TRON_RPC_URLS`
+
 ## [0.5.6] - 2026-03-29
 
 ### Fixed

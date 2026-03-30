@@ -206,13 +206,15 @@ asyncio.run(main())
  AI agents can handle x402 payments autonomously by using the specialized payment skill.
 
  **Configuration:**
- Configure `agent-wallet` first, then let the signer factories resolve the active wallet. The `TRON_GRID_API_KEY` is recommended to avoid rate limits on TRON RPC nodes. For wallet setup instructions and supported configuration modes, see `https://github.com/BofAI/agent-wallet`.
+ Configure `agent-wallet` first, then let the signer factories resolve the active wallet. For wallet setup instructions and supported configuration modes, see `https://github.com/BofAI/agent-wallet`.
+
+ When `TRON_GRID_API_KEY` is not set, mainnet RPC calls are automatically routed to a BankOfAI-operated fallback endpoint (`https://hptg.bankofai.io`). Setting `TRON_GRID_API_KEY` uses TronGrid directly and is recommended for production workloads.
 
  ```bash
  # Example: configure agent-wallet via environment
  # See https://github.com/BofAI/agent-wallet for the full setup guide
  export AGENT_WALLET_PRIVATE_KEY="your_private_key_here"
- export TRON_GRID_API_KEY="your_trongrid_api_key_here"  # Recommended
+ export TRON_GRID_API_KEY="your_trongrid_api_key_here"  # Recommended for production
  ```
 
 **Using with Agentic Tools:**
@@ -301,7 +303,7 @@ The x402 protocol supports multiple payment schemes to accommodate different use
 ### Configuration
 Environment variables for development:
 - Configure wallet access through `agent-wallet`. See `https://github.com/BofAI/agent-wallet` for supported environment variables and providers.
-- `TRON_GRID_API_KEY`: Recommended for higher TRON RPC limits.
+- `TRON_GRID_API_KEY`: Recommended for production. When not set, mainnet RPC calls use a BankOfAI fallback endpoint automatically.
 
 ### Testing
 ```bash
