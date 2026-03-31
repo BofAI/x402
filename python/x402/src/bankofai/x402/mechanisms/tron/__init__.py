@@ -22,8 +22,7 @@ from .exact import (
     register_exact_tron_server,
 )
 from .signer import ClientTronSigner, FacilitatorTronSigner
-from .signers import ClientTronSigner as ClientTronSignerImpl
-from .signers import FacilitatorTronSigner as FacilitatorTronSignerImpl
+from .signers import ClientTronWebSigner, FacilitatorTronWebSigner
 from .types import (
     ExactEIP3009Authorization,
     ExactEIP3009Payload,
@@ -59,8 +58,8 @@ __all__ = [
     # Signers
     "FacilitatorTronSigner",
     "ClientTronSigner",
-    "FacilitatorTronSignerImpl",
-    "ClientTronSignerImpl",
+    "FacilitatorTronWebSigner",
+    "ClientTronWebSigner",
     # Utils
     "get_tron_chain_id",
     "get_network_config",

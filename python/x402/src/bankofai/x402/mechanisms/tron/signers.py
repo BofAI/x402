@@ -89,12 +89,12 @@ def _build_typed_data_payload(
 # ---------------------------------------------------------------------------
 
 
-class FacilitatorTronSigner:
+class FacilitatorTronWebSigner:
     """Facilitator-side TRON signer (verify + settle).
 
     Example:
         ```python
-        signer = FacilitatorTronSigner(
+        signer = FacilitatorTronWebSigner(
             private_key="your_hex_private_key",
             full_node="https://nile.trongrid.io",
         )
@@ -248,12 +248,12 @@ class FacilitatorTronSigner:
 # ---------------------------------------------------------------------------
 
 
-class ClientTronSigner:
+class ClientTronWebSigner:
     """Client-side TRON signer for TIP-712 signing.
 
     Example:
         ```python
-        signer = ClientTronSigner(
+        signer = ClientTronWebSigner(
             private_key="your_hex_private_key",
             full_node="https://nile.trongrid.io",
         )

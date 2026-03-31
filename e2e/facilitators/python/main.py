@@ -28,7 +28,7 @@ from bankofai.x402.mechanisms.evm import FacilitatorWeb3Signer
 from bankofai.x402.mechanisms.evm.exact import register_exact_evm_facilitator
 from bankofai.x402.mechanisms.svm import FacilitatorKeypairSigner
 from bankofai.x402.mechanisms.svm.exact import register_exact_svm_facilitator
-from bankofai.x402.mechanisms.tron.signers import FacilitatorTronSigner
+from bankofai.x402.mechanisms.tron.signers import FacilitatorTronWebSigner as FacilitatorTronSigner
 from bankofai.x402.mechanisms.tron.exact import register_exact_tron_facilitator
 from bankofai.x402.extensions.trc20_approval_gas_sponsoring import (
     create_trc20_approval_gas_sponsoring_extension,

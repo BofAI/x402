@@ -13,7 +13,7 @@ from bankofai.x402.mechanisms.evm import EthAccountSigner
 from bankofai.x402.mechanisms.evm.exact import register_exact_evm_client
 from bankofai.x402.mechanisms.svm import KeypairSigner
 from bankofai.x402.mechanisms.svm.exact import register_exact_svm_client
-from bankofai.x402.mechanisms.tron.signers import ClientTronSigner
+from bankofai.x402.mechanisms.tron.signers import ClientTronWebSigner as ClientTronSigner
 from bankofai.x402.mechanisms.tron.exact import register_exact_tron_client
 
 # Load environment variables
