@@ -10,10 +10,11 @@ from fastapi.responses import JSONResponse
 
 from bankofai.x402.encoding import decode_payment_payload, encode_payment_payload
 from bankofai.x402.server import ResourceConfig, X402Server
-from bankofai.x402.types import PaymentPayload, PaymentRequirements
+from bankofai.x402.types import PaymentPayload, PaymentRequirements, ReceiptSignatureData
 from bankofai.x402.utils.address import checksum_evm_address
 
 if TYPE_CHECKING:
+    from bankofai.x402.utils.receipt_signer import SellerSigningConfig
     from bankofai.x402.utils.tx_verification import TransactionVerificationResult
 
 PAYMENT_SIGNATURE_HEADER = "PAYMENT-SIGNATURE"
@@ -50,6 +51,7 @@ class X402Middleware:
         pay_to: str | None = None,
         valid_for: int = 3600,
         delivery_mode: str = "PAYMENT_ONLY",
+        seller_signing: "SellerSigningConfig | None" = None,
     ) -> Callable:
         """
         Decorator to protect endpoints with payment requirements.
@@ -79,6 +81,10 @@ class X402Middleware:
             pay_to: Payment recipient address
             valid_for: Payment validity period (seconds)
             delivery_mode: Delivery mode
+            seller_signing: Optional SellerSigningConfig. When provided, the server
+                constructs and returns an ECDSA receipt signature (EIP-191) alongside
+                the data response. The buyer can submit this signature on-chain to
+                PurchaseLog.logPurchase() as proof of purchase.
 
         Returns:
             Decorated function
@@ -191,6 +197,27 @@ class X402Middleware:
                             status_code=500,
                         )
 
+                # Sign receipt if seller_signing is configured
+                if seller_signing and settle_result.transaction:
+                    import hashlib
+
+                    # paymentHash = SHA-256 of the PAYMENT-SIGNATURE header
+                    # (the buyer's base64-encoded payment payload). This matches
+                    # PurchaseLog.sol's spec: "SHA-256 of x402 X-Payment header".
+                    payment_hash_bytes = hashlib.sha256(
+                        payment_header.encode("utf-8")
+                    ).hexdigest()
+
+                    receipt_sig = self._sign_receipt(
+                        request=request,
+                        signing_config=seller_signing,
+                        payment_hash=payment_hash_bytes,
+                        amount=requirements.amount,
+                        network=requirements.network,
+                    )
+                    if receipt_sig:
+                        settle_result.receipt_signature = receipt_sig
+
                 response = await func(request, *args, **kwargs)
 
                 if isinstance(response, Response):
@@ -208,6 +235,67 @@ class X402Middleware:
             return wrapper
 
         return decorator
+
+    @staticmethod
+    def _sign_receipt(
+        request: Request,
+        signing_config: "SellerSigningConfig",
+        payment_hash: str,
+        amount: str,
+        network: str,
+    ) -> ReceiptSignatureData | None:
+        """Construct and sign the receipt digest for PurchaseLog verification.
+
+        Returns None if signing fails (logs a warning but does not block the response).
+        """
+        import logging
+
+        from bankofai.x402.config import NetworkConfig
+        from bankofai.x402.utils.receipt_signer import sign_receipt
+
+        logger = logging.getLogger(__name__)
+
+        try:
+            # Read buyer agent ID from request header (0 = anonymous)
+            buyer_agent_id = 0
+            header_val = request.headers.get(signing_config.buyer_agent_id_header)
+            if header_val:
+                buyer_agent_id = int(header_val)
+
+            # Validate values fit in the PurchaseLog's packed struct types
+            _UINT32_MAX = 2**32 - 1
+            if signing_config.listing_id > _UINT32_MAX:
+                logger.warning("listing_id %d exceeds uint32", signing_config.listing_id)
+                return None
+            if buyer_agent_id > _UINT32_MAX:
+                logger.warning("buyer_agent_id %d exceeds uint32", buyer_agent_id)
+                return None
+
+            chain_id = NetworkConfig.get_chain_id(network)
+
+            result = sign_receipt(
+                private_key=signing_config.private_key,
+                listing_id=signing_config.listing_id,
+                buyer_agent_id=buyer_agent_id,
+                payment_hash=payment_hash,
+                amount=amount,
+                chain_id=chain_id,
+                contract_address=signing_config.purchase_log_address,
+            )
+
+            return ReceiptSignatureData(
+                signature=result.signature,
+                digest=result.digest,
+                listingId=result.listing_id,
+                buyerAgentId=result.buyer_agent_id,
+                paymentHash=result.payment_hash,
+                amount=result.amount,
+                chainId=result.chain_id,
+                contractAddress=result.contract_address,
+            )
+        except Exception as e:
+            logger.warning("Receipt signing failed: %s", e, exc_info=True)
+            return None
 
     @staticmethod
     def _match_config(
@@ -315,6 +403,7 @@ def x402_protected(
     schemes: list[str],
     network: str,
     pay_to: str,
+    seller_signing: "SellerSigningConfig | None" = None,
     **kwargs: Any,
 ) -> Callable:
     """
@@ -329,13 +418,18 @@ def x402_protected(
             pay_to="T...",
         )
 
-    Multiple tokens, per-token scheme:
+    With seller receipt signing (for PurchaseLog on-chain proof):
         @x402_protected(
             server,
-            prices=["0.0001 USDT", "0.0001 DHLU"],
-            schemes=["exact_permit", "exact"],
-            network="eip155:97",
-            pay_to="0x...",
+            prices=["1 USDT"],
+            schemes=["exact_permit"],
+            network="tron:nile",
+            pay_to="T...",
+            seller_signing=SellerSigningConfig(
+                private_key="0x...",
+                listing_id=42,
+                purchase_log_address="0x...",
+            ),
         )
     """
     middleware = X402Middleware(server)
@@ -344,5 +438,6 @@ def x402_protected(
         schemes=schemes,
         network=network,
         pay_to=pay_to,
+        seller_signing=seller_signing,
         **kwargs,
     )

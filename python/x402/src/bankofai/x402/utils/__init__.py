@@ -11,6 +11,12 @@ from bankofai.x402.utils.eip712 import (
     payment_id_to_bytes,
 )
 from bankofai.x402.utils.payment_id import generate_payment_id
+from bankofai.x402.utils.receipt_signer import (
+    ReceiptSignature,
+    SellerSigningConfig,
+    compute_receipt_digest,
+    sign_receipt,
+)
 from bankofai.x402.utils.tron_verification import TronTransactionVerifier
 from bankofai.x402.utils.tx_verification import (
     BaseTransactionVerifier,
@@ -36,4 +42,9 @@ __all__ = [
     "BaseTransactionVerifier",
     "TronTransactionVerifier",
     "get_verifier_for_network",
+    # Receipt signing
+    "ReceiptSignature",
+    "SellerSigningConfig",
+    "compute_receipt_digest",
+    "sign_receipt",
 ]

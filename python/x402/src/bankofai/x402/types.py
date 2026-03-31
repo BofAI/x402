@@ -199,6 +199,26 @@ class TransactionInfo(BaseModel):
         populate_by_name = True
 
 
+class ReceiptSignatureData(BaseModel):
+    """Seller's ECDSA receipt signature for on-chain purchase logging.
+
+    The seller signs a receipt digest using EIP-191 personal-sign so the buyer
+    can call PurchaseLog.logPurchase() with this signature as proof of purchase.
+    """
+
+    signature: str  # 0x-prefixed 65-byte ECDSA signature (r+s+v)
+    digest: str  # 0x-prefixed 32-byte keccak256 digest
+    listing_id: int = Field(alias="listingId")
+    buyer_agent_id: int = Field(alias="buyerAgentId")
+    payment_hash: str = Field(alias="paymentHash")  # 0x-prefixed bytes32
+    amount: int
+    chain_id: int = Field(alias="chainId")
+    contract_address: str = Field(alias="contractAddress")  # PurchaseLog address
+
+    class Config:
+        populate_by_name = True
+
+
 class SettleResponse(BaseModel):
     """Settlement response from facilitator"""
 
@@ -206,6 +226,9 @@ class SettleResponse(BaseModel):
     transaction: Optional[str] = None
     network: Optional[str] = None
     error_reason: Optional[str] = Field(None, alias="errorReason")
+    receipt_signature: Optional[ReceiptSignatureData] = Field(
+        None, alias="receiptSignature"
+    )
 
     class Config:
         populate_by_name = True

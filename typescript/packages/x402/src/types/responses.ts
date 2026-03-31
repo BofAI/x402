@@ -39,6 +39,26 @@ export interface VerifyResponse {
   invalidReason?: string;
 }
 
+/** Seller's ECDSA receipt signature for on-chain purchase logging */
+export interface ReceiptSignatureData {
+  /** 0x-prefixed 65-byte ECDSA signature (r+s+v) */
+  signature: string;
+  /** 0x-prefixed 32-byte keccak256 digest */
+  digest: string;
+  /** Listing ID in DataMarketplace */
+  listingId: number;
+  /** 8004 agent ID of the buyer (0 = anonymous) */
+  buyerAgentId: number;
+  /** 0x-prefixed bytes32 payment hash */
+  paymentHash: string;
+  /** Payment amount in token smallest unit */
+  amount: number;
+  /** EVM chain ID */
+  chainId: number;
+  /** PurchaseLog contract address */
+  contractAddress: string;
+}
+
 /** Settlement response from facilitator */
 export interface SettleResponse {
   /** Whether settlement succeeded */
@@ -49,6 +69,8 @@ export interface SettleResponse {
   network?: string;
   /** Error reason (if failed) */
   errorReason?: string;
+  /** Seller receipt signature for PurchaseLog on-chain proof */
+  receiptSignature?: ReceiptSignatureData;
 }
 
 /** Supported response from facilitator */

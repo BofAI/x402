@@ -257,7 +257,7 @@ class X402Server:
                     kind=PAYMENT_ONLY,
                     paymentId=payment_id or generate_payment_id(),
                     nonce=nonce or str(uuid.uuid4().int),
-                    validAfter=valid_after or now,
+                    validAfter=valid_after or (now - 60),
                     validBefore=valid_before or (now + 3600),
                 ),
             )
