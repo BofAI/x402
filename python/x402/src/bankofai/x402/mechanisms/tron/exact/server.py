@@ -69,6 +69,12 @@ class ExactTronServerScheme:
         if requirements.extra is None:
             requirements.extra = {}
 
+        # Merge facilitator extra (e.g. permit2FacilitatorAddress) from supported kind
+        kind_extra = supported_kind.extra or {}
+        for key, value in kind_extra.items():
+            if key not in requirements.extra:
+                requirements.extra[key] = value
+
         if asset_info is not None:
             if "name" not in requirements.extra:
                 requirements.extra["name"] = asset_info["name"]

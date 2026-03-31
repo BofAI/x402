@@ -13,7 +13,7 @@ def test_parse_price_default_asset():
     result = server.parse_price("$0.10", network)
     assert result.amount == "100000"
     assert result.asset == get_network_config(network)["default_asset"]["address"]
-    assert result.extra == {"name": "Tether USD", "version": "1"}
+    assert result.extra == {"name": "Tether USD", "version": "1", "assetTransferMethod": "permit2"}
 
 
 def test_parse_price_asset_amount():

@@ -32,10 +32,8 @@ load_dotenv()
 
 # Get configuration from environment
 EVM_ADDRESS = os.getenv("EVM_PAYEE_ADDRESS")
-EVM_FACILITATOR_ADDRESS = os.getenv("EVM_FACILITATOR_ADDRESS")
 SVM_ADDRESS = os.getenv("SVM_PAYEE_ADDRESS")
 TRON_ADDRESS = os.getenv("TRON_PAYEE_ADDRESS")
-TRON_FACILITATOR_ADDRESS = os.getenv("TRON_FACILITATOR_ADDRESS")
 PORT = int(os.getenv("PORT", "4021"))
 FACILITATOR_URL = os.getenv("FACILITATOR_URL")
 
@@ -47,10 +45,6 @@ if not SVM_ADDRESS:
     print("Warning: SVM_PAYEE_ADDRESS not set - SVM payment endpoints disabled")
 if not TRON_ADDRESS:
     print("Warning: TRON_PAYEE_ADDRESS not set - TRON payment endpoints disabled")
-if not TRON_FACILITATOR_ADDRESS:
-    print("Warning: TRON_FACILITATOR_ADDRESS not set - TRON Permit2 endpoints disabled")
-if not EVM_FACILITATOR_ADDRESS:
-    print("Warning: EVM_FACILITATOR_ADDRESS not set - EVM Permit2 endpoints disabled")
 
 # Network configurations (CAIP-2 format)
 EVM_NETWORK = "eip155:97"  # BSC Testnet
@@ -156,47 +150,40 @@ routes = {
             ),
         },
     },
-    **(
-        {
-            "GET /protected-permit2": {
-                "accepts": {
-                    "scheme": "exact",
-                    "payTo": EVM_ADDRESS,
-                    "assets": ["DHLU"],
-                    "price": {
-                        "amount": "1000",
-                        "asset": "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
-                        "extra": {
-                            "name": "DA HULU",
-                            "version": "1",
-                            "assetTransferMethod": "permit2",
-                            "permit2FacilitatorAddress": EVM_FACILITATOR_ADDRESS,
-                        },
-                    },
-                    "network": EVM_NETWORK,
-                },
-                "extensions": {
-                    **declare_discovery_extension(
-                        output=OutputConfig(
-                            example={
-                                "message": "Access granted to Permit2 protected resource",
-                                "timestamp": "2024-01-01T00:00:00Z",
-                            },
-                            schema={
-                                "properties": {
-                                    "message": {"type": "string"},
-                                    "timestamp": {"type": "string"},
-                                },
-                                "required": ["message", "timestamp"],
-                            },
-                        )
-                    ),
+    "GET /protected-permit2": {
+        "accepts": {
+            "scheme": "exact",
+            "payTo": EVM_ADDRESS,
+            "assets": ["DHLU"],
+            "price": {
+                "amount": "1000",
+                "asset": "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
+                "extra": {
+                    "name": "DA HULU",
+                    "version": "1",
+                    "assetTransferMethod": "permit2",
                 },
             },
-        }
-        if EVM_FACILITATOR_ADDRESS
-        else {}
-    ),
+            "network": EVM_NETWORK,
+        },
+        "extensions": {
+            **declare_discovery_extension(
+                output=OutputConfig(
+                    example={
+                        "message": "Access granted to Permit2 protected resource",
+                        "timestamp": "2024-01-01T00:00:00Z",
+                    },
+                    schema={
+                        "properties": {
+                            "message": {"type": "string"},
+                            "timestamp": {"type": "string"},
+                        },
+                        "required": ["message", "timestamp"],
+                    },
+                )
+            ),
+        },
+    },
     **(
         {
             "GET /protected-svm": {
@@ -236,10 +223,6 @@ routes = {
                     "payTo": TRON_ADDRESS,
                     "price": "$0.01",
                     "network": TRON_NETWORK,
-                    "extra": {
-                        "assetTransferMethod": "permit2",
-                        "permit2FacilitatorAddress": TRON_FACILITATOR_ADDRESS,
-                    },
                 },
                 "extensions": {
                     **declare_discovery_extension(
@@ -263,7 +246,7 @@ routes = {
                 },
             },
         }
-        if TRON_ADDRESS and TRON_FACILITATOR_ADDRESS
+        if TRON_ADDRESS
         else {}
     ),
     **(
@@ -274,10 +257,6 @@ routes = {
                     "payTo": TRON_ADDRESS,
                     "price": "$0.01",
                     "network": TRON_NETWORK,
-                    "extra": {
-                        "assetTransferMethod": "permit2",
-                        "permit2FacilitatorAddress": TRON_FACILITATOR_ADDRESS,
-                    },
                 },
                 "extensions": {
                     **declare_discovery_extension(
@@ -301,7 +280,7 @@ routes = {
                 },
             },
         }
-        if TRON_ADDRESS and TRON_FACILITATOR_ADDRESS
+        if TRON_ADDRESS
         else {}
     ),
 }
