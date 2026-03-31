@@ -297,6 +297,7 @@ svm = [
 ]
 tron = [
     { name = "base58" },
+    { name = "eth-account" },
     { name = "tronpy" },
 ]
 
@@ -334,6 +335,7 @@ requires-dist = [
     { name = "base58", marker = "extra == 'tron'", specifier = ">=2.1.1" },
     { name = "eth-abi", marker = "extra == 'evm'", specifier = ">=5.0.0" },
     { name = "eth-account", marker = "extra == 'evm'", specifier = ">=0.12.0" },
+    { name = "eth-account", marker = "extra == 'tron'", specifier = ">=0.12.0" },
     { name = "eth-keys", marker = "extra == 'evm'", specifier = ">=0.5.0" },
     { name = "eth-utils", marker = "extra == 'evm'", specifier = ">=4.0.0" },
     { name = "fastapi", extras = ["standard"], marker = "extra == 'fastapi'", specifier = ">=0.115.0" },

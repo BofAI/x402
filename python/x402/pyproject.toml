@@ -38,6 +38,7 @@ fastapi = ["fastapi[standard]>=0.115.0", "starlette>=0.27.0"]
 tron = [
     "base58>=2.1.1",
     "tronpy>=0.6.0,<0.7.0",
+    "eth-account>=0.12.0",
 ]
 evm = [
     "eth-abi>=5.0.0",
