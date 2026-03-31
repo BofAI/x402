@@ -1,5 +1,11 @@
 # @bankofai/x402-axios Changelog
 
+## 2.6.0-beta.5
+
+### Patch Changes
+
+- Pin axios to 1.13.6 to block compromised versions 1.14.1 and 0.30.4
+
 ## 2.6.0
 
 ### Minor Changes

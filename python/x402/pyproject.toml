@@ -1,6 +1,6 @@
 [project]
 name = "bankofai.x402"
-version = "2.3.0"
+version = "2.3.0b1"
 description = "x402 Payment Protocol SDK for Python"
 readme = "README.md"
 license = { text = "MIT" }
