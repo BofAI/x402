@@ -145,6 +145,13 @@ class ExactEvmScheme:
         # Add EIP-712 domain params
         if requirements.extra is None:
             requirements.extra = {}
+
+        # Merge facilitator extra (e.g. permit2FacilitatorAddress) from supported kind
+        kind_extra = supported_kind.extra or {}
+        for key, value in kind_extra.items():
+            if key not in requirements.extra:
+                requirements.extra[key] = value
+
         if asset_info is not None:
             atm = asset_info.get("asset_transfer_method")
             include_eip712_domain = not atm or asset_info.get("supports_eip2612", False)

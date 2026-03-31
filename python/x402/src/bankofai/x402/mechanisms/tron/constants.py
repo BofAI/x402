@@ -46,6 +46,7 @@ TRON_NETWORK_CONFIGS: dict[str, NetworkConfig] = {
             "name": "Tether USD",
             "version": "1",
             "decimals": 6,
+            "asset_transfer_method": "permit2",
         },
     },
     "tron:nile": {
@@ -55,6 +56,7 @@ TRON_NETWORK_CONFIGS: dict[str, NetworkConfig] = {
             "name": "Tether USD",
             "version": "1",
             "decimals": 6,
+            "asset_transfer_method": "permit2",
         },
     },
     "tron:shasta": {
@@ -64,6 +66,7 @@ TRON_NETWORK_CONFIGS: dict[str, NetworkConfig] = {
             "name": "Tether USD",
             "version": "1",
             "decimals": 6,
+            "asset_transfer_method": "permit2",
         },
     },
 }
