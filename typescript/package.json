@@ -11,7 +11,8 @@
   "main": "index.js",
   "pnpm": {
     "overrides": {
-      "cssstyle": "5.3.6"
+      "cssstyle": "5.3.6",
+      "axios": "1.13.6"
     }
   },
   "scripts": {
