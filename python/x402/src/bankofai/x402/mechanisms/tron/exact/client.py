@@ -5,14 +5,18 @@ from __future__ import annotations
 import time
 from typing import Any
 
+from ....extensions.eip2612_gas_sponsoring import EIP2612_GAS_SPONSORING
 from ....extensions.trc20_approval_gas_sponsoring import TRC20_APPROVAL_GAS_SPONSORING
 from ....interfaces import PaymentPayloadContext
 from ....schemas import PaymentRequirements
 from ..constants import (
     AUTHORIZATION_TYPES,
+    EIP2612_NONCES_ABI,
+    EIP2612_PERMIT_TYPES,
     PERMIT2_ADDRESSES,
     PERMIT2_WITNESS_TYPES,
     SCHEME_EXACT,
+    TRC20_ALLOWANCE_ABI,
     X402_PERMIT2_PROXY_ADDRESSES,
 )
 from ..signer import ClientTronSigner
@@ -45,7 +49,9 @@ class ExactTronClientScheme:
 
         if asset_transfer_method == "permit2":
             payload = self._create_permit2_payload(requirements)
-            extensions = self._try_build_trc20_approval_extension(requirements, context)
+            extensions = self._try_build_gas_sponsoring_extensions(
+                requirements, payload, context
+            )
             if extensions:
                 return payload, extensions
             return payload
@@ -69,13 +75,105 @@ class ExactTronClientScheme:
         payload = ExactEIP3009Payload(authorization=authorization, signature=signature)
         return payload.to_dict()
 
-    def _try_build_trc20_approval_extension(
-        self, requirements: PaymentRequirements, context: PaymentPayloadContext | None
+    def _try_build_gas_sponsoring_extensions(
+        self,
+        requirements: PaymentRequirements,
+        payload: dict[str, Any],
+        context: PaymentPayloadContext | None,
     ) -> dict[str, Any] | None:
         if context is None or not context.extensions:
             return None
-        if TRC20_APPROVAL_GAS_SPONSORING.key not in context.extensions:
+
+        if EIP2612_GAS_SPONSORING.key in context.extensions:
+            eip2612 = self._try_build_eip2612_extension(requirements, payload)
+            if eip2612:
+                return {EIP2612_GAS_SPONSORING.key: {"info": eip2612, "schema": {}}}
+
+        if TRC20_APPROVAL_GAS_SPONSORING.key in context.extensions:
+            trc20 = self._try_build_trc20_approval_extension(requirements)
+            if trc20:
+                return {TRC20_APPROVAL_GAS_SPONSORING.key: {"info": trc20, "schema": {}}}
+
+        return None
+
+    def _try_build_eip2612_extension(
+        self, requirements: PaymentRequirements, payload: dict[str, Any]
+    ) -> dict[str, Any] | None:
+        extra = requirements.extra or {}
+        token_name = extra.get("name")
+        token_version = extra.get("version")
+        if not token_name or not token_version:
             return None
+
+        permit2_auth = payload.get("permit2Authorization") or {}
+        deadline = permit2_auth.get("deadline")
+        if not deadline:
+            return None
+
+        token_address = requirements.asset
+        permit2_address = PERMIT2_ADDRESSES.get(str(requirements.network))
+        if not permit2_address:
+            return None
+
+        # Check if allowance is already sufficient
+        try:
+            allowance = self._signer.read_contract(
+                address=token_address,
+                function_name="allowance",
+                args=[self._signer.address, permit2_address],
+                abi=TRC20_ALLOWANCE_ABI,
+            )
+            if int(str(allowance)) >= int(str(requirements.amount)):
+                return None
+        except Exception:
+            pass
+
+        # Try to read nonces — if token doesn't support EIP-2612, this fails
+        try:
+            nonce = self._signer.read_contract(
+                address=token_address,
+                function_name="nonces",
+                args=[self._signer.address],
+                abi=EIP2612_NONCES_ABI,
+            )
+        except Exception:
+            return None
+
+        chain_id = get_tron_chain_id(str(requirements.network))
+        domain = {
+            "name": token_name,
+            "version": token_version,
+            "chainId": chain_id,
+            "verifyingContract": normalize_address_for_signing(token_address),
+        }
+        message = {
+            "owner": normalize_address_for_signing(self._signer.address),
+            "spender": normalize_address_for_signing(permit2_address),
+            "value": int(requirements.amount),
+            "nonce": int(nonce),
+            "deadline": int(deadline),
+        }
+        sig = self._signer.sign_typed_data(
+            domain=domain,
+            types=EIP2612_PERMIT_TYPES,
+            primary_type="Permit",
+            message=message,
+        )
+
+        return {
+            "from": normalize_address_for_signing(self._signer.address),
+            "asset": normalize_address_for_signing(token_address),
+            "spender": normalize_address_for_signing(permit2_address),
+            "amount": str(requirements.amount),
+            "nonce": str(nonce),
+            "deadline": str(deadline),
+            "signature": sig,
+            "version": "1",
+        }
+
+    def _try_build_trc20_approval_extension(
+        self, requirements: PaymentRequirements
+    ) -> dict[str, Any] | None:
         if not hasattr(self._signer, "build_trigger_smart_contract_transaction") or not hasattr(
             self._signer, "sign_transaction"
         ):
@@ -94,15 +192,13 @@ class ExactTronClientScheme:
             if int(str(allowance)) >= int(str(requirements.amount)):
                 return None
         except Exception:
-            # If allowance cannot be read, still try to provide the approval transaction.
             pass
 
-        info = sign_trc20_approval_transaction(
+        return sign_trc20_approval_transaction(
             self._signer,
             requirements.asset,
             str(requirements.network),
         )
-        return {TRC20_APPROVAL_GAS_SPONSORING.key: {"info": info, "schema": {}}}
 
     def _sign_eip3009(
         self, authorization: ExactEIP3009Authorization, requirements: PaymentRequirements

@@ -145,9 +145,15 @@ class FacilitatorTronWebSigner:
         address: str,
         function_name: str,
         args: list[Any] | None = None,
+        abi: list[dict[str, Any]] | None = None,
     ) -> Any:
         """Call a read-only TRC-20 / smart contract function."""
-        contract = self._client.get_contract(address)
+        if abi is not None:
+            from tronpy.contract import Contract  # type: ignore
+
+            contract = Contract(addr=address, abi=abi, client=self._client)
+        else:
+            contract = self._client.get_contract(address)
         func = getattr(contract.functions, function_name)
         return func(*(args or []))
 
@@ -295,9 +301,15 @@ class ClientTronWebSigner:
         address: str,
         function_name: str,
         args: list[Any] | None = None,
+        abi: list[dict[str, Any]] | None = None,
     ) -> Any:
         """Read data from a contract."""
-        contract = self._client.get_contract(address)
+        if abi is not None:
+            from tronpy.contract import Contract  # type: ignore
+
+            contract = Contract(addr=address, abi=abi, client=self._client)
+        else:
+            contract = self._client.get_contract(address)
         func = getattr(contract.functions, function_name)
         return func(*(args or []))
 

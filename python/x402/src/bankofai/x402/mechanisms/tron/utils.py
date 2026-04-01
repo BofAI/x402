@@ -1,6 +1,7 @@
 """TRON utility functions — address conversion and chain helpers."""
 
 import os
+from decimal import Decimal
 
 from .constants import TRON_CHAIN_IDS, TRON_NETWORK_CONFIGS, AssetInfo, NetworkConfig
 
@@ -25,11 +26,17 @@ def get_network_config(network: str) -> NetworkConfig:
 
 
 def get_asset_info(network: str, asset_address: str) -> AssetInfo:
-    """Get asset info by address."""
+    """Get asset info by address.
+
+    Searches default_asset first, then additional registered assets.
+    """
     config = get_network_config(network)
     default = config.get("default_asset")
     if default and default["address"].lower() == asset_address.lower():
         return default
+    for asset in config.get("assets", []):
+        if asset["address"].lower() == asset_address.lower():
+            return asset
     raise ValueError(f"Token {asset_address} is not a registered asset for network {network}.")
 
 
@@ -72,6 +79,21 @@ def normalize_address_for_contract_call(address: str) -> str:
 def is_tron_address(address: str) -> bool:
     """Return True if address looks like a TRON Base58Check address."""
     return address.startswith("T") and len(address) == 34
+
+
+def parse_amount(amount: str, decimals: int) -> int:
+    """Convert decimal string to smallest unit (sun).
+
+    Args:
+        amount: Decimal string (e.g., "0.01").
+        decimals: Token decimals.
+
+    Returns:
+        Amount in smallest unit.
+    """
+    d = Decimal(amount)
+    multiplier = Decimal(10**decimals)
+    return int(d * multiplier)
 
 
 def create_nonce() -> str:

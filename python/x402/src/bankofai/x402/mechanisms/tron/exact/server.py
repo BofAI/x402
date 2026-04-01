@@ -5,7 +5,7 @@ from collections.abc import Callable
 
 from ....schemas import AssetAmount, Network, PaymentRequirements, Price, SupportedKind
 from ..constants import SCHEME_EXACT
-from ..utils import get_asset_info, get_network_config
+from ..utils import get_asset_info, get_network_config, parse_amount
 
 MoneyParser = Callable[[float, str], AssetAmount | None]
 
@@ -66,6 +66,15 @@ class ExactTronServerScheme:
         except ValueError:
             asset_info = None
 
+        # Ensure amount is in smallest unit (sun)
+        if "." in requirements.amount:
+            if asset_info is None:
+                raise ValueError(
+                    f"Token {requirements.asset} is not a registered asset for network "
+                    f"{requirements.network}; provide amount in atomic units"
+                )
+            requirements.amount = str(parse_amount(requirements.amount, asset_info["decimals"]))
+
         if requirements.extra is None:
             requirements.extra = {}
 
@@ -76,11 +85,14 @@ class ExactTronServerScheme:
                 requirements.extra[key] = value
 
         if asset_info is not None:
-            if "name" not in requirements.extra:
-                requirements.extra["name"] = asset_info["name"]
-            if "version" not in requirements.extra:
-                requirements.extra["version"] = asset_info["version"]
             atm = asset_info.get("asset_transfer_method")
+            include_tip712_domain = not atm or asset_info.get("supports_eip2612", False)
+
+            if include_tip712_domain:
+                if "name" not in requirements.extra:
+                    requirements.extra["name"] = asset_info["name"]
+                if "version" not in requirements.extra:
+                    requirements.extra["version"] = asset_info["version"]
             if "assetTransferMethod" not in requirements.extra and atm:
                 requirements.extra["assetTransferMethod"] = atm
 
@@ -93,8 +105,13 @@ class ExactTronServerScheme:
             raise ValueError(f"No default stablecoin configured for network {network}")
 
         token_amount = int(amount * (10 ** asset["decimals"]))
-        extra: dict = {"name": asset["name"], "version": asset["version"]}
         atm = asset.get("asset_transfer_method")
+        include_tip712_domain = not atm or asset.get("supports_eip2612", False)
+
+        extra: dict = {}
+        if include_tip712_domain:
+            extra["name"] = asset["name"]
+            extra["version"] = asset["version"]
         if atm:
             extra["assetTransferMethod"] = atm
 

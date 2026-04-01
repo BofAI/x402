@@ -7,6 +7,8 @@ from bankofai.x402.mechanisms.tron import (
     ExactTronPayloadV1,
     Permit2Authorization,
     Permit2Witness,
+    TypedDataDomain,
+    TypedDataField,
     is_permit2_payload,
 )
 
@@ -59,3 +61,31 @@ class TestHelpers:
     def test_is_permit2_payload(self):
         assert is_permit2_payload({"permit2Authorization": {}}) is True
         assert is_permit2_payload({"authorization": {}}) is False
+
+
+class TestTypedDataTypes:
+    def test_typed_data_domain(self):
+        domain = TypedDataDomain(
+            name="Permit2",
+            version=None,
+            chain_id=3448148188,
+            verifying_contract="0x" + "44" * 20,
+        )
+        assert domain.name == "Permit2"
+        assert domain.version is None
+        assert domain.chain_id == 3448148188
+        assert domain.verifying_contract == "0x" + "44" * 20
+
+    def test_typed_data_domain_with_version(self):
+        domain = TypedDataDomain(
+            name="Tether USD",
+            version="1",
+            chain_id=3448148188,
+            verifying_contract="0x" + "22" * 20,
+        )
+        assert domain.version == "1"
+
+    def test_typed_data_field(self):
+        field = TypedDataField(name="owner", type="address")
+        assert field.name == "owner"
+        assert field.type == "address"

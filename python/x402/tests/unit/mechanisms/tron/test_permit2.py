@@ -2,12 +2,22 @@
 
 import time
 
+from bankofai.x402.extensions.eip2612_gas_sponsoring import (
+    EIP2612_GAS_SPONSORING,
+    Eip2612GasSponsoringExtension,
+    Eip2612GasSponsoringInfo,
+)
 from bankofai.x402.extensions.trc20_approval_gas_sponsoring import (
     TRC20_APPROVAL_GAS_SPONSORING,
     create_trc20_approval_gas_sponsoring_extension,
 )
 from bankofai.x402.interfaces import FacilitatorContext
-from bankofai.x402.mechanisms.tron.constants import ERR_PERMIT2_ALLOWANCE_REQUIRED
+from bankofai.x402.mechanisms.tron.constants import (
+    ERR_EIP2612_ASSET_MISMATCH,
+    ERR_EIP2612_FROM_MISMATCH,
+    ERR_EIP2612_SPENDER_NOT_PERMIT2,
+    ERR_PERMIT2_ALLOWANCE_REQUIRED,
+)
 from bankofai.x402.mechanisms.tron.exact.permit2 import settle_permit2, verify_permit2
 from bankofai.x402.mechanisms.tron.types import ExactPermit2Payload
 from bankofai.x402.schemas import PaymentPayload, PaymentRequirements
@@ -26,7 +36,7 @@ class DummySigner:
     def verify_typed_data(self, *args, **kwargs):
         return self._valid_signature
 
-    def read_contract(self, address: str, function_name: str, args=None):
+    def read_contract(self, address: str, function_name: str, args=None, **kwargs):
         if function_name == "allowance":
             return self._allowance
         if function_name == "balanceOf":
@@ -47,7 +57,7 @@ class DummySigner:
 
 
 class Base58ArgsSigner(DummySigner):
-    def read_contract(self, address: str, function_name: str, args=None):
+    def read_contract(self, address: str, function_name: str, args=None, **kwargs):
         args = args or []
         if function_name in {"allowance", "balanceOf"}:
             for arg in args:
@@ -329,5 +339,190 @@ def test_settle_permit2_uses_base58_addresses_in_contract_call(monkeypatch):
         payload,
         req,
         ExactPermit2Payload.from_dict(payload_dict),
+    )
+    assert result.success is True
+
+
+# ---------------------------------------------------------------------------
+# EIP-2612 extension tests
+# ---------------------------------------------------------------------------
+
+def _eip2612_extension_dict(payer: str, asset: str, spender: str) -> dict:
+    """Build a valid EIP-2612 gas sponsoring extension payload."""
+    now = int(time.time())
+    return {
+        EIP2612_GAS_SPONSORING.key: {
+            "info": {
+                "from": payer,
+                "asset": asset,
+                "spender": spender,
+                "amount": "1000",
+                "nonce": "42",
+                "deadline": str(now + 3600),
+                "signature": "0x" + "bb" * 65,
+                "version": "1",
+            },
+            "schema": {},
+        }
+    }
+
+
+def test_verify_permit2_allows_eip2612_extension(monkeypatch):
+    import bankofai.x402.mechanisms.tron.exact.permit2 as tron_permit2
+
+    monkeypatch.setitem(tron_permit2.PERMIT2_ADDRESSES, "tron:nile", "0x" + "44" * 20)
+    monkeypatch.setitem(tron_permit2.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20)
+
+    req = _requirements()
+    signer = DummySigner(allowance=0)
+    payload_dict = _payload_dict(req, signer.get_addresses()[0])
+    payer = payload_dict["permit2Authorization"]["from"]
+    permit2_addr = "0x" + "44" * 20
+
+    payload = PaymentPayload(
+        x402_version=2,
+        payload=payload_dict,
+        accepted=req,
+        extensions=_eip2612_extension_dict(payer, req.asset, permit2_addr),
+    )
+
+    result = verify_permit2(
+        signer,
+        payload,
+        req,
+        ExactPermit2Payload.from_dict(payload_dict),
+    )
+    assert result.is_valid is True
+
+
+def test_verify_permit2_rejects_eip2612_wrong_from(monkeypatch):
+    import bankofai.x402.mechanisms.tron.exact.permit2 as tron_permit2
+
+    monkeypatch.setitem(tron_permit2.PERMIT2_ADDRESSES, "tron:nile", "0x" + "44" * 20)
+    monkeypatch.setitem(tron_permit2.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20)
+
+    req = _requirements()
+    signer = DummySigner(allowance=0)
+    payload_dict = _payload_dict(req, signer.get_addresses()[0])
+    wrong_from = "0x" + "ff" * 20
+    permit2_addr = "0x" + "44" * 20
+
+    payload = PaymentPayload(
+        x402_version=2,
+        payload=payload_dict,
+        accepted=req,
+        extensions=_eip2612_extension_dict(wrong_from, req.asset, permit2_addr),
+    )
+
+    result = verify_permit2(
+        signer,
+        payload,
+        req,
+        ExactPermit2Payload.from_dict(payload_dict),
+    )
+    assert result.is_valid is False
+    assert result.invalid_reason == ERR_EIP2612_FROM_MISMATCH
+
+
+def test_verify_permit2_rejects_eip2612_wrong_asset(monkeypatch):
+    import bankofai.x402.mechanisms.tron.exact.permit2 as tron_permit2
+
+    monkeypatch.setitem(tron_permit2.PERMIT2_ADDRESSES, "tron:nile", "0x" + "44" * 20)
+    monkeypatch.setitem(tron_permit2.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20)
+
+    req = _requirements()
+    signer = DummySigner(allowance=0)
+    payload_dict = _payload_dict(req, signer.get_addresses()[0])
+    payer = payload_dict["permit2Authorization"]["from"]
+    wrong_asset = "0x" + "ff" * 20
+    permit2_addr = "0x" + "44" * 20
+
+    payload = PaymentPayload(
+        x402_version=2,
+        payload=payload_dict,
+        accepted=req,
+        extensions=_eip2612_extension_dict(payer, wrong_asset, permit2_addr),
+    )
+
+    result = verify_permit2(
+        signer,
+        payload,
+        req,
+        ExactPermit2Payload.from_dict(payload_dict),
+    )
+    assert result.is_valid is False
+    assert result.invalid_reason == ERR_EIP2612_ASSET_MISMATCH
+
+
+def test_verify_permit2_rejects_eip2612_wrong_spender(monkeypatch):
+    import bankofai.x402.mechanisms.tron.exact.permit2 as tron_permit2
+
+    monkeypatch.setitem(tron_permit2.PERMIT2_ADDRESSES, "tron:nile", "0x" + "44" * 20)
+    monkeypatch.setitem(tron_permit2.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20)
+
+    req = _requirements()
+    signer = DummySigner(allowance=0)
+    payload_dict = _payload_dict(req, signer.get_addresses()[0])
+    payer = payload_dict["permit2Authorization"]["from"]
+    wrong_spender = "0x" + "ff" * 20
+
+    payload = PaymentPayload(
+        x402_version=2,
+        payload=payload_dict,
+        accepted=req,
+        extensions=_eip2612_extension_dict(payer, req.asset, wrong_spender),
+    )
+
+    result = verify_permit2(
+        signer,
+        payload,
+        req,
+        ExactPermit2Payload.from_dict(payload_dict),
+    )
+    assert result.is_valid is False
+    assert result.invalid_reason == ERR_EIP2612_SPENDER_NOT_PERMIT2
+
+
+def test_settle_permit2_with_eip2612_extension(monkeypatch):
+    import bankofai.x402.mechanisms.tron.exact.permit2 as tron_permit2
+
+    monkeypatch.setitem(tron_permit2.PERMIT2_ADDRESSES, "tron:nile", "0x" + "44" * 20)
+    monkeypatch.setitem(tron_permit2.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20)
+
+    req = _requirements()
+    signer = DummySigner(allowance=0)
+    payload_dict = _payload_dict(req, signer.get_addresses()[0])
+    payer = payload_dict["permit2Authorization"]["from"]
+    permit2_addr = "0x" + "44" * 20
+
+    payload = PaymentPayload(
+        x402_version=2,
+        payload=payload_dict,
+        accepted=req,
+        extensions=_eip2612_extension_dict(payer, req.asset, permit2_addr),
+    )
+
+    eip2612_info = Eip2612GasSponsoringInfo(
+        from_address=payer,
+        asset=req.asset,
+        spender=permit2_addr,
+        amount="1000",
+        nonce="42",
+        deadline=str(int(time.time()) + 3600),
+        signature="0x" + "bb" * 65,
+        version="1",
+    )
+    context = FacilitatorContext(
+        {EIP2612_GAS_SPONSORING.key: Eip2612GasSponsoringExtension(
+            info=eip2612_info, schema={}
+        )}
+    )
+
+    result = settle_permit2(
+        signer,
+        payload,
+        req,
+        ExactPermit2Payload.from_dict(payload_dict),
+        context,
     )
     assert result.success is True

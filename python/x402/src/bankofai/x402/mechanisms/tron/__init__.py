@@ -2,6 +2,7 @@
 
 from .constants import (
     AUTHORIZATION_TYPES,
+    EIP2612_PERMIT_TYPES,
     PERMIT2_ADDRESSES,
     PERMIT2_WITNESS_TYPES,
     SCHEME_EXACT,
@@ -31,6 +32,8 @@ from .types import (
     ExactTronPayloadV2,
     Permit2Authorization,
     Permit2Witness,
+    TypedDataDomain,
+    TypedDataField,
     is_permit2_payload,
 )
 from .utils import (
@@ -48,6 +51,7 @@ __all__ = [
     "TRON_DEFAULT_ASSETS",
     "TRON_NETWORK_CONFIGS",
     "AUTHORIZATION_TYPES",
+    "EIP2612_PERMIT_TYPES",
     "PERMIT2_WITNESS_TYPES",
     "SCHEME_EXACT",
     "PERMIT2_ADDRESSES",
@@ -75,6 +79,8 @@ __all__ = [
     "ExactTronPayloadV2",
     "Permit2Authorization",
     "Permit2Witness",
+    "TypedDataDomain",
+    "TypedDataField",
     "is_permit2_payload",
     # Schemes
     "ExactTronClientScheme",

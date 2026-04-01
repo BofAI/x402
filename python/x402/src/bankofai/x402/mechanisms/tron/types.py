@@ -126,3 +126,21 @@ ExactTronPayloadV2 = ExactEIP3009Payload | ExactPermit2Payload
 
 def is_permit2_payload(data: dict[str, Any]) -> bool:
     return "permit2Authorization" in data
+
+
+@dataclass
+class TypedDataDomain:
+    """TIP-712 domain separator."""
+
+    name: str
+    version: str | None
+    chain_id: int
+    verifying_contract: str  # Always 0x-prefixed hex (normalized for signing)
+
+
+@dataclass
+class TypedDataField:
+    """Field definition for TIP-712 types."""
+
+    name: str
+    type: str

@@ -3,6 +3,12 @@
 import time
 from typing import Any
 
+from ....extensions.eip2612_gas_sponsoring import (
+    EIP2612_GAS_SPONSORING,
+    Eip2612GasSponsoringExtension,
+    extract_eip2612_gas_sponsoring_info,
+    validate_eip2612_gas_sponsoring_info,
+)
 from ....extensions.trc20_approval_gas_sponsoring import (
     TRC20_APPROVAL_GAS_SPONSORING,
     Trc20ApprovalGasSponsoringExtension,
@@ -12,6 +18,11 @@ from ....extensions.trc20_approval_gas_sponsoring import (
 from ....interfaces import FacilitatorContext
 from ....schemas import PaymentPayload, PaymentRequirements, SettleResponse, VerifyResponse
 from ..constants import (
+    ERR_EIP2612_ASSET_MISMATCH,
+    ERR_EIP2612_DEADLINE_EXPIRED,
+    ERR_EIP2612_EXTENSION_FORMAT,
+    ERR_EIP2612_FROM_MISMATCH,
+    ERR_EIP2612_SPENDER_NOT_PERMIT2,
     ERR_INSUFFICIENT_FUNDS,
     ERR_INVALID_PERMIT2_FACILITATOR,
     ERR_INVALID_PERMIT2_SPENDER,
@@ -19,11 +30,17 @@ from ..constants import (
     ERR_INVALID_TRANSACTION_STATE,
     ERR_MISSING_PERMIT2_ADDRESS,
     ERR_NETWORK_MISMATCH,
+    ERR_PERMIT2_2612_AMOUNT_MISMATCH,
     ERR_PERMIT2_ALLOWANCE_REQUIRED,
     ERR_PERMIT2_AMOUNT_MISMATCH,
     ERR_PERMIT2_DEADLINE_EXPIRED,
+    ERR_PERMIT2_INVALID_AMOUNT,
+    ERR_PERMIT2_INVALID_DESTINATION,
+    ERR_PERMIT2_INVALID_NONCE,
+    ERR_PERMIT2_INVALID_OWNER,
     ERR_PERMIT2_INVALID_SIGNATURE,
     ERR_PERMIT2_NOT_YET_VALID,
+    ERR_PERMIT2_PAYMENT_TOO_EARLY,
     ERR_PERMIT2_RECIPIENT_MISMATCH,
     ERR_PERMIT2_TOKEN_MISMATCH,
     ERR_TRANSACTION_FAILED,
@@ -40,6 +57,7 @@ from ..constants import (
     PERMIT2_ADDRESSES,
     PERMIT2_WITNESS_TYPES,
     X402_PERMIT2_PROXY_ADDRESSES,
+    x402ExactPermit2ProxyABI,
 )
 from ..signer import FacilitatorTronSigner
 from ..types import ExactPermit2Payload
@@ -160,7 +178,7 @@ def verify_permit2(
             args=[payer_for_contract, permit2_for_contract],
         )
         if int(str(allowance)) < int(str(requirements.amount)):
-            has_extension, extension_error = _verify_trc20_approval_extension(
+            has_extension, extension_error = _verify_gas_sponsoring_extensions(
                 signer, payload, requirements, payer, permit2_address, context
             )
             if extension_error is not None:
@@ -170,7 +188,7 @@ def verify_permit2(
                     is_valid=False, invalid_reason=ERR_PERMIT2_ALLOWANCE_REQUIRED, payer=payer
                 )
     except Exception:
-        has_extension, extension_error = _verify_trc20_approval_extension(
+        has_extension, extension_error = _verify_gas_sponsoring_extensions(
             signer, payload, requirements, payer, permit2_address, context
         )
         if extension_error is not None:
@@ -222,6 +240,15 @@ def settle_permit2(
 
     proxy_address = X402_PERMIT2_PROXY_ADDRESSES[network]
 
+    # Check EIP-2612 extension first, then TRC-20 approval
+    eip2612_info = extract_eip2612_gas_sponsoring_info(payload.extensions)
+    if eip2612_info and context is not None:
+        extension = context.get_extension(EIP2612_GAS_SPONSORING.key)
+        if isinstance(extension, Eip2612GasSponsoringExtension):
+            return _settle_with_eip2612(
+                signer, payload, permit2_payload, eip2612_info
+            )
+
     trc20_info = extract_trc20_approval_gas_sponsoring_info(payload.extensions)
     if trc20_info and context is not None:
         needs_approval = True
@@ -248,8 +275,6 @@ def settle_permit2(
                 if settle_result is not None:
                     return settle_result
     try:
-        from ..constants import x402ExactPermit2ProxyABI
-
         signature_hex = str(permit2_payload.signature)
         signature_bytes = bytes.fromhex(signature_hex.removeprefix("0x"))
         tx = signer.write_contract_with_abi(
@@ -294,6 +319,181 @@ def settle_permit2(
             network=network,
             payer=payer,
         )
+
+
+def _verify_gas_sponsoring_extensions(
+    signer: FacilitatorTronSigner,
+    payload: PaymentPayload,
+    requirements: PaymentRequirements,
+    payer: str,
+    permit2_address: str,
+    context: FacilitatorContext | None,
+) -> tuple[bool, VerifyResponse | None]:
+    """Check EIP-2612 extension first, then TRC-20 approval extension."""
+    has_eip2612, eip2612_error = _verify_eip2612_extension(
+        payload, requirements, payer, permit2_address
+    )
+    if eip2612_error is not None:
+        return True, eip2612_error
+    if has_eip2612:
+        return True, None
+
+    return _verify_trc20_approval_extension(
+        signer, payload, requirements, payer, permit2_address, context
+    )
+
+
+def _verify_eip2612_extension(
+    payload: PaymentPayload,
+    requirements: PaymentRequirements,
+    payer: str,
+    permit2_address: str,
+) -> tuple[bool, VerifyResponse | None]:
+    """Verify an EIP-2612 gas sponsoring extension."""
+    info = extract_eip2612_gas_sponsoring_info(payload.extensions)
+    if not info:
+        return False, None
+
+    if not validate_eip2612_gas_sponsoring_info(info):
+        return True, VerifyResponse(
+            is_valid=False, invalid_reason=ERR_EIP2612_EXTENSION_FORMAT, payer=payer
+        )
+
+    if normalize_address_for_signing(info.from_address) != normalize_address_for_signing(payer):
+        return True, VerifyResponse(
+            is_valid=False, invalid_reason=ERR_EIP2612_FROM_MISMATCH, payer=payer
+        )
+
+    if normalize_address_for_signing(info.asset) != normalize_address_for_signing(
+        requirements.asset
+    ):
+        return True, VerifyResponse(
+            is_valid=False, invalid_reason=ERR_EIP2612_ASSET_MISMATCH, payer=payer
+        )
+
+    if normalize_address_for_signing(info.spender) != normalize_address_for_signing(
+        permit2_address
+    ):
+        return True, VerifyResponse(
+            is_valid=False, invalid_reason=ERR_EIP2612_SPENDER_NOT_PERMIT2, payer=payer
+        )
+
+    now = int(time.time())
+    if int(info.deadline) < now + 6:
+        return True, VerifyResponse(
+            is_valid=False, invalid_reason=ERR_EIP2612_DEADLINE_EXPIRED, payer=payer
+        )
+
+    return True, None
+
+
+def _settle_with_eip2612(
+    signer: FacilitatorTronSigner,
+    payload: PaymentPayload,
+    permit2_payload: ExactPermit2Payload,
+    info: Any,
+) -> SettleResponse:
+    """Settle via settleWithPermit — calls token.permit() + Permit2 in one tx."""
+    payer = permit2_payload.permit2_authorization.from_address
+    auth = permit2_payload.permit2_authorization
+    network = str(payload.accepted.network)
+    proxy_address = X402_PERMIT2_PROXY_ADDRESSES.get(network)
+    if not proxy_address:
+        return SettleResponse(
+            success=False,
+            error_reason=ERR_MISSING_PERMIT2_ADDRESS,
+            transaction="",
+            network=network,
+            payer=payer,
+        )
+
+    try:
+        v, r_bytes, s_bytes = _split_eip2612_signature(str(info.signature))
+
+        signature_hex = str(permit2_payload.signature)
+        signature_bytes = bytes.fromhex(signature_hex.removeprefix("0x"))
+
+        tx = signer.write_contract_with_abi(
+            address=proxy_address,
+            function_name="settleWithPermit",
+            args=[
+                # permit2612 tuple: (value, deadline, r, s, v)
+                (
+                    int(info.amount),
+                    int(info.deadline),
+                    r_bytes,
+                    s_bytes,
+                    v,
+                ),
+                # permit tuple: ((token, amount), nonce, deadline)
+                (
+                    (
+                        normalize_address_for_contract_call(auth.permitted_token),
+                        int(str(auth.permitted_amount)),
+                    ),
+                    int(str(auth.nonce), 0),
+                    int(str(auth.deadline)),
+                ),
+                # owner
+                normalize_address_for_contract_call(payer),
+                # witness tuple: (to, facilitator, validAfter)
+                (
+                    normalize_address_for_contract_call(auth.witness.to),
+                    normalize_address_for_contract_call(auth.witness.facilitator),
+                    int(str(auth.witness.valid_after)),
+                ),
+                # Permit2 signature
+                signature_bytes,
+            ],
+            abi=x402ExactPermit2ProxyABI,
+        )
+        receipt = signer.wait_for_transaction_receipt(tx)
+        if receipt.status != "success":
+            return SettleResponse(
+                success=False,
+                error_reason=ERR_INVALID_TRANSACTION_STATE,
+                transaction=tx,
+                network=network,
+                payer=payer,
+            )
+        return SettleResponse(success=True, transaction=tx, network=network, payer=payer)
+    except Exception as e:
+        return SettleResponse(
+            success=False,
+            error_reason=_map_settle_error(str(e)),
+            error_message=str(e),
+            transaction="",
+            network=network,
+            payer=payer,
+        )
+
+
+def _split_eip2612_signature(signature: str) -> tuple[int, bytes, bytes]:
+    """Split a hex signature into (v, r_bytes, s_bytes)."""
+    sig = signature.removeprefix("0x")
+    if len(sig) != 130:
+        raise ValueError("invalid EIP-2612 signature length")
+    r_bytes = bytes.fromhex(sig[:64])
+    s_bytes = bytes.fromhex(sig[64:128])
+    v = int(sig[128:130], 16)
+    return v, r_bytes, s_bytes
+
+
+def _map_settle_error(message: str) -> str:
+    """Map contract revert messages to error constants."""
+    if "Permit2612AmountMismatch" in message:
+        return ERR_PERMIT2_2612_AMOUNT_MISMATCH
+    if "InvalidAmount" in message:
+        return ERR_PERMIT2_INVALID_AMOUNT
+    if "InvalidDestination" in message:
+        return ERR_PERMIT2_INVALID_DESTINATION
+    if "InvalidOwner" in message:
+        return ERR_PERMIT2_INVALID_OWNER
+    if "PaymentTooEarly" in message:
+        return ERR_PERMIT2_PAYMENT_TOO_EARLY
+    if "InvalidNonce" in message:
+        return ERR_PERMIT2_INVALID_NONCE
+    return ERR_TRANSACTION_FAILED
 
 
 def _verify_trc20_approval_extension(

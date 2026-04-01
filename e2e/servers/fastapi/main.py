@@ -50,7 +50,6 @@ if not TRON_ADDRESS:
 EVM_NETWORK = "eip155:97"  # BSC Testnet
 SVM_NETWORK = "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1"  # Solana Devnet
 TRON_NETWORK = os.getenv("TRON_NETWORK") or "tron:nile"
-
 app = FastAPI()
 
 # Create HTTP facilitator client

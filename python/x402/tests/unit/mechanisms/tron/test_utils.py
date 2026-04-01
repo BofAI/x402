@@ -37,6 +37,17 @@ def test_get_asset_info_default():
     assert asset["address"] == default["address"]
 
 
+def test_get_asset_info_additional_asset():
+    info = get_asset_info("tron:nile", "TZ78R2E6ejfFhxq8hxrmuqT6hGBxjHQbo4")
+    assert info["name"] == "Usdd Stablecoin"
+    assert info["decimals"] == 18
+
+
+def test_get_asset_info_unknown_raises():
+    with pytest.raises(ValueError, match="not a registered asset"):
+        get_asset_info("tron:nile", "0x" + "ff" * 20)
+
+
 def test_normalize_address_for_signing_accepts_hex():
     addr = "0x" + "AA" * 20
     assert normalize_address_for_signing(addr) == addr.lower()

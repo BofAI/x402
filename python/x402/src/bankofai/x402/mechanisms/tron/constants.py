@@ -28,6 +28,7 @@ class _AssetInfoRequired(TypedDict):
 
 class AssetInfo(_AssetInfoRequired, total=False):
     asset_transfer_method: str
+    supports_eip2612: bool
 
 
 class _NetworkConfigRequired(TypedDict):
@@ -36,6 +37,7 @@ class _NetworkConfigRequired(TypedDict):
 
 class NetworkConfig(_NetworkConfigRequired, total=False):
     default_asset: AssetInfo
+    assets: list[AssetInfo]
 
 
 TRON_NETWORK_CONFIGS: dict[str, NetworkConfig] = {
@@ -48,6 +50,15 @@ TRON_NETWORK_CONFIGS: dict[str, NetworkConfig] = {
             "decimals": 6,
             "asset_transfer_method": "permit2",
         },
+        "assets": [
+            {
+                "address": "TXDk8mbtRbXeYuMNS83CfKPaYYT8XWv9Hz",
+                "name": "Usdd Stablecoin",
+                "version": "1",
+                "decimals": 18,
+                "asset_transfer_method": "permit2",
+            },
+        ],
     },
     "tron:nile": {
         "chain_id": TRON_CHAIN_IDS["tron:nile"],
@@ -58,6 +69,15 @@ TRON_NETWORK_CONFIGS: dict[str, NetworkConfig] = {
             "decimals": 6,
             "asset_transfer_method": "permit2",
         },
+        "assets": [
+            {
+                "address": "TZ78R2E6ejfFhxq8hxrmuqT6hGBxjHQbo4",
+                "name": "Usdd Stablecoin",
+                "version": "1",
+                "decimals": 18,
+                "asset_transfer_method": "permit2",
+            },
+        ],
     },
     "tron:shasta": {
         "chain_id": TRON_CHAIN_IDS["tron:shasta"],
@@ -157,6 +177,21 @@ ERR_PERMIT2_TOKEN_MISMATCH = "permit2_token_mismatch"
 ERR_PERMIT2_INVALID_SIGNATURE = "permit2_invalid_signature"
 ERR_PERMIT2_ALLOWANCE_REQUIRED = "permit2_allowance_required"
 
+# Permit2 settle errors
+ERR_PERMIT2_INVALID_AMOUNT = "permit2_invalid_amount"
+ERR_PERMIT2_INVALID_DESTINATION = "permit2_invalid_destination"
+ERR_PERMIT2_INVALID_OWNER = "permit2_invalid_owner"
+ERR_PERMIT2_PAYMENT_TOO_EARLY = "permit2_payment_too_early"
+ERR_PERMIT2_INVALID_NONCE = "permit2_invalid_nonce"
+ERR_PERMIT2_2612_AMOUNT_MISMATCH = "permit2_2612_amount_mismatch"
+
+# EIP-2612 extension verify errors
+ERR_EIP2612_EXTENSION_FORMAT = "invalid_eip2612_extension_format"
+ERR_EIP2612_FROM_MISMATCH = "eip2612_from_mismatch"
+ERR_EIP2612_ASSET_MISMATCH = "eip2612_asset_mismatch"
+ERR_EIP2612_SPENDER_NOT_PERMIT2 = "eip2612_spender_not_permit2"
+ERR_EIP2612_DEADLINE_EXPIRED = "eip2612_deadline_expired"
+
 # TRC-20 approval gas sponsoring errors
 ERR_TRC20_APPROVAL_FORMAT = "invalid_trc20_approval_format"
 ERR_TRC20_APPROVAL_FROM_MISMATCH = "invalid_trc20_approval_from_mismatch"
@@ -169,7 +204,14 @@ ERR_TRC20_APPROVAL_TX_WRONG_SPENDER = "invalid_trc20_approval_tx_wrong_spender"
 ERR_TRC20_APPROVAL_TX_WRONG_AMOUNT = "invalid_trc20_approval_tx_wrong_amount"
 ERR_TRC20_APPROVAL_TX_INVALID_SIGNATURE = "invalid_trc20_approval_tx_invalid_signature"
 
-# x402ExactPermit2Proxy ABI - settle function for exact payment scheme.
+# Shared Permit2 witness ABI components.
+_PERMIT2_WITNESS_ABI_COMPONENTS = [
+    {"name": "to", "type": "address"},
+    {"name": "facilitator", "type": "address"},
+    {"name": "validAfter", "type": "uint256"},
+]
+
+# x402ExactPermit2Proxy ABI - settle + settleWithPermit functions.
 x402ExactPermit2ProxyABI = [
     {
         "type": "function",
@@ -195,16 +237,76 @@ x402ExactPermit2ProxyABI = [
             {
                 "name": "witness",
                 "type": "tuple",
-                "components": [
-                    {"name": "to", "type": "address"},
-                    {"name": "facilitator", "type": "address"},
-                    {"name": "validAfter", "type": "uint256"},
-                ],
+                "components": _PERMIT2_WITNESS_ABI_COMPONENTS,
             },
             {"name": "signature", "type": "bytes"},
         ],
         "outputs": [],
         "stateMutability": "nonpayable",
+    },
+    {
+        "type": "function",
+        "name": "settleWithPermit",
+        "inputs": [
+            {
+                "name": "permit2612",
+                "type": "tuple",
+                "components": [
+                    {"name": "value", "type": "uint256"},
+                    {"name": "deadline", "type": "uint256"},
+                    {"name": "r", "type": "bytes32"},
+                    {"name": "s", "type": "bytes32"},
+                    {"name": "v", "type": "uint8"},
+                ],
+            },
+            {
+                "name": "permit",
+                "type": "tuple",
+                "components": [
+                    {
+                        "name": "permitted",
+                        "type": "tuple",
+                        "components": [
+                            {"name": "token", "type": "address"},
+                            {"name": "amount", "type": "uint256"},
+                        ],
+                    },
+                    {"name": "nonce", "type": "uint256"},
+                    {"name": "deadline", "type": "uint256"},
+                ],
+            },
+            {"name": "owner", "type": "address"},
+            {
+                "name": "witness",
+                "type": "tuple",
+                "components": _PERMIT2_WITNESS_ABI_COMPONENTS,
+            },
+            {"name": "signature", "type": "bytes"},
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable",
+    },
+]
+
+# TIP-712 type definitions for EIP-2612 Permit
+EIP2612_PERMIT_TYPES: dict[str, list[dict[str, str]]] = {
+    "Permit": [
+        {"name": "owner", "type": "address"},
+        {"name": "spender", "type": "address"},
+        {"name": "value", "type": "uint256"},
+        {"name": "nonce", "type": "uint256"},
+        {"name": "deadline", "type": "uint256"},
+    ]
+}
+
+# EIP-2612 nonces ABI (view) for reading permit nonces.
+EIP2612_NONCES_ABI = [
+    {
+        "type": "function",
+        "name": "nonces",
+        "inputs": [{"name": "owner", "type": "address"}],
+        "outputs": [{"type": "uint256"}],
+        "stateMutability": "view",
     }
 ]
 

@@ -28,7 +28,7 @@ class DummySigner:
 
 
 class Base58WriteSigner(DummySigner):
-    def read_contract(self, address, function_name, args=None):
+    def read_contract(self, address, function_name, args=None, **kwargs):
         args = args or []
         for arg in args:
             if isinstance(arg, str):

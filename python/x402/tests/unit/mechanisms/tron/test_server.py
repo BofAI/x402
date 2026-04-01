@@ -13,7 +13,7 @@ def test_parse_price_default_asset():
     result = server.parse_price("$0.10", network)
     assert result.amount == "100000"
     assert result.asset == get_network_config(network)["default_asset"]["address"]
-    assert result.extra == {"name": "Tether USD", "version": "1", "assetTransferMethod": "permit2"}
+    assert result.extra == {"assetTransferMethod": "permit2"}
 
 
 def test_parse_price_asset_amount():
@@ -48,5 +48,25 @@ def test_enhance_payment_requirements_adds_domain():
     result = server.enhance_payment_requirements(requirements, supported_kind, [])
     assert result.asset == get_network_config(network)["default_asset"]["address"]
     assert result.extra is not None
-    assert result.extra["name"] == "Tether USD"
-    assert result.extra["version"] == "1"
+    assert result.extra.get("assetTransferMethod") == "permit2"
+    # name/version not injected for permit2-only assets (no supports_eip2612)
+    assert "name" not in result.extra
+    assert "version" not in result.extra
+
+
+def test_enhance_payment_requirements_converts_decimal_amount():
+    server = ExactTronServerScheme()
+    network = "tron:nile"
+    default_asset = get_network_config(network)["default_asset"]
+    requirements = PaymentRequirements(
+        scheme="exact",
+        network=network,
+        asset=default_asset["address"],
+        amount="0.01",
+        pay_to="0x" + "22" * 20,
+        max_timeout_seconds=3600,
+        extra={},
+    )
+    supported_kind = SupportedKind(x402_version=2, scheme="exact", network=network, extra={})
+    result = server.enhance_payment_requirements(requirements, supported_kind, [])
+    assert result.amount == "10000"  # 0.01 * 10^6

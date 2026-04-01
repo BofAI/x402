@@ -2,6 +2,7 @@
 
 import pytest
 
+from bankofai.x402.extensions.eip2612_gas_sponsoring import EIP2612_GAS_SPONSORING
 from bankofai.x402.extensions.trc20_approval_gas_sponsoring import TRC20_APPROVAL_GAS_SPONSORING
 from bankofai.x402.interfaces import PaymentPayloadContext
 from bankofai.x402.mechanisms.tron.exact import ExactTronClientScheme
@@ -14,9 +15,11 @@ class DummySigner:
     def sign_typed_data(self, *args, **kwargs):
         return "0x" + "aa" * 65
 
-    def read_contract(self, address: str, function_name: str, args=None):
+    def read_contract(self, address: str, function_name: str, args=None, **kwargs):
         if function_name == "allowance":
             return 0
+        if function_name == "nonces":
+            return 42
         return 0
 
     def build_trigger_smart_contract_transaction(self, **kwargs):
@@ -24,6 +27,15 @@ class DummySigner:
 
     def sign_transaction(self, transaction):
         return {"raw_data": transaction.get("raw_data", {}), "signature": ["0x01"]}
+
+
+class NoNoncesSigner(DummySigner):
+    """Signer whose token doesn't support EIP-2612 (nonces call fails)."""
+
+    def read_contract(self, address: str, function_name: str, args=None, **kwargs):
+        if function_name == "nonces":
+            raise Exception("function nonces not found in ABI")
+        return super().read_contract(address, function_name, args)
 
 
 def _base_requirements(extra: dict | None = None) -> PaymentRequirements:
@@ -92,3 +104,92 @@ def test_create_payload_requires_tip712_domain():
     requirements = _base_requirements(extra={})
     with pytest.raises(ValueError, match="TIP-712 domain"):
         client.create_payment_payload(requirements)
+
+
+def test_create_permit2_payload_with_eip2612_extension(monkeypatch):
+    import bankofai.x402.mechanisms.tron.exact.client as tron_client
+
+    monkeypatch.setitem(tron_client.PERMIT2_ADDRESSES, "tron:nile", "0x" + "44" * 20)
+    monkeypatch.setitem(tron_client.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20)
+
+    client = ExactTronClientScheme(DummySigner())
+    requirements = _base_requirements(
+        extra={
+            "assetTransferMethod": "permit2",
+            "permit2FacilitatorAddress": "0x" + "66" * 20,
+            "name": "Tether USD",
+            "version": "1",
+        }
+    )
+    context = PaymentPayloadContext(extensions={EIP2612_GAS_SPONSORING.key: {}})
+
+    result = client.create_payment_payload(requirements, context)
+    assert isinstance(result, tuple)
+    payload, extensions = result
+    assert "permit2Authorization" in payload
+    assert EIP2612_GAS_SPONSORING.key in extensions
+    info = extensions[EIP2612_GAS_SPONSORING.key]["info"]
+    assert info["nonce"] == "42"
+    assert info["signature"].startswith("0x")
+
+
+def test_eip2612_extension_skipped_when_no_nonces(monkeypatch):
+    """If token doesn't support EIP-2612, fall back to TRC-20 approval."""
+    import bankofai.x402.mechanisms.tron.exact.client as tron_client
+
+    monkeypatch.setitem(tron_client.PERMIT2_ADDRESSES, "tron:nile", "0x" + "44" * 20)
+    monkeypatch.setitem(tron_client.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20)
+
+    client = ExactTronClientScheme(NoNoncesSigner())
+    requirements = _base_requirements(
+        extra={
+            "assetTransferMethod": "permit2",
+            "permit2FacilitatorAddress": "0x" + "66" * 20,
+            "name": "Tether USD",
+            "version": "1",
+        }
+    )
+    # Both extensions available, but EIP-2612 should fail and fall through to TRC-20
+    context = PaymentPayloadContext(
+        extensions={
+            EIP2612_GAS_SPONSORING.key: {},
+            TRC20_APPROVAL_GAS_SPONSORING.key: {},
+        }
+    )
+
+    result = client.create_payment_payload(requirements, context)
+    assert isinstance(result, tuple)
+    payload, extensions = result
+    assert "permit2Authorization" in payload
+    assert TRC20_APPROVAL_GAS_SPONSORING.key in extensions
+    assert EIP2612_GAS_SPONSORING.key not in extensions
+
+
+def test_eip2612_extension_skipped_when_allowance_sufficient(monkeypatch):
+    """EIP-2612 extension not built if allowance already covers the amount."""
+    import bankofai.x402.mechanisms.tron.exact.client as tron_client
+
+    monkeypatch.setitem(tron_client.PERMIT2_ADDRESSES, "tron:nile", "0x" + "44" * 20)
+    monkeypatch.setitem(tron_client.X402_PERMIT2_PROXY_ADDRESSES, "tron:nile", "0x" + "55" * 20)
+
+    class SufficientAllowanceSigner(DummySigner):
+        def read_contract(self, address, function_name, args=None, **kwargs):
+            if function_name == "allowance":
+                return 10**12  # More than enough
+            return super().read_contract(address, function_name, args)
+
+    client = ExactTronClientScheme(SufficientAllowanceSigner())
+    requirements = _base_requirements(
+        extra={
+            "assetTransferMethod": "permit2",
+            "permit2FacilitatorAddress": "0x" + "66" * 20,
+            "name": "Tether USD",
+            "version": "1",
+        }
+    )
+    context = PaymentPayloadContext(extensions={EIP2612_GAS_SPONSORING.key: {}})
+
+    result = client.create_payment_payload(requirements, context)
+    # No extensions needed since allowance is sufficient
+    assert isinstance(result, dict)
+    assert "permit2Authorization" in result
