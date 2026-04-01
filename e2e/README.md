@@ -101,12 +101,15 @@ SERVER_EVM_ADDRESS=0x...            # Where servers receive EVM payments
 SERVER_SVM_ADDRESS=...              # Where servers receive Solana payments
 SERVER_APTOS_ADDRESS=0x...          # Where servers receive Aptos payments
 SERVER_STELLAR_ADDRESS=...          # Where servers receive Stellar payments
+SERVER_TRON_ADDRESS=...             # Where servers receive TRON payments
+TRON_FACILITATOR_ADDRESS=...        # TRON facilitator address for Permit2 (base58)
 
 # Facilitator wallets (for payment verification/settlement)
 FACILITATOR_EVM_PRIVATE_KEY=0x...   # EVM private key for facilitator
 FACILITATOR_SVM_PRIVATE_KEY=...     # Solana private key for facilitator
 FACILITATOR_APTOS_PRIVATE_KEY=...   # Aptos private key for facilitator (hex string)
 FACILITATOR_STELLAR_PRIVATE_KEY=... # Stellar private key for facilitator
+FACILITATOR_TRON_PRIVATE_KEY=...    # TRON private key for facilitator
 ```
 
 ### Account Setup Instructions

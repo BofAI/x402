@@ -32,8 +32,14 @@ export { isPermit2Payload, isEIP3009Payload } from "./types";
 // Constants
 export {
   PERMIT2_ADDRESS,
+  PERMIT2_ADDRESSES,
+  getPermit2Address,
   x402ExactPermit2ProxyAddress,
+  X402_EXACT_PERMIT2_PROXY_ADDRESSES,
+  getX402ExactPermit2ProxyAddress,
   x402UptoPermit2ProxyAddress,
+  X402_UPTO_PERMIT2_PROXY_ADDRESSES,
+  getX402UptoPermit2ProxyAddress,
   permit2WitnessTypes,
   authorizationTypes,
   eip3009ABI,

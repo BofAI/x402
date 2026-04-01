@@ -58,33 +58,17 @@ async function main(): Promise<void> {
     version,
   });
 
-  server.tool("x402_status", "Show configured x402 wallet status.", {}, async () => {
-    return toTextResult(runCli(["status"]));
-  });
-
-  server.tool(
-    "x402_balance",
-    "Show configured x402 wallet balances.",
-    {
+  const balanceArgsSchema = z
+    .object({
       network: z.string().optional(),
       asset: z.string().optional(),
       token: z.string().optional(),
       pair: z.string().optional(),
-    },
-    async args => {
-      const commandArgs = ["balance"];
-      if (args.network) commandArgs.push("--network", args.network);
-      if (args.asset) commandArgs.push("--asset", args.asset);
-      if (args.token) commandArgs.push("--token", args.token);
-      if (args.pair) commandArgs.push("--pair", args.pair);
-      return toTextResult(runCli(commandArgs));
-    },
-  );
+    })
+    .strict();
 
-  server.tool(
-    "x402_pay",
-    "Call an x402-protected URL and automatically complete payment.",
-    {
+  const payArgsSchema = z
+    .object({
       url: z.string().url(),
       method: z.string().optional(),
       data: z.string().optional(),
@@ -96,6 +80,49 @@ async function main(): Promise<void> {
       pair: z.string().optional(),
       max_amount: z.string().optional(),
       correlation_id: z.string().optional(),
+    })
+    .strict();
+
+  const approveArgsSchema = z
+    .object({
+      url: z.string().url(),
+      method: z.string().optional(),
+      data: z.string().optional(),
+      query: z.string().optional(),
+      headers: z.string().optional(),
+      network: z.string().optional(),
+      asset: z.string().optional(),
+      token: z.string().optional(),
+      pair: z.string().optional(),
+      max_amount: z.string().optional(),
+    })
+    .strict();
+
+  server.tool("x402_status", "Show configured x402 wallet status.", {}, async () => {
+    return toTextResult(runCli(["status"]));
+  });
+
+  server.registerTool(
+    "x402_balance",
+    {
+      description: "Show configured x402 wallet balances.",
+      inputSchema: balanceArgsSchema,
+    },
+    async args => {
+      const commandArgs = ["balance"];
+      if (args.network) commandArgs.push("--network", args.network);
+      if (args.asset) commandArgs.push("--asset", args.asset);
+      if (args.token) commandArgs.push("--token", args.token);
+      if (args.pair) commandArgs.push("--pair", args.pair);
+      return toTextResult(runCli(commandArgs));
+    },
+  );
+
+  server.registerTool(
+    "x402_pay",
+    {
+      description: "Call an x402-protected URL and automatically complete payment.",
+      inputSchema: payArgsSchema,
     },
     async args => {
       const commandArgs = ["pay", args.url];
@@ -114,20 +141,11 @@ async function main(): Promise<void> {
     },
   );
 
-  server.tool(
+  server.registerTool(
     "x402_approve",
-    "Approve Permit2 allowance for the selected x402 payment option.",
     {
-      url: z.string().url(),
-      method: z.string().optional(),
-      data: z.string().optional(),
-      query: z.string().optional(),
-      headers: z.string().optional(),
-      network: z.string().optional(),
-      asset: z.string().optional(),
-      token: z.string().optional(),
-      pair: z.string().optional(),
-      max_amount: z.string().optional(),
+      description: "Approve Permit2 allowance for the selected x402 payment option.",
+      inputSchema: approveArgsSchema,
     },
     async args => {
       const commandArgs = ["approve", args.url];

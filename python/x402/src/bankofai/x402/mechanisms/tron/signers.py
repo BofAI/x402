@@ -197,45 +197,10 @@ class FacilitatorTronSigner:
         Returns:
             Transaction hash string (txid).
         """
-        # For ABIEncoderV2 contracts, we need to manually encode the function call
-        # and use triggersmartcontract directly
-        from tronpy.abi import trx_abi
-
-        # Find the function ABI
-        func_abi = None
-        for item in abi:
-            if item.get("name") == function_name and item.get("type") == "function":
-                func_abi = item
-                break
-
-        if not func_abi:
-            raise ValueError(f"Function {function_name} not found in ABI")
-
-        def _get_type_string(param: dict[str, Any]) -> str:
-            if param.get("type", "").startswith("tuple"):
-                components = param.get("components", [])
-                inner = ",".join(_get_type_string(c) for c in components)
-                # handle tuple[] or tuple[2]
-                suffix = param["type"][5:]
-                return f"({inner}){suffix}"
-            return str(param["type"])
-
-        # Format function signature like: settle(((address,uint256),uint256,uint256),address,(address,address,uint256),bytes)
-        type_strings = [_get_type_string(inp) for inp in func_abi.get("inputs", [])]
-        signature = f"({','.join(type_strings)})"
-        func_selector = f"{function_name}{signature}"
-
-        # Encode the function call args
-        parameter = trx_abi.encode_single(signature, tuple(args)).hex()
-
-        # Build transaction using triggersmartcontract
-        txn = self._client.trx.trigger_smart_contract(
-            owner_address=self._address,
-            contract_address=address,
-            function_selector=func_selector,
-            parameter=parameter,
-            fee_limit=fee_limit,
-        )
+        contract = self._client.get_contract(address)
+        contract.abi = abi
+        func = getattr(contract.functions, function_name)
+        txn = func(*args).with_owner(self._address).fee_limit(fee_limit).build()
 
         # Sign and broadcast
         signed_txn = txn.sign(self._pk)
@@ -243,7 +208,7 @@ class FacilitatorTronSigner:
         return str(result.txid)
 
     def wait_for_transaction_receipt(
-        self, tx_hash: str, max_attempts: int = 30
+        self, tx_hash: str, max_attempts: int = 120
     ) -> TronTransactionReceipt:
         """Poll until the transaction is confirmed."""
         for _ in range(max_attempts):
@@ -258,6 +223,24 @@ class FacilitatorTronSigner:
                 pass
             time.sleep(1)
         return TronTransactionReceipt(status="pending", tx_hash=tx_hash)
+
+    def send_raw_transaction(self, signed_transaction: dict[str, Any]) -> str:
+        """Broadcast a signed transaction."""
+        from tronpy.tron import Transaction
+
+        tx: Any = signed_transaction
+        if isinstance(signed_transaction, dict):
+            tx = Transaction.from_json(signed_transaction, client=self._client)
+        result = tx.broadcast()
+        return str(result.txid)
+
+    def get_sign_weight(self, transaction: Any) -> Any:
+        """Ask the node to validate the signed transaction signatures."""
+        from tronpy.tron import Transaction
+
+        if isinstance(transaction, dict):
+            transaction = Transaction.from_json(transaction, client=self._client)
+        return self._client.get_sign_weight(transaction)
 
 
 # ---------------------------------------------------------------------------
@@ -317,3 +300,60 @@ class ClientTronSigner:
         contract = self._client.get_contract(address)
         func = getattr(contract.functions, function_name)
         return func(*(args or []))
+
+    def build_trigger_smart_contract_transaction(self, **kwargs: Any) -> Any:
+        """Build a trigger smart contract transaction."""
+        contract_address = kwargs.get("contract_address")
+        function_selector = kwargs.get("function_selector")
+        parameters = kwargs.get("parameters") or []
+        owner_address = kwargs.get("owner_address") or self._address
+        fee_limit = kwargs.get("fee_limit")
+        call_value = kwargs.get("call_value", 0)
+
+        if not contract_address or not function_selector:
+            raise AttributeError("TRON client does not support trigger smart contract transactions")
+
+        method_name = str(function_selector).split("(", 1)[0]
+        contract = self._client.get_contract(contract_address)
+        func = getattr(contract.functions, method_name, None)
+        if func is None:
+            raise AttributeError("TRON client does not support trigger smart contract transactions")
+
+        args: list[Any] = []
+        for param in parameters:
+            value = param.get("value")
+            if param.get("type") == "uint256" and isinstance(value, str):
+                try:
+                    value = int(value)
+                except ValueError:
+                    pass
+            args.append(value)
+        txn_builder = func(*args).with_owner(owner_address)
+        if fee_limit is not None:
+            txn_builder = txn_builder.fee_limit(int(fee_limit))
+        if call_value:
+            txn_builder = txn_builder.with_transfer(int(call_value))
+        txn = txn_builder.build()
+        return txn
+
+    def sign_transaction(self, transaction: dict[str, Any]) -> dict[str, Any]:
+        """Sign a raw transaction dict."""
+        if hasattr(transaction, "sign"):
+            signed = transaction.sign(self._pk)
+            try:
+                return signed.to_json()
+            except Exception:
+                return signed  # type: ignore[return-value]
+        if isinstance(transaction, dict):
+            from tronpy.tron import Transaction
+
+            signed = Transaction.from_json(transaction, client=self._client).sign(self._pk)
+            try:
+                return signed.to_json()
+            except Exception:
+                return signed  # type: ignore[return-value]
+        txn = self._client.trx.sign(transaction, self._pk)
+        try:
+            return txn.to_json()
+        except Exception:
+            return dict(txn)

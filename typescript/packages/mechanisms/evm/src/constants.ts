@@ -29,6 +29,7 @@ export const permit2WitnessTypes = {
   ],
   Witness: [
     { name: "to", type: "address" },
+    { name: "facilitator", type: "address" },
     { name: "validAfter", type: "uint256" },
   ],
 } as const;
@@ -147,24 +148,82 @@ export const DEFAULT_MAX_FEE_PER_GAS = 1_000_000_000n;
 export const DEFAULT_MAX_PRIORITY_FEE_PER_GAS = 100_000_000n;
 
 /**
- * Canonical Permit2 contract address.
- * Same address on all EVM chains via CREATE2 deployment.
+ * Canonical Uniswap Permit2 contract address.
+ * Used as the default on EVM chains that do not override Permit2 deployment.
  *
  * @see https://github.com/Uniswap/permit2
  */
 export const PERMIT2_ADDRESS = "0x000000000022D473030F116dDEE9F6B43aC78BA3" as const;
 
 /**
- * x402ExactPermit2Proxy contract address.
- * Current deployed address on BSC mainnet and BSC testnet.
+ * Chain-specific Permit2 deployments.
+ * BSC uses PancakeSwap's Permit2 deployment instead of the canonical Uniswap address.
+ */
+export const PERMIT2_ADDRESSES: Record<string, `0x${string}`> = {
+  "eip155:56": "0x31c2F6fcFf4F8759b3Bd5Bf0e1084A055615c768",
+  "eip155:97": "0x31c2F6fcFf4F8759b3Bd5Bf0e1084A055615c768",
+};
+
+/**
+ * Default x402ExactPermit2Proxy contract address.
+ * Preserved for backwards compatibility in exports and tests.
  */
 export const x402ExactPermit2ProxyAddress = "0xEe38Ec718255fe78e9D16aCC0e1183C731679b23" as const;
 
 /**
- * x402UptoPermit2Proxy contract address.
- * Current deployed address on BSC mainnet and BSC testnet.
+ * Chain-specific x402ExactPermit2Proxy deployments.
+ */
+export const X402_EXACT_PERMIT2_PROXY_ADDRESSES: Record<string, `0x${string}`> = {
+  "eip155:56": x402ExactPermit2ProxyAddress,
+  "eip155:97": x402ExactPermit2ProxyAddress,
+};
+
+/**
+ * Default x402UptoPermit2Proxy contract address.
+ * Preserved for backwards compatibility in exports and tests.
  */
 export const x402UptoPermit2ProxyAddress = "0x2b30Ed9F37c7C21ae8779c5753B1cCf264DfD63C" as const;
+
+/**
+ * Chain-specific x402UptoPermit2Proxy deployments.
+ */
+export const X402_UPTO_PERMIT2_PROXY_ADDRESSES: Record<string, `0x${string}`> = {
+  "eip155:56": x402UptoPermit2ProxyAddress,
+  "eip155:97": x402UptoPermit2ProxyAddress,
+};
+
+/**
+ * Resolve the Permit2 contract address for an EVM network.
+ * Falls back to the canonical Uniswap deployment when a chain-specific override is not configured.
+ *
+ * @param network - CAIP-2 EVM network identifier.
+ * @returns The Permit2 contract address for the requested network.
+ */
+export function getPermit2Address(network: string): `0x${string}` {
+  return PERMIT2_ADDRESSES[network] ?? PERMIT2_ADDRESS;
+}
+
+/**
+ * Resolve the x402 exact Permit2 proxy address for an EVM network.
+ * Falls back to the default exported address when a chain-specific override is not configured.
+ *
+ * @param network - CAIP-2 EVM network identifier.
+ * @returns The x402 exact Permit2 proxy contract address for the requested network.
+ */
+export function getX402ExactPermit2ProxyAddress(network: string): `0x${string}` {
+  return X402_EXACT_PERMIT2_PROXY_ADDRESSES[network] ?? x402ExactPermit2ProxyAddress;
+}
+
+/**
+ * Resolve the x402 upto Permit2 proxy address for an EVM network.
+ * Falls back to the default exported address when a chain-specific override is not configured.
+ *
+ * @param network - CAIP-2 EVM network identifier.
+ * @returns The x402 upto Permit2 proxy contract address for the requested network.
+ */
+export function getX402UptoPermit2ProxyAddress(network: string): `0x${string}` {
+  return X402_UPTO_PERMIT2_PROXY_ADDRESSES[network] ?? x402UptoPermit2ProxyAddress;
+}
 
 /**
  * Shared ABI components for the Permit2 witness tuple.
@@ -173,6 +232,7 @@ export const x402UptoPermit2ProxyAddress = "0x2b30Ed9F37c7C21ae8779c5753B1cCf264
  */
 const permit2WitnessABIComponents = [
   { name: "to", type: "address", internalType: "address" },
+  { name: "facilitator", type: "address", internalType: "address" },
   { name: "validAfter", type: "uint256", internalType: "uint256" },
 ] as const;
 

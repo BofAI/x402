@@ -1,6 +1,15 @@
-"""TRON constants for the exact payment scheme."""
+"""TRON mechanism constants - network configs, ABIs, error codes."""
 
-from typing import Any
+from typing import Any, TypedDict
+
+# Scheme identifier
+SCHEME_EXACT = "exact"
+
+# Default validity period (1 hour in seconds)
+DEFAULT_VALIDITY_PERIOD = 3600
+
+# Default validity buffer (10 minutes before now for clock skew)
+DEFAULT_VALIDITY_BUFFER = 600
 
 # TRON chain IDs for TIP-712 signing
 TRON_CHAIN_IDS: dict[str, int] = {
@@ -9,26 +18,64 @@ TRON_CHAIN_IDS: dict[str, int] = {
     "tron:nile": 3448148188,  # 0xcd8690dc
 }
 
-# Default stablecoins per network (USDT)
-TRON_DEFAULT_ASSETS: dict[str, dict[str, Any]] = {
+
+class _AssetInfoRequired(TypedDict):
+    address: str
+    name: str
+    version: str
+    decimals: int
+
+
+class AssetInfo(_AssetInfoRequired, total=False):
+    asset_transfer_method: str
+
+
+class _NetworkConfigRequired(TypedDict):
+    chain_id: int
+
+
+class NetworkConfig(_NetworkConfigRequired, total=False):
+    default_asset: AssetInfo
+
+
+TRON_NETWORK_CONFIGS: dict[str, NetworkConfig] = {
     "tron:mainnet": {
-        "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
-        "name": "Tether USD",
-        "version": "1",
-        "decimals": 6,
+        "chain_id": TRON_CHAIN_IDS["tron:mainnet"],
+        "default_asset": {
+            "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+            "name": "Tether USD",
+            "version": "1",
+            "decimals": 6,
+        },
     },
     "tron:nile": {
-        "address": "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
-        "name": "Tether USD",
-        "version": "1",
-        "decimals": 6,
+        "chain_id": TRON_CHAIN_IDS["tron:nile"],
+        "default_asset": {
+            "address": "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
+            "name": "Tether USD",
+            "version": "1",
+            "decimals": 6,
+        },
     },
     "tron:shasta": {
-        "address": "TG3XXyExBkPp9nzdajDZsozEu4BkaSJozs",
-        "name": "Tether USD",
-        "version": "1",
-        "decimals": 6,
+        "chain_id": TRON_CHAIN_IDS["tron:shasta"],
+        "default_asset": {
+            "address": "TG3XXyExBkPp9nzdajDZsozEu4BkaSJozs",
+            "name": "Tether USD",
+            "version": "1",
+            "decimals": 6,
+        },
     },
+}
+
+# Default fee limit used for TRON contract calls (1,000 TRX).
+DEFAULT_FEE_LIMIT_SUN = 1_000_000_000
+
+# Backwards-compatible alias for defaults
+TRON_DEFAULT_ASSETS: dict[str, dict[str, Any]] = {
+    network: config["default_asset"]  # type: ignore[index]
+    for network, config in TRON_NETWORK_CONFIGS.items()
+    if config.get("default_asset")
 }
 
 # TIP-712 type definitions for TransferWithAuthorization
@@ -43,8 +90,43 @@ AUTHORIZATION_TYPES: dict[str, list[dict[str, str]]] = {
     ]
 }
 
-SCHEME_EXACT = "exact"
-DEFAULT_FEE_LIMIT_SUN = 1_000_000_000  # 1000 TRX
+# TIP-712 type definitions for Permit2 PermitWitnessTransferFrom
+PERMIT2_WITNESS_TYPES: dict[str, list[dict[str, str]]] = {
+    "PermitWitnessTransferFrom": [
+        {"name": "permitted", "type": "TokenPermissions"},
+        {"name": "spender", "type": "address"},
+        {"name": "nonce", "type": "uint256"},
+        {"name": "deadline", "type": "uint256"},
+        {"name": "witness", "type": "Witness"},
+    ],
+    "TokenPermissions": [
+        {"name": "token", "type": "address"},
+        {"name": "amount", "type": "uint256"},
+    ],
+    "Witness": [
+        {"name": "to", "type": "address"},
+        {"name": "facilitator", "type": "address"},
+        {"name": "validAfter", "type": "uint256"},
+    ],
+}
+
+# Permit2 contract addresses per TRON network
+PERMIT2_ADDRESSES: dict[str, str] = {
+    "tron:mainnet": "TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9",
+    "tron:nile": "TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h",
+}
+
+# x402ExactPermit2Proxy contract addresses
+X402_PERMIT2_PROXY_ADDRESSES: dict[str, str] = {
+    "tron:mainnet": "TSm6MSWHHBeABh22uqX7SU7QUweav4Cyy6",
+    "tron:nile": "TCd2ZSwbJBAdgFfP5d3gkhKcGs47WNZLLi",
+}
+
+# x402UptoPermit2Proxy contract addresses
+X402_UPTO_PERMIT2_PROXY_ADDRESSES: dict[str, str] = {
+    "tron:mainnet": "TGHEYAovw8fZz1bgnVgRtgrdGLbagFZYq5",
+    "tron:nile": "TSForFRqxmZdJ6Yfx2rNaFykhuQLc9cTMR",
+}
 
 # Error messages
 ERR_INVALID_SCHEME = "invalid_scheme"
@@ -72,40 +154,67 @@ ERR_PERMIT2_TOKEN_MISMATCH = "permit2_token_mismatch"
 ERR_PERMIT2_INVALID_SIGNATURE = "permit2_invalid_signature"
 ERR_PERMIT2_ALLOWANCE_REQUIRED = "permit2_allowance_required"
 
-# Permit2 contract addresses per TRON network
-PERMIT2_ADDRESSES: dict[str, str] = {
-    "tron:mainnet": "TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9",
-    "tron:nile": "TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h",
-}
+# TRC-20 approval gas sponsoring errors
+ERR_TRC20_APPROVAL_FORMAT = "invalid_trc20_approval_format"
+ERR_TRC20_APPROVAL_FROM_MISMATCH = "invalid_trc20_approval_from_mismatch"
+ERR_TRC20_APPROVAL_ASSET_MISMATCH = "invalid_trc20_approval_asset_mismatch"
+ERR_TRC20_APPROVAL_SPENDER_NOT_PERMIT2 = "invalid_trc20_approval_spender_not_permit2"
+ERR_TRC20_APPROVAL_TX_MISSING_DATA = "invalid_trc20_approval_tx_missing_data"
+ERR_TRC20_APPROVAL_TX_WRONG_TARGET = "invalid_trc20_approval_tx_wrong_target"
+ERR_TRC20_APPROVAL_TX_WRONG_SELECTOR = "invalid_trc20_approval_tx_wrong_selector"
+ERR_TRC20_APPROVAL_TX_WRONG_SPENDER = "invalid_trc20_approval_tx_wrong_spender"
+ERR_TRC20_APPROVAL_TX_WRONG_AMOUNT = "invalid_trc20_approval_tx_wrong_amount"
+ERR_TRC20_APPROVAL_TX_INVALID_SIGNATURE = "invalid_trc20_approval_tx_invalid_signature"
 
-# x402ExactPermit2Proxy contract addresses
-X402_PERMIT2_PROXY_ADDRESSES: dict[str, str] = {
-    "tron:mainnet": "TSm6MSWHHBeABh22uqX7SU7QUweav4Cyy6",
-    "tron:nile": "TCd2ZSwbJBAdgFfP5d3gkhKcGs47WNZLLi",
-}
+# x402ExactPermit2Proxy ABI - settle function for exact payment scheme.
+x402ExactPermit2ProxyABI = [
+    {
+        "type": "function",
+        "name": "settle",
+        "inputs": [
+            {
+                "name": "permit",
+                "type": "tuple",
+                "components": [
+                    {
+                        "name": "permitted",
+                        "type": "tuple",
+                        "components": [
+                            {"name": "token", "type": "address"},
+                            {"name": "amount", "type": "uint256"},
+                        ],
+                    },
+                    {"name": "nonce", "type": "uint256"},
+                    {"name": "deadline", "type": "uint256"},
+                ],
+            },
+            {"name": "owner", "type": "address"},
+            {
+                "name": "witness",
+                "type": "tuple",
+                "components": [
+                    {"name": "to", "type": "address"},
+                    {"name": "facilitator", "type": "address"},
+                    {"name": "validAfter", "type": "uint256"},
+                ],
+            },
+            {"name": "signature", "type": "bytes"},
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable",
+    }
+]
 
-# x402UptoPermit2Proxy contract addresses
-X402_UPTO_PERMIT2_PROXY_ADDRESSES: dict[str, str] = {
-    "tron:mainnet": "TGHEYAovw8fZz1bgnVgRtgrdGLbagFZYq5",
-    "tron:nile": "TSForFRqxmZdJ6Yfx2rNaFykhuQLc9cTMR",
-}
-
-# TIP-712 type definitions for Permit2 PermitWitnessTransferFrom
-PERMIT2_WITNESS_TYPES: dict[str, list[dict[str, str]]] = {
-    "PermitWitnessTransferFrom": [
-        {"name": "permitted", "type": "TokenPermissions"},
-        {"name": "spender", "type": "address"},
-        {"name": "nonce", "type": "uint256"},
-        {"name": "deadline", "type": "uint256"},
-        {"name": "witness", "type": "Witness"},
-    ],
-    "TokenPermissions": [
-        {"name": "token", "type": "address"},
-        {"name": "amount", "type": "uint256"},
-    ],
-    "Witness": [
-        {"name": "to", "type": "address"},
-        {"name": "facilitator", "type": "address"},
-        {"name": "validAfter", "type": "uint256"},
-    ],
-}
+# TRC-20 allowance ABI (view) for Permit2 approvals.
+TRC20_ALLOWANCE_ABI = [
+    {
+        "type": "function",
+        "name": "allowance",
+        "stateMutability": "view",
+        "inputs": [
+            {"name": "owner", "type": "address"},
+            {"name": "spender", "type": "address"},
+        ],
+        "outputs": [{"name": "allowance", "type": "uint256"}],
+    }
+]

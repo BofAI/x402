@@ -108,6 +108,11 @@ export class GenericServerProxy extends BaseProxy implements ServerProxy {
         STELLAR_RPC_URL: config.networks.stellar.rpcUrl,
         STELLAR_PAYEE_ADDRESS: config.stellarPayTo,
 
+        // TRON network config
+        TRON_NETWORK: config.networks.tron?.caip2 || '',
+        TRON_RPC_URL: config.networks.tron?.rpcUrl || '',
+        TRON_PAYEE_ADDRESS: config.tronPayTo,
+
         // Facilitator
         FACILITATOR_URL: config.facilitatorUrl || '',
       }

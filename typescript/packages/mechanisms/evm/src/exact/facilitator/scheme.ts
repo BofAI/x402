@@ -48,13 +48,18 @@ export class ExactEvmScheme implements SchemeNetworkFacilitator {
   }
 
   /**
-   * Returns undefined — EVM has no mechanism-specific extra data.
+   * Returns mechanism-specific extra data for supported kinds.
    *
    * @param _ - The network identifier (unused)
-   * @returns undefined
+   * @returns Extra metadata for clients, including the Permit2 facilitator address
    */
   getExtra(_: string): Record<string, unknown> | undefined {
-    return undefined;
+    const facilitatorAddress = this.signer.getAddresses()[0];
+    return facilitatorAddress
+      ? {
+          permit2FacilitatorAddress: facilitatorAddress,
+        }
+      : undefined;
   }
 
   /**

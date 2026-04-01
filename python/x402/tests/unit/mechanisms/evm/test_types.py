@@ -1,10 +1,13 @@
 """Tests for EVM payload types."""
 
+from typing import get_args
+
 from bankofai.x402.mechanisms.evm import (
     ExactEIP3009Authorization,
     ExactEIP3009Payload,
     ExactEvmPayloadV1,
     ExactEvmPayloadV2,
+    ExactPermit2Payload,
 )
 
 
@@ -178,10 +181,12 @@ class TestExactEvmPayloadV1V2:
         """V1 should be alias of ExactEIP3009Payload."""
         assert ExactEvmPayloadV1 is ExactEIP3009Payload
 
-    def test_v2_should_be_alias_of_eip3009_payload(self):
-        """V2 should be alias of ExactEIP3009Payload."""
-        assert ExactEvmPayloadV2 is ExactEIP3009Payload
+    def test_v2_should_include_eip3009_and_permit2_payloads(self):
+        """V2 should support both EIP-3009 and Permit2 payload variants."""
+        args = get_args(ExactEvmPayloadV2)
+        assert ExactEIP3009Payload in args
+        assert ExactPermit2Payload in args
 
-    def test_v1_and_v2_should_be_same(self):
-        """V1 and V2 should be the same type."""
-        assert ExactEvmPayloadV1 is ExactEvmPayloadV2
+    def test_v1_and_v2_should_differ(self):
+        """V1 remains EIP-3009-only while V2 is a discriminated union."""
+        assert ExactEvmPayloadV1 is not ExactEvmPayloadV2

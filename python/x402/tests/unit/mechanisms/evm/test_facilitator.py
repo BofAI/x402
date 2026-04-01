@@ -411,14 +411,14 @@ class TestFacilitatorSchemeAttributes:
 
         assert facilitator.caip_family == "eip155:*"
 
-    def test_get_extra_returns_none(self):
-        """get_extra should return None for EVM."""
+    def test_get_extra_returns_permit2_facilitator_address(self):
+        """get_extra should expose Permit2 facilitator metadata for EVM."""
         signer = MockFacilitatorSigner()
         facilitator = ExactEvmFacilitatorScheme(signer)
 
         extra = facilitator.get_extra("eip155:8453")
 
-        assert extra is None
+        assert extra == {"permit2FacilitatorAddress": signer.get_addresses()[0]}
 
     def test_get_signers_returns_signer_addresses(self):
         """get_signers should return list of signer addresses."""

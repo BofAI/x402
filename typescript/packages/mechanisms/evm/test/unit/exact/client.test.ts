@@ -9,6 +9,8 @@ import { PaymentRequirements } from "@bankofai/x402-core/types";
 import { PERMIT2_ADDRESS, x402ExactPermit2ProxyAddress } from "../../../src/constants";
 import { isPermit2Payload, isEIP3009Payload } from "../../../src/types";
 
+const permit2FacilitatorAddress = "0x1111111111111111111111111111111111111111";
+
 describe("ExactEvmScheme (Client)", () => {
   let client: ExactEvmScheme;
   let mockSigner: ClientEvmSigner;
@@ -266,7 +268,12 @@ describe("ExactEvmScheme (Client)", () => {
           asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
           payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
           maxTimeoutSeconds: 300,
-          extra: { name: "USD Coin", version: "2", assetTransferMethod: "permit2" },
+          extra: {
+            name: "USD Coin",
+            version: "2",
+            assetTransferMethod: "permit2",
+            permit2FacilitatorAddress,
+          },
         };
 
         const result = await client.createPaymentPayload(2, requirements);
@@ -287,7 +294,7 @@ describe("ExactEvmScheme (Client)", () => {
         asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
         maxTimeoutSeconds: 300,
-        extra: { assetTransferMethod: "permit2" },
+        extra: { assetTransferMethod: "permit2", permit2FacilitatorAddress },
       };
 
       const result = await client.createPaymentPayload(2, requirements);
@@ -308,7 +315,7 @@ describe("ExactEvmScheme (Client)", () => {
         asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
         maxTimeoutSeconds: 300,
-        extra: { assetTransferMethod: "permit2" },
+        extra: { assetTransferMethod: "permit2", permit2FacilitatorAddress },
       };
 
       const result = await client.createPaymentPayload(2, requirements);
@@ -326,7 +333,7 @@ describe("ExactEvmScheme (Client)", () => {
         asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         payTo: payToAddress,
         maxTimeoutSeconds: 300,
-        extra: { assetTransferMethod: "permit2" },
+        extra: { assetTransferMethod: "permit2", permit2FacilitatorAddress },
       };
 
       const result = await client.createPaymentPayload(2, requirements);
@@ -345,7 +352,7 @@ describe("ExactEvmScheme (Client)", () => {
         asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
         maxTimeoutSeconds: 300,
-        extra: { assetTransferMethod: "permit2" },
+        extra: { assetTransferMethod: "permit2", permit2FacilitatorAddress },
       };
 
       await client.createPaymentPayload(2, requirements);
@@ -362,7 +369,7 @@ describe("Permit2 Approval Helpers", () => {
   describe("createPermit2ApprovalTx", () => {
     it("should create approval transaction data", () => {
       const tokenAddress = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as `0x${string}`;
-      const tx = createPermit2ApprovalTx(tokenAddress);
+      const tx = createPermit2ApprovalTx(tokenAddress, "eip155:84532");
 
       expect(tx.to.toLowerCase()).toBe(tokenAddress.toLowerCase());
       expect(tx.data).toBeDefined();
@@ -371,10 +378,19 @@ describe("Permit2 Approval Helpers", () => {
 
     it("should encode approve function call", () => {
       const tokenAddress = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as `0x${string}`;
-      const tx = createPermit2ApprovalTx(tokenAddress);
+      const tx = createPermit2ApprovalTx(tokenAddress, "eip155:84532");
 
       // approve(address,uint256) selector is 0x095ea7b3
       expect(tx.data.startsWith("0x095ea7b3")).toBe(true);
+    });
+
+    it("should target PancakeSwap Permit2 on BSC testnet", () => {
+      const tokenAddress = "0x55d398326f99059fF775485246999027B3197955" as `0x${string}`;
+      const tx = createPermit2ApprovalTx(tokenAddress, "eip155:97");
+
+      expect(tx.data.toLowerCase()).toContain(
+        "31c2f6fcff4f8759b3bd5bf0e1084a055615c768".toLowerCase(),
+      );
     });
   });
 
@@ -383,6 +399,7 @@ describe("Permit2 Approval Helpers", () => {
       const params = getPermit2AllowanceReadParams({
         tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         ownerAddress: "0x1234567890123456789012345678901234567890",
+        network: "eip155:84532",
       });
 
       expect(params.address.toLowerCase()).toBe(
@@ -399,6 +416,7 @@ describe("Permit2 Approval Helpers", () => {
       const params = getPermit2AllowanceReadParams({
         tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         ownerAddress: "0x1234567890123456789012345678901234567890",
+        network: "eip155:84532",
       });
 
       expect(params.abi).toBeDefined();
@@ -486,6 +504,7 @@ describe("Permit2 Approval Flow", () => {
       const readParams = getPermit2AllowanceReadParams({
         tokenAddress,
         ownerAddress,
+        network: "eip155:84532",
       });
       expect(readParams).toBeDefined();
 
@@ -496,7 +515,7 @@ describe("Permit2 Approval Flow", () => {
       // Step 3: Check if approval needed
       if (checkNeedsApproval(currentAllowance, requiredAmount)) {
         // Step 4: Create approval transaction
-        const tx = createPermit2ApprovalTx(tokenAddress);
+        const tx = createPermit2ApprovalTx(tokenAddress, "eip155:84532");
         expect(tx.to).toBeDefined();
         expect(tx.data).toBeDefined();
 
@@ -570,13 +589,14 @@ describe("Permit2 Approval Flow", () => {
         asset: tokenAddress,
         payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
         maxTimeoutSeconds: 300,
-        extra: { assetTransferMethod: "permit2" },
+        extra: { assetTransferMethod: "permit2", permit2FacilitatorAddress },
       };
 
       // Step 1: Check allowance (simulated as zero)
       const readParams = getPermit2AllowanceReadParams({
         tokenAddress,
         ownerAddress: mockSigner.address,
+        network: requirements.network,
       });
       expect(readParams.functionName).toBe("allowance");
 
@@ -585,7 +605,7 @@ describe("Permit2 Approval Flow", () => {
       expect(needsApproval).toBe(true);
 
       // Step 2: Create and "send" approval tx
-      const approvalTx = createPermit2ApprovalTx(tokenAddress);
+      const approvalTx = createPermit2ApprovalTx(tokenAddress, requirements.network);
       expect(approvalTx.to.toLowerCase()).toBe(tokenAddress.toLowerCase());
       // In real app: await walletClient.sendTransaction(approvalTx)
 
@@ -606,7 +626,7 @@ describe("Permit2 Approval Flow", () => {
         asset: tokenAddress,
         payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
         maxTimeoutSeconds: 300,
-        extra: { assetTransferMethod: "permit2" },
+        extra: { assetTransferMethod: "permit2", permit2FacilitatorAddress },
       };
 
       // Step 1: Check allowance (simulated as max uint256 - already approved)
@@ -636,6 +656,7 @@ describe("Permit2 Approval Flow", () => {
         assetTransferMethod: "permit2",
         name: "USDC",
         version: "2",
+        permit2FacilitatorAddress,
       },
     };
 
@@ -734,6 +755,7 @@ describe("Permit2 Approval Flow", () => {
       maxTimeoutSeconds: 60,
       extra: {
         assetTransferMethod: "permit2",
+        permit2FacilitatorAddress,
         // No name/version - generic ERC-20 without EIP-2612
       },
     };
@@ -831,6 +853,7 @@ describe("Permit2 Approval Flow", () => {
           assetTransferMethod: "permit2",
           name: "TOKEN",
           version: "1",
+          permit2FacilitatorAddress,
         },
       };
 

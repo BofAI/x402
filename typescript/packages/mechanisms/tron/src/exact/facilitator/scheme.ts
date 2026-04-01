@@ -34,7 +34,7 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
    * @returns The extra configuration object
    */
   getExtra(network: string): Record<string, unknown> | undefined {
-    const supportedMethods: string[] = ["eip3009"];
+    const supportedMethods: string[] = ["transferWithAuthorization"];
     const signers = this.signer.getAddresses();
     if (X402_PERMIT2_PROXY_ADDRESSES[network]) {
       supportedMethods.push("permit2");

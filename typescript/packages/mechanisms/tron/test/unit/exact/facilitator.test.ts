@@ -177,10 +177,10 @@ describe("ExactTronScheme (Facilitator)", () => {
   });
 
   describe("getExtra", () => {
-    it("should return supportedAssetTransferMethods including eip3009", () => {
+    it("should return supportedAssetTransferMethods including transferWithAuthorization", () => {
       const extra = facilitator.getExtra("tron:nile");
       expect(extra).toBeDefined();
-      expect(extra!.supportedAssetTransferMethods).toContain("eip3009");
+      expect(extra!.supportedAssetTransferMethods).toContain("transferWithAuthorization");
     });
 
     it("should include permit2 when proxy address exists for network", () => {
@@ -192,7 +192,7 @@ describe("ExactTronScheme (Facilitator)", () => {
     it("should not include permit2 for unknown network without proxy", () => {
       const extra = facilitator.getExtra("tron:unknown");
       const methods = extra!.supportedAssetTransferMethods as string[];
-      expect(methods).toContain("eip3009");
+      expect(methods).toContain("transferWithAuthorization");
       expect(methods).not.toContain("permit2");
     });
   });

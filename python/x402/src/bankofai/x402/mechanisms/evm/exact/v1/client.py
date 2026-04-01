@@ -46,6 +46,7 @@ class ExactEvmSchemeV1:
     def create_payment_payload(
         self,
         requirements: PaymentRequirementsV1,
+        context=None,
     ) -> dict[str, Any]:
         """Create signed EIP-3009 inner payload (V1 format).
 

@@ -215,10 +215,11 @@ svm = [
 
 [package.metadata]
 requires-dist = [
-    { name = "bankofai-x402", extras = ["evm", "svm"], marker = "extra == 'mechanisms'" },
     { name = "bankofai-x402", extras = ["flask", "fastapi"], marker = "extra == 'servers'" },
     { name = "bankofai-x402", extras = ["httpx", "requests"], marker = "extra == 'clients'" },
-    { name = "bankofai-x402", extras = ["httpx", "requests", "flask", "fastapi", "evm", "svm", "mcp", "extensions"], marker = "extra == 'all'" },
+    { name = "bankofai-x402", extras = ["httpx", "requests", "flask", "fastapi", "tron", "evm", "svm", "mcp", "extensions"], marker = "extra == 'all'" },
+    { name = "bankofai-x402", extras = ["tron", "evm", "svm"], marker = "extra == 'mechanisms'" },
+    { name = "base58", marker = "extra == 'tron'", specifier = ">=2.1.1" },
     { name = "eth-abi", marker = "extra == 'evm'", specifier = ">=5.0.0" },
     { name = "eth-account", marker = "extra == 'evm'", specifier = ">=0.12.0" },
     { name = "eth-keys", marker = "extra == 'evm'", specifier = ">=0.5.0" },
@@ -234,6 +235,7 @@ requires-dist = [
     { name = "solana", marker = "extra == 'svm'", specifier = ">=0.36.0" },
     { name = "solders", marker = "extra == 'svm'", specifier = ">=0.27.0" },
     { name = "starlette", marker = "extra == 'fastapi'", specifier = ">=0.27.0" },
+    { name = "tronpy", marker = "extra == 'tron'", specifier = ">=0.6.0,<0.7.0" },
     { name = "typing-extensions", specifier = ">=4.0.0" },
     { name = "web3", marker = "extra == 'evm'", specifier = ">=7.0.0" },
 ]

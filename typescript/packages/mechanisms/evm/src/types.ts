@@ -27,6 +27,7 @@ export type ExactEIP3009Payload = {
  */
 export type Permit2Witness = {
   to: `0x${string}`;
+  facilitator: `0x${string}`;
   validAfter: string;
 };
 

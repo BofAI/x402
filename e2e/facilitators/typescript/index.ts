@@ -44,9 +44,12 @@ import { ExactSvmSchemeV1 } from "@bankofai/x402-svm/exact/v1/facilitator";
 import { NETWORKS as SVM_V1_NETWORKS } from "@bankofai/x402-svm/v1";
 import { createEd25519Signer, type FacilitatorStellarSigner } from "@bankofai/x402-stellar";
 import { ExactStellarScheme } from "@bankofai/x402-stellar/exact/facilitator";
+import { createFacilitatorTronSigner } from "@bankofai/x402-tron";
+import { registerExactTronScheme } from "@bankofai/x402-tron/exact/facilitator";
 import crypto from "crypto";
 import dotenv from "dotenv";
 import express from "express";
+import { TronWeb } from "tronweb";
 import { createWalletClient, http, publicActions, Chain } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { bscTestnet, base } from "viem/chains";
@@ -61,10 +64,13 @@ const SVM_NETWORK =
   process.env.SVM_NETWORK || "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1";
 const APTOS_NETWORK = process.env.APTOS_NETWORK || "aptos:2";
 const STELLAR_NETWORK = process.env.STELLAR_NETWORK || "stellar:testnet";
+const TRON_NETWORK = process.env.TRON_NETWORK || "tron:nile";
 const EVM_RPC_URL = process.env.EVM_RPC_URL;
 const SVM_RPC_URL = process.env.SVM_RPC_URL;
 const APTOS_RPC_URL = process.env.APTOS_RPC_URL;
 const STELLAR_RPC_URL = process.env.STELLAR_RPC_URL;
+const TRON_RPC_URL = process.env.TRON_RPC_URL;
+const TRON_GRID_API_KEY = process.env.TRON_GRID_API_KEY;
 
 // Map CAIP-2 network IDs to viem chains
 function getEvmChain(network: string): Chain {
@@ -81,10 +87,12 @@ console.log(`🌐 EVM Network: ${EVM_NETWORK}`);
 console.log(`🌐 SVM Network: ${SVM_NETWORK}`);
 console.log(`🌐 Aptos Network: ${APTOS_NETWORK}`);
 console.log(`🌐 Stellar Network: ${STELLAR_NETWORK}`);
+console.log(`🌐 TRON Network: ${TRON_NETWORK}`);
 if (EVM_RPC_URL) console.log(`🌐 EVM RPC URL: ${EVM_RPC_URL}`);
 if (SVM_RPC_URL) console.log(`🌐 SVM RPC URL: ${SVM_RPC_URL}`);
 if (APTOS_RPC_URL) console.log(`🌐 Aptos RPC URL: ${APTOS_RPC_URL}`);
 if (STELLAR_RPC_URL) console.log(`🌐 Stellar RPC URL: ${STELLAR_RPC_URL}`);
+if (TRON_RPC_URL) console.log(`🌐 TRON RPC URL: ${TRON_RPC_URL}`);
 
 // Validate required environment variables
 if (!process.env.EVM_PRIVATE_KEY) {
@@ -94,6 +102,9 @@ if (!process.env.EVM_PRIVATE_KEY) {
 
 if (!process.env.SVM_PRIVATE_KEY) {
   console.warn("⚠️  SVM_PRIVATE_KEY not set — SVM payment support disabled");
+}
+if (!process.env.TRON_PRIVATE_KEY) {
+  console.warn("⚠️  TRON_PRIVATE_KEY not set — TRON payment support disabled");
 }
 
 // Initialize the EVM account from private key
@@ -130,6 +141,30 @@ let stellarSigner: FacilitatorStellarSigner | undefined;
 if (process.env.STELLAR_PRIVATE_KEY) {
   stellarSigner = createEd25519Signer(process.env.STELLAR_PRIVATE_KEY as string, STELLAR_NETWORK as Network);
   console.info(`Stellar Facilitator account: ${stellarSigner.address}`);
+}
+
+function resolveTronRpcUrl(network: string): string {
+  if (TRON_RPC_URL) {
+    return TRON_RPC_URL;
+  }
+  if (network === "tron:mainnet") {
+    return "https://api.trongrid.io";
+  }
+  if (network === "tron:shasta") {
+    return "https://api.shasta.trongrid.io";
+  }
+  return "https://nile.trongrid.io";
+}
+
+let tronSigner: ReturnType<typeof createFacilitatorTronSigner> | undefined;
+if (process.env.TRON_PRIVATE_KEY) {
+  const tronWeb = new TronWeb({
+    fullHost: resolveTronRpcUrl(TRON_NETWORK),
+    privateKey: process.env.TRON_PRIVATE_KEY,
+    headers: TRON_GRID_API_KEY ? { "TRON-PRO-API-KEY": TRON_GRID_API_KEY } : undefined,
+  });
+  tronSigner = createFacilitatorTronSigner(tronWeb, process.env.TRON_PRIVATE_KEY);
+  console.info(`TRON Facilitator account: ${tronSigner.address}`);
 }
 
 // Create a Viem client with both wallet and public capabilities
@@ -226,6 +261,12 @@ if (aptosSigner) {
 }
 if (stellarSigner) {
   facilitator.register(STELLAR_NETWORK as Network, new ExactStellarScheme([stellarSigner]));
+}
+if (tronSigner) {
+  registerExactTronScheme(facilitator, {
+    signer: tronSigner,
+    networks: TRON_NETWORK as Network,
+  });
 }
 
 facilitator
@@ -427,6 +468,7 @@ app.get("/health", (req, res) => {
     svmNetwork: SVM_NETWORK,
     aptosNetwork: aptosAccount ? APTOS_NETWORK : "(not configured)",
     stellarNetwork: stellarSigner ? STELLAR_NETWORK : "(not configured)",
+    tronNetwork: tronSigner ? TRON_NETWORK : "(not configured)",
     facilitator: "typescript",
     version: "2.0.0",
     extensions: [BAZAAR.key],
@@ -458,9 +500,11 @@ app.listen(parseInt(PORT), () => {
 ║  EVM Network:  ${EVM_NETWORK}                          ║
 ║  SVM Network:  ${SVM_NETWORK}                          ║
 ║  Aptos Network: ${APTOS_NETWORK}                       ║
+║  TRON Network: ${TRON_NETWORK}                         ║
 ║  EVM Address:  ${evmAccount.address}                   ║
 ║  Aptos Address: ${aptosAccount ? aptosAccount.accountAddress.toStringLong().slice(0, 20) + "..." : "(not configured)"}
 ║  Stellar Address: ${stellarSigner ? stellarSigner.address : "(not configured)"} ║
+║  TRON Address: ${tronSigner ? tronSigner.address : "(not configured)"} ║
 ║  Extensions:   bazaar                                  ║
 ║                                                        ║
 ║  Endpoints:                                            ║

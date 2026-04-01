@@ -17,10 +17,14 @@ from bankofai.x402.mechanisms.evm.exact import (
     register_exact_evm_server,
 )
 from bankofai.x402.mechanisms.svm.exact import register_exact_svm_server
+from bankofai.x402.mechanisms.tron.exact import register_exact_tron_server
 from bankofai.x402.extensions.bazaar import (
     bazaar_resource_server_extension,
     declare_discovery_extension,
     OutputConfig,
+)
+from bankofai.x402.extensions.trc20_approval_gas_sponsoring import (
+    declare_trc20_approval_gas_sponsoring_extension,
 )
 
 # Load environment variables
@@ -28,7 +32,10 @@ load_dotenv()
 
 # Get configuration from environment
 EVM_ADDRESS = os.getenv("EVM_PAYEE_ADDRESS")
+EVM_FACILITATOR_ADDRESS = os.getenv("EVM_FACILITATOR_ADDRESS")
 SVM_ADDRESS = os.getenv("SVM_PAYEE_ADDRESS")
+TRON_ADDRESS = os.getenv("TRON_PAYEE_ADDRESS")
+TRON_FACILITATOR_ADDRESS = os.getenv("TRON_FACILITATOR_ADDRESS")
 PORT = int(os.getenv("PORT", "4021"))
 FACILITATOR_URL = os.getenv("FACILITATOR_URL")
 
@@ -38,17 +45,24 @@ if not EVM_ADDRESS:
 
 if not SVM_ADDRESS:
     print("Warning: SVM_PAYEE_ADDRESS not set - SVM payment endpoints disabled")
+if not TRON_ADDRESS:
+    print("Warning: TRON_PAYEE_ADDRESS not set - TRON payment endpoints disabled")
+if not TRON_FACILITATOR_ADDRESS:
+    print("Warning: TRON_FACILITATOR_ADDRESS not set - TRON Permit2 endpoints disabled")
+if not EVM_FACILITATOR_ADDRESS:
+    print("Warning: EVM_FACILITATOR_ADDRESS not set - EVM Permit2 endpoints disabled")
 
 # Network configurations (CAIP-2 format)
 EVM_NETWORK = "eip155:97"  # BSC Testnet
 SVM_NETWORK = "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1"  # Solana Devnet
+TRON_NETWORK = os.getenv("TRON_NETWORK") or "tron:nile"
 
 app = FastAPI()
 
 # Create HTTP facilitator client
 if FACILITATOR_URL:
     print(f"Using remote facilitator at: {FACILITATOR_URL}")
-    config = FacilitatorConfig(url=FACILITATOR_URL)
+    config = FacilitatorConfig(url=FACILITATOR_URL, timeout=90.0)
     facilitator = HTTPFacilitatorClient(config)
 else:
     print("Using default facilitator")
@@ -74,6 +88,8 @@ server.asset_registry.register(
 register_exact_evm_server(server, EVM_NETWORK)
 if SVM_ADDRESS:
     register_exact_svm_server(server, SVM_NETWORK)
+if TRON_ADDRESS:
+    register_exact_tron_server(server, TRON_NETWORK)
 
 # Register Bazaar discovery extension
 server.register_extension(bazaar_resource_server_extension)
@@ -142,6 +158,47 @@ routes = {
     },
     **(
         {
+            "GET /protected-permit2": {
+                "accepts": {
+                    "scheme": "exact",
+                    "payTo": EVM_ADDRESS,
+                    "assets": ["DHLU"],
+                    "price": {
+                        "amount": "1000",
+                        "asset": "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
+                        "extra": {
+                            "name": "DA HULU",
+                            "version": "1",
+                            "assetTransferMethod": "permit2",
+                            "permit2FacilitatorAddress": EVM_FACILITATOR_ADDRESS,
+                        },
+                    },
+                    "network": EVM_NETWORK,
+                },
+                "extensions": {
+                    **declare_discovery_extension(
+                        output=OutputConfig(
+                            example={
+                                "message": "Access granted to Permit2 protected resource",
+                                "timestamp": "2024-01-01T00:00:00Z",
+                            },
+                            schema={
+                                "properties": {
+                                    "message": {"type": "string"},
+                                    "timestamp": {"type": "string"},
+                                },
+                                "required": ["message", "timestamp"],
+                            },
+                        )
+                    ),
+                },
+            },
+        }
+        if EVM_FACILITATOR_ADDRESS
+        else {}
+    ),
+    **(
+        {
             "GET /protected-svm": {
                 "accepts": {
                     "scheme": "exact",
@@ -169,6 +226,82 @@ routes = {
             },
         }
         if SVM_ADDRESS
+        else {}
+    ),
+    **(
+        {
+            "GET /protected-tron": {
+                "accepts": {
+                    "scheme": "exact",
+                    "payTo": TRON_ADDRESS,
+                    "price": "$0.01",
+                    "network": TRON_NETWORK,
+                    "extra": {
+                        "assetTransferMethod": "permit2",
+                        "permit2FacilitatorAddress": TRON_FACILITATOR_ADDRESS,
+                    },
+                },
+                "extensions": {
+                    **declare_discovery_extension(
+                        output=OutputConfig(
+                            example={
+                                "message": "Access granted to TRON protected resource",
+                                "timestamp": "2024-01-01T00:00:00Z",
+                            },
+                            schema={
+                                "properties": {
+                                    "message": {"type": "string"},
+                                    "timestamp": {"type": "string"},
+                                },
+                                "required": ["message", "timestamp"],
+                            },
+                        )
+                    ),
+                    **declare_trc20_approval_gas_sponsoring_extension(
+                        description="TRC-20 approval gas sponsoring (Permit2)",
+                    ),
+                },
+            },
+        }
+        if TRON_ADDRESS and TRON_FACILITATOR_ADDRESS
+        else {}
+    ),
+    **(
+        {
+            "GET /protected-tron-permit2": {
+                "accepts": {
+                    "scheme": "exact",
+                    "payTo": TRON_ADDRESS,
+                    "price": "$0.01",
+                    "network": TRON_NETWORK,
+                    "extra": {
+                        "assetTransferMethod": "permit2",
+                        "permit2FacilitatorAddress": TRON_FACILITATOR_ADDRESS,
+                    },
+                },
+                "extensions": {
+                    **declare_discovery_extension(
+                        output=OutputConfig(
+                            example={
+                                "message": "Access granted to TRON Permit2 resource",
+                                "timestamp": "2024-01-01T00:00:00Z",
+                            },
+                            schema={
+                                "properties": {
+                                    "message": {"type": "string"},
+                                    "timestamp": {"type": "string"},
+                                },
+                                "required": ["message", "timestamp"],
+                            },
+                        )
+                    ),
+                    **declare_trc20_approval_gas_sponsoring_extension(
+                        description="TRC-20 approval gas sponsoring (Permit2)",
+                    ),
+                },
+            },
+        }
+        if TRON_ADDRESS and TRON_FACILITATOR_ADDRESS
         else {}
     ),
 }
@@ -208,6 +341,18 @@ async def protected_endpoint_2() -> Dict[str, Any]:
     }
 
 
+@app.get("/protected-permit2")
+async def protected_permit2_endpoint() -> Dict[str, Any]:
+    """Protected endpoint that requires Permit2 payment."""
+    if shutdown_requested:
+        raise HTTPException(status_code=503, detail="Server shutting down")
+
+    return {
+        "message": "Access granted to Permit2 protected resource",
+        "timestamp": "2024-01-01T00:00:00Z",
+    }
+
+
 @app.get("/protected-svm")
 async def protected_svm_endpoint() -> Dict[str, Any]:
     """Protected endpoint that requires SVM (Solana) payment."""
@@ -216,6 +361,30 @@ async def protected_svm_endpoint() -> Dict[str, Any]:
 
     return {
         "message": "Access granted to SVM protected resource",
+        "timestamp": "2024-01-01T00:00:00Z",
+    }
+
+
+@app.get("/protected-tron")
+async def protected_tron_endpoint() -> Dict[str, Any]:
+    """Protected endpoint that requires TRON payment."""
+    if shutdown_requested:
+        raise HTTPException(status_code=503, detail="Server shutting down")
+
+    return {
+        "message": "Access granted to TRON protected resource",
+        "timestamp": "2024-01-01T00:00:00Z",
+    }
+
+
+@app.get("/protected-tron-permit2")
+async def protected_tron_permit2_endpoint() -> Dict[str, Any]:
+    """Protected endpoint that requires TRON Permit2 payment."""
+    if shutdown_requested:
+        raise HTTPException(status_code=503, detail="Server shutting down")
+
+    return {
+        "message": "Access granted to TRON Permit2 resource",
         "timestamp": "2024-01-01T00:00:00Z",
     }
 

@@ -104,13 +104,16 @@ export class ExactTronScheme implements SchemeNetworkServer {
     const supportedMethods = supportedKind.extra?.supportedAssetTransferMethods as
       | string[]
       | undefined;
-    const existingMethod = paymentRequirements.extra?.assetTransferMethod as string | undefined;
+    const existingMethod = normalizeAssetTransferMethod(
+      paymentRequirements.extra?.assetTransferMethod as string | undefined,
+    );
+    const normalizedSupported = supportedMethods?.map(normalizeAssetTransferMethod);
     const method =
       existingMethod ??
-      (supportedMethods && supportedMethods.length > 0
-        ? supportedMethods.includes("eip3009")
-          ? "eip3009"
-          : supportedMethods[0]
+      (normalizedSupported && normalizedSupported.length > 0
+        ? normalizedSupported.includes("transferWithAuthorization")
+          ? "transferWithAuthorization"
+          : normalizedSupported[0]
         : undefined);
 
     if (!method) {
@@ -256,4 +259,12 @@ export class ExactTronScheme implements SchemeNetworkServer {
 
     return assetInfo;
   }
+}
+
+function normalizeAssetTransferMethod(method?: string): string | undefined {
+  if (!method) return undefined;
+  if (method === "tip712" || method === "eip3009") {
+    return "transferWithAuthorization";
+  }
+  return method;
 }

@@ -1,6 +1,6 @@
 import { getAddress } from "viem";
 import type { Eip2612GasSponsoringInfo } from "@bankofai/x402-extensions";
-import { eip2612PermitTypes, eip2612NoncesAbi, PERMIT2_ADDRESS } from "../../constants";
+import { eip2612PermitTypes, eip2612NoncesAbi, getPermit2Address } from "../../constants";
 import { ClientEvmSigner } from "../../signer";
 
 /**
@@ -16,6 +16,7 @@ import { ClientEvmSigner } from "../../signer";
  * @param tokenAddress - The ERC-20 token contract address
  * @param tokenName - The token name (from paymentRequirements.extra.name)
  * @param tokenVersion - The token version (from paymentRequirements.extra.version)
+ * @param network - The target EVM network used to resolve Permit2
  * @param chainId - The chain ID
  * @param deadline - The deadline for the permit (unix timestamp as string)
  * @param permittedAmount - The Permit2 permitted amount (must match exactly)
@@ -26,12 +27,13 @@ export async function signEip2612Permit(
   tokenAddress: `0x${string}`,
   tokenName: string,
   tokenVersion: string,
+  network: string,
   chainId: number,
   deadline: string,
   permittedAmount: string,
 ): Promise<Eip2612GasSponsoringInfo> {
   const owner = signer.address;
-  const spender = getAddress(PERMIT2_ADDRESS);
+  const spender = getAddress(getPermit2Address(network));
 
   // Query the current EIP-2612 nonce from the token contract
   const nonce = (await signer.readContract({

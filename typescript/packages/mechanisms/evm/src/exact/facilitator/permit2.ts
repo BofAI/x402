@@ -16,10 +16,10 @@ import type { Eip2612GasSponsoringInfo } from "@bankofai/x402-extensions";
 import { getAddress } from "viem";
 import {
   eip3009ABI,
-  PERMIT2_ADDRESS,
+  getPermit2Address,
   permit2WitnessTypes,
   x402ExactPermit2ProxyABI,
-  x402ExactPermit2ProxyAddress,
+  getX402ExactPermit2ProxyAddress,
   erc20AllowanceAbi,
 } from "../../constants";
 import {
@@ -78,11 +78,19 @@ export async function verifyPermit2(
 
   const chainId = getEvmChainId(requirements.network);
   const tokenAddress = getAddress(requirements.asset);
+  const permit2Address = getPermit2Address(requirements.network);
+  const proxyAddress = getX402ExactPermit2ProxyAddress(requirements.network);
+  const facilitator = resolvePermit2Facilitator(requirements, permit2Payload);
+  if (!facilitator) {
+    return {
+      isValid: false,
+      invalidReason: "invalid_permit2_facilitator_mismatch",
+      payer,
+    };
+  }
+  const { facilitatorAddress, witnessFacilitator } = facilitator;
 
-  if (
-    getAddress(permit2Payload.permit2Authorization.spender) !==
-    getAddress(x402ExactPermit2ProxyAddress)
-  ) {
+  if (getAddress(permit2Payload.permit2Authorization.spender) !== getAddress(proxyAddress)) {
     return {
       isValid: false,
       invalidReason: "invalid_permit2_spender",
@@ -96,6 +104,14 @@ export async function verifyPermit2(
     return {
       isValid: false,
       invalidReason: "invalid_permit2_recipient_mismatch",
+      payer,
+    };
+  }
+
+  if (getAddress(witnessFacilitator) !== getAddress(facilitatorAddress)) {
+    return {
+      isValid: false,
+      invalidReason: "invalid_permit2_facilitator_mismatch",
       payer,
     };
   }
@@ -142,7 +158,7 @@ export async function verifyPermit2(
     domain: {
       name: "Permit2",
       chainId,
-      verifyingContract: PERMIT2_ADDRESS,
+      verifyingContract: permit2Address,
     },
     message: {
       permitted: {
@@ -154,6 +170,7 @@ export async function verifyPermit2(
       deadline: BigInt(permit2Payload.permit2Authorization.deadline),
       witness: {
         to: getAddress(permit2Payload.permit2Authorization.witness.to),
+        facilitator: getAddress(witnessFacilitator),
         validAfter: BigInt(permit2Payload.permit2Authorization.witness.validAfter),
       },
     },
@@ -240,12 +257,13 @@ async function _verifyPermit2Allowance(
   tokenAddress: `0x${string}`,
   context?: FacilitatorContext,
 ): Promise<VerifyResponse | null> {
+  const permit2Address = getPermit2Address(requirements.network);
   try {
     const allowance = (await signer.readContract({
       address: tokenAddress,
       abi: erc20AllowanceAbi,
       functionName: "allowance",
-      args: [payer, PERMIT2_ADDRESS],
+      args: [payer, permit2Address],
     })) as bigint;
 
     if (allowance >= BigInt(requirements.amount)) {
@@ -255,7 +273,12 @@ async function _verifyPermit2Allowance(
     // Allowance insufficient — try EIP-2612 gas sponsoring first
     const eip2612Info = extractEip2612GasSponsoringInfo(payload);
     if (eip2612Info) {
-      const result = validateEip2612PermitForPayment(eip2612Info, payer, tokenAddress);
+      const result = validateEip2612PermitForPayment(
+        eip2612Info,
+        payer,
+        tokenAddress,
+        requirements.network,
+      );
       if (!result.isValid) {
         return { isValid: false, invalidReason: result.invalidReason!, payer };
       }
@@ -270,7 +293,12 @@ async function _verifyPermit2Allowance(
     if (erc20GasSponsorshipExtension) {
       const erc20Info = extractErc20ApprovalGasSponsoringInfo(payload);
       if (erc20Info) {
-        const result = await validateErc20ApprovalForPayment(erc20Info, payer, tokenAddress);
+        const result = await validateErc20ApprovalForPayment(
+          erc20Info,
+          payer,
+          tokenAddress,
+          requirements.network,
+        );
         if (!result.isValid) {
           return { isValid: false, invalidReason: result.invalidReason!, payer };
         }
@@ -283,7 +311,12 @@ async function _verifyPermit2Allowance(
     // If allowance check fails, validate extensions if present; otherwise proceed optimistically
     const eip2612Info = extractEip2612GasSponsoringInfo(payload);
     if (eip2612Info) {
-      const result = validateEip2612PermitForPayment(eip2612Info, payer, tokenAddress);
+      const result = validateEip2612PermitForPayment(
+        eip2612Info,
+        payer,
+        tokenAddress,
+        requirements.network,
+      );
       if (!result.isValid) {
         return { isValid: false, invalidReason: result.invalidReason!, payer };
       }
@@ -369,11 +402,23 @@ async function _settlePermit2WithEIP2612(
   eip2612Info: Eip2612GasSponsoringInfo,
 ): Promise<SettleResponse> {
   const payer = permit2Payload.permit2Authorization.from;
+  const proxyAddress = getX402ExactPermit2ProxyAddress(payload.accepted.network);
+  const facilitator = resolvePermit2Facilitator(payload.accepted, permit2Payload);
+  if (!facilitator) {
+    return {
+      success: false,
+      network: payload.accepted.network,
+      transaction: "",
+      errorReason: "invalid_permit2_facilitator_mismatch",
+      payer,
+    };
+  }
+  const { witnessFacilitator } = facilitator;
   try {
     const { v, r, s } = splitEip2612Signature(eip2612Info.signature);
 
     const tx = await signer.writeContract({
-      address: x402ExactPermit2ProxyAddress,
+      address: proxyAddress,
       abi: x402ExactPermit2ProxyABI,
       functionName: "settleWithPermit",
       args: [
@@ -395,6 +440,7 @@ async function _settlePermit2WithEIP2612(
         getAddress(payer),
         {
           to: getAddress(permit2Payload.permit2Authorization.witness.to),
+          facilitator: getAddress(witnessFacilitator),
           validAfter: BigInt(permit2Payload.permit2Authorization.witness.validAfter),
         },
         permit2Payload.signature,
@@ -425,6 +471,18 @@ async function _settlePermit2WithERC20Approval(
   erc20Info: { signedTransaction: string },
 ): Promise<SettleResponse> {
   const payer = permit2Payload.permit2Authorization.from;
+  const proxyAddress = getX402ExactPermit2ProxyAddress(payload.accepted.network);
+  const facilitator = resolvePermit2Facilitator(payload.accepted, permit2Payload);
+  if (!facilitator) {
+    return {
+      success: false,
+      network: payload.accepted.network,
+      transaction: "",
+      errorReason: "invalid_permit2_facilitator_mismatch",
+      payer,
+    };
+  }
+  const { witnessFacilitator } = facilitator;
 
   try {
     const approvalTxHash = await extensionSigner.sendRawTransaction({
@@ -446,7 +504,7 @@ async function _settlePermit2WithERC20Approval(
     }
 
     const tx = await extensionSigner.writeContract({
-      address: x402ExactPermit2ProxyAddress,
+      address: proxyAddress,
       abi: x402ExactPermit2ProxyABI,
       functionName: "settle",
       args: [
@@ -461,6 +519,7 @@ async function _settlePermit2WithERC20Approval(
         getAddress(payer),
         {
           to: getAddress(permit2Payload.permit2Authorization.witness.to),
+          facilitator: getAddress(witnessFacilitator),
           validAfter: BigInt(permit2Payload.permit2Authorization.witness.validAfter),
         },
         permit2Payload.signature,
@@ -487,9 +546,21 @@ async function _settlePermit2Direct(
   permit2Payload: ExactPermit2Payload,
 ): Promise<SettleResponse> {
   const payer = permit2Payload.permit2Authorization.from;
+  const proxyAddress = getX402ExactPermit2ProxyAddress(payload.accepted.network);
+  const facilitator = resolvePermit2Facilitator(payload.accepted, permit2Payload);
+  if (!facilitator) {
+    return {
+      success: false,
+      network: payload.accepted.network,
+      transaction: "",
+      errorReason: "invalid_permit2_facilitator_mismatch",
+      payer,
+    };
+  }
+  const { witnessFacilitator } = facilitator;
   try {
     const tx = await signer.writeContract({
-      address: x402ExactPermit2ProxyAddress,
+      address: proxyAddress,
       abi: x402ExactPermit2ProxyABI,
       functionName: "settle",
       args: [
@@ -504,6 +575,7 @@ async function _settlePermit2Direct(
         getAddress(payer),
         {
           to: getAddress(permit2Payload.permit2Authorization.witness.to),
+          facilitator: getAddress(witnessFacilitator),
           validAfter: BigInt(permit2Payload.permit2Authorization.witness.validAfter),
         },
         permit2Payload.signature,
@@ -600,13 +672,16 @@ function _mapSettleError(
  * @param info - The EIP-2612 gas sponsoring info
  * @param payer - The expected payer address
  * @param tokenAddress - The expected token address
+ * @param network - CAIP-2 EVM network identifier used to resolve Permit2.
  * @returns Validation result with optional invalidReason
  */
 function validateEip2612PermitForPayment(
   info: Eip2612GasSponsoringInfo,
   payer: `0x${string}`,
   tokenAddress: `0x${string}`,
+  network: string,
 ): { isValid: boolean; invalidReason?: string } {
+  const permit2Address = getPermit2Address(network);
   if (!validateEip2612GasSponsoringInfo(info)) {
     return { isValid: false, invalidReason: "invalid_eip2612_extension_format" };
   }
@@ -619,7 +694,7 @@ function validateEip2612PermitForPayment(
     return { isValid: false, invalidReason: "eip2612_asset_mismatch" };
   }
 
-  if (getAddress(info.spender as `0x${string}`) !== getAddress(PERMIT2_ADDRESS)) {
+  if (getAddress(info.spender as `0x${string}`) !== getAddress(permit2Address)) {
     return { isValid: false, invalidReason: "eip2612_spender_not_permit2" };
   }
 
@@ -629,6 +704,29 @@ function validateEip2612PermitForPayment(
   }
 
   return { isValid: true };
+}
+
+/**
+ * Resolves the expected facilitator address for Permit2 witness validation and settlement.
+ *
+ * @param requirements - The payment requirements associated with the payment.
+ * @param permit2Payload - The Permit2 payload supplied by the client.
+ * @returns The expected facilitator address and the witness facilitator value to use.
+ */
+function resolvePermit2Facilitator(
+  requirements: PaymentRequirements,
+  permit2Payload: ExactPermit2Payload,
+): { facilitatorAddress: `0x${string}`; witnessFacilitator: `0x${string}` } | null {
+  const facilitatorAddress =
+    requirements.extra?.permit2FacilitatorAddress as `0x${string}` | undefined;
+  const witnessFacilitator =
+    permit2Payload.permit2Authorization.witness.facilitator as `0x${string}` | undefined;
+
+  if (!facilitatorAddress || !witnessFacilitator) {
+    return null;
+  }
+
+  return { facilitatorAddress, witnessFacilitator };
 }
 
 /**
