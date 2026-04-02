@@ -69,7 +69,7 @@ export class ExactTronClientMechanism implements ClientMechanism {
     // Look up token metadata for EIP-712 domain
     const tokenInfo = findByAddress(requirements.network, requirements.asset);
     const tokenName = tokenInfo?.name ?? 'Unknown Token';
-    const tokenVersion = '1';
+    const tokenVersion = tokenInfo?.version ?? requirements.extra?.version ?? '1';
 
     const chainId = getChainId(requirements.network);
     const domain = buildEip712Domain(
@@ -94,7 +94,7 @@ export class ExactTronClientMechanism implements ClientMechanism {
       accepted: requirements,
       payload: {
         signature,
-        paymentPermit: undefined as never,
+        authorization,
       },
       extensions: {
         transferAuthorization: authorization,

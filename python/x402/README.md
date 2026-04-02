@@ -2,6 +2,12 @@
 
 Python SDK for the x402 payment protocol — supports TRON and EVM (BSC) networks.
 
+## Compatibility Notes
+
+- The EVM `exact` flow is being aligned to the Coinbase x402 v2 payload shape.
+- Exact transfer authorizations are represented in `payload.authorization`.
+- Server-side migration fallback still accepts the legacy `extensions.transferAuthorization` field while the spec-aligned path becomes primary.
+
 ## Installation
 
 ```bash

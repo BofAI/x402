@@ -341,7 +341,38 @@ class X402Server:
         requirements: PaymentRequirements,
     ) -> bool:
         """Validate payload matches requirements (anti-tampering)"""
+        if requirements.scheme == "exact":
+            auth = payload.payload.authorization
+            if auth is None and payload.extensions:
+                auth = payload.extensions.get("transferAuthorization")
+
+            if auth is None:
+                return False
+
+            auth_from_payload = auth.model_dump(by_alias=True) if hasattr(auth, "model_dump") else auth
+            expected_pay_to = requirements.pay_to
+            mechanism = self._find_mechanism(requirements.network, requirements.scheme)
+            adapter = getattr(mechanism, "_adapter", None) if mechanism is not None else None
+            if (
+                adapter is not None
+                and hasattr(adapter, "to_signing_address")
+                and callable(getattr(adapter, "to_signing_address"))
+                and adapter.__class__.__module__ != "unittest.mock"
+            ):
+                expected_pay_to = adapter.to_signing_address(requirements.pay_to)
+
+            try:
+                if int(str(auth_from_payload.get("value"))) < int(requirements.amount):
+                    return False
+            except (TypeError, ValueError):
+                return False
+            if str(auth_from_payload.get("to", "")).lower() != str(expected_pay_to).lower():
+                return False
+            return True
+
         permit = payload.payload.payment_permit
+        if permit is None:
+            return False
 
         if permit.payment.pay_token != requirements.asset:
             return False

@@ -120,12 +120,18 @@ class BaseTransactionVerifier(ABC):
             TransactionVerificationResult with detailed verification status
         """
         permit = payload.payload.payment_permit
+        authorization = payload.payload.authorization
 
         self._logger.info("=" * 60)
         self._logger.info(f"Verifying transaction: {tx_hash}")
 
         # Log expected transfers from payload and requirements
-        expected_from = self.normalize_address(permit.buyer)
+        if permit is not None:
+            expected_from = self.normalize_address(permit.buyer)
+        elif authorization is not None:
+            expected_from = self.normalize_address(authorization.from_address)
+        else:
+            expected_from = "unknown"
         expected_pay_to = self.normalize_address(requirements.pay_to)
         expected_amount = int(requirements.amount)
         token_address = requirements.asset

@@ -6,22 +6,13 @@
  */
 
 import type { Hex } from '../address.js';
+import type { TransferAuthorization } from '../types/payment.js';
 
 /** Scheme name */
 export const SCHEME_EXACT = 'exact';
 
 /** Default validity period (1 hour) */
 export const DEFAULT_VALIDITY_SECONDS = 3600;
-
-/** TransferWithAuthorization parameters */
-export interface TransferAuthorization {
-  from: string;
-  to: string;
-  value: string;
-  validAfter: string;
-  validBefore: string;
-  nonce: string; // 32-byte hex string (0x...)
-}
 
 /**
  * EIP-712 type definitions for TransferWithAuthorization

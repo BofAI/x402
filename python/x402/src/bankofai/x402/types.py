@@ -61,6 +61,20 @@ class PaymentPermit(BaseModel):
     fee: Fee
 
 
+class TransferAuthorization(BaseModel):
+    """TransferWithAuthorization payload for the exact scheme"""
+
+    from_address: str = Field(alias="from")
+    to: str
+    value: str
+    valid_after: str = Field(alias="validAfter")
+    valid_before: str = Field(alias="validBefore")
+    nonce: str
+
+    class Config:
+        populate_by_name = True
+
+
 class FeeInfo(BaseModel):
     """Fee information in payment requirements"""
 
@@ -159,6 +173,7 @@ class PaymentPayloadData(BaseModel):
 
     signature: str
     merchant_signature: Optional[str] = Field(None, alias="merchantSignature")
+    authorization: Optional[TransferAuthorization] = None
     payment_permit: Optional[PaymentPermit] = Field(None, alias="paymentPermit")
 
     class Config:

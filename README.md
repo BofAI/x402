@@ -20,6 +20,12 @@ x402 currently supports the **TRON** and **BSC** networks, with plans to expand 
     - **Python**: FastAPI, Flask, httpx
     - **TypeScript**: Native fetch, Node.js
 
+## Compatibility Notes
+
+- The `exact` scheme is being aligned to the Coinbase x402 v2 wire format.
+- For `exact`, transfer authorization data is now carried in `payload.authorization`.
+- A temporary fallback still accepts the legacy `extensions.transferAuthorization` shape during migration.
+
 ## Installation
 
 ### Python

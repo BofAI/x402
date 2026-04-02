@@ -2,6 +2,12 @@
 
 TypeScript SDK for the x402 payment protocol. Supports TRON and EVM (BSC) networks with automatic HTTP 402 payment handling.
 
+## Compatibility Notes
+
+- The EVM `exact` flow is being aligned to the Coinbase x402 v2 payload shape.
+- Exact transfer authorizations are emitted in `payload.authorization`.
+- Migration fallback support for the legacy `extensions.transferAuthorization` field remains on the server side while compatibility is rolled out.
+
 ## Features
 
 - 🔐 **Automatic Payment Handling** - Transparently handles HTTP 402 Payment Required responses
