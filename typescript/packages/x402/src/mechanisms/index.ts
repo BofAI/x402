@@ -23,4 +23,3 @@ export {
   createNonce,
   createValidityWindow,
 } from './nativeExact.js';
-export type { TransferAuthorization } from './nativeExact.js';

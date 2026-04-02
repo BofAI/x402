@@ -8,6 +8,8 @@
 import type { Hex } from '../address.js';
 import type { TransferAuthorization } from '../types/payment.js';
 
+export type { TransferAuthorization } from '../types/payment.js';
+
 /** Scheme name */
 export const SCHEME_EXACT = 'exact';
 
