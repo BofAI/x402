@@ -1,15 +1,16 @@
 # v0.5.8 - GasFree API via BankOfAI Proxy
 
-Release date: March 30, 2026
+Release date: April 2, 2026
 
 ## Changes
 
 - **GasFree API proxy**: All GasFree API calls now route through the BankOfAI official proxy at `https://facilitator.bankofai.io/{mainnet,shasta,nile}` instead of the upstream `open.gasfree.io` / `open-test.gasfree.io` endpoints. Clients no longer need to configure `GASFREE_API_KEY` or `GASFREE_API_SECRET` environment variables.
 - **Fail-fast on unsupported networks**: `getGasFreeApiBaseUrl()` / `get_gasfree_api_base_url()` now throws `UnsupportedNetworkError` for unrecognised networks instead of silently returning a wrong default URL.
+- **GasFreeAPIClient reliability**: Added `aclose()` and async context manager support for proper resource cleanup. Improved error handling and connection management.
 
 ## Breaking Changes
 
-- `getGasFreeApiKey()` / `get_gasfree_api_key()` and `getGasFreeApiSecret()` / `get_gasfree_api_secret()` have been removed.
+- `getGasFreeApiKey()` / `get_gasfree_api_key()` and `getGasFreeApiSecret()` / `get_gasfree_api_secret()` have been removed (no deprecation stubs — clean break).
 - `getGasFreeApiBaseUrl()` / `get_gasfree_api_base_url()` now throws on unknown networks instead of returning a fallback.
 
 ## Affected SDKs
