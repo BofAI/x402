@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.8] - 2026-04-02
+
+### Changed
+- GasFree API endpoints now route through the BankOfAI proxy (`https://facilitator.bankofai.io/{mainnet,shasta,nile}`) instead of the upstream `open.gasfree.io` / `open-test.gasfree.io` endpoints — clients no longer need API keys or secrets
+- `getGasFreeApiBaseUrl()` / `get_gasfree_api_base_url()` now throws `UnsupportedNetworkError` for unrecognised networks instead of returning a default fallback URL
+
+### Fixed
+- `GasFreeAPIClient` now supports `aclose()` and async context manager (`async with`) for proper resource cleanup
+- Improved `GasFreeAPIClient` reliability with better error handling and connection management
+
+### Removed
+- HMAC-SHA256 signature authentication from `GasFreeAPIClient` — the BankOfAI proxy handles auth transparently
+- `getGasFreeApiKey()` / `get_gasfree_api_key()` and `getGasFreeApiSecret()` / `get_gasfree_api_secret()` config helpers — no longer needed
+- Deprecation stubs for removed gasfree auth functions — clean break for the proxy migration
+
 ## [0.5.7] - 2026-03-30
 
 ### Added

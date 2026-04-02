@@ -56,9 +56,9 @@ export const GASFREE_BEACON_ADDRESSES: Record<string, string> = {
 
 /** GasFree API Base URLs */
 export const GASFREE_API_BASE_URLS: Record<string, string> = {
-  'tron:mainnet': 'https://open.gasfree.io/tron',
-  'tron:shasta': 'https://open-test.gasfree.io/shasta',
-  'tron:nile': 'https://open-test.gasfree.io/nile',
+  'tron:mainnet': 'https://facilitator.bankofai.io/mainnet',
+  'tron:shasta': 'https://facilitator.bankofai.io/shasta',
+  'tron:nile': 'https://facilitator.bankofai.io/nile',
 };
 
 /** Default RPC URLs for EVM networks */
@@ -171,38 +171,13 @@ export function getGasFreeBeaconAddress(network: string): string {
  * Get GasFree API Base URL for network
  */
 export function getGasFreeApiBaseUrl(network: string): string {
-  return GASFREE_API_BASE_URLS[network] ?? 'https://api.gasfree.io/v1';
+  const url = GASFREE_API_BASE_URLS[network];
+  if (!url) {
+    throw new UnsupportedNetworkError(`No GasFree API URL configured for network: ${network}`);
+  }
+  return url;
 }
 
-/**
- * Get GasFree API Key
- */
-export function getGasFreeApiKey(network?: string): string | undefined {
-  if (typeof process !== 'undefined') {
-    if (network) {
-      const suffix = network.split(':').pop()?.toUpperCase();
-      const networkKey = process.env[`GASFREE_API_KEY_${suffix}`];
-      if (networkKey) return networkKey;
-    }
-    return process.env.GASFREE_API_KEY;
-  }
-  return undefined;
-}
-
-/**
- * Get GasFree API Secret
- */
-export function getGasFreeApiSecret(network?: string): string | undefined {
-  if (typeof process !== 'undefined') {
-    if (network) {
-      const suffix = network.split(':').pop()?.toUpperCase();
-      const networkSecret = process.env[`GASFREE_API_SECRET_${suffix}`];
-      if (networkSecret) return networkSecret;
-    }
-    return process.env.GASFREE_API_SECRET;
-  }
-  return undefined;
-}
 
 /**
  * Check if network is TRON

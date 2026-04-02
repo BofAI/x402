@@ -6,8 +6,7 @@ describe('GasFreeAPIClient', () => {
   let client: GasFreeAPIClient;
 
   beforeEach(() => {
-    // Provide dummy keys to trigger HMAC logic in tests
-    client = new GasFreeAPIClient(baseUrl, 'test-key', 'test-secret');
+    client = new GasFreeAPIClient(baseUrl);
     vi.stubGlobal('fetch', vi.fn());
   });
 

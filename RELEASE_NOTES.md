@@ -1,24 +1,19 @@
-# v0.5.7 - Fallback RPC for TRON Mainnet
+# v0.5.8 - GasFree API via BankOfAI Proxy
 
-Release date: March 30, 2026
-
-## New
-
-- **Fallback RPC endpoint for mainnet**: When `TRON_GRID_API_KEY` is not set, the SDK now automatically routes TRON mainnet RPC calls to `https://hptg.bankofai.io` instead of the rate-limited TronGrid endpoint. This eliminates setup friction for developers who don't have a TronGrid API key. When `TRON_GRID_API_KEY` is set, behavior is unchanged.
-- **Warning on fallback usage**: Both Python (`logger.warning`) and TypeScript (`console.warn`) emit a one-time warning when the fallback endpoint is activated, so operators are aware of the routing.
-- **`getTronRpcUrl()` helper** (TypeScript): New exported function for fallback-aware TRON RPC URL resolution.
-- **`TRON_MAINNET_FALLBACK_URL` constant** (Python): Exported constant for the fallback endpoint URL.
+Release date: April 2, 2026
 
 ## Changes
 
-- `resolveRpcUrl()` in TypeScript now delegates to `getTronRpcUrl()` for TRON networks, ensuring fallback logic applies consistently across all URL resolution paths.
-- `TronClientSigner.getTronWeb()` uses the new helper instead of directly indexing `TRON_RPC_URLS`.
+- **GasFree API proxy**: All GasFree API calls now route through the BankOfAI official proxy at `https://facilitator.bankofai.io/{mainnet,shasta,nile}` instead of the upstream `open.gasfree.io` / `open-test.gasfree.io` endpoints. Clients no longer need to configure `GASFREE_API_KEY` or `GASFREE_API_SECRET` environment variables.
+- **Fail-fast on unsupported networks**: `getGasFreeApiBaseUrl()` / `get_gasfree_api_base_url()` now throws `UnsupportedNetworkError` for unrecognised networks instead of silently returning a wrong default URL.
+- **GasFreeAPIClient reliability**: Added `aclose()` and async context manager support for proper resource cleanup. Improved error handling and connection management.
 
 ## Breaking Changes
 
-None. Existing behavior when `TRON_GRID_API_KEY` is set is fully preserved.
+- `getGasFreeApiKey()` / `get_gasfree_api_key()` and `getGasFreeApiSecret()` / `get_gasfree_api_secret()` have been removed (no deprecation stubs — clean break).
+- `getGasFreeApiBaseUrl()` / `get_gasfree_api_base_url()` now throws on unknown networks instead of returning a fallback.
 
 ## Affected SDKs
 
-- **Python**: `bankofai-x402==0.5.7`
-- **TypeScript**: `@bankofai/x402@0.5.7`
+- **Python**: `bankofai-x402==0.5.8`
+- **TypeScript**: `@bankofai/x402@0.5.8`
