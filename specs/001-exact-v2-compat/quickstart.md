@@ -108,3 +108,23 @@ During live validation, the Coinbase official Fastify middleware returned the x4
 ### Temporary Helper Script Note
 
 The `coinbase-official-client-bsc.ts` helper should target the dedicated `exact` route (`/protected-bsc-testnet-coinbase`) instead of the mixed demo route. This isolates the BSC `exact` path and avoids accidentally selecting `exact_permit`.
+
+## Rollout Note: Hosted Facilitator
+
+The live interoperability proof in this spec used a locally upgraded facilitator, not the currently hosted production facilitator.
+
+On 2026-04-03, the hosted facilitator at `https://facilitator.bankofai.io` was tested behind the local BSC `exact` server path:
+
+- `/supported` advertised `exact` for `eip155:97` and `eip155:56`
+- actual settlement failed with `missing_transfer_authorization`
+
+Interpretation:
+
+- the hosted facilitator has not yet been upgraded to the Coinbase-v2-compatible BSC `exact` settlement path
+- rollout requires a facilitator deployment, not just SDK/server publication
+
+Deployment implication:
+
+1. Deploy upgraded facilitator code first.
+2. Re-run Coinbase official client -> our server against the hosted facilitator.
+3. Only after that succeeds should hosted services claim Coinbase v2 BSC `exact` support.

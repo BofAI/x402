@@ -67,3 +67,14 @@
   - `DHLU`
   - address: `0x375cADdd2cB68cE82e3D9B075D551067a7b4B816`
 - Earlier attempts that advertised `exact` on BSC testnet USDT/USDC reverted during settlement. That behavior is expected when the token does not implement the required ERC-3009 method.
+
+### Hosted Facilitator Compatibility Status
+
+- The hosted facilitator at `https://facilitator.bankofai.io` currently advertises BSC `exact` support in `/supported` for:
+  - `eip155:97`
+  - `eip155:56`
+- However, a live interoperability check on 2026-04-03 showed that it still fails Coinbase-v2-style BSC `exact` settlement with:
+  - `missing_transfer_authorization`
+- Conclusion:
+  - Local upgraded facilitator code is compatible with Coinbase v2 BSC `exact`
+  - The currently hosted facilitator has not yet been rolled forward to that compatible behavior
