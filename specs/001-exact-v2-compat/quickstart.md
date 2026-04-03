@@ -57,7 +57,7 @@ Validated on 2026-04-03 against Coinbase official TypeScript x402 workspace code
 Start local services:
 
 ```bash
-cd /Users/bobo/code/x402/x402-demo
+cd ../x402-demo
 FACILITATOR_PORT=8013 ./start.sh facilitator
 BSC_PAY_TO=0x6d361463Ad6Df90bC34aF65f4970d3271aa83535 SERVER_PORT=8012 SERVER_URL=http://127.0.0.1:8012 FACILITATOR_URL=http://127.0.0.1:8013 ./start.sh server
 ```
@@ -65,8 +65,8 @@ BSC_PAY_TO=0x6d361463Ad6Df90bC34aF65f4970d3271aa83535 SERVER_PORT=8012 SERVER_UR
 Run the Coinbase official client from its workspace against our BSC `exact` endpoint:
 
 ```bash
-cd /Users/bobo/code/tmp/coinbase-x402/e2e
-pnpm exec tsx /Users/bobo/code/tmp/coinbase-x402/e2e/.tmp-coinbase-official-client-bsc.ts
+cd <coinbase-x402-workspace>/e2e
+pnpm exec tsx ./coinbase-official-client-bsc.ts
 ```
 
 Observed result:
@@ -82,14 +82,14 @@ Observed result:
 Start the Coinbase official server fixture against the local BankOfAI facilitator:
 
 ```bash
-cd /Users/bobo/code/tmp/coinbase-x402/e2e
-pnpm exec tsx /Users/bobo/code/tmp/coinbase-x402/e2e/coinbase-official-server-bsc.ts
+cd <coinbase-x402-workspace>/e2e
+pnpm exec tsx ./coinbase-official-server-bsc.ts
 ```
 
 Run the local BankOfAI demo client against the official server:
 
 ```bash
-cd /Users/bobo/code/x402/x402-demo
+cd ../x402-demo
 SERVER_URL=http://127.0.0.1:4026 ENDPOINT=/exact/evm/bsc-eip3009 PREFERRED_NETWORK=eip155:97 ./start.sh client-ts
 ```
 
@@ -107,4 +107,4 @@ During live validation, the Coinbase official Fastify middleware returned the x4
 
 ### Temporary Helper Script Note
 
-The `coinbase-official-client-bsc.ts` helper was temporarily rewritten to target our dedicated `exact` route (`/protected-bsc-testnet-coinbase`) instead of the mixed demo route. This was necessary to validate the BSC `exact` path in isolation rather than accidentally selecting `exact_permit`.
+The `coinbase-official-client-bsc.ts` helper should target the dedicated `exact` route (`/protected-bsc-testnet-coinbase`) instead of the mixed demo route. This isolates the BSC `exact` path and avoids accidentally selecting `exact_permit`.

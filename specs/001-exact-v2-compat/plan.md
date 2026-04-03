@@ -1,6 +1,6 @@
 # Implementation Plan: Exact Scheme V2 Compatibility
 
-**Branch**: `001-exact-v2-compat` | **Date**: 2026-04-02 | **Spec**: [/Users/bobo/code/x402/x402/specs/001-exact-v2-compat/spec.md](/Users/bobo/code/x402/x402/specs/001-exact-v2-compat/spec.md)
+**Branch**: `001-exact-v2-compat` | **Date**: 2026-04-02 | **Spec**: [`specs/001-exact-v2-compat/spec.md`](spec.md)
 **Input**: Feature specification from `/specs/001-exact-v2-compat/spec.md`
 
 ## Summary

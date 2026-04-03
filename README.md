@@ -120,7 +120,7 @@ async def protected_endpoint():
     return {"data": "This is premium content!"}
 ```
 
-For a smoke-tested BSC testnet example set, see [examples/bsc-testnet-smoke/README.md](/Users/bobo/code/x402/x402/examples/bsc-testnet-smoke/README.md). The `exact` route there uses `DHLU`, which supports ERC-3009 on testnet.
+For a smoke-tested BSC testnet example set, see [`examples/bsc-testnet-smoke/README.md`](examples/bsc-testnet-smoke/README.md). The `exact` route there uses `DHLU`, which supports ERC-3009 on testnet.
 
 ### 3. Client (Buyer)
 Clients handle the `402` challenge-response loop automatically using the SDK.
@@ -215,7 +215,7 @@ The BSC testnet smoke path validated on 2026-04-03 was:
 - Coinbase official client -> our server
 - our client -> Coinbase official server
 
-Runbook and txids are documented in [examples/bsc-testnet-smoke/README.md](/Users/bobo/code/x402/x402/examples/bsc-testnet-smoke/README.md) and [quickstart.md](/Users/bobo/code/x402/x402/specs/001-exact-v2-compat/quickstart.md).
+Runbook and txids are documented in [`examples/bsc-testnet-smoke/README.md`](examples/bsc-testnet-smoke/README.md) and [`specs/001-exact-v2-compat/quickstart.md`](specs/001-exact-v2-compat/quickstart.md).
 
 ### 4. Agent (Buyer)
  AI agents can handle x402 payments autonomously by using the specialized payment skill.

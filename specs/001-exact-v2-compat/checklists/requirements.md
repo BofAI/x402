@@ -2,7 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-04-02
-**Feature**: [/Users/bobo/code/x402/x402/specs/001-exact-v2-compat/spec.md](/Users/bobo/code/x402/x402/specs/001-exact-v2-compat/spec.md)
+**Feature**: [`specs/001-exact-v2-compat/spec.md`](../spec.md)
 
 ## Content Quality
 

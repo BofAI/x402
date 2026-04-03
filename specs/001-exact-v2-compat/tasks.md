@@ -17,8 +17,8 @@
 
 **Purpose**: Establish the speckit implementation workspace and protocol baseline artifacts.
 
-- [x] T001 Copy the full speckit support files needed for implementation validation into `/Users/bobo/code/x402/x402/.specify/`
-- [x] T002 Document the Coinbase x402 v2 `exact` compatibility baseline and current repo deviations in `/Users/bobo/code/x402/x402/specs/001-exact-v2-compat/research.md`
+- [x] T001 Copy the full speckit support files needed for implementation validation into `.specify/`
+- [x] T002 Document the Coinbase x402 v2 `exact` compatibility baseline and current repo deviations in `specs/001-exact-v2-compat/research.md`
 
 ---
 
@@ -28,10 +28,10 @@
 
 **⚠️ CRITICAL**: No user story implementation begins until these tasks are complete.
 
-- [x] T003 Update TypeScript shared payment and response models in `/Users/bobo/code/x402/x402/typescript/packages/x402/src/types/payment.ts` and `/Users/bobo/code/x402/x402/typescript/packages/x402/src/types/responses.ts` to represent v2-compatible `exact` payloads
-- [x] T004 [P] Update Python shared protocol models in `/Users/bobo/code/x402/x402/python/x402/src/bankofai/x402/types.py` to represent v2-compatible `exact` payloads
-- [x] T005 [P] Update wire encoding and transport assumptions in `/Users/bobo/code/x402/x402/typescript/packages/x402/src/http/client.ts`, `/Users/bobo/code/x402/x402/python/x402/src/bankofai/x402/clients/x402_http_client.py`, and `/Users/bobo/code/x402/x402/python/x402/src/bankofai/x402/fastapi/middleware.py` so they no longer assume permit-centric `exact` payloads
-- [x] T006 Update exact shared helper types in `/Users/bobo/code/x402/x402/typescript/packages/x402/src/mechanisms/nativeExact.ts` and `/Users/bobo/code/x402/x402/python/x402/src/bankofai/x402/mechanisms/_exact_base/types.py`
+- [x] T003 Update TypeScript shared payment and response models in `typescript/packages/x402/src/types/payment.ts` and `typescript/packages/x402/src/types/responses.ts` to represent v2-compatible `exact` payloads
+- [x] T004 [P] Update Python shared protocol models in `python/x402/src/bankofai/x402/types.py` to represent v2-compatible `exact` payloads
+- [x] T005 [P] Update wire encoding and transport assumptions in `typescript/packages/x402/src/http/client.ts`, `python/x402/src/bankofai/x402/clients/x402_http_client.py`, and `python/x402/src/bankofai/x402/fastapi/middleware.py` so they no longer assume permit-centric `exact` payloads
+- [x] T006 Update exact shared helper types in `typescript/packages/x402/src/mechanisms/nativeExact.ts` and `python/x402/src/bankofai/x402/mechanisms/_exact_base/types.py`
 
 **Checkpoint**: Shared protocol model is aligned enough for user-story implementation.
 
@@ -45,15 +45,15 @@
 
 ### Tests for User Story 1
 
-- [x] T007 [P] [US1] Add server-side regression tests for v2 `exact` payload parsing and validation in `/Users/bobo/code/x402/x402/python/x402/tests/server/test_evm_exact.py`
-- [x] T008 [P] [US1] Add middleware/integration coverage for a v2 client paying our server in `/Users/bobo/code/x402/x402/specs/001-exact-v2-compat/quickstart.md` and live interoperability validation notes
+- [x] T007 [P] [US1] Add server-side regression tests for v2 `exact` payload parsing and validation in `python/x402/tests/server/test_evm_exact.py`
+- [x] T008 [P] [US1] Add middleware/integration coverage for a v2 client paying our server in `specs/001-exact-v2-compat/quickstart.md` and live interoperability validation notes
 
 ### Implementation for User Story 1
 
-- [x] T009 [US1] Update Python `exact` server validation in `/Users/bobo/code/x402/x402/python/x402/src/bankofai/x402/server/x402_server.py` so `exact` no longer depends on `paymentPermit`
-- [x] T010 [US1] Update Python `exact` facilitator verification and settlement in `/Users/bobo/code/x402/x402/python/x402/src/bankofai/x402/mechanisms/_exact_base/base.py`
-- [x] T011 [US1] Update facilitator request shaping in `/Users/bobo/code/x402/x402/python/x402/src/bankofai/x402/facilitator/facilitator_client.py`
-- [x] T012 [US1] Update FastAPI payment middleware in `/Users/bobo/code/x402/x402/python/x402/src/bankofai/x402/fastapi/middleware.py` to accept the v2 `exact` path end-to-end
+- [x] T009 [US1] Update Python `exact` server validation in `python/x402/src/bankofai/x402/server/x402_server.py` so `exact` no longer depends on `paymentPermit`
+- [x] T010 [US1] Update Python `exact` facilitator verification and settlement in `python/x402/src/bankofai/x402/mechanisms/_exact_base/base.py`
+- [x] T011 [US1] Update facilitator request shaping in `python/x402/src/bankofai/x402/facilitator/facilitator_client.py`
+- [x] T012 [US1] Update FastAPI payment middleware in `python/x402/src/bankofai/x402/fastapi/middleware.py` to accept the v2 `exact` path end-to-end
 
 **Checkpoint**: A v2-compatible external client can pay our server for `exact`.
 
@@ -67,15 +67,15 @@
 
 ### Tests for User Story 2
 
-- [x] T013 [P] [US2] Add TypeScript tests for v2 `exact` payload generation in `/Users/bobo/code/x402/x402/typescript/packages/x402/src/mechanisms/exactEvm.test.ts` and related client tests
-- [x] T014 [P] [US2] Add Python tests for v2 `exact` payload generation in `/Users/bobo/code/x402/x402/python/x402/tests/exact/test_client.py`
+- [x] T013 [P] [US2] Add TypeScript tests for v2 `exact` payload generation in `typescript/packages/x402/src/mechanisms/exactEvm.test.ts` and related client tests
+- [x] T014 [P] [US2] Add Python tests for v2 `exact` payload generation in `python/x402/tests/exact/test_client.py`
 
 ### Implementation for User Story 2
 
-- [x] T015 [US2] Update the TypeScript `exact` client mechanism in `/Users/bobo/code/x402/x402/typescript/packages/x402/src/mechanisms/nativeExactEvm.ts`
-- [x] T016 [US2] Update the Python `exact` client mechanism in `/Users/bobo/code/x402/x402/python/x402/src/bankofai/x402/mechanisms/_exact_base/base.py` and `/Users/bobo/code/x402/x402/python/x402/src/bankofai/x402/mechanisms/evm/exact/client.py`
-- [x] T017 [US2] Update TypeScript client selection and retry flow in `/Users/bobo/code/x402/x402/typescript/packages/x402/src/client/x402Client.ts` and `/Users/bobo/code/x402/x402/typescript/packages/x402/src/http/client.ts`
-- [x] T018 [US2] Update Python client selection and retry flow in `/Users/bobo/code/x402/x402/python/x402/src/bankofai/x402/clients/x402_client.py` and `/Users/bobo/code/x402/x402/python/x402/src/bankofai/x402/clients/x402_http_client.py`
+- [x] T015 [US2] Update the TypeScript `exact` client mechanism in `typescript/packages/x402/src/mechanisms/nativeExactEvm.ts`
+- [x] T016 [US2] Update the Python `exact` client mechanism in `python/x402/src/bankofai/x402/mechanisms/_exact_base/base.py` and `python/x402/src/bankofai/x402/mechanisms/evm/exact/client.py`
+- [x] T017 [US2] Update TypeScript client selection and retry flow in `typescript/packages/x402/src/client/x402Client.ts` and `typescript/packages/x402/src/http/client.ts`
+- [x] T018 [US2] Update Python client selection and retry flow in `python/x402/src/bankofai/x402/clients/x402_client.py` and `python/x402/src/bankofai/x402/clients/x402_http_client.py`
 
 **Checkpoint**: Our TypeScript and Python clients can produce v2-compatible `exact` payments.
 
@@ -89,12 +89,12 @@
 
 ### Tests for User Story 3
 
-- [x] T019 [P] [US3] Run and update affected `exact_permit` and non-`exact` regression tests in `/Users/bobo/code/x402/x402/python/x402/tests/client/`, `/Users/bobo/code/x402/x402/python/x402/tests/facilitator/`, and `/Users/bobo/code/x402/x402/typescript/packages/x402/src/client/`
+- [x] T019 [P] [US3] Run and update affected `exact_permit` and non-`exact` regression tests in `python/x402/tests/client/`, `python/x402/tests/facilitator/`, and `typescript/packages/x402/src/client/`
 
 ### Implementation for User Story 3
 
-- [x] T020 [US3] Document migration and compatibility behavior in `/Users/bobo/code/x402/x402/README.md`, `/Users/bobo/code/x402/x402/typescript/packages/x402/README.md`, and `/Users/bobo/code/x402/x402/python/x402/README.md`
-- [x] T021 [US3] Add quick verification steps and interoperability notes in `/Users/bobo/code/x402/x402/specs/001-exact-v2-compat/quickstart.md`
+- [x] T020 [US3] Document migration and compatibility behavior in `README.md`, `typescript/packages/x402/README.md`, and `python/x402/README.md`
+- [x] T021 [US3] Add quick verification steps and interoperability notes in `specs/001-exact-v2-compat/quickstart.md`
 
 **Checkpoint**: Compatibility change is documented and regression-protected.
 
@@ -104,10 +104,10 @@
 
 **Purpose**: Final verification across all stories.
 
-- [x] T022 Run targeted TypeScript test suite from `/Users/bobo/code/x402/x402/typescript/packages/x402`
-- [x] T023 Run targeted Python test suite from `/Users/bobo/code/x402/x402/python/x402`
+- [x] T022 Run targeted TypeScript test suite from `typescript/packages/x402`
+- [x] T023 Run targeted Python test suite from `python/x402`
 - [x] T024 Reconcile any remaining protocol-field mismatches found during interoperability testing
-- [x] T025 Update `/Users/bobo/code/x402/x402/specs/001-exact-v2-compat/plan.md` and `/Users/bobo/code/x402/x402/specs/001-exact-v2-compat/tasks.md` with final status notes if scope changes during implementation
+- [x] T025 Update `specs/001-exact-v2-compat/plan.md` and `specs/001-exact-v2-compat/tasks.md` with final status notes if scope changes during implementation
 
 ---
 

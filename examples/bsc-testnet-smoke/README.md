@@ -32,13 +32,13 @@ export SERVER_URL=http://127.0.0.1:8012
 
 ## Example Files
 
-- [bsc_exact_client.ts](/Users/bobo/code/x402/x402/examples/bsc-testnet-smoke/bsc_exact_client.ts): BankOfAI TypeScript client paying a BSC `exact` endpoint
-- [bsc_exact_client.py](/Users/bobo/code/x402/x402/examples/bsc-testnet-smoke/bsc_exact_client.py): BankOfAI Python client paying a BSC `exact` endpoint
-- [bsc_exact_server.py](/Users/bobo/code/x402/x402/examples/bsc-testnet-smoke/bsc_exact_server.py): FastAPI server advertising both `exact_permit` and `exact` correctly on BSC testnet
+- [`bsc_exact_client.ts`](bsc_exact_client.ts): BankOfAI TypeScript client paying a BSC `exact` endpoint
+- [`bsc_exact_client.py`](bsc_exact_client.py): BankOfAI Python client paying a BSC `exact` endpoint
+- [`bsc_exact_server.py`](bsc_exact_server.py): FastAPI server advertising both `exact_permit` and `exact` correctly on BSC testnet
 
 ## Typical Local Flow
 
 1. Start a facilitator that can settle BSC testnet `exact`.
-2. Start the sample server from [bsc_exact_server.py](/Users/bobo/code/x402/x402/examples/bsc-testnet-smoke/bsc_exact_server.py).
+2. Start the sample server from [`bsc_exact_server.py`](bsc_exact_server.py).
 3. Run either client example against `http://127.0.0.1:8012/protected-bsc-testnet-coinbase`.
-4. For Coinbase interoperability, pair these examples with the runbook in [quickstart.md](/Users/bobo/code/x402/x402/specs/001-exact-v2-compat/quickstart.md).
+4. For Coinbase interoperability, pair these examples with the runbook in [`../../specs/001-exact-v2-compat/quickstart.md`](../../specs/001-exact-v2-compat/quickstart.md).

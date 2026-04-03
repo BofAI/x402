@@ -48,7 +48,7 @@ console.log(data);
 
 ## BSC Testnet Example
 
-For a smoke-tested BSC testnet `exact` example that uses a local private key and targets the Coinbase-compatible `exact` route, see [examples/bsc-testnet-smoke/README.md](/Users/bobo/code/x402/x402/examples/bsc-testnet-smoke/README.md).
+For a smoke-tested BSC testnet `exact` example that uses a local private key and targets the Coinbase-compatible `exact` route, see [`examples/bsc-testnet-smoke/README.md`](../../../examples/bsc-testnet-smoke/README.md).
 
 The BSC `exact` path in this repository is aligned around ERC-3009. On testnet, the validated asset is `DHLU`, not generic USDT/USDC permit-only flows.
 
