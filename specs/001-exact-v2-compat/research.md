@@ -42,3 +42,28 @@
 - `exact` clients must emit `payload.authorization`.
 - `exact` server and facilitator paths must validate `payload.authorization` directly.
 - Existing non-`exact` flows must remain intact.
+
+## BSC Contract Alignment Clarification
+
+### What Is Aligned With Coinbase v2
+
+- On BSC, Coinbase v2 `exact` is aligned at the wire format and settlement semantics level:
+  - `payload.authorization`
+  - ERC-3009 `transferWithAuthorization`
+  - HTTP `402` + `PAYMENT-REQUIRED` / `PAYMENT-SIGNATURE` / `PAYMENT-RESPONSE`
+- For `exact`, there is no Coinbase-specific x402 settlement contract to match. Settlement executes on the advertised token contract itself.
+
+### What Is Not Required To Match Coinbase v2
+
+- Our BSC `exact_permit` spender / payment-permit contract address is still our own network configuration:
+  - BSC testnet: `0x1825bB32db3443dEc2cc7508b2D818fc13EaD878`
+- This feature does not claim that our BSC permit contract addresses are identical to Coinbase's environment.
+- This feature only claims Coinbase v2 interoperability for the BSC `exact` path.
+
+### Token-Level Constraint On BSC
+
+- If an endpoint advertises `scheme=exact`, the token must actually support ERC-3009 `transferWithAuthorization`.
+- On our BSC testnet smoke path, the validated `exact` token is:
+  - `DHLU`
+  - address: `0x375cADdd2cB68cE82e3D9B075D551067a7b4B816`
+- Earlier attempts that advertised `exact` on BSC testnet USDT/USDC reverted during settlement. That behavior is expected when the token does not implement the required ERC-3009 method.

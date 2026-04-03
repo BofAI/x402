@@ -74,6 +74,8 @@ As a maintainer of this repository, I can migrate the project toward spec-driven
 - **FR-008**: The project MUST provide automated compatibility coverage for both directions of interoperability: Coinbase v2 client to our server, and our client to a v2-compatible server.
 - **FR-009**: The project MUST preserve existing supported non-`exact` payment flows unless a deliberate breaking change is explicitly documented for this feature.
 - **FR-010**: The project MUST document the new spec-aligned `exact` behavior, the interoperability target, and any temporary migration or fallback rules that remain during rollout.
+- **FR-011**: For BSC `exact`, the advertised asset MUST be an ERC-3009-compatible token that supports `transferWithAuthorization`; advertising `exact` with a permit-only token is invalid for this feature.
+- **FR-012**: This feature MUST document that BSC Coinbase v2 compatibility is claimed for the `exact` path, not for identical `exact_permit` contract addresses across implementations.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -81,6 +83,7 @@ As a maintainer of this repository, I can migrate the project toward spec-driven
 - **Exact Payment Payload**: The client-submitted payment object used to answer a challenge, containing the accepted payment requirement, the signature material, and the authorization data required by the `exact` scheme.
 - **Transfer Authorization**: The signed instruction authorizing the asset transfer for the `exact` flow, including payer, recipient, amount, validity window, and replay-protection value.
 - **Compatibility Validation Result**: The observable outcome of verifying or settling a payment, including whether the payment is valid, why it failed if invalid, and settlement confirmation data when successful.
+- **BSC Exact Asset**: The ERC-20 token advertised for BSC `exact` payment requirements. This entity is compatibility-critical because `exact` settlement succeeds only when the token contract implements ERC-3009 `transferWithAuthorization`.
 
 ## Success Criteria *(mandatory)*
 
@@ -98,3 +101,4 @@ As a maintainer of this repository, I can migrate the project toward spec-driven
 - Coinbase's published x402 v2 specification and reference repository are treated as the compatibility source of truth for this feature.
 - Existing `exact_permit` and other non-`exact` flows remain in scope only for regression protection, not for protocol redesign under this feature.
 - Automated compatibility verification may rely on local fixtures, reference payloads, or integration harnesses that simulate a v2-compliant peer when a live external dependency is impractical.
+- On BSC, compatibility with Coinbase v2 means matching `exact` scheme semantics on the token contract path; it does not imply identical payment-permit contract addresses for `exact_permit`.

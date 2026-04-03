@@ -43,6 +43,12 @@ http_client = httpx.AsyncClient()
 client = X402HttpClient(http_client=http_client, x402_client=x402_client)
 ```
 
+## BSC Testnet Example
+
+For a complete BSC testnet `exact` smoke example, including a local-private-key client and a server that advertises `DHLU` for ERC-3009, see [examples/bsc-testnet-smoke/README.md](/Users/bobo/code/x402/x402/examples/bsc-testnet-smoke/README.md).
+
+The key point for BSC `exact` is that the advertised asset must actually support `transferWithAuthorization`. The smoke-tested path in this repository uses `DHLU` on `eip155:97`.
+
 ## Supported Schemes
 
 - **`exact_permit`**: Standard x402 payment scheme using TIP-712/EIP-712 permits.

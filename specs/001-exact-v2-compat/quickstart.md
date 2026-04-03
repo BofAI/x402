@@ -34,7 +34,17 @@ Verify that the repository's `exact` implementation is aligned closely enough wi
 
 ## Live Verification Runbook
 
-Validated on 2026-04-02 against Coinbase official TypeScript x402 workspace code and the local BankOfAI BSC testnet demo wallets.
+Validated on 2026-04-03 against Coinbase official TypeScript x402 workspace code and the local BankOfAI BSC testnet demo wallets.
+
+### BSC Contract Notes
+
+- BSC `exact` compatibility is based on ERC-3009 token behavior, not on sharing a Coinbase-specific settlement contract.
+- Our BSC `exact_permit` spender / payment-permit address remains:
+  - `eip155:97`: `0x1825bB32db3443dEc2cc7508b2D818fc13EaD878`
+- The smoke-tested BSC `exact` asset is:
+  - `DHLU`
+  - `0x375cADdd2cB68cE82e3D9B075D551067a7b4B816`
+- If `exact` is advertised on a token that does not implement `transferWithAuthorization`, settlement will revert even if the payload shape is otherwise spec-compliant.
 
 ### Prerequisites
 
@@ -48,15 +58,15 @@ Start local services:
 
 ```bash
 cd /Users/bobo/code/x402/x402-demo
-BSC_PAY_TO=0x6d361463Ad6Df90bC34aF65f4970d3271aa83535 FACILITATOR_PORT=8013 ./start.sh ts-facilitator
-BSC_PAY_TO=0x6d361463Ad6Df90bC34aF65f4970d3271aa83535 SERVER_PORT=8012 SERVER_URL=http://127.0.0.1:8012 FACILITATOR_URL=http://127.0.0.1:8013 ./start.sh ts-server
+FACILITATOR_PORT=8013 ./start.sh facilitator
+BSC_PAY_TO=0x6d361463Ad6Df90bC34aF65f4970d3271aa83535 SERVER_PORT=8012 SERVER_URL=http://127.0.0.1:8012 FACILITATOR_URL=http://127.0.0.1:8013 ./start.sh server
 ```
 
-Run the Coinbase official client from its workspace against our BSC endpoint:
+Run the Coinbase official client from its workspace against our BSC `exact` endpoint:
 
 ```bash
 cd /Users/bobo/code/tmp/coinbase-x402/e2e
-pnpm exec tsx /Users/bobo/code/tmp/coinbase-x402/e2e/coinbase-official-client-bsc.ts
+pnpm exec tsx /Users/bobo/code/tmp/coinbase-x402/e2e/.tmp-coinbase-official-client-bsc.ts
 ```
 
 Observed result:
@@ -64,7 +74,8 @@ Observed result:
 - HTTP status: `200`
 - Network: `eip155:97`
 - Payer: `0x0f2AA81140BAC3E9A4a7f6212c1B4eC005ea4C14`
-- Settlement tx: `0x29d452bced7870ee8b4cfc159b250a22e87db66f3af5bbb9e9c7d5cef7d752e2`
+- Asset: `DHLU` (`0x375cADdd2cB68cE82e3D9B075D551067a7b4B816`)
+- Settlement tx: `0xe6784ca32fa7df9e123b6ead2319f0c16dd7602577c58a085619b2c675e6ed28`
 
 ### Our Client -> Coinbase Official Server
 
@@ -79,16 +90,21 @@ Run the local BankOfAI demo client against the official server:
 
 ```bash
 cd /Users/bobo/code/x402/x402-demo
-SERVER_URL=http://127.0.0.1:4026 ENDPOINT=/exact/evm/bsc-eip3009 PREFERRED_NETWORK=eip155:97 ./start.sh ts-client
+SERVER_URL=http://127.0.0.1:4026 ENDPOINT=/exact/evm/bsc-eip3009 PREFERRED_NETWORK=eip155:97 ./start.sh client-ts
 ```
 
 Observed result:
 
 - HTTP status: `200 OK`
 - Network: `eip155:97`
-- Settlement tx: `0xb8d9233a875ede13c1e69b8a0515f01b09a2be4645beba3a0805f54f93061771`
+- Asset: `DHLU` (`0x375cADdd2cB68cE82e3D9B075D551067a7b4B816`)
+- Settlement tx: `0xdb06e09fd721c19709c697421c171e79fc3f5bdcb6bd41d822b64df8b455422e`
 - Response body: `{"ok": true, "source": "coinbase-official-server"}`
 
 ### Additional Compatibility Note
 
 During live validation, the Coinbase official Fastify middleware returned the x402 challenge in the standard `payment-required` header while leaving the response body empty. Any local test client used for this path must parse the challenge from the header, not only from a JSON body fixture.
+
+### Temporary Helper Script Note
+
+The `coinbase-official-client-bsc.ts` helper was temporarily rewritten to target our dedicated `exact` route (`/protected-bsc-testnet-coinbase`) instead of the mixed demo route. This was necessary to validate the BSC `exact` path in isolation rather than accidentally selecting `exact_permit`.

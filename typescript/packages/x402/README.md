@@ -46,6 +46,12 @@ const data = await response.json();
 console.log(data);
 ```
 
+## BSC Testnet Example
+
+For a smoke-tested BSC testnet `exact` example that uses a local private key and targets the Coinbase-compatible `exact` route, see [examples/bsc-testnet-smoke/README.md](/Users/bobo/code/x402/x402/examples/bsc-testnet-smoke/README.md).
+
+The BSC `exact` path in this repository is aligned around ERC-3009. On testnet, the validated asset is `DHLU`, not generic USDT/USDC permit-only flows.
+
 ## Core Concepts
 
 ### Payment Flow
@@ -315,6 +321,8 @@ Allows users to pay using TRC-20 tokens (USDT/USDD) without holding any TRX for 
 ### Exact Scheme (`exact`)
 
 Direct payment scheme using ERC-3009 (`TransferWithAuthorization`) where supported by the token contract (primarily for EVM networks like BSC).
+
+For BSC testnet interoperability, treat token choice as part of the protocol contract. If the endpoint advertises `exact`, the asset must actually implement ERC-3009. The smoke-tested example in this repository uses `DHLU` on `eip155:97`.
 
 ## Security
 
