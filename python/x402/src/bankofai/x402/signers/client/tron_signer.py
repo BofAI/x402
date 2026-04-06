@@ -255,10 +255,7 @@ class TronClientSigner(ClientSigner):
             # ABI-encode: approve(address,uint256)
             # Strip the 41 prefix from spender for the 20-byte ABI address param
             spender_abi = spender_hex[2:]  # remove '41' prefix
-            parameter = (
-                spender_abi.zfill(64)
-                + format(max_uint160, "064x")
-            )
+            parameter = spender_abi.zfill(64) + format(max_uint160, "064x")
             resp = await client.provider.make_request(
                 "wallet/triggersmartcontract",
                 {
