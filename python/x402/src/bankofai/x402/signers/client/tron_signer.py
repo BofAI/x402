@@ -240,30 +240,59 @@ class TronClientSigner(ClientSigner):
             # Use maxUint160 (2^160 - 1) to avoid repeated approvals
             max_uint160 = (2**160) - 1
             logger.info(f"Approving spender={spender} for amount={max_uint160} (maxUint160)")
-            contract = await client.get_contract(token)
-            contract.abi = ERC20_ABI
-            # AsyncTron: contract.functions.approve() returns a coroutine, need to await it first
-            txn_builder = await contract.functions.approve(spender, max_uint160)
+
             owner_address = self.get_address()
-            txn_builder = txn_builder.with_owner(owner_address).fee_limit(100_000_000)
-            txn = await txn_builder.build()
-            # Sign the transaction via wallet
-            txn_dict = txn.to_json()
+
+            # Build the approve transaction via TronGrid HTTP API so the
+            # response includes ``raw_data_hex`` which agent-wallet's
+            # ``sign_transaction`` requires.
+            # TronGrid API expects 41-prefixed hex addresses (TRON format).
+            import base58
+
+            owner_hex = base58.b58decode_check(owner_address).hex()
+            spender_hex = base58.b58decode_check(spender).hex()
+            token_hex = base58.b58decode_check(token).hex()
+            # ABI-encode: approve(address,uint256)
+            # Strip the 41 prefix from spender for the 20-byte ABI address param
+            spender_abi = spender_hex[2:]  # remove '41' prefix
+            parameter = (
+                spender_abi.zfill(64)
+                + format(max_uint160, "064x")
+            )
+            resp = await client.provider.make_request(
+                "wallet/triggersmartcontract",
+                {
+                    "owner_address": owner_hex,
+                    "contract_address": token_hex,
+                    "function_selector": "approve(address,uint256)",
+                    "parameter": parameter,
+                    "fee_limit": 100_000_000,
+                },
+            )
+
+            txn_dict = resp.get("transaction")
+            if not txn_dict or "raw_data_hex" not in txn_dict:
+                raise InsufficientAllowanceError(
+                    f"TronGrid triggersmartcontract did not return raw_data_hex: {resp}"
+                )
+
+            # Sign via agent-wallet (expects raw_data_hex)
             raw_result = await self._wallet.sign_transaction(txn_dict)
-            sig_hex = self._extract_tron_signature(raw_result)
-            txn._signature = [sig_hex]
-            logger.info("Broadcasting approval transaction...")
-            result = await txn.broadcast()
-            result = await result.wait()
-            # Check receipt.result for success (TRON returns "SUCCESS" in receipt)
-            receipt = result.get("receipt", {})
-            receipt_result = receipt.get("result", "")
-            success = receipt_result == "SUCCESS"
+            signed_tx = json_module.loads(raw_result) if isinstance(raw_result, str) else raw_result
+
+            # Broadcast the signed transaction
+            broadcast_resp = await client.provider.make_request(
+                "wallet/broadcasttransaction", signed_tx
+            )
+            tx_id = signed_tx.get("txID", "")
+            success = broadcast_resp.get("result", False) is True
             if success:
-                logger.info(f"Approval successful: txid={result.get('id')}")
+                logger.info(f"Approval successful: txid={tx_id}")
             else:
-                logger.warning(f"Approval failed: {result}")
+                logger.warning(f"Approval broadcast failed: {broadcast_resp}")
             return success
+        except InsufficientAllowanceError:
+            raise
         except Exception as e:
             raise InsufficientAllowanceError(f"Approval transaction failed: {e}") from e
 
