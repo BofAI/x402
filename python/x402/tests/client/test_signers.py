@@ -90,6 +90,52 @@ async def test_tron_signer_check_allowance():
 
 
 @pytest.mark.anyio
+async def test_tron_signer_ensure_allowance_builds_agent_wallet_payload():
+    """Test TRON approval signs a payload containing raw_data_hex."""
+    wallet = MagicMock()
+    wallet.get_address = AsyncMock(return_value="TTestBuyerAddress")
+    wallet.sign_transaction = AsyncMock(return_value='{"signature":["' + ("ab" * 65) + '"]}')
+
+    provider = MagicMock()
+    provider.get_active_wallet = AsyncMock(return_value=wallet)
+
+    with patch("agent_wallet.resolve_wallet_provider", return_value=provider):
+        signer = await TronClientSigner.create()
+
+    signer.check_allowance = AsyncMock(return_value=0)
+    signer._get_spender_address = MagicMock(return_value="TSpenderAddress")
+
+    broadcast_result = MagicMock()
+    broadcast_result.wait = AsyncMock(return_value={"receipt": {"result": "SUCCESS"}, "id": "txid"})
+
+    txn = MagicMock()
+    txn.to_json.return_value = {"txID": "txid", "raw_data": {"fee_limit": 100000000}}
+    txn.raw_data_hex = "deadbeef"
+    txn.broadcast = AsyncMock(return_value=broadcast_result)
+
+    txn_builder = MagicMock()
+    txn_builder.with_owner.return_value = txn_builder
+    txn_builder.fee_limit.return_value = txn_builder
+    txn_builder.build = AsyncMock(return_value=txn)
+
+    contract = MagicMock()
+    contract.functions.approve = AsyncMock(return_value=txn_builder)
+
+    client = MagicMock()
+    client.get_contract = AsyncMock(return_value=contract)
+    signer._ensure_async_tron_client = MagicMock(return_value=client)
+
+    assert await signer.ensure_allowance("TTestToken", 1000000, "tron:nile") is True
+    wallet.sign_transaction.assert_awaited_once_with(
+        {
+            "txID": "txid",
+            "raw_data_hex": "deadbeef",
+            "raw_data": {"fee_limit": 100000000},
+        }
+    )
+
+
+@pytest.mark.anyio
 async def test_evm_signer_check_allowance():
     """Test EVM signer allowance check propagates contract failures"""
     wallet = MagicMock()

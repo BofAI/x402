@@ -61,6 +61,38 @@ class TronClientSigner(ClientSigner):
             result = sigs[0]
         return result
 
+    @staticmethod
+    def _build_unsigned_tx_payload(txn: Any) -> dict[str, Any]:
+        """Build an unsigned TRON tx payload compatible with agent-wallet."""
+        payload: dict[str, Any] = txn.to_json() if hasattr(txn, "to_json") else {}
+
+        txid = payload.get("txID")
+        if not txid:
+            txid = getattr(txn, "txid", None) or getattr(txn, "txID", None)
+        if txid:
+            payload["txID"] = txid
+
+        raw_data_hex = payload.get("raw_data_hex")
+        if not raw_data_hex:
+            raw_data_hex = getattr(txn, "raw_data_hex", None)
+        if not raw_data_hex:
+            maybe = getattr(txn, "_raw_data_hex", None)
+            if callable(maybe):
+                try:
+                    raw_data_hex = maybe()
+                except Exception:
+                    raw_data_hex = None
+        if raw_data_hex:
+            payload["raw_data_hex"] = raw_data_hex
+
+        unsigned: dict[str, Any] = {
+            "txID": payload.get("txID"),
+            "raw_data_hex": payload.get("raw_data_hex"),
+        }
+        if payload.get("raw_data") is not None:
+            unsigned["raw_data"] = payload.get("raw_data")
+        return unsigned
+
     def _ensure_async_tron_client(self, network: str) -> Any:
         """Lazy initialize async tron_client for the given network.
 
@@ -248,8 +280,8 @@ class TronClientSigner(ClientSigner):
             txn_builder = txn_builder.with_owner(owner_address).fee_limit(100_000_000)
             txn = await txn_builder.build()
             # Sign the transaction via wallet
-            txn_dict = txn.to_json()
-            raw_result = await self._wallet.sign_transaction(txn_dict)
+            unsigned_payload = self._build_unsigned_tx_payload(txn)
+            raw_result = await self._wallet.sign_transaction(unsigned_payload)
             sig_hex = self._extract_tron_signature(raw_result)
             txn._signature = [sig_hex]
             logger.info("Broadcasting approval transaction...")
