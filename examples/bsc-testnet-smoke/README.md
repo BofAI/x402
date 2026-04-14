@@ -41,4 +41,4 @@ export SERVER_URL=http://127.0.0.1:8012
 1. Start a facilitator that can settle BSC testnet `exact`.
 2. Start the sample server from [`bsc_exact_server.py`](bsc_exact_server.py).
 3. Run either client example against `http://127.0.0.1:8012/protected-bsc-testnet-coinbase`.
-4. For Coinbase interoperability, pair these examples with the runbook in [`../../specs/001-exact-v2-compat/quickstart.md`](../../specs/001-exact-v2-compat/quickstart.md).
+4. For Coinbase interoperability, pair these examples with the spec in [`../../specs/001-exact-v2-compat/spec.md`](../../specs/001-exact-v2-compat/spec.md).

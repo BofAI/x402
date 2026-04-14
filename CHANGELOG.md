@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TypeScript SDK local build restored for exact v2 (`package-lock.json` regenerated)
 - Python `tx_verification` utility updated for V2 payload structure
 
+### Breaking
+- Minimum Node.js version raised from 18 to 20 (pnpm 10 requires Node >= 20)
+
 ## [0.5.8] - 2026-04-02
 
 ### Changed

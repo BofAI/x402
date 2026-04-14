@@ -27,14 +27,14 @@ class LocalEvmWallet:
 
     async def sign_message(self, message: bytes) -> str:
         signed = self._account.sign_message(encode_defunct(primitive=message))
-        return signed.signature.hex()
+        return "0x" + signed.signature.hex()
 
     async def sign_typed_data(self, full_data: dict) -> str:
         signed = Account.sign_message(
             encode_typed_data(full_message=full_data),
             private_key=self._account.key,
         )
-        return signed.signature.hex()
+        return "0x" + signed.signature.hex()
 
     async def sign_transaction(self, tx: dict) -> str:
         signed = self._account.sign_transaction(tx)
