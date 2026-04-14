@@ -349,7 +349,9 @@ class X402Server:
             if auth is None:
                 return False
 
-            auth_from_payload = auth.model_dump(by_alias=True) if hasattr(auth, "model_dump") else auth
+            auth_from_payload = (
+                auth.model_dump(by_alias=True) if hasattr(auth, "model_dump") else auth
+            )
             expected_pay_to = requirements.pay_to
             mechanism = self._find_mechanism(requirements.network, requirements.scheme)
             adapter = getattr(mechanism, "_adapter", None) if mechanism is not None else None

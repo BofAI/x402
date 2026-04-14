@@ -103,10 +103,7 @@ class TestCreatePaymentPayload:
         p1 = await mechanism.create_payment_payload(nile_requirements, "https://a.com")
         p2 = await mechanism.create_payment_payload(nile_requirements, "https://b.com")
 
-        assert (
-            p1.payload.authorization.nonce
-            != p2.payload.authorization.nonce
-        )
+        assert p1.payload.authorization.nonce != p2.payload.authorization.nonce
 
     @pytest.mark.anyio
     async def test_sign_typed_data_called(self, mock_signer, nile_requirements):
