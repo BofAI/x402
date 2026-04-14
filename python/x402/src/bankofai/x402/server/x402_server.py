@@ -3,6 +3,7 @@ X402Server - Core payment server for x402 protocol
 """
 
 import logging
+import time
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Protocol
 
@@ -359,9 +360,12 @@ class X402Server:
                 adapter is not None
                 and hasattr(adapter, "to_signing_address")
                 and callable(getattr(adapter, "to_signing_address"))
-                and adapter.__class__.__module__ != "unittest.mock"
             ):
                 expected_pay_to = adapter.to_signing_address(requirements.pay_to)
+
+            # Validate asset: client's accepted requirements must match server's
+            if payload.accepted and payload.accepted.asset != requirements.asset:
+                return False
 
             try:
                 if int(str(auth_from_payload.get("value"))) < int(requirements.amount):
@@ -370,6 +374,15 @@ class X402Server:
                 return False
             if str(auth_from_payload.get("to", "")).lower() != str(expected_pay_to).lower():
                 return False
+
+            # Reject already-expired authorizations early
+            valid_before = auth_from_payload.get("validBefore", "0")
+            try:
+                if int(str(valid_before)) < int(time.time()):
+                    return False
+            except (TypeError, ValueError):
+                return False
+
             return True
 
         permit = payload.payload.payment_permit

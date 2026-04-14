@@ -210,8 +210,8 @@ async def test_verify_exact_payment_uses_authorization_path(mock_server):
         payTo="0x2222222222222222222222222222222222222222",
     )
 
-    mock_mechanism = MagicMock()
-    mock_mechanism.scheme.return_value = "exact"
+    mock_mechanism = MagicMock(spec=[])
+    mock_mechanism.scheme = MagicMock(return_value="exact")
     mock_mechanism.verify_signature = AsyncMock(return_value=True)
     mock_server.register("eip155:8453", mock_mechanism)
 

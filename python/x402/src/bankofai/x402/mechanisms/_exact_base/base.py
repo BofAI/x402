@@ -331,12 +331,7 @@ class ExactBaseFacilitatorMechanism(FacilitatorMechanism):
 
     def _extract_authorization(self, payload: PaymentPayload) -> TransferAuthorization | None:
         if payload.payload.authorization is not None:
-            try:
-                return TransferAuthorization(
-                    **payload.payload.authorization.model_dump(by_alias=True)
-                )
-            except Exception:
-                pass
+            return payload.payload.authorization
 
         ext = payload.extensions or {}
         auth_data = ext.get("transferAuthorization")

@@ -29,6 +29,7 @@ const TOKENS: Record<string, Record<string, TokenInfo>> = {
       decimals: 6,
       name: 'DA HULU',
       symbol: 'DHLU',
+      version: '1',
     },
   },
   'eip155:56': {
