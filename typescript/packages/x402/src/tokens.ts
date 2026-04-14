@@ -7,6 +7,7 @@ export interface TokenInfo {
   decimals: number;
   name: string;
   symbol: string;
+  version?: string;
 }
 
 const TOKENS: Record<string, Record<string, TokenInfo>> = {

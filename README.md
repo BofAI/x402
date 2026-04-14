@@ -20,6 +20,12 @@ x402 currently supports the **TRON** and **BSC** networks, with plans to expand 
     - **Python**: FastAPI, Flask, httpx
     - **TypeScript**: Native fetch, Node.js
 
+## Compatibility Notes
+
+- The `exact` scheme is being aligned to the Coinbase x402 v2 wire format.
+- For `exact`, transfer authorization data is now carried in `payload.authorization`.
+- A temporary fallback still accepts the legacy `extensions.transferAuthorization` shape during migration.
+
 ## Installation
 
 ### Python
@@ -105,14 +111,16 @@ server.set_facilitator(FacilitatorClient("http://localhost:8001"))
 @app.get("/protected")
 @x402_protected(
     server=server,
-    prices=["0.0001 USDT"],
-    schemes=["exact_permit"],
+    prices=["0.0001 USDT", "0.0001 DHLU"],
+    schemes=["exact_permit", "exact"],
     network=NetworkConfig.BSC_TESTNET,
     pay_to="<YOUR_BSC_WALLET_ADDRESS>",
 )
 async def protected_endpoint():
     return {"data": "This is premium content!"}
 ```
+
+For a smoke-tested BSC testnet example set, see [`examples/bsc-testnet-smoke/README.md`](examples/bsc-testnet-smoke/README.md). The `exact` route there uses `DHLU`, which supports ERC-3009 on testnet.
 
 ### 3. Client (Buyer)
 Clients handle the `402` challenge-response loop automatically using the SDK.
@@ -197,10 +205,17 @@ asyncio.run(main())
  const client = new X402FetchClient(x402)
 
  // The SDK handles the 402 flow automatically
- // Demo service: https://x402-demo.bankofai.io/protected-bsc-testnet
- const response = await client.get('http://localhost:8000/protected')
+ // Use an endpoint that advertises an ERC-3009-compatible token for `exact`
+ const response = await client.get('http://localhost:8000/protected-bsc-testnet-coinbase')
  const data = await response.json()
  ```
+
+The BSC testnet smoke path validated on 2026-04-03 was:
+
+- Coinbase official client -> our server
+- our client -> Coinbase official server
+
+Runbook and txids are documented in [`examples/bsc-testnet-smoke/README.md`](examples/bsc-testnet-smoke/README.md) and [`specs/001-exact-v2-compat/quickstart.md`](specs/001-exact-v2-compat/quickstart.md).
 
 ### 4. Agent (Buyer)
  AI agents can handle x402 payments autonomously by using the specialized payment skill.

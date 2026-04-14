@@ -51,6 +51,16 @@ export interface PaymentPermit {
   fee: Fee;
 }
 
+/** TransferWithAuthorization payload for the exact scheme */
+export interface TransferAuthorization {
+  from: string;
+  to: string;
+  value: string;
+  validAfter: string;
+  validBefore: string;
+  nonce: string;
+}
+
 /** Payment requirements from server */
 export interface PaymentRequirements {
   /** Payment scheme (e.g., "exact", "upto") */
@@ -112,7 +122,9 @@ export interface PaymentPayload {
     /** Buyer's EIP-712 signature */
     signature: string;
     /** Payment permit */
-    paymentPermit: PaymentPermit;
+    paymentPermit?: PaymentPermit;
+    /** Transfer authorization for the exact scheme */
+    authorization?: TransferAuthorization;
   };
   /** Extensions */
   extensions?: Record<string, unknown>;

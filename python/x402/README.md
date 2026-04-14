@@ -2,6 +2,12 @@
 
 Python SDK for the x402 payment protocol — supports TRON and EVM (BSC) networks.
 
+## Compatibility Notes
+
+- The EVM `exact` flow is being aligned to the Coinbase x402 v2 payload shape.
+- Exact transfer authorizations are represented in `payload.authorization`.
+- Server-side migration fallback still accepts the legacy `extensions.transferAuthorization` field while the spec-aligned path becomes primary.
+
 ## Installation
 
 ```bash
@@ -36,6 +42,12 @@ x402_client = X402Client()
 http_client = httpx.AsyncClient()
 client = X402HttpClient(http_client=http_client, x402_client=x402_client)
 ```
+
+## BSC Testnet Example
+
+For a complete BSC testnet `exact` smoke example, including a local-private-key client and a server that advertises `DHLU` for ERC-3009, see [`examples/bsc-testnet-smoke/README.md`](../../../examples/bsc-testnet-smoke/README.md).
+
+The key point for BSC `exact` is that the advertised asset must actually support `transferWithAuthorization`. The smoke-tested path in this repository uses `DHLU` on `eip155:97`.
 
 ## Supported Schemes
 

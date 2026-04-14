@@ -67,22 +67,23 @@ class TestCreatePaymentPayload:
         assert payload.accepted == nile_requirements
         assert payload.payload.signature == "0x" + "ab" * 65
         assert payload.payload.payment_permit is None
+        assert payload.payload.authorization is not None
 
     @pytest.mark.anyio
-    async def test_extensions_contain_authorization(self, mock_signer, nile_requirements):
+    async def test_payload_contains_authorization(self, mock_signer, nile_requirements):
         mechanism = ExactEvmClientMechanism(mock_signer)
         payload = await mechanism.create_payment_payload(
             nile_requirements, "https://example.com/resource"
         )
 
-        assert "transferAuthorization" in payload.extensions
-        auth = payload.extensions["transferAuthorization"]
-        assert auth["from"] == "0xBuyerAddress0000000000000000000000000001"
-        assert auth["to"] == "0xMerchantAddress000000000000000000000001"
-        assert auth["value"] == "1000000"
-        assert "validAfter" in auth
-        assert "validBefore" in auth
-        assert "nonce" in auth
+        auth = payload.payload.authorization
+        assert auth is not None
+        assert auth.from_address == "0xBuyerAddress0000000000000000000000000001"
+        assert auth.to == "0xMerchantAddress000000000000000000000001"
+        assert auth.value == "1000000"
+        assert auth.valid_after is not None
+        assert auth.valid_before is not None
+        assert auth.nonce is not None
 
     @pytest.mark.anyio
     async def test_validity_window(self, mock_signer, nile_requirements):
@@ -91,7 +92,7 @@ class TestCreatePaymentPayload:
             nile_requirements, "https://example.com/resource"
         )
 
-        auth = payload.extensions["transferAuthorization"]
+        auth = payload.payload.authorization.model_dump(by_alias=True)
         now = int(time.time())
         assert int(auth["validAfter"]) <= now
         assert int(auth["validBefore"]) > now
@@ -103,8 +104,8 @@ class TestCreatePaymentPayload:
         p2 = await mechanism.create_payment_payload(nile_requirements, "https://b.com")
 
         assert (
-            p1.extensions["transferAuthorization"]["nonce"]
-            != p2.extensions["transferAuthorization"]["nonce"]
+            p1.payload.authorization.nonce
+            != p2.payload.authorization.nonce
         )
 
     @pytest.mark.anyio
