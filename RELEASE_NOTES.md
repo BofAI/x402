@@ -1,19 +1,21 @@
-# v0.5.8 - GasFree API via BankOfAI Proxy
+# v0.5.9 - Exact V2 Compatibility
 
-Release date: April 2, 2026
+Release date: April 14, 2026
 
 ## Changes
 
-- **GasFree API proxy**: All GasFree API calls now route through the BankOfAI official proxy at `https://facilitator.bankofai.io/{mainnet,shasta,nile}` instead of the upstream `open.gasfree.io` / `open-test.gasfree.io` endpoints. Clients no longer need to configure `GASFREE_API_KEY` or `GASFREE_API_SECRET` environment variables.
-- **Fail-fast on unsupported networks**: `getGasFreeApiBaseUrl()` / `get_gasfree_api_base_url()` now throws `UnsupportedNetworkError` for unrecognised networks instead of silently returning a wrong default URL.
-- **GasFreeAPIClient reliability**: Added `aclose()` and async context manager support for proper resource cleanup. Improved error handling and connection management.
+- **Exact V2 spec alignment**: The `exact` payment scheme (EVM and TRON) now produces V2-compatible payloads that conform to the x402 Foundation (formerly Coinbase) wire format. This enables interoperability with the upstream facilitator and other V2-compliant implementations.
+- **BSC Testnet support**: Added BSC Testnet (`eip155:97`) with DHLU test token for `exact` EVM payments. Includes smoke test examples in both TypeScript and Python.
+- **Payload structure update**: `nativeExact`, `nativeExactEvm`, and `nativeExactTron` mechanisms now emit structured `authorization` objects instead of flat hex blobs, matching the V2 spec.
+- **GasFree utility cleanup**: Refactored status polling and error handling in the GasFree API client.
 
-## Breaking Changes
+## Verification
 
-- `getGasFreeApiKey()` / `get_gasfree_api_key()` and `getGasFreeApiSecret()` / `get_gasfree_api_secret()` have been removed (no deprecation stubs — clean break).
-- `getGasFreeApiBaseUrl()` / `get_gasfree_api_base_url()` now throws on unknown networks instead of returning a fallback.
+- TypeScript: 51/51 tests passed (8 test files)
+- Python: 217/217 tests passed
+- BSC Testnet end-to-end: settlement tx confirmed on `eip155:97`
 
 ## Affected SDKs
 
-- **Python**: `bankofai-x402==0.5.8`
-- **TypeScript**: `@bankofai/x402@0.5.8`
+- **Python**: `bankofai-x402==0.5.9`
+- **TypeScript**: `@bankofai/x402@0.5.9`
