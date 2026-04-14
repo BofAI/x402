@@ -210,3 +210,4 @@ __marimo__/
 /examples/typescript/client-web/node_modules/
 /examples/typescript/client/node_modules/
 *node_modules/
+.specify/

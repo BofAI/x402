@@ -156,6 +156,7 @@ class ExactBaseClientMechanism(ClientMechanism):
             accepted=requirements,
             payload=PaymentPayloadData(
                 signature=signature,
+                authorization=authorization.model_dump(by_alias=True),
             ),
             extensions={
                 "transferAuthorization": authorization.model_dump(by_alias=True),
@@ -329,6 +330,9 @@ class ExactBaseFacilitatorMechanism(FacilitatorMechanism):
     # ------------------------------------------------------------------
 
     def _extract_authorization(self, payload: PaymentPayload) -> TransferAuthorization | None:
+        if payload.payload.authorization is not None:
+            return payload.payload.authorization
+
         ext = payload.extensions or {}
         auth_data = ext.get("transferAuthorization")
         if auth_data is None:

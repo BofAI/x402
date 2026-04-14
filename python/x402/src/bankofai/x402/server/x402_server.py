@@ -3,6 +3,7 @@ X402Server - Core payment server for x402 protocol
 """
 
 import logging
+import time
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Protocol
 
@@ -341,7 +342,59 @@ class X402Server:
         requirements: PaymentRequirements,
     ) -> bool:
         """Validate payload matches requirements (anti-tampering)"""
+        if requirements.scheme == "exact":
+            auth = payload.payload.authorization
+            if auth is None and payload.extensions:
+                auth = payload.extensions.get("transferAuthorization")
+
+            if auth is None:
+                return False
+
+            auth_from_payload = (
+                auth.model_dump(by_alias=True) if hasattr(auth, "model_dump") else auth
+            )
+            expected_pay_to = requirements.pay_to
+            mechanism = self._find_mechanism(requirements.network, requirements.scheme)
+            adapter = getattr(mechanism, "_adapter", None) if mechanism is not None else None
+            if (
+                adapter is not None
+                and hasattr(adapter, "to_signing_address")
+                and callable(getattr(adapter, "to_signing_address"))
+            ):
+                expected_pay_to = adapter.to_signing_address(requirements.pay_to)
+
+            # Validate asset and network: client's accepted requirements must match server's
+            if payload.accepted:
+                if payload.accepted.asset != requirements.asset:
+                    return False
+                if payload.accepted.network != requirements.network:
+                    return False
+
+            try:
+                if int(str(auth_from_payload.get("value"))) < int(requirements.amount):
+                    return False
+            except (TypeError, ValueError):
+                return False
+            if str(auth_from_payload.get("to", "")).lower() != str(expected_pay_to).lower():
+                return False
+
+            # Reject already-expired or not-yet-valid authorizations early
+            now = int(time.time())
+            valid_before = auth_from_payload.get("validBefore", "0")
+            valid_after = auth_from_payload.get("validAfter", str(now))
+            try:
+                if int(str(valid_before)) < now:
+                    return False
+                if int(str(valid_after)) > now:
+                    return False
+            except (TypeError, ValueError):
+                return False
+
+            return True
+
         permit = payload.payload.payment_permit
+        if permit is None:
+            return False
 
         if permit.payment.pay_token != requirements.asset:
             return False

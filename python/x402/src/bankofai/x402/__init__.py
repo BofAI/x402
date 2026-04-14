@@ -34,6 +34,7 @@ from bankofai.x402.types import (
     PaymentRequired,
     PaymentRequirements,
     SettleResponse,
+    TransferAuthorization,
     VerifyResponse,
 )
 
@@ -45,6 +46,7 @@ __all__ = [
     "PaymentPayload",
     "PaymentRequirements",
     "PaymentRequired",
+    "TransferAuthorization",
     "VerifyResponse",
     "SettleResponse",
     # Exceptions

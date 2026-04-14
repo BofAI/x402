@@ -15,6 +15,7 @@ from bankofai.x402.types import (
     PaymentPermit,
     PaymentRequirements,
     PermitMeta,
+    TransferAuthorization,
     VerifyResponse,
 )
 
@@ -196,3 +197,49 @@ async def test_verify_payment_payload_mismatch(mock_server, sample_permit, sampl
 
     # Signature verification should not be called
     mock_mechanism.verify_signature.assert_not_called()
+
+
+@pytest.mark.anyio
+async def test_verify_exact_payment_uses_authorization_path(mock_server):
+    """Test that exact payments can be verified without a payment permit."""
+    requirements = PaymentRequirements(
+        scheme="exact",
+        network="eip155:8453",
+        amount="1000000",
+        asset="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        payTo="0x2222222222222222222222222222222222222222",
+    )
+
+    mock_mechanism = MagicMock(spec=[])
+    mock_mechanism.scheme = MagicMock(return_value="exact")
+    mock_mechanism.verify_signature = AsyncMock(return_value=True)
+    mock_server.register("eip155:8453", mock_mechanism)
+
+    mock_facilitator = MagicMock()
+    mock_facilitator.facilitator_id = "test_facilitator"
+    mock_facilitator.verify = AsyncMock(return_value=VerifyResponse(isValid=True))
+    mock_server.set_facilitator(mock_facilitator)
+
+    payload = PaymentPayload(
+        x402Version=2,
+        accepted=requirements,
+        payload=PaymentPayloadData(
+            signature="0xsomesignature",
+            authorization=TransferAuthorization(
+                **{
+                    "from": "0x1111111111111111111111111111111111111111",
+                    "to": "0x2222222222222222222222222222222222222222",
+                    "value": "1000000",
+                    "validAfter": "1",
+                    "validBefore": "9999999999",
+                    "nonce": "0x" + "ab" * 32,
+                }
+            ),
+        ),
+    )
+
+    result = await mock_server.verify_payment(payload, requirements)
+
+    assert result.is_valid is True
+    mock_mechanism.verify_signature.assert_called_once_with(None, "0xsomesignature", "eip155:8453")
+    mock_facilitator.verify.assert_called_once()

@@ -15,6 +15,7 @@ from bankofai.x402.types import (
     PaymentPayloadData,
     PaymentRequirements,
     ResourceInfo,
+    TransferAuthorization,
 )
 
 USDT_ADDRESS = "TTestUSDTAddress1234567890123456789"
@@ -69,6 +70,16 @@ def _make_payload(
         accepted=requirements,
         payload=PaymentPayloadData(
             signature="0x" + "ab" * 65,
+            authorization=TransferAuthorization(
+                **{
+                    "from": from_addr,
+                    "to": to_addr or requirements.pay_to,
+                    "value": value or requirements.amount,
+                    "validAfter": str(valid_after if valid_after is not None else now - 30),
+                    "validBefore": str(valid_before if valid_before is not None else now + 3600),
+                    "nonce": nonce or ("0x" + "cd" * 32),
+                }
+            ),
         ),
         extensions={
             "transferAuthorization": {

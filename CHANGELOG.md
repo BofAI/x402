@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.9] - 2026-04-14
+
+### Added
+- Exact V2 compatibility with Coinbase x402 Foundation spec — `exact` scheme payload now conforms to the upstream V2 wire format for EVM and TRON
+- BSC Testnet (eip155:97) support with DHLU test token for `exact` EVM payments
+- BSC testnet smoke test examples (TypeScript and Python) under `examples/bsc-testnet-smoke/`
+- `nativeExactEvm` unit tests for EVM exact scheme
+- Server-side `x-payment-signature` verification tests (Python)
+
+### Changed
+- `nativeExact` / `nativeExactEvm` / `nativeExactTron` mechanisms updated to emit V2-compatible payloads (`authorization` structure with typed fields instead of flat hex blob)
+- `PaymentPayload` TypeScript type expanded to support both V1 and V2 payload shapes
+- Token registry (`tokens.ts`) updated with BSC testnet DHLU entry
+- GasFree utility refactored for cleaner error handling and status polling
+
+### Fixed
+- TypeScript SDK local build restored for exact v2 (`package-lock.json` regenerated)
+- Python `tx_verification` utility updated for V2 payload structure
+
+### Breaking
+- Minimum Node.js version raised from 18 to 20 (pnpm 10 requires Node >= 20)
+
 ## [0.5.8] - 2026-04-02
 
 ### Changed

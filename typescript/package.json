@@ -1,6 +1,6 @@
 {
   "name": "x402-typescript",
-  "version": "0.5.8",
+  "version": "0.5.9",
   "private": true,
   "description": "x402 TypeScript Client SDK",
   "workspaces": [
@@ -9,7 +9,7 @@
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r test",
-    "lint": "pnpm -r lint",
+    "lint": "pnpm -r --if-present lint",
     "clean": "pnpm -r clean"
   },
   "devDependencies": {
@@ -17,7 +17,7 @@
     "typescript": "^5.3.0"
   },
   "engines": {
-    "node": ">=18.0.0",
-    "pnpm": ">=8.0.0"
+    "node": ">=20.0.0",
+    "pnpm": ">=10.0.0"
   }
 }
