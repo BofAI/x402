@@ -53,10 +53,10 @@ Phase 1 is **pure documentation** — no runtime code, no tests. The only files 
 ### 1.2 Fork upstream
 
 - [ ] Fork `x402-foundation/x402` to the `BankofAI` org via GitHub UI (or `gh repo fork x402-foundation/x402 --org BankofAI`)
-- [ ] Clone locally in a separate directory (not this planning repo):
+- [ ] Clone locally in a **separate directory** from this planning repo. Replace `<FORK_DIR>` with any path you prefer:
   ```bash
-  gh repo clone BankofAI/x402 ~/code/x402-upstream
-  cd ~/code/x402-upstream
+  gh repo clone BankofAI/x402 <FORK_DIR>
+  cd <FORK_DIR>
   git remote add upstream https://github.com/x402-foundation/x402.git
   git fetch upstream
   git checkout -b feature/tron-exact-spec upstream/main
@@ -110,25 +110,25 @@ After creation:
 
 ### Step B — Prepare PR1 branch
 
-From the forked clone at `~/code/x402-upstream`:
+Let `<FORK_DIR>` be the local clone of `BankofAI/x402` and `<PLANNING_DIR>` be the local clone of this planning repo (the one containing `tron-contribution/`).
 
 1. **Create the spec file:**
    ```bash
-   # from the planning repo:
-   sed -n '96,338p' ~/code/x402/x402/tron-contribution/PR1_SPEC_DRAFT.md \
+   # run from anywhere; paths are absolute via the two variables above:
+   sed -n '96,338p' <PLANNING_DIR>/tron-contribution/PR1_SPEC_DRAFT.md \
      | sed '1d;$d' \
-     > ~/code/x402-upstream/specs/schemes/exact/scheme_exact_tron.md
+     > <FORK_DIR>/specs/schemes/exact/scheme_exact_tron.md
    # (strips the surrounding ```markdown ... ``` fence)
    ```
 
 2. **Patch the scheme index:**
-   - Open `~/code/x402-upstream/specs/schemes/exact/scheme_exact.md`
+   - Open `<FORK_DIR>/specs/schemes/exact/scheme_exact.md`
    - Find the `### Stellar` section
    - Append the TRON section from [PR1_SPEC_DRAFT.md](PR1_SPEC_DRAFT.md) lines 347-358
 
 3. **Commit (signed):**
    ```bash
-   cd ~/code/x402-upstream
+   cd <FORK_DIR>
    git add specs/schemes/exact/scheme_exact_tron.md specs/schemes/exact/scheme_exact.md
    git commit -S -m "specs(exact): add TRON exact scheme specification
 
@@ -202,7 +202,7 @@ Track progress here. Check off as each item completes.
 - [ ] `gh` authenticated as `BankofAI`
 - [ ] Git signing key configured, verified with a test signed commit
 - [ ] Fork `x402-foundation/x402` to `BankofAI` org
-- [ ] Local clone of fork at `~/code/x402-upstream` (or equivalent) with `upstream` remote
+- [ ] Local clone of fork (`<FORK_DIR>`) in a directory separate from the planning repo, with `upstream` remote added
 
 ### Soft pre-requisites (recommended)
 - [ ] SUN.io verifies Mainnet Permit2Helper on TronScan
