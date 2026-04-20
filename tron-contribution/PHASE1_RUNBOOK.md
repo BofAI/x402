@@ -77,9 +77,11 @@ Phase 1 is **pure documentation** — no runtime code, no tests. The only files 
 | Placeholder | Location | When to fill |
 |---|---|---|
 | `#<issue_number>` | PR1 description, `scheme_exact_tron.md` `Closes` line | Right after Issue is opened — edit PR body |
-| `<BofAI x402 test USD on Nile>` address | `scheme_exact_tron.md` Appendix: Supported Tokens | Before PR1 merge — via follow-up commit |
+| `<BofAI x402 test USD on Nile>` address | `scheme_exact_tron.md` Annex: Supported Tokens | Before PR1 merge — via follow-up commit |
+| `<x402ExactPermit2Proxy on Nile>` address | `scheme_exact_tron.md` Annex: Reference Implementation | Before PR1 merge — via follow-up commit |
+| `<x402ExactPermit2Proxy on Mainnet>` address | `scheme_exact_tron.md` Annex: Reference Implementation | Optional — OK to leave TBD until production launch |
 
-Both are acceptable as TODOs in the initial PR submission.
+All four are acceptable as TODOs in the initial PR submission.
 
 ---
 
@@ -232,9 +234,9 @@ Track progress here. Check off as each item completes.
 ### During review (ongoing)
 - [ ] Respond to reviewer comments within 24h when possible
 - [ ] Fill `#<issue_number>` placeholder if not done yet
-- [ ] BofAI deploys `x402 Test USD` ERC-3009-compatible TRC-20 on Nile
-- [ ] TronScan-verify the test token
-- [ ] Follow-up commit to fill `<BofAI x402 test USD on Nile>` placeholder in the spec
+- [ ] BofAI deploys `x402 Test USD` ERC-3009-compatible TRC-20 on Nile + TronScan-verify
+- [ ] BofAI/SUN.io ports `x402ExactPermit2Proxy` to TRON and deploys on Nile + TronScan-verify
+- [ ] Follow-up commit to fill `<BofAI x402 test USD on Nile>` and `<x402ExactPermit2Proxy on Nile>` placeholders in the spec
 
 ### Phase 1 done
 - [ ] PR1 merged

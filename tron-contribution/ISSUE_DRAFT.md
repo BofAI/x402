@@ -9,12 +9,14 @@
 
 ## Scope
 
-Full parity with EVM `exact` — both `assetTransferMethod` variants:
+Full parity with EVM `exact` — both `assetTransferMethod` variants, with **payload schemas byte-identical to `scheme_exact_evm.md`** (same `permit2Authorization` / `authorization` / `witness` field names, same EIP-712 typehashes, same Witness pattern):
 
-1. **`permit2` path** — uses SUN.io's production Permit2 deployment ([open source](https://github.com/sun-protocol/sunswap-permit2), byte-identical fork of Uniswap Permit2 adapted to TIP-712). Covers every existing TRC-20, including USDT and USDD.
+1. **`permit2` path** — uses SUN.io's production Permit2 deployment ([open source](https://github.com/sun-protocol/sunswap-permit2), byte-identical fork of Uniswap Permit2 adapted to TIP-712) + a TRON-deployed `x402ExactPermit2Proxy` (same Solidity source as the EVM reference contract, ported to TRON). Covers every existing TRC-20, including USDT and USDD.
 2. **`eip3009` path** — `transferWithAuthorization` signed via TIP-712. Requires tokens to implement the ERC-3009 interface. BofAI will deploy an ERC-3009-compatible TRC-20 on Nile (and optionally mainnet) to provide a working implementation — following the USDC precedent of shipping the interface ahead of a formal standard document. **Intentionally not dependent on TIP-3009** — TIP-3009 does not exist in `tronprotocol/tips` today and can be proposed separately; the on-chain interface is well-established via EIP-3009 and the signing layer uses TIP-712 (`Final` status).
 
-Why both paths in the initial PR: gives TRON full parity with EVM `exact`, avoids a second spec PR, and provides the TRON ecosystem with a reference ERC-3009 TRC-20.
+ERC-7710 (the third method in EVM spec) is not supported on TRON — no equivalent smart-account delegation framework.
+
+Why both paths in the initial PR: gives TRON full parity with EVM `exact`, avoids a second spec PR, and provides the TRON ecosystem with a reference ERC-3009 TRC-20 + `x402ExactPermit2Proxy`.
 
 ---
 
@@ -122,10 +124,12 @@ We are filing this as a parallel Issue so the Foundation can evaluate both appro
 
 ### High-level approach
 
-Add `exact` scheme support for TRON with **both** `assetTransferMethod` variants, matching EVM:
+Add `exact` scheme support for TRON with **both** `assetTransferMethod` variants, matching EVM. **Payload schemas byte-identical to `scheme_exact_evm.md`** — same field names (`permit2Authorization`, `authorization`, `witness`), same EIP-712 typehashes, same Permit2 Witness pattern. Only the address format (Base58 in `paymentRequirements`) and the on-chain SDK (TronWeb) differ.
 
-1. **`permit2`** — uses SUN.io's production Permit2 ([source](https://github.com/sun-protocol/sunswap-permit2)), a byte-identical fork of Uniswap Permit2 adapted to TIP-712. Covers every TRC-20.
+1. **`permit2`** — uses SUN.io's production Permit2 ([source](https://github.com/sun-protocol/sunswap-permit2)), a byte-identical fork of Uniswap Permit2, plus a TRON-deployed `x402ExactPermit2Proxy` (same Solidity as EVM reference) to enforce the Witness pattern. Covers every TRC-20.
 2. **`eip3009`** — `transferWithAuthorization` signed via TIP-712 ([tip-712.md](https://github.com/tronprotocol/tips/blob/master/tip-712.md), `Final`). BofAI will deploy an ERC-3009-compatible TRC-20 on Nile (+ mainnet if demand) to provide a working implementation. Following USDC precedent, this ships the interface without a formal TIP-3009 document; a TIP-3009 can be proposed separately in `tronprotocol/tips`.
+
+ERC-7710 (delegation) is not supported on TRON — no equivalent smart-account delegation framework.
 
 Independent `@x402/tron` package — TRON uses Base58 addresses, TronWeb SDK, and `tron:` CAIP-2 prefix; doesn't fit inside the EVM package. All 5 existing mechanism packages are independent.
 
@@ -177,6 +181,7 @@ BofAI will deploy an ERC-3009-compatible TRC-20 on Nile before opening PR2. The 
 - [ ] Maintainers confirm dual-path (`permit2` + `eip3009`) scope for initial PR
 - [ ] Maintainers weigh this proposal vs. #1408
 - [ ] ERC-3009-compatible TRC-20 deployed on Nile + TronScan-verified
+- [ ] `x402ExactPermit2Proxy` (TRON port of EVM reference) deployed on Nile + TronScan-verified
 - [ ] Spec PR (PR1) opened
 - [ ] TypeScript PR (PR2) opened
 - [ ] Python PR (PR3) opened

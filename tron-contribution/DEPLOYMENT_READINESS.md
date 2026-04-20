@@ -1,20 +1,22 @@
 # TRON `exact` Contribution — Deployment Readiness Check
 
 > Status date: 2026-04-20
-> Scope: **Permit2 + eip3009 dual-path** (matches EVM `exact` scheme)
+> Scope: **Permit2 + eip3009 dual-path** (payload schema byte-identical to EVM `exact`)
 > Purpose: confirm every contract and standard the x402 TRON contribution depends on is deployed or on a clear path to deployment, source-verified, and interface-compatible before the 3 PRs are submitted to `x402-foundation/x402`.
 
 ---
 
 ## 1. Summary
 
-Scope: ship **both `assetTransferMethod` paths** from day one — `permit2` and `eip3009` — matching EVM `exact`. No TIP-3009 dependency: follow USDC precedent (ship interface ahead of formal standard).
+Scope: ship **both `assetTransferMethod` paths** from day one — `permit2` and `eip3009` — with payload schemas **byte-identical to `scheme_exact_evm.md`**. The `permit2` path uses the same `x402ExactPermit2Proxy` + Witness pattern as EVM, ported to TRON. No TIP-3009 dependency: follow USDC precedent (ship interface ahead of formal standard).
 
 | Item | Blocker? |
 |---|---|
-| `permit2` path on **mainnet** | **No** — Permit2 source-verified, byte-identical to Uniswap, 27k+ live txs |
-| `permit2` path on **Nile** | **Soft** — Permit2 deployed but source not yet verified on TronScan |
+| SUN.io `permit2` contract on **mainnet** | **No** — source-verified, byte-identical to Uniswap, 27k+ live txs |
+| SUN.io `permit2` contract on **Nile** | **Soft** — deployed but source not yet verified on TronScan |
 | Permit2Helper (mainnet + Nile) | **Soft** — treated as optional in spec; facilitators can use `Permit2.allowance()` directly |
+| **`x402ExactPermit2Proxy` on Nile** | **Soft (PR2 blocker)** — BofAI/SUN.io must port EVM reference contract to TRON and deploy on Nile before PR2 integration tests |
+| **`x402ExactPermit2Proxy` on Mainnet** | **Soft (recommended)** — not required for PR2 merge but expected for production launch |
 | TIP-712 standard | **No** — TIP-712 is `Final` in `tronprotocol/tips` |
 | `eip3009` path interface | **No** — on-chain ABI is byte-identical to EVM EIP-3009; TIP-712 provides signing layer |
 | `eip3009` path test token | **Soft (PR2 blocker)** — BofAI must deploy ERC-3009-compatible TRC-20 on Nile before PR2 integration tests |
@@ -59,14 +61,29 @@ This helper has no EVM equivalent. It is an optional facilitator-side pre-flight
 
 Mainnet Permit2 is the only contract with verified source + live traffic.
 
+### `x402ExactPermit2Proxy` — NEW deployment requirement
+
+The EVM spec uses a canonical `x402ExactPermit2Proxy` contract (`0x402085c248EeA27D92E8b30b2C58ed07f9E20001`, CREATE2-deployed to the same address across all EVM chains) as the `spender` in Permit2 signatures. Its role is to enforce the Witness pattern: the user signs `(to, validAfter)` into the Permit2 witness and the proxy verifies `transferDetails.to == witness.to`, so the facilitator CANNOT change the destination.
+
+**For `permit2` payload schema parity with EVM, TRON needs the same contract.** Two options:
+
+- **Port the Solidity source** from [EVM reference §Annex](https://github.com/x402-foundation/x402/blob/main/specs/schemes/exact/scheme_exact_evm.md#reference-implementation-x402ExactPermit2Proxy) as-is. TRON's TVM is bytecode-compatible with most Solidity EVM output; the only adjustment is recompiling against SUN.io's Permit2 `ISignatureTransfer` interface (byte-identical to Uniswap's).
+- **Deployment address:** TRON's CREATE2 does not guarantee same-address-across-networks, so addresses will differ per network. The spec Annex has per-network address placeholders.
+
+**Action:** BofAI + SUN.io coordinate on deploying `x402ExactPermit2Proxy` to Nile (blocker for PR2) and optionally Mainnet (recommended before production). TronScan source-verification required.
+
 ### Action items for Permit2 path
 
-- [ ] **Request SUN.io submit TronScan source-verification** for 3 un-verified contracts (soft gap — spec treats Helper as optional, so this does not block PR1):
+- [ ] **Port + deploy `x402ExactPermit2Proxy` on Nile** — block for PR2 (integration test target)
+- [ ] **Deploy `x402ExactPermit2Proxy` on Mainnet** — recommended before production launch, not strictly required for contribution merge
+- [ ] **TronScan-verify** both Proxy deployments
+- [ ] **Request SUN.io submit TronScan source-verification** for 3 un-verified Permit2-related contracts (soft gap — spec treats Helper as optional, so this does not block PR1):
   - Mainnet Permit2Helper
   - Nile Permit2
   - Nile Permit2Helper
 - [x] **Spec treats Helper as optional** — facilitators can call `Permit2.allowance()` directly for full interface symmetry with EVM. Helper adds convenience + 200-second expiration buffer.
 - [x] **Spec draft uses "200-second buffer"** (corrected).
+- [x] **Spec draft aligns payload schema with EVM** — `permit2Authorization` + `witness` structure, matching `scheme_exact_evm.md`.
 
 ---
 
@@ -144,9 +161,10 @@ Before opening x402-foundation Issue + PR1 (spec):
 
 Before opening PR2 (TypeScript):
 
-- [ ] **Deploy ERC-3009-compatible TRC-20 test token on Nile** + verify on TronScan — required for `eip3009` integration tests
+- [ ] **Deploy `x402ExactPermit2Proxy` on Nile** + TronScan-verify — required for `permit2` integration tests and Witness-pattern enforcement
+- [ ] **Deploy ERC-3009-compatible TRC-20 test token on Nile** + TronScan-verify — required for `eip3009` integration tests
 - [ ] Nile Permit2 source-verified on TronScan (enables reviewer audit of integration test target)
-- [ ] Optional: Mainnet Permit2Helper + Nile Permit2Helper source-verified
+- [ ] Optional: Mainnet `x402ExactPermit2Proxy` + Mainnet Permit2Helper + Nile Permit2Helper source-verified
 
 Before opening PR3 (Python):
 
