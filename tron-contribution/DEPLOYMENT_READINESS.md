@@ -1,14 +1,14 @@
 # TRON `exact` Contribution — Deployment Readiness Check
 
-> Status date: 2026-04-19
-> Scope: **Permit2 path only** (eip3009 deferred — see §3)
-> Purpose: confirm every contract the x402 TRON Permit2 contribution depends on is deployed, source-verified, and interface-compatible before the 3 PRs are submitted to `x402-foundation/x402`.
+> Status date: 2026-04-20
+> Scope: **Permit2 + eip3009 dual-path** (matches EVM `exact` scheme)
+> Purpose: confirm every contract and standard the x402 TRON contribution depends on is deployed or on a clear path to deployment, source-verified, and interface-compatible before the 3 PRs are submitted to `x402-foundation/x402`.
 
 ---
 
 ## 1. Summary
 
-Scope decision: ship **Permit2 path only** in the first contribution. `eip3009` is deferred until TIP-3009 exists and a compatible TRC-20 is deployed.
+Scope: ship **both `assetTransferMethod` paths** from day one — `permit2` and `eip3009` — matching EVM `exact`. No TIP-3009 dependency: follow USDC precedent (ship interface ahead of formal standard).
 
 | Item | Blocker? |
 |---|---|
@@ -16,8 +16,9 @@ Scope decision: ship **Permit2 path only** in the first contribution. `eip3009` 
 | `permit2` path on **Nile** | **Soft** — Permit2 deployed but source not yet verified on TronScan |
 | Permit2Helper (mainnet + Nile) | **Soft** — treated as optional in spec; facilitators can use `Permit2.allowance()` directly |
 | TIP-712 standard | **No** — TIP-712 is `Final` in `tronprotocol/tips` |
-| `eip3009` path | **Deferred to follow-up PR** — no TIP-3009, no TRC-20 implements `transferWithAuthorization` |
-| TIP-3009 standard | **Not needed for this PR** — `eip3009` path is out of scope |
+| `eip3009` path interface | **No** — on-chain ABI is byte-identical to EVM EIP-3009; TIP-712 provides signing layer |
+| `eip3009` path test token | **Soft (PR2 blocker)** — BofAI must deploy ERC-3009-compatible TRC-20 on Nile before PR2 integration tests |
+| TIP-3009 standard | **No (not a dependency)** — USDC shipped `transferWithAuthorization` before EIP-3009 was `Final`; we follow the same precedent |
 
 ---
 
@@ -69,39 +70,36 @@ Mainnet Permit2 is the only contract with verified source + live traffic.
 
 ---
 
-## 3. `eip3009` path — DEFERRED to a follow-up PR
+## 3. `eip3009` path — in scope, test token deployment required before PR2
 
-### Why deferred
+### On-chain interface (ABI-level)
 
 The `eip3009` path requires the **token** to implement:
 - `transferWithAuthorization(address,address,uint256,uint256,uint256,bytes32,uint8,bytes32,bytes32)`
 - `authorizationState(address,bytes32) → bool`
 - `DOMAIN_SEPARATOR()`, `name()`, `version()`
 
-None of the tokens currently on TRON meet this bar:
+This ABI is **byte-identical to EVM EIP-3009**. Signing uses TIP-712, which is already `Final` and produces domain-separated EIP-712 digests compatible with any ERC-3009 client/facilitator.
+
+**No TIP-3009 is required.** USDC precedent: Circle deployed `transferWithAuthorization` on Ethereum mainnet in 2020, a year before EIP-3009 reached `Final` status. The on-chain interface predates and does not depend on a formal standard. x402 validates the ABI directly at the facilitator layer.
+
+### Current TRC-20 inventory
+
+None of the tokens currently on TRON meet the ERC-3009 interface bar:
 
 | Token | Address | Network | Verified | `transferWithAuthorization`? |
 |---|---|---|:-:|:-:|
 | USDT | `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t` | Mainnet | Yes | **No** (standard TRC-20 only) |
 | USDT (Nile) | `TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj` | Nile | No | **No** (has Polygon-style `executeMetaTransaction` instead) |
-| USDT (Shasta) | `TG3XXyExBkPp9nzdajDZsozEu4BkaSJozs` | Shasta | No | **No** (5 standard TRC-20 methods only) |
 | USDD | `TPYmHEhy5n8TCEfYGqW2rPxsghSfzghPDn` | Mainnet | Partial | **No** (WTRX-style wrapper, no 3009 interface) |
 
-### Scope decision
+**Implication:** the `eip3009` path is ready at the *code* layer, but until an ERC-3009-compatible TRC-20 is deployed on Nile, PR2 integration tests cannot exercise it end-to-end. PR1 (spec) is not affected.
 
-The initial x402 TRON contribution ships **Permit2-only**. The `eip3009` path is documented in the spec as "not supported in this spec version" and will be added in a **follow-up PR** once both of the following land (they are independent of x402):
+### Action items for eip3009 path
 
-1. **TIP-3009 filed in `tronprotocol/tips`** (does not currently exist).
-2. **At least one TRC-20 implementing `transferWithAuthorization` deployed and TronScan-source-verified** (does not currently exist).
-
-Permit2 covers every existing TRC-20 (USDT, USDD, everything with standard `approve`), so nothing is gated on the `eip3009` path for real usage.
-
-### Follow-up PR prerequisites (tracked but not blocking this contribution)
-
-- [ ] Seed TIP-3009 draft in `tronprotocol/tips` (SUN.io / BofAI, separate thread from x402 PRs)
-- [ ] Deploy ERC-3009-compatible TRC-20 test token on Nile and verify on TronScan
-- [ ] Optional: deploy on mainnet once Nile-tested
-- [ ] Open follow-up x402 spec PR to add `assetTransferMethod: "eip3009"` to `scheme_exact_tron.md`
+- [ ] **Deploy ERC-3009-compatible TRC-20 on Nile** (BofAI) — a minimal mintable test token implementing the USDC/EIP-3009 interface, TIP-712 domain, source-verified on TronScan. Required before PR2 integration tests land. Mainnet deployment not required for contribution; real stablecoin issuers (Tether, Circle) are the intended long-term adopters of the interface on their tokens.
+- [x] **Spec documents both paths from day one** — no staged rollout.
+- [x] **No TIP-3009 dependency** — spec references USDC precedent explicitly.
 
 ---
 
@@ -116,49 +114,41 @@ Permit2 covers every existing TRC-20 (USDT, USDD, everything with standard `appr
 
 **Action:** none. Reference TIP-712 in the spec instead of just "TRON's EIP-712 equivalent".
 
-### TIP-3009 (transferWithAuthorization on TRON) — does not exist
+### TIP-3009 (transferWithAuthorization on TRON) — not a dependency
 
 - Searched `tronprotocol/tips` — no file, no PR, no issue mentioning ERC-3009 or `transferWithAuthorization`.
 - TRON has ported several EIPs (3855, 6049, 5656, 1153, 4844) but 3009 is not among them.
+- **This does not block the contribution.** EIP-3009 itself was `Final`-ized in 2021, *after* USDC shipped the interface in production in 2020. x402's `eip3009` path validates the ABI at the token layer, not a standards doc.
 
-**Options:**
-
-- **(a) Ignore.** State in the spec "on-chain interface is byte-identical to EIP-3009; TRON has no formal TIP, but the signing format follows TIP-712." Acceptable but will draw reviewer questions.
-- **(b) Seed a TIP-3009 draft.** File a PR to `tronprotocol/tips` in parallel with the x402 PR1. Makes the x402 spec reference a real TIP number. Adds ~1 week of coordination work but strengthens the contribution.
-- **(c) Wait for TRON Foundation to issue one.** Not in anyone's roadmap; will not happen on its own.
-
-**Recommendation: (b).** BofAI / SUN.io has the standing to seed the TIP. The draft can be a thin wrapper that says "TRC-3009 is the on-chain interface identical to EIP-3009, signed via TIP-712" — most of the content is already in the x402 spec draft.
+**Optional follow-up (not required for this contribution):** BofAI / SUN.io may seed a TIP-3009 draft in `tronprotocol/tips` as a thin wrapper saying "TRC-3009 is the on-chain interface identical to EIP-3009, signed via TIP-712" — this would formalize the reference but is not a prerequisite for merging any of the 3 x402 PRs.
 
 ### Action items for TIP standards
 
 - [ ] Reference TIP-712 by number (not "EIP-712 equivalent") throughout the x402 spec.
-- [ ] **Decide (a) / (b) / (c).** Recommendation: (b) — seed a TIP-3009 draft to `tronprotocol/tips` in parallel with x402 PR1. Low incremental effort, meaningful signal.
+- [ ] Optional follow-up: seed TIP-3009 draft in `tronprotocol/tips`. Not blocking.
 
 ---
 
-## 5. Pre-submission checklist (Permit2-only scope)
+## 5. Pre-submission checklist
 
-Before opening x402-foundation Issue + PR1:
+Before opening x402-foundation Issue + PR1 (spec):
 
-- [x] Scope narrowed to Permit2 path only — `eip3009` deferred to follow-up PR
-- [x] `ISSUE_DRAFT.md` and `PR1_SPEC_DRAFT.md` rewritten for Permit2-only scope
+- [x] Scope covers both `permit2` and `eip3009` paths — matches EVM `exact`
+- [x] `ISSUE_DRAFT.md` and `PR1_SPEC_DRAFT.md` cover both paths with payload examples
 - [x] 200-**second** Helper buffer (not 200-block) corrected in spec
 - [x] TIP-712 referenced by number in spec (was "EIP-712 equivalent")
 - [x] Shasta removed from supported networks (Nile is the only TRON testnet)
 - [x] Helper noted as optional — facilitators can call `Permit2.allowance()` directly
+- [x] No TIP-3009 dependency — USDC precedent cited for shipping interface ahead of standard
 - [ ] Request SUN.io submit TronScan source verification for 3 un-verified contracts (not a hard blocker for PR1 since Helper is optional and Nile Permit2 is testnet-only, but reviewers will appreciate it before PR2 lands)
 
 Before opening PR2 (TypeScript):
 
+- [ ] **Deploy ERC-3009-compatible TRC-20 test token on Nile** + verify on TronScan — required for `eip3009` integration tests
 - [ ] Nile Permit2 source-verified on TronScan (enables reviewer audit of integration test target)
 - [ ] Optional: Mainnet Permit2Helper + Nile Permit2Helper source-verified
 
 Before opening PR3 (Python):
 
 - [ ] PR2 merged or clearly on path to merge
-
-Follow-up PR (add `eip3009` path) — timing independent of this contribution:
-
-- [ ] TIP-3009 filed in `tronprotocol/tips`
-- [ ] ERC-3009-compatible TRC-20 deployed on Nile + TronScan-verified
-- [ ] Spec PR adding `assetTransferMethod: "eip3009"` opened
+- [ ] Same Nile test token used as in PR2 (shared fixture)
