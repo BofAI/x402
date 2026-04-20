@@ -12,7 +12,7 @@ Scope: ship **both `assetTransferMethod` paths** from day one — `permit2` and 
 
 | Item | Blocker? |
 |---|---|
-| SUN.io `permit2` contract on **mainnet** | **No** — source-verified, byte-identical to Uniswap, 27k+ live txs |
+| SUN.io `permit2` contract on **mainnet** | **No** — source-verified, byte-identical to Uniswap, 29,000+ live txs |
 | SUN.io `permit2` contract on **Nile** | **Soft** — deployed but source not yet verified on TronScan |
 | Permit2Helper (mainnet + Nile) | **Soft** — treated as optional in spec; facilitators can use `Permit2.allowance()` directly |
 | **`x402ExactPermit2Proxy` on Nile** | **Soft (PR2 blocker)** — BofAI/SUN.io must port EVM reference contract to TRON and deploy on Nile before PR2 integration tests |
@@ -54,7 +54,7 @@ This helper has no EVM equivalent. It is an optional facilitator-side pre-flight
 
 | Contract | Address | Network | Deployed | Source verified | Live traffic |
 |---|---|---|:-:|:-:|:-:|
-| Permit2 | `TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9` | Mainnet | 2025-12-27 | **Yes** (verify_status=2) | **27,588 txs** |
+| Permit2 | `TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9` | Mainnet | 2025-12-27 | **Yes** (verify_status=2) | **29,063 txs as of 2026-04-20** |
 | Permit2Helper | `TBc4z7389sAtM2nZRgWwHSJnHrWeUrZ3rL` | Mainnet | 2026-02-02 | **No** | 0 |
 | Permit2 | `TCJjTtzwRJYPapGTdyJdKcr7MqkngRRWQx` | Nile | 2025-12-02 | **No** | 0 |
 | Permit2Helper | `TJcVB8vQVpAoGwp9owx1Ct91D4QpKVd78h` | Nile | 2026-02-03 | **No** | 0 |

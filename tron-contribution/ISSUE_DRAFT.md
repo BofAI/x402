@@ -32,7 +32,7 @@ We are proposing an alternative approach that mirrors the EVM `exact` scheme arc
 | Who pays TRON energy | **Client** (`owner_address` = client; TRON debits energy from the signer) | **Facilitator** (facilitator is `owner_address` of the on-chain tx) |
 | Alignment with EVM `exact` | Low (TRON-native pre-signed broadcast) | High (same `assetTransferMethod` structure, same EIP-712 semantics) |
 | `assetTransferMethod` | Not applicable | `permit2` \| `eip3009` |
-| Production usage at time of proposal | 2 on-chain settlements | SUN.io Permit2: 27,588 mainnet txs |
+| Production usage at time of proposal | 2 on-chain settlements | SUN.io Permit2: 29,000+ mainnet txs |
 
 The energy-payer difference is material: x402's UX premise is that the client does not hold native gas tokens. The EVM `exact` scheme has the facilitator paying gas. The #1408 approach requires the client to hold TRX to pay energy/bandwidth, because TRON debits the `owner_address` of the signed tx. Our approach preserves the EVM gasless-client property on TRON.
 
@@ -63,7 +63,7 @@ Folding this into `@x402/evm` would require widening `ClientEvmSigner['address']
 ## Working proof
 
 - BofAI has shipped a production TRON x402 SDK (`bankofai-x402`). Interop with the Coinbase x402 official client/server was validated on BSC testnet in April 2026.
-- SUN.io operates the Permit2 deployment with 27k+ mainnet transactions — `Permit2.permitTransferFrom` is in live use on TRON today.
+- SUN.io operates the Permit2 deployment with 29,000+ mainnet transactions — `Permit2.permitTransferFrom` is in live use on TRON today.
 - BofAI will deploy the ERC-3009-compatible TRC-20 reference token on Nile before PR2 and share the address + verified source.
 
 ## Supported networks
@@ -79,7 +79,7 @@ Shasta is intentionally excluded — it lags Nile on features and does not allow
 
 | Network | Permit2 | Permit2Helper (optional) |
 |---|---|---|
-| Mainnet | `TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9` (TronScan-verified, ~27,588 live txs) | `TBc4z7389sAtM2nZRgWwHSJnHrWeUrZ3rL` |
+| Mainnet | `TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9` (TronScan-verified, 29,000+ live txs) | `TBc4z7389sAtM2nZRgWwHSJnHrWeUrZ3rL` |
 | Nile | `TCJjTtzwRJYPapGTdyJdKcr7MqkngRRWQx` | `TJcVB8vQVpAoGwp9owx1Ct91D4QpKVd78h` |
 
 Source code: https://github.com/sun-protocol/sunswap-permit2
@@ -140,7 +140,7 @@ Independent `@x402/tron` package — TRON uses Base58 addresses, TronWeb SDK, an
 
 ### Why both paths
 
-- `permit2` covers every existing TRC-20 (including USDT, USDD) via a verified production Permit2 contract with ~27,588 live mainnet txs.
+- `permit2` covers every existing TRC-20 (including USDT, USDD) via a verified production Permit2 contract with 29,000+ live mainnet txs.
 - `eip3009` is the native interface EVM `exact` uses first. Giving TRON an ERC-3009 reference implementation lowers the barrier for future TRON tokens to integrate natively without Permit2 round-trip.
 
 ### Supported networks
@@ -158,7 +158,7 @@ Uses SUN.io Permit2:
 
 | Network | Permit2 | Permit2Helper (optional) |
 |---|---|---|
-| Mainnet | `TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9` (verified, 27k+ txs) | `TBc4z7389sAtM2nZRgWwHSJnHrWeUrZ3rL` |
+| Mainnet | `TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9` (verified, 29,000+ txs) | `TBc4z7389sAtM2nZRgWwHSJnHrWeUrZ3rL` |
 | Nile | `TCJjTtzwRJYPapGTdyJdKcr7MqkngRRWQx` | `TJcVB8vQVpAoGwp9owx1Ct91D4QpKVd78h` |
 
 Byte-identical to Uniswap Permit2: typehashes, struct layouts, nonce bitmap all match; `DOMAIN_SEPARATOR` uses `block.chainid` at full value. `Permit2Helper.checkPermit2Allowance` is a SUN-specific convenience check (amount + expiration + 200-second buffer); x402 spec treats it as optional — facilitators can call `Permit2.allowance()` directly for full interface symmetry with EVM.

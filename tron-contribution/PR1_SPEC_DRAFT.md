@@ -52,7 +52,7 @@ This Issue+PR is filed in parallel, not as a replacement. Happy to unify if @Eru
 
 This spec defines both paths already established by the EVM `exact` scheme:
 
-1. **`permit2`** — uses SUN.io's production Permit2 ([source](https://github.com/sun-protocol/sunswap-permit2)), byte-identical to Uniswap Permit2 adapted to TIP-712. Covers every TRC-20 (USDT, USDD, etc.). Mainnet deployment `TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9` is TronScan-verified with ~27,588 live txs.
+1. **`permit2`** — uses SUN.io's production Permit2 ([source](https://github.com/sun-protocol/sunswap-permit2)), byte-identical to Uniswap Permit2 adapted to TIP-712. Covers every TRC-20 (USDT, USDD, etc.). Mainnet deployment `TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9` is TronScan-verified with 29,000+ live txs.
 2. **`eip3009`** — `transferWithAuthorization` signed via TIP-712. Requires the token to implement the ERC-3009 interface. BofAI will deploy an ERC-3009-compatible TRC-20 on Nile (and optionally mainnet) before PR2 opens, and add the address + source-verification link to the "Supported Tokens" appendix.
 
 ### Why no TIP-3009 dependency
@@ -195,22 +195,22 @@ This method mirrors EVM `exact.permit2` exactly. It uses `permitWitnessTransferF
 
 ### Phase 1: One-Time Gas Approval
 
-Permit2 requires the user to approve the Permit2 contract to spend their tokens. This is a one-time setup. **TRON differs from EVM here in one material way: TRC-20's `approve()` requires `msg.sender` to be the token owner, so the Facilitator cannot sponsor `approve()` on the user's behalf.** Two options are available:
+Permit2 requires the user to approve the Permit2 contract to spend their tokens. This is a one-time setup. **TRON differs from EVM here in one material way: TRC-20's `approve()` requires `msg.sender` to be the token owner, so the Facilitator cannot sponsor `approve()` on the user's behalf.** Two options are available on TRON (EVM's "Option B: Sponsored ERC-20 Approval" is not supported):
 
-#### Option A: Direct User Approval (Standard)
+#### TRON Option 1: Direct User Approval (Standard)
 
 The user submits a standard on-chain `approve(Permit2)` transaction paying their own energy/bandwidth.
 
 - *Prerequisite:* User must have TRX or staked resources.
 
-#### Option B: EIP-2612 `permit` (Extension: [`eip2612GasSponsoring`](../../extensions/eip2612_gas_sponsoring.md))
+#### TRON Option 2: EIP-2612 `permit` (Extension: [`eip2612GasSponsoring`](../../extensions/eip2612_gas_sponsoring.md))
 
 If the TRC-20 supports EIP-2612, the user signs a `permit` authorizing Permit2 and the facilitator submits it.
 
 - *Prerequisite:* Token supports EIP-2612.
 - *Flow:* Facilitator calls `x402ExactPermit2Proxy.settleWithPermit()`.
 
-**Sponsored ERC-20 Approval (Option B in EVM) is NOT available on TRON** because of the TRC-20 `approve()` `msg.sender` constraint. Implementations MUST return `412 Precondition Failed` (error `PERMIT2_ALLOWANCE_REQUIRED`) if neither of the above applies and the user has no prior Permit2 allowance.
+Implementations MUST return `412 Precondition Failed` (error `PERMIT2_ALLOWANCE_REQUIRED`) if neither option applies and the user has no prior Permit2 allowance.
 
 ### Phase 2: `PAYMENT-SIGNATURE` Header Payload
 
@@ -269,7 +269,7 @@ Identical ordering to EVM spec:
 2. **Verify** the `client` has enabled the Permit2 approval:
    - If `TRC20.allowance(from, Permit2) < amount`:
      - Check for **EIP-2612 Permit** (Extension): refer to [`eip2612GasSponsoring`](../../extensions/eip2612_gas_sponsoring.md).
-     - **Sponsored ERC20 Approval is NOT available on TRON** (see §1).
+     - **Sponsored ERC-20 Approval is NOT available on TRON** (see §2 Phase 1 above — `approve()` requires `msg.sender` to be the token owner).
      - **If neither applies:** return `412 Precondition Failed` (`PERMIT2_ALLOWANCE_REQUIRED`). The client must submit a one-time direct `approve(Permit2)` before retrying.
 3. **Verify** the `client` has sufficient balance of the `asset`.
 4. **Verify** `permit2Authorization.permitted.amount` covers the payment.
@@ -307,7 +307,7 @@ The facilitator is the `owner_address` of the on-chain tx, so the facilitator's 
 
 | Network | Permit2 | Permit2Helper (optional) |
 |---|---|---|
-| Mainnet | `TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9` (TronScan-verified, ~27,588 live txs) | `TBc4z7389sAtM2nZRgWwHSJnHrWeUrZ3rL` |
+| Mainnet | `TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9` (TronScan-verified, 29,000+ live txs) | `TBc4z7389sAtM2nZRgWwHSJnHrWeUrZ3rL` |
 | Nile | `TCJjTtzwRJYPapGTdyJdKcr7MqkngRRWQx` | `TJcVB8vQVpAoGwp9owx1Ct91D4QpKVd78h` |
 
 Source code: https://github.com/sun-protocol/sunswap-permit2

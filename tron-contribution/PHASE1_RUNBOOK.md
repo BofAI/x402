@@ -95,7 +95,7 @@ All four are acceptable as TODOs in the initial PR submission.
 
 **Labels:** `enhancement`, `new-chain`
 
-**Body:** copy from [ISSUE_DRAFT.md](ISSUE_DRAFT.md) starting at the line "### Problem" (line 111 through end of file).
+**Body:** copy from [ISSUE_DRAFT.md](ISSUE_DRAFT.md) starting at the line "### Problem" (line 113 through end of file).
 
 ```bash
 # via CLI:
@@ -103,7 +103,7 @@ gh issue create \
   --repo x402-foundation/x402 \
   --title "[Proposal] Add TRON exact scheme — Permit2 + ERC-3009 via TIP-712" \
   --label "enhancement,new-chain" \
-  --body-file <(sed -n '111,$p' tron-contribution/ISSUE_DRAFT.md)
+  --body-file <(sed -n '113,$p' tron-contribution/ISSUE_DRAFT.md)
 ```
 
 After creation:
@@ -117,7 +117,7 @@ Let `<FORK_DIR>` be the local clone of `BankofAI/x402` and `<PLANNING_DIR>` be t
 1. **Create the spec file:**
    ```bash
    # run from anywhere; paths are absolute via the two variables above:
-   sed -n '96,338p' <PLANNING_DIR>/tron-contribution/PR1_SPEC_DRAFT.md \
+   sed -n '96,394p' <PLANNING_DIR>/tron-contribution/PR1_SPEC_DRAFT.md \
      | sed '1d;$d' \
      > <FORK_DIR>/specs/schemes/exact/scheme_exact_tron.md
    # (strips the surrounding ```markdown ... ``` fence)
@@ -126,7 +126,7 @@ Let `<FORK_DIR>` be the local clone of `BankofAI/x402` and `<PLANNING_DIR>` be t
 2. **Patch the scheme index:**
    - Open `<FORK_DIR>/specs/schemes/exact/scheme_exact.md`
    - Find the `### Stellar` section
-   - Append the TRON section from [PR1_SPEC_DRAFT.md](PR1_SPEC_DRAFT.md) lines 347-358
+   - Append the TRON section from [PR1_SPEC_DRAFT.md](PR1_SPEC_DRAFT.md) lines 403-416 (content inside the fence on lines 402-417)
 
 3. **Commit (signed):**
    ```bash
@@ -185,8 +185,8 @@ All live under `tron-contribution/` in this planning repo. Do **not** submit the
 
 | File | Role in Phase 1 |
 |---|---|
-| [ISSUE_DRAFT.md](ISSUE_DRAFT.md) | **Source for Issue body.** Copy lines 111–end into the GitHub Issue. |
-| [PR1_SPEC_DRAFT.md](PR1_SPEC_DRAFT.md) | **Source for PR1.** Lines 26–91 = PR body; lines 96–338 = `scheme_exact_tron.md`; lines 346–358 = `scheme_exact.md` append. |
+| [ISSUE_DRAFT.md](ISSUE_DRAFT.md) | **Source for Issue body.** Copy lines 113–end into the GitHub Issue. |
+| [PR1_SPEC_DRAFT.md](PR1_SPEC_DRAFT.md) | **Source for PR1.** Lines 26–91 = PR body; lines 96–394 = `scheme_exact_tron.md` (outer fence stripped); lines 402–417 = `scheme_exact.md` append. |
 | [DEPLOYMENT_READINESS.md](DEPLOYMENT_READINESS.md) | **Internal reference.** Contract deployment + TIP standards status; don't attach to the PR, but reviewers may ask questions answered here. |
 | [TRON_PROPOSAL.md](TRON_PROPOSAL.md) | **Background.** High-level proposal predating the draft split; kept for context. |
 | [TRON_CONTRIBUTION_ANALYSIS.md](TRON_CONTRIBUTION_ANALYSIS.md) | **Background.** Architecture analysis — why independent package, risks of extending `@x402/evm`. |
@@ -219,8 +219,8 @@ Track progress here. Check off as each item completes.
 
 ### PR1 branch
 - [ ] Branch `feature/tron-exact-spec` created from `upstream/main`
-- [ ] `specs/schemes/exact/scheme_exact_tron.md` created with full content from `PR1_SPEC_DRAFT.md` lines 96–338
-- [ ] `specs/schemes/exact/scheme_exact.md` patched with TRON section from `PR1_SPEC_DRAFT.md` lines 347–358
+- [ ] `specs/schemes/exact/scheme_exact_tron.md` created with full content from `PR1_SPEC_DRAFT.md` lines 96–394 (outer fence stripped)
+- [ ] `specs/schemes/exact/scheme_exact.md` patched with TRON section from `PR1_SPEC_DRAFT.md` lines 403–416
 - [ ] Commit is signed (verified with `git log --show-signature -1`)
 - [ ] Branch pushed to `BankofAI/x402`
 
