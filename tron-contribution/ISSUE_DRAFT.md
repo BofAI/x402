@@ -20,26 +20,6 @@ Why both paths in the initial PR: gives TRON full parity with EVM `exact`, avoid
 
 ---
 
-## Relationship to existing PR #1408
-
-PR [#1408](https://github.com/x402-foundation/x402/pull/1408) from @EruditeIntelligence proposes a different approach: the client signs a **complete TRON transaction** (`TriggerSmartContract` calling `transfer`), and the facilitator broadcasts it.
-
-We are proposing an alternative approach that mirrors the EVM `exact` scheme architecture. Key differences:
-
-| Aspect | #1408 approach | This proposal |
-|---|---|---|
-| Signed payload | Full TRON `TriggerSmartContract` tx | TIP-712 structured data (`PermitTransferFrom` or `TransferWithAuthorization`) |
-| Who pays TRON energy | **Client** (`owner_address` = client; TRON debits energy from the signer) | **Facilitator** (facilitator is `owner_address` of the on-chain tx) |
-| Alignment with EVM `exact` | Low (TRON-native pre-signed broadcast) | High (same `assetTransferMethod` structure, same EIP-712 semantics) |
-| `assetTransferMethod` | Not applicable | `permit2` \| `eip3009` |
-| Production usage at time of proposal | 2 on-chain settlements | SUN.io Permit2: 29,000+ mainnet txs |
-
-The energy-payer difference is material: x402's UX premise is that the client does not hold native gas tokens. The EVM `exact` scheme has the facilitator paying gas. The #1408 approach requires the client to hold TRX to pay energy/bandwidth, because TRON debits the `owner_address` of the signed tx. Our approach preserves the EVM gasless-client property on TRON.
-
-We are filing this as a parallel Issue rather than comments on #1408 so the Foundation can evaluate the two approaches side by side. Happy to coordinate with @EruditeIntelligence if there is interest in unifying.
-
----
-
 ## Problem
 
 TRON has 200M+ active accounts and is the largest USDT settlement network by transaction volume. Currently, x402 has no `exact` scheme support merged for TRON, which means agents and services on TRON cannot participate in the x402 payment ecosystem.
@@ -96,11 +76,10 @@ Per `CONTRIBUTING.md` §"Adding a new chain", we will submit this in three PRs:
 
 ## Open questions for Foundation maintainers
 
-1. **Relationship to PR #1408.** Are maintainers open to evaluating both approaches in parallel? Or should one be prioritized?
-2. **Package naming.** We are proposing `@x402/tron`, matching the `@x402/{evm,svm,avm,aptos,stellar}` pattern.
-3. **Permit2-and-eip3009 scope in the initial PR.** We are proposing both paths up-front. Acceptable, or would the Foundation prefer them staged?
-4. **TIP-3009 non-dependency.** We are following the USDC precedent (ship the ERC-3009 interface before a formal TIP document). Acceptable, or does the Foundation want a TIP-3009 draft filed in `tronprotocol/tips` first?
-5. **TRON approval-sponsoring limitation.** TRC-20's `approve()` requires `msg.sender` to be the token owner, so the Permit2 path's fallback cannot include a facilitator-sponsored `approve()`. Our fallback is two layers (EIP-2612 `permit` → manual user `approve`), not three. Noted in the spec.
+1. **Package naming.** We are proposing `@x402/tron`, matching the `@x402/{evm,svm,avm,aptos,stellar}` pattern.
+2. **Permit2-and-eip3009 scope in the initial PR.** We are proposing both paths up-front. Acceptable, or would the Foundation prefer them staged?
+3. **TIP-3009 non-dependency.** We are following the USDC precedent (ship the ERC-3009 interface before a formal TIP document). Acceptable, or does the Foundation want a TIP-3009 draft filed in `tronprotocol/tips` first?
+4. **TRON approval-sponsoring limitation.** TRC-20's `approve()` requires `msg.sender` to be the token owner, so the Permit2 path's fallback cannot include a facilitator-sponsored `approve()`. Our fallback is two layers (EIP-2612 `permit` → manual user `approve`), not three. Noted in the spec.
 
 ---
 
@@ -114,13 +93,9 @@ Everything below this line is the body to paste into the GitHub Issue; everythin
 
 TRON has 200M+ active accounts and is the largest USDT settlement network by transaction volume. Currently x402 has no `exact` scheme support merged for TRON, which means agents and services on TRON cannot participate in the x402 payment ecosystem.
 
-### Relationship to PR #1408
+### Design property: gasless client (facilitator pays TRON energy)
 
-PR #1408 from @EruditeIntelligence proposes a different approach: the client signs a complete TRON `TriggerSmartContract` transaction and the facilitator broadcasts it. This proposal is an alternative that mirrors the EVM `exact` scheme architecture (TIP-712 signed authorization + facilitator-constructed transaction).
-
-The most material difference is the **energy payer**: in #1408 the client's account pays TRON energy/bandwidth (TRON debits the `owner_address` of the signed tx — who signs, pays). In this proposal, the facilitator is the `owner_address` of the on-chain tx, so the facilitator pays — matching x402's EVM gasless-client property.
-
-We are filing this as a parallel Issue so the Foundation can evaluate both approaches side by side. Happy to coordinate with @EruditeIntelligence if there is interest in unifying.
+On TRON, the account listed as `owner_address` of the on-chain transaction is debited for energy/bandwidth. This proposal places the facilitator as `owner_address` and has the user sign only TIP-712 structured data (`PermitTransferFrom` or `TransferWithAuthorization`). The user never needs to hold TRX — matching x402's gasless-client property on EVM.
 
 ### High-level approach
 
@@ -179,7 +154,6 @@ BofAI will deploy an ERC-3009-compatible TRC-20 on Nile before opening PR2. The 
 - [ ] Maintainers confirm `@x402/tron` as the package name
 - [ ] Maintainers confirm independent-package approach (vs. extending `@x402/evm`)
 - [ ] Maintainers confirm dual-path (`permit2` + `eip3009`) scope for initial PR
-- [ ] Maintainers weigh this proposal vs. #1408
 - [ ] ERC-3009-compatible TRC-20 deployed on Nile + TronScan-verified
 - [ ] `x402ExactPermit2Proxy` (TRON port of EVM reference) deployed on Nile + TronScan-verified
 - [ ] Spec PR (PR1) opened

@@ -248,7 +248,7 @@ Track progress here. Check off as each item completes.
 
 | Risk | Likelihood | Mitigation |
 |---|---|---|
-| Maintainers prefer PR #1408's approach | Medium | Issue explicitly compares approaches; energy-payer argument is technically decisive. Offer to unify if @EruditeIntelligence is interested. |
+| Maintainers ask about overlap with other TRON proposals | Medium | Do not initiate a comparison. If asked, respond neutrally: our proposal stands on its own design (TIP-712 signed authorization + facilitator-paid energy, mirroring EVM `exact`). Offer to coordinate if maintainers want consolidation. |
 | Maintainers ask for TIP-3009 first | Low–Medium | USDC precedent cited. If pushed, BofAI can seed a TIP-3009 draft in parallel (low effort). |
 | Maintainers prefer staged paths (permit2 first, eip3009 later) | Low | If requested, drop eip3009 from the spec; reintroduce as a follow-up PR. PR1_SPEC_DRAFT.md structure makes this easy to split. |
 | SUN.io TronScan verification delayed | Low | Mainnet Permit2 is already verified; others are testnet or optional helpers. PR1 doesn't hard-depend on them. |
@@ -265,6 +265,6 @@ Track progress here. Check off as each item completes.
 | Why both paths from day one? | Matches EVM `exact`. `permit2` covers every existing TRC-20; `eip3009` is the interface EVM uses first. Avoids a second spec PR. |
 | Why no TIP-3009 dependency? | USDC precedent: Circle shipped `transferWithAuthorization` in 2020, a year before EIP-3009 reached `Final`. The on-chain ABI is well-established; TIP-712 (Final) provides the signing layer. |
 | Why is Permit2 safe to use? | Byte-identical fork of Uniswap Permit2; mainnet deployment is TronScan-verified with ~29k live txs. `DOMAIN_SEPARATOR` uses `block.chainid` at full value. |
-| What about PR #1408? | Different approach (client signs full TRON tx). Energy payer is the client in #1408 (TRON debits `owner_address` of the signed tx); in this proposal the facilitator is `owner_address` and pays. Preserves EVM's gasless-client UX property. |
+| Who pays TRON energy? | Facilitator. The facilitator is `owner_address` of the on-chain transaction; the user signs only TIP-712 structured data. Preserves EVM's gasless-client UX property. |
 | What's Shasta's status? | Excluded. Lags Nile on features, doesn't allow external nodes. Nile is the recommended TRON testnet. |
 | TRC-20 approval sponsoring? | Not available. TRC-20's `approve()` requires `msg.sender` to be the token owner. Permit2 fallback is two layers (EIP-2612 `permit` → manual user `approve`), not three. |

@@ -4,7 +4,6 @@
 > **Branch:** `feature/tron-exact-spec` (to be created from upstream `main`)
 > **PR title:** `specs(exact): add TRON exact scheme specification`
 > **Depends on:** Issue #<issue_number> (will be filled in after Issue is opened)
-> **Related:** PR #1408 — alternative approach using pre-signed TRON transactions (this spec uses TIP-712 signed authorizations instead)
 
 This PR adds the specification only — dual-path (`permit2` + `eip3009`), matching the EVM `exact` scheme structure. **Payload schemas are byte-identical to `scheme_exact_evm.md`**: same field names, same struct layouts, same Witness pattern. Only the address format (Base58 in `paymentRequirements`) and the on-chain SDK (TronWeb) differ. No SDK/runtime code in this PR. Implementation PRs (PR2 TypeScript, PR3 Python) follow after spec review.
 
@@ -34,11 +33,9 @@ Closes #<issue_number>.
 
 No SDK/runtime implementation changes. The TypeScript (`@x402/tron`) and Python (`x402[tron]`) implementations will follow in separate PRs after this spec is approved.
 
-### Alternative to PR #1408
+### Design property: gasless client
 
-PR #1408 proposes a different approach (client signs a complete TRON `TriggerSmartContract` transaction, facilitator broadcasts). The most material difference between the two approaches is the **energy payer**: in #1408, the client pays TRON energy (TRON debits the signed tx's `owner_address`); in this spec, the facilitator pays (the facilitator is the `owner_address` of the on-chain tx, while the user only signs TIP-712 structured data). This mirrors x402's EVM gasless-client property.
-
-This Issue+PR is filed in parallel, not as a replacement. Happy to unify if @EruditeIntelligence wants to collaborate on a single spec.
+TRON debits energy/bandwidth from the `owner_address` of the on-chain transaction. In this spec the facilitator is `owner_address`; the user signs only TIP-712 structured data. The user never needs to hold TRX, matching x402's gasless-client property on EVM.
 
 ### Why TRON as an independent package
 
