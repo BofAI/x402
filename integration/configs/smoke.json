@@ -1,0 +1,18 @@
+{
+  "name": "integration runner smoke",
+  "report": "/tmp/x402-integration-smoke.md",
+  "steps": [
+    {
+      "name": "echo hello",
+      "command": "echo 'integration runner alive'",
+      "workdir": ".",
+      "timeout": 5
+    },
+    {
+      "name": "json_diff matching files",
+      "command": "@json_diff integration/configs/_smoke_a.json integration/configs/_smoke_b.json",
+      "workdir": ".",
+      "timeout": 5
+    }
+  ]
+}

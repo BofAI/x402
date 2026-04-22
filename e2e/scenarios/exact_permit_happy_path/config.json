@@ -1,0 +1,36 @@
+{
+  "name": "exact_permit happy path (BSC testnet)",
+  "report": "/tmp/x402-e2e-exact-permit-happy.md",
+  "steps": [
+    {
+      "name": "TODO: build facilitator",
+      "command": "echo 'TODO: pnpm -C typescript/packages/x402 build'",
+      "workdir": ".",
+      "timeout": 60
+    },
+    {
+      "name": "TODO: start facilitator in mock mode",
+      "command": "echo 'TODO: ./facilitator --mock --port 4020 &'",
+      "workdir": ".",
+      "timeout": 30
+    },
+    {
+      "name": "TODO: start resource server",
+      "command": "echo 'TODO: python examples/bsc-testnet-smoke/bsc_exact_server.py --port 4021 &'",
+      "workdir": ".",
+      "timeout": 30
+    },
+    {
+      "name": "TODO: curl protected endpoint, capture response",
+      "command": "echo 'TODO: curl http://localhost:4021/protected > /tmp/actual_payment_response.json'",
+      "workdir": ".",
+      "timeout": 30
+    },
+    {
+      "name": "diff actual vs expected",
+      "command": "@json_diff /tmp/actual_payment_response.json e2e/scenarios/exact_permit_happy_path/expected_payment_response.json",
+      "workdir": ".",
+      "timeout": 5
+    }
+  ]
+}
