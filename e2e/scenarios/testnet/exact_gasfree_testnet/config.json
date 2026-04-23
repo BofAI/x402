@@ -4,7 +4,7 @@
   "steps": [
     {
       "name": "start example facilitator",
-      "command": "@start_bg facilitator env FACILITATOR_PORT=8013 FACILITATOR_TRON_PRIVATE_KEY=${TRON_NILE_FACILITATOR_KEY} FACILITATOR_TRON_NETWORKS=tron:nile FACILITATOR_TRON_SCHEMES=exact_gasfree GASFREE_API_URL=${GASFREE_NILE_API_URL} TRON_NILE_RPC_URL=${TRON_NILE_RPC_URL:-} python3 -m examples.facilitator",
+      "command": "@start_bg facilitator env FACILITATOR_PORT=8013 FACILITATOR_TRON_PRIVATE_KEY=${TRON_NILE_FACILITATOR_KEY} FACILITATOR_TRON_NETWORKS=tron:nile FACILITATOR_TRON_SCHEMES=exact_gasfree GASFREE_API_URL=${GASFREE_NILE_API_URL} TRON_NILE_RPC_URL=${TRON_NILE_RPC_URL} python3 -m examples.facilitator",
       "workdir": ".",
       "timeout": 10
     },
@@ -16,7 +16,7 @@
     },
     {
       "name": "start resource server (exact_gasfree on TRON Nile)",
-      "command": "@start_bg resource-server env E2E_NETWORK=tron:nile E2E_SCHEMES=exact_gasfree E2E_SERVER_PORT=8012 E2E_FACILITATOR_URL=http://127.0.0.1:8013 E2E_PAY_TO=${TRON_NILE_PAY_TO} E2E_ASSET_PRICE=${TRON_NILE_GASFREE_PRICE:-0.0001 USDT} python3 -m e2e.servers.resource_server",
+      "command": "@start_bg resource-server env E2E_NETWORK=tron:nile E2E_SCHEMES=exact_gasfree E2E_SERVER_PORT=8012 E2E_FACILITATOR_URL=http://127.0.0.1:8013 E2E_PAY_TO=${TRON_NILE_PAY_TO} E2E_ASSET_PRICE=${TRON_NILE_GASFREE_PRICE} python3 -m e2e.servers.resource_server",
       "workdir": ".",
       "timeout": 10
     },
