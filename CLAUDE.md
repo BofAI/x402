@@ -48,9 +48,15 @@ This repo is adopting a Claude-Code-native layout. See [docs/design/ai-transform
 
 | Path | What it gives you |
 |---|---|
-| [.claude/rules/](.claude/rules/) | Per-topic rules: conventions, schemes, networks, languages |
-| [.claude/commands/](.claude/commands/) | Slash-command wizards (e.g. `/x402-compound` to log a new solution) |
-| [.claude/agents/](.claude/agents/) | Specialized subagents (code-reviewer, security-reviewer, scheme-author) |
+| [.claude/rules/common/](.claude/rules/common/) | Repo-wide conventions (addressing, amounts, headers, pipeline) |
+| [.claude/rules/schemes/](.claude/rules/schemes/) | `exact`, `exact_permit`, `exact_gasfree` — invariants + gotchas |
+| [.claude/rules/networks/](.claude/rules/networks/) | TRON, EVM — signing rules, chain ids, RPC defaults |
+| [.claude/rules/python/](.claude/rules/python/), [.claude/rules/typescript/](.claude/rules/typescript/) | Language-specific conventions (tooling, idioms, don'ts) |
+| [.claude/rules/testing/](.claude/rules/testing/) | Scenario + e2e authoring conventions |
+| [.claude/commands/x402/](.claude/commands/x402/) | Slash-command wizards (`/x402:compound`, `/x402:create-scenario`) |
+| [.claude/agents/](.claude/agents/) | Specialized subagents (`code-reviewer`, `security-reviewer`, `scheme-author`) |
+
+Each major component also has its own `CLAUDE.md` with build/test commands and local conventions: [python/x402/](python/x402/CLAUDE.md), [typescript/](typescript/CLAUDE.md), [e2e/](e2e/CLAUDE.md), [examples/](examples/CLAUDE.md), [docs/](docs/CLAUDE.md), [specs/](specs/CLAUDE.md), [integration/](integration/CLAUDE.md).
 
 ## Safety rules
 

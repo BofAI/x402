@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/run-tests-for-change.sh",
+            "asyncRewake": true,
+            "timeout": 300,
+            "statusMessage": "Running tests for change",
+            "rewakeMessage": "PostToolUse test hook reported failures:",
+            "rewakeSummary": "Tests failed after edit"
+          }
+        ]
+      }
+    ]
+  }
+}
