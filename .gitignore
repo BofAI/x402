@@ -211,3 +211,9 @@ __marimo__/
 /examples/typescript/client/node_modules/
 *node_modules/
 .specify/
+
+# macOS
+.DS_Store
+
+# Claude Code hook run logs (content is local-only, regenerated per session)
+.claude/hooks/logs/
