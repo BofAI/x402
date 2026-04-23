@@ -187,15 +187,21 @@ Each scenario is one directory of JSON. Run with:
 python3 integration/run.py --config e2e/scenarios/<name>/config.json
 ```
 
-| Scenario | Coverage |
-|---|---|
-| `exact_permit_happy_path` | Baseline EVM `exact_permit` flow — first scenario to land, validates the harness itself |
-| `exact_gasfree_happy_path` | TRON GasFree relayer flow, mock_chainrpc, no live Nile |
-| `mcp_tron_exact` | Agent → MCP → TRON payment end-to-end |
-| `mcp_budget_deny` | Pipeline step-5 policy rejects, assert no `PAYMENT-SIGNATURE` header sent |
-| `mcp_upto_partial_pay` | `upto` semantics; **syncs with `feat/upto-scheme` branch** |
-| `registry_discover_and_pay` | Dynamic discovery → 402 → pay |
-| `facilitator_compat_matrix` | BofAI facilitator ↔ Coinbase facilitator bidirectional wire-format check |
+| Scenario | Coverage | Status |
+|---|---|---|
+| `exact_happy_path` | EVM `exact` (ERC-3009) on BSC testnet | ✅ green (2026-04-22) |
+| `exact_permit_happy_path` | EVM `exact_permit` (EIP-2612) on BSC testnet, allowance skipped | ✅ green (2026-04-22) |
+| `exact_gasfree_happy_path` | TRON `exact_gasfree` (TIP-712) on Nile, GasFree API mocked on the same port, tx verification skipped | ✅ green (2026-04-22) |
+| `unhappy_verify_invalid_sig` | Facilitator rejects with `invalid_signature` → server 500 | ✅ green (2026-04-22) |
+| `unhappy_verify_expired` | Facilitator rejects with `deadline_expired` → server 500 | ✅ green (2026-04-22) |
+| `unhappy_verify_network_mismatch` | Facilitator rejects with `network_mismatch` → server 500 | ✅ green (2026-04-22) |
+| `unhappy_settle_insufficient` | Settlement fails with `insufficient_balance` → server 500 | ✅ green (2026-04-22) |
+| `unhappy_settle_revert` | Settlement reverts on-chain with `settle_reverted` → server 500 | ✅ green (2026-04-22) |
+| `mcp_tron_exact` | Agent → MCP → TRON payment end-to-end | 🚧 planned (needs MCP revival) |
+| `mcp_budget_deny` | Pipeline step-5 policy rejects, assert no `PAYMENT-SIGNATURE` header sent | 🚧 planned |
+| `mcp_upto_partial_pay` | `upto` semantics; **syncs with `feat/upto-scheme` branch** | 🚧 planned |
+| `registry_discover_and_pay` | Dynamic discovery → 402 → pay | 🚧 planned |
+| `facilitator_compat_matrix` | BofAI facilitator ↔ Coinbase facilitator bidirectional wire-format check | 🚧 planned (P4) |
 
 ### 6.3 Matrix e2e (Coinbase style)
 
@@ -243,8 +249,8 @@ Each phase ≈ one week, merges back to `main`, independently reviewable.
 
 ## 10. Immediate next steps (this branch, P1)
 
-1. Land this design doc.
-2. Add root `CLAUDE.md` + `.claude/` skeleton with `common` and `schemes` rules drawn from existing spec docs.
-3. Vendor `integration/run.py` + `commands.py` from apollo-arena (MIT attribution).
+1. ~~Land this design doc.~~ ✅
+2. ~~Add root `CLAUDE.md` + `.claude/` skeleton with `common` and `schemes` rules drawn from existing spec docs.~~ ✅
+3. ~~Vendor `integration/run.py` + `commands.py` from apollo-arena (MIT attribution).~~ ✅
 4. Implement `/x402:compound` as the first wizard, closing the loop with `docs/solutions.md`.
-5. Land `e2e/scenarios/exact_permit_happy_path/` as the canonical scenario example.
+5. ~~Land `e2e/scenarios/exact_permit_happy_path/` as the canonical scenario example.~~ ✅ — plus `exact_happy_path`, `unhappy_verify_invalid_sig`, `unhappy_settle_insufficient`, `run_all.sh`, and `.github/workflows/check_e2e.yml` (2026-04-22).

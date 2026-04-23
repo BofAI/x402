@@ -1,0 +1,54 @@
+{
+  "name": "exact_gasfree happy path (TRON Nile, mock facilitator + GasFree API)",
+  "report": "/tmp/x402-e2e-exact-gasfree-happy.md",
+  "steps": [
+    {
+      "name": "start mock facilitator + GasFree API",
+      "command": "@start_bg mock-facilitator python3 -m e2e.mock_facilitator --port 4020 --mode success",
+      "workdir": ".",
+      "timeout": 10
+    },
+    {
+      "name": "wait for mock facilitator",
+      "command": "@wait_http http://127.0.0.1:4020/supported 15",
+      "workdir": ".",
+      "timeout": 20
+    },
+    {
+      "name": "wait for GasFree API",
+      "command": "@wait_http http://127.0.0.1:4020/api/v1/config/provider/all 15",
+      "workdir": ".",
+      "timeout": 20
+    },
+    {
+      "name": "start resource server (exact_gasfree on TRON Nile)",
+      "command": "@start_bg resource-server env E2E_NETWORK=tron:nile E2E_SCHEMES=exact_gasfree E2E_SERVER_PORT=4021 E2E_PAY_TO=TLCvf7MktLG7XkbJRyUwnvCeDnaEXYkcbC E2E_ASSET_PRICE='0.0001 USDT' E2E_SKIP_TX_VERIFICATION=1 python3 -m e2e.servers.resource_server",
+      "workdir": ".",
+      "timeout": 10
+    },
+    {
+      "name": "wait for resource server",
+      "command": "@wait_http http://127.0.0.1:4021/protected 30 402",
+      "workdir": ".",
+      "timeout": 35
+    },
+    {
+      "name": "client: pay and retrieve via GasFree",
+      "command": "env E2E_NETWORK=tron:nile E2E_SCHEMES=exact_gasfree E2E_SERVER_URL=http://127.0.0.1:4021 E2E_ENDPOINT=/protected E2E_OUTPUT=/tmp/x402-e2e-exact-gasfree-response.json python3 -m e2e.clients.test_client",
+      "workdir": ".",
+      "timeout": 30
+    },
+    {
+      "name": "diff actual vs expected",
+      "command": "@json_diff /tmp/x402-e2e-exact-gasfree-response.json e2e/scenarios/exact_gasfree_happy_path/expected_payment_response.json",
+      "workdir": ".",
+      "timeout": 5
+    },
+    {
+      "name": "stop services",
+      "command": "@stop_all_bg",
+      "workdir": ".",
+      "timeout": 10
+    }
+  ]
+}

@@ -22,7 +22,7 @@ Each component has its own `CLAUDE.md` (where present) with build/test commands 
 | [specs/](specs/) | Markdown | In-flight feature specs (e.g. `001-exact-v2-compat`). |
 | [examples/](examples/) | Mixed | Smoke tests and integration examples. |
 | [integration/](integration/) | Python | Generic step runner used by `e2e/scenarios/`. |
-| [e2e/](e2e/) | Mixed | Declarative scenario tests and (future) matrix harness. |
+| [e2e/](e2e/) | Python | End-to-end scenarios (mock facilitator + resource server + client). See [e2e/README.md](e2e/README.md). Wired into CI via `check_e2e.yml`. |
 | [tron-contribution/](tron-contribution/) | Markdown | Upstream contribution planning for `x402-foundation/x402`. |
 
 ## Key reading order (new contributor)
