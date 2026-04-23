@@ -1,0 +1,48 @@
+{
+  "name": "exact_gasfree testnet (TRON Nile, real chain settlement via GasFree relayer)",
+  "report": "/tmp/x402-e2e-exact-gasfree-testnet.md",
+  "steps": [
+    {
+      "name": "start example facilitator",
+      "command": "@start_bg facilitator env FACILITATOR_PORT=8013 FACILITATOR_TRON_PRIVATE_KEY=${TRON_NILE_FACILITATOR_KEY} FACILITATOR_TRON_NETWORKS=tron:nile FACILITATOR_TRON_SCHEMES=exact_gasfree GASFREE_API_URL=${GASFREE_NILE_API_URL} TRON_NILE_RPC_URL=${TRON_NILE_RPC_URL:-} python3 -m examples.facilitator",
+      "workdir": ".",
+      "timeout": 10
+    },
+    {
+      "name": "wait for facilitator",
+      "command": "@wait_http http://127.0.0.1:8013/supported 20",
+      "workdir": ".",
+      "timeout": 25
+    },
+    {
+      "name": "start resource server (exact_gasfree on TRON Nile)",
+      "command": "@start_bg resource-server env E2E_NETWORK=tron:nile E2E_SCHEMES=exact_gasfree E2E_SERVER_PORT=8012 E2E_FACILITATOR_URL=http://127.0.0.1:8013 E2E_PAY_TO=${TRON_NILE_PAY_TO} E2E_ASSET_PRICE=${TRON_NILE_GASFREE_PRICE:-0.0001 USDT} python3 -m e2e.servers.resource_server",
+      "workdir": ".",
+      "timeout": 10
+    },
+    {
+      "name": "wait for resource server",
+      "command": "@wait_http http://127.0.0.1:8012/protected 30 402",
+      "workdir": ".",
+      "timeout": 35
+    },
+    {
+      "name": "client: pay via GasFree relayer (real on-chain settlement)",
+      "command": "env E2E_NETWORK=tron:nile E2E_SCHEMES=exact_gasfree E2E_SERVER_URL=http://127.0.0.1:8012 E2E_ENDPOINT=/protected E2E_TRON_PRIVATE_KEY=${TRON_NILE_CLIENT_KEY} E2E_GASFREE_API_URL=${GASFREE_NILE_API_URL} E2E_OUTPUT=/tmp/x402-e2e-exact-gasfree-testnet-response.json E2E_TIMEOUT_SECONDS=180 python3 -m e2e.clients.test_client",
+      "workdir": ".",
+      "timeout": 200
+    },
+    {
+      "name": "assert payment succeeded + tx hash present",
+      "command": "@json_match /tmp/x402-e2e-exact-gasfree-testnet-response.json status_code=200 body.ok=true payment_response.success=true payment_response.network=tron:nile payment_response.transaction~^(0x)?[0-9a-fA-F]{64}$",
+      "workdir": ".",
+      "timeout": 5
+    },
+    {
+      "name": "stop services",
+      "command": "@stop_all_bg",
+      "workdir": ".",
+      "timeout": 10
+    }
+  ]
+}

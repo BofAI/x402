@@ -44,11 +44,23 @@ Exit codes: `0` pass, `1` scenario failure, `2` harness/config error.
 
 ## Running all scenarios
 
+Mock suite (always runs, no credentials needed — this is what CI runs per PR):
+
 ```bash
 ./e2e/scenarios/run_all.sh
 ```
 
-This is also what `.github/workflows/check_e2e.yml` runs.
+Testnet suite (real on-chain settlement — requires `.env`, see [`testnet/README.md`](testnet/README.md)):
+
+```bash
+set -a; source .env; set +a
+./e2e/scenarios/run_testnet.sh
+```
+
+CI wiring:
+
+- [`check_e2e.yml`](../../.github/workflows/check_e2e.yml) runs the mock suite on every PR.
+- [`nightly_testnet.yml`](../../.github/workflows/nightly_testnet.yml) runs the testnet suite nightly with secrets.
 
 ## Adding a new scenario
 

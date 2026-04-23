@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shlex
 import signal
 import subprocess
@@ -20,7 +21,7 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable
 
 _REGISTRY: dict[str, dict] = {}
 
@@ -144,7 +145,11 @@ def start_bg(args: list[str], workdir: str) -> tuple[int, str, str]:
     if len(args) < 2:
         return (2, "", "usage: @start_bg <tag> <shell-command...>")
     tag = args[0]
-    command = " ".join(shlex.quote(a) for a in args[1:])
+    # Expand ${VAR} before re-quoting so callers can template from env
+    # (e.g. "@start_bg fac env KEY=${SECRET} python3 -m ..."). Unset vars
+    # expand to empty strings, matching shell semantics.
+    expanded = [os.path.expandvars(a) for a in args[1:]]
+    command = " ".join(shlex.quote(a) for a in expanded)
 
     pid_file = _pid_file(tag)
     if pid_file.exists():
@@ -259,3 +264,78 @@ def stop_all_bg(args: list[str], workdir: str) -> tuple[int, str, str]:
         result = stop_bg([tag], workdir)
         stopped.append(f"{tag}: {result[1] or result[2]}")
     return (0, "\n".join(stopped) if stopped else "no background services", "")
+
+
+# ---------------------------------------------------------------------------
+# Fuzzy JSON matching (for testnet scenarios where tx hashes are dynamic)
+# ---------------------------------------------------------------------------
+
+
+def _json_lookup(data: Any, path: str) -> tuple[bool, Any]:
+    """Resolve dotted path `a.b.c` into nested dict/list. Returns (found, value)."""
+    cur: Any = data
+    for segment in path.split("."):
+        if isinstance(cur, dict) and segment in cur:
+            cur = cur[segment]
+        elif isinstance(cur, list):
+            try:
+                cur = cur[int(segment)]
+            except (ValueError, IndexError):
+                return (False, None)
+        else:
+            return (False, None)
+    return (True, cur)
+
+
+@builtin(
+    "json_match",
+    usage=(
+        "@json_match <file> <path>=<value> [<path>=<value> ...] "
+        "[<path>~<regex> ...]  "
+        "(use = for exact match incl. true/false/null/numbers, ~ for regex)"
+    ),
+)
+def json_match(args: list[str], workdir: str) -> tuple[int, str, str]:
+    if len(args) < 2:
+        return (2, "", "usage: @json_match <file> <path>=<value|~regex> [...]")
+    file_path = Path(workdir) / args[0]
+    try:
+        with open(file_path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError) as exc:
+        return (1, "", f"failed to read {file_path}: {exc}")
+
+    failures: list[str] = []
+    for spec in args[1:]:
+        if "~" in spec and (spec.index("~") < spec.index("=") if "=" in spec else True):
+            path, _, pattern = spec.partition("~")
+            found, actual = _json_lookup(data, path)
+            if not found:
+                failures.append(f"  [missing] {path}")
+                continue
+            if not isinstance(actual, str) or not re.fullmatch(pattern, actual):
+                failures.append(f"  [regex]   {path}: {actual!r} !~ {pattern!r}")
+            continue
+        if "=" not in spec:
+            return (2, "", f"bad assertion: {spec!r}")
+        path, _, expected_str = spec.partition("=")
+        found, actual = _json_lookup(data, path)
+        if not found:
+            failures.append(f"  [missing] {path}")
+            continue
+        # Parse expected as JSON literal first (true/false/null/numbers),
+        # falling back to raw string.
+        try:
+            expected = json.loads(expected_str)
+        except ValueError:
+            expected = expected_str
+        if actual != expected:
+            failures.append(f"  [mismatch] {path}: got {actual!r}, want {expected!r}")
+
+    if failures:
+        return (
+            1,
+            "",
+            f"{file_path}: {len(failures)} assertion(s) failed:\n" + "\n".join(failures),
+        )
+    return (0, f"{file_path}: all {len(args) - 1} assertion(s) passed", "")

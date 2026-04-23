@@ -1,0 +1,65 @@
+name: Nightly Testnet E2E
+on:
+  schedule:
+    # 04:17 UTC daily — off the hour to spread load across providers.
+    - cron: "17 4 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  testnet:
+    runs-on: ubuntu-latest
+    # Only run when at least one testnet secret is configured; otherwise the
+    # job is a no-op. (Secrets are empty strings on forks and for PRs that
+    # don't have access.)
+    if: github.repository_owner == 'BofAI'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "python/x402/uv.lock"
+
+      - name: Set up Python
+        working-directory: ./python/x402
+        run: uv python install
+
+      - name: Install SDK in editable mode + e2e deps
+        working-directory: ./python/x402
+        run: |
+          uv sync --all-extras --dev
+          uv pip install uvicorn httpx fastapi
+
+      - name: Run testnet scenarios
+        working-directory: ./
+        env:
+          FACILITATOR_URL: http://127.0.0.1:8013
+
+          BSC_TESTNET_RPC_URL: ${{ secrets.BSC_TESTNET_RPC_URL }}
+          BSC_TESTNET_CLIENT_KEY: ${{ secrets.BSC_TESTNET_CLIENT_KEY }}
+          BSC_TESTNET_FACILITATOR_KEY: ${{ secrets.BSC_TESTNET_FACILITATOR_KEY }}
+          BSC_TESTNET_PAY_TO: ${{ secrets.BSC_TESTNET_PAY_TO }}
+          BSC_TESTNET_EXACT_PRICE: ${{ vars.BSC_TESTNET_EXACT_PRICE }}
+          BSC_TESTNET_PERMIT_PRICE: ${{ vars.BSC_TESTNET_PERMIT_PRICE }}
+
+          TRON_NILE_RPC_URL: ${{ secrets.TRON_NILE_RPC_URL }}
+          TRON_NILE_CLIENT_KEY: ${{ secrets.TRON_NILE_CLIENT_KEY }}
+          TRON_NILE_FACILITATOR_KEY: ${{ secrets.TRON_NILE_FACILITATOR_KEY }}
+          TRON_NILE_PAY_TO: ${{ secrets.TRON_NILE_PAY_TO }}
+          GASFREE_NILE_API_URL: ${{ secrets.GASFREE_NILE_API_URL }}
+          TRON_NILE_GASFREE_PRICE: ${{ vars.TRON_NILE_GASFREE_PRICE }}
+        run: |
+          export PYTHONPATH="$GITHUB_WORKSPACE:$GITHUB_WORKSPACE/python/x402/src:${PYTHONPATH:-}"
+          export PATH="$GITHUB_WORKSPACE/python/x402/.venv/bin:$PATH"
+          ./e2e/scenarios/run_testnet.sh
+
+      - name: Upload testnet reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testnet-reports
+          path: |
+            /tmp/x402-e2e-*.md
+            /tmp/x402-e2e-pids/*.log
+          if-no-files-found: ignore

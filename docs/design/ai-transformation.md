@@ -214,12 +214,18 @@ python3 integration/run.py --config e2e/scenarios/<name>/config.json
 
 ### 6.5 CI
 
+Today:
+
+- `.github/workflows/check_e2e.yml` — **mock** suite (8 scenarios) on every PR. ✅ green.
+- `.github/workflows/nightly_testnet.yml` — **testnet** suite (3 scenarios: `exact_testnet`, `exact_permit_testnet`, `exact_gasfree_testnet`) nightly + `workflow_dispatch`. Scenarios self-skip when their secrets are blank.
+  - Secrets required: `BSC_TESTNET_{CLIENT_KEY, FACILITATOR_KEY, PAY_TO, RPC_URL}`, `TRON_NILE_{CLIENT_KEY, FACILITATOR_KEY, PAY_TO, RPC_URL}`, `GASFREE_NILE_API_URL`.
+  - See [`.env.example`](../../.env.example) for the full variable list.
+
+Planned:
+
 ```
-.github/workflows/ai.yml:
-  unit         → per-package test matrix
-  scenarios    → integration/run.py over all e2e/scenarios/**
-  matrix --min → Coinbase-style cartesian minimization
-  nightly      → live Nile + Sepolia smoke (not on PR)
+  unit         → per-package test matrix (python + ts)
+  matrix --min → Coinbase-style cartesian minimization (P4)
 ```
 
 ## 7. Phased rollout
