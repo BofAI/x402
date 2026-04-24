@@ -114,6 +114,42 @@ Use `/x402:compound` to add new entries after solving a problem.
 
 ---
 
+### 7. BSC testnet has no EIP-2612 permit-compatible stablecoin in the registry
+
+- **Category**: protocol
+- **Severity**: medium
+- **Module**: server, tokens
+
+**Symptom**: `exact_permit_testnet` scenario failed with HTTP 404 at the resource server. Server log repeated "Unsupported scheme/token: network=eip155:97, scheme=exact_permit, asset=0x337610d27c682E347C9cD60BD4b3b107C9d34dDd (skipped)". Route effectively not registered because the facilitator fee_quote returned nothing for any supported token.
+
+**Root cause**: BSC testnet USDT (`0x337610d27c682E347C9cD60BD4b3b107C9d34dDd`) does not implement EIP-2612 `permit`. All three tokens currently in the registry for `eip155:97` (USDT, USDC, DHLU) lack permit support; only DHLU has ERC-3009 `transferWithAuthorization`, which is used by the `exact` scheme but not by `exact_permit`.
+
+**Fix**: Options, none yet taken — (a) migrate `exact_permit_testnet` to Ethereum Sepolia where testnet USDC does implement permit; (b) deploy a test permit token on BSC testnet and add to registry with explicit `exact_permit` support; (c) mark `exact_permit_testnet` as not meaningfully runnable on BSC testnet and rely on the 217 pytest + 51 vitest unit suites to validate the `exact_permit` path.
+
+**Rule**: A token being in `TokenRegistry` does NOT imply it supports every scheme. Scheme support is decided by the facilitator via `fee_quote` based on the on-chain token's interface. When adding a testnet scenario for a new scheme, verify on-chain that at least one registry token actually implements the required capability.
+
+**Ref**: scenario bug found 2026-04-24 while running `e2e/scenarios/run_testnet.sh`; blocked pending token strategy.
+
+---
+
+### 8. integration runner doesn't expand `${VAR:-default}` shell syntax
+
+- **Category**: tooling
+- **Severity**: high
+- **Module**: integration, e2e
+
+**Symptom**: Testnet scenarios failed at "wait for resource server" step with the resource server log showing `ValueError: could not convert string to float: '${BSC_TESTNET_PERMIT_PRICE:-0.0001'`. The environment variable default fallback was passed through as a literal string, then split on the space by shlex into an invalid token.
+
+**Root cause**: `integration/commands.py:151` uses `os.path.expandvars()` to substitute `${VAR}` references in `@start_bg` arguments. Python's `expandvars` only recognizes `$VAR` and `${VAR}`; it leaves shell-specific forms like `${VAR:-default}`, `${VAR:+value}`, `${VAR?err}` unchanged. The literal `${VAR:-default}` then reaches shlex.quote → shell.
+
+**Fix**: Drop the `:-default` fallback in scenario `config.json`. `run_testnet.sh` already checks every required env var before invoking the scenario, so the fallback was dead weight. If a default value is ever needed, put it in the calling script or `.env.example`, not in the config command string.
+
+**Rule**: When authoring a new `@start_bg` or similar `config.json` command, use plain `${VAR}` references only. For optional variables, either guard in the runner script (as `run_testnet.sh` does) or default in `.env.example` and set unconditionally.
+
+**Ref**: commit 8045ba1.
+
+---
+
 <!-- Template for new entries:
 
 ### N. Short title
