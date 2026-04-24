@@ -13,9 +13,9 @@ These scenarios hit **real testnets** (BSC testnet, TRON Nile) and settle
 
 | Scenario | Status | Evidence |
 |---|---|---|
-| `exact_testnet` | ✅ verified on real chain (2026-04-24) | BSC Testnet DHLU transfer, tx `461d17baae60b83031de55bb1635bd5f8453d359887e7e82ebee605ab6c159a0` · ~6 s pay + ~4 s teardown · run via `python3 -m integration.run --config e2e/scenarios/testnet/exact_testnet/config.json` |
-| `exact_permit_testnet` | ❌ blocked on ecosystem | No EIP-2612 permit-capable token in the BSC testnet registry; facilitator `fee_quote` skips every candidate → resource server has no supported asset → HTTP 404. See [solutions.md #7](../../../docs/solutions.md). Options: move to Ethereum Sepolia, deploy a permit test token on BSC testnet, or accept that unit suites cover `exact_permit`. |
-| `exact_gasfree_testnet` | ⏭ skip-able | Needs real Nile GasFree API endpoint in `GASFREE_NILE_API_URL`. Auto-skipped when blank by [`run_testnet.sh`](../run_testnet.sh). |
+| `exact_testnet` | ✅ verified 2026-04-24 | BSC Testnet DHLU transfer, tx `461d17baae60b83031de55bb1635bd5f8453d359887e7e82ebee605ab6c159a0` · ~6 s pay + ~4 s teardown |
+| `exact_permit_testnet` | ✅ verified 2026-04-24 | BSC Testnet USDT permit + transferFrom, tx `0xfc8b32decb99d02cdfc684d3f6f1c7c0a91c8b0ff1f632f98d86d9f334198a23` (block 103475005) · requires `FACILITATOR_BASE_FEE` env (see [solutions.md #7](../../../docs/solutions.md)) |
+| `exact_gasfree_testnet` | 🟡 structurally verified — waiting on funding | GasFree API reachable at `https://facilitator.bankofai.io/nile`; fee_quote / verify / settle all run. Final `/settle` reports `insufficient balance in gasfree wallet <addr>` when the derived GasFree custodial wallet is empty. Deposit USDT (TRC-20, Nile) to the address in the error to close the loop. |
 
 ## Running locally
 
@@ -66,7 +66,8 @@ workflow runs these scenarios nightly against GitHub Secrets. A manual
 ## Gotchas
 
 - **`${VAR:-default}` does NOT work** in `config.json` commands — the integration runner uses `os.path.expandvars` which doesn't recognize shell default-value syntax. Use plain `${VAR}` only, and guard required vars in `run_testnet.sh`. See [solutions.md #8](../../../docs/solutions.md).
-- **Registry inclusion ≠ scheme support.** A token in `TokenRegistry` may not implement every scheme's required interface. The facilitator `fee_quote` decides at runtime. See [solutions.md #7](../../../docs/solutions.md).
+- **`FACILITATOR_BASE_FEE` is required** for `exact_permit` + `exact_gasfree`. Without it every token is reported as "Unsupported" and the resource server returns HTTP 404. Value is JSON: `{"USDT": 1000, "USDC": 1000, "DHLU": 1000}` (smallest unit; 1000 at decimals=6 = 0.001 token). See [solutions.md #7](../../../docs/solutions.md).
+- **GasFree custodial wallet ≠ main wallet.** The payer's USDT must sit in the GasFree custodial address derived from the client key — not in the visible TRON main wallet. See [solutions.md #3](../../../docs/solutions.md).
 - **Tx hash format is chain-dependent.** BSC returns bare 64-hex; TRON sometimes includes `0x`. Use regex `^(0x)?[0-9a-fA-F]{64}$` in `@json_match` for `payment_response.transaction`.
 - **Failed-step reports** land in `/tmp/x402-e2e-<scenario>.md`; process logs in `/tmp/x402-e2e-pids/*.log`; client response JSON in `/tmp/x402-e2e-<scenario>-response.json`.
 

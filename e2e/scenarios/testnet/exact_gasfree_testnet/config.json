@@ -4,7 +4,7 @@
   "steps": [
     {
       "name": "start example facilitator",
-      "command": "@start_bg facilitator env FACILITATOR_PORT=8013 FACILITATOR_TRON_PRIVATE_KEY=${TRON_NILE_FACILITATOR_KEY} FACILITATOR_TRON_NETWORKS=tron:nile FACILITATOR_TRON_SCHEMES=exact_gasfree GASFREE_API_URL=${GASFREE_NILE_API_URL} TRON_NILE_RPC_URL=${TRON_NILE_RPC_URL} python3 -m examples.facilitator",
+      "command": "@start_bg facilitator env FACILITATOR_PORT=8013 FACILITATOR_TRON_PRIVATE_KEY=${TRON_NILE_FACILITATOR_KEY} FACILITATOR_TRON_NETWORKS=tron:nile FACILITATOR_TRON_SCHEMES=exact_gasfree GASFREE_API_URL=${GASFREE_NILE_API_URL} TRON_NILE_RPC_URL=${TRON_NILE_RPC_URL} FACILITATOR_BASE_FEE=${FACILITATOR_BASE_FEE} python3 -m examples.facilitator",
       "workdir": ".",
       "timeout": 10
     },

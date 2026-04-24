@@ -34,6 +34,13 @@ Configuration (all env vars):
     GASFREE_API_URL               base URL for GasFree API (required when
                                   exact_gasfree is in TRON_SCHEMES)
 
+    --- base fees (required for exact_permit + exact_gasfree schemes) ---
+    FACILITATOR_BASE_FEE          JSON dict of {token_symbol: fee_in_smallest_unit}
+                                  applied to every registered permit / gasfree
+                                  mechanism. Without it these schemes will skip
+                                  every token with "Unsupported token".
+                                  Example: {"USDT": 1000, "DHLU": 1000}
+
 Run: `python -m examples.facilitator`
 """
 
@@ -57,6 +64,17 @@ from bankofai.x402.types import (
 def _env_list(name: str, default: str) -> list[str]:
     raw = os.environ.get(name, default)
     return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def _env_base_fee() -> dict[str, int] | None:
+    """Parse FACILITATOR_BASE_FEE as JSON dict of {symbol: smallest-unit fee}."""
+    raw = os.environ.get("FACILITATOR_BASE_FEE")
+    if not raw:
+        return None
+    import json
+
+    parsed = json.loads(raw)
+    return {str(k).upper(): int(v) for k, v in parsed.items()}
 
 
 def _build_evm_wallet(private_key: str) -> Any:
@@ -137,6 +155,8 @@ def _register_evm(facilitator: X402Facilitator, logger: logging.Logger) -> None:
     signer = EvmFacilitatorSigner(wallet)
     signer.set_address(Account.from_key(key).address)
 
+    base_fee = _env_base_fee()
+
     for scheme in schemes:
         if scheme == "exact":
             from bankofai.x402.mechanisms.evm.exact.facilitator import (
@@ -149,7 +169,15 @@ def _register_evm(facilitator: X402Facilitator, logger: logging.Logger) -> None:
                 ExactPermitEvmFacilitatorMechanism,
             )
 
-            facilitator.register(networks, ExactPermitEvmFacilitatorMechanism(signer))
+            if not base_fee:
+                logger.warning(
+                    "exact_permit requested but FACILITATOR_BASE_FEE is not set — "
+                    "every token will be reported as unsupported"
+                )
+            facilitator.register(
+                networks,
+                ExactPermitEvmFacilitatorMechanism(signer, base_fee=base_fee),
+            )
         else:
             logger.warning("skipping unknown EVM scheme: %s", scheme)
             continue
@@ -175,13 +203,23 @@ def _register_tron(facilitator: X402Facilitator, logger: logging.Logger) -> None
     tron_address = PrivateKey(bytes.fromhex(key_hex)).public_key.to_base58check_address()
     signer.set_address(tron_address)
 
+    base_fee = _env_base_fee()
+
     for scheme in schemes:
         if scheme == "exact_permit":
             from bankofai.x402.mechanisms.tron.exact_permit.facilitator import (
                 ExactPermitTronFacilitatorMechanism,
             )
 
-            facilitator.register(networks, ExactPermitTronFacilitatorMechanism(signer))
+            if not base_fee:
+                logger.warning(
+                    "exact_permit requested but FACILITATOR_BASE_FEE is not set — "
+                    "every token will be reported as unsupported"
+                )
+            facilitator.register(
+                networks,
+                ExactPermitTronFacilitatorMechanism(signer, base_fee=base_fee),
+            )
         elif scheme == "exact_gasfree":
             from bankofai.x402.mechanisms.tron.exact_gasfree.facilitator import (
                 ExactGasFreeFacilitatorMechanism,
@@ -194,9 +232,17 @@ def _register_tron(facilitator: X402Facilitator, logger: logging.Logger) -> None
                     "exact_gasfree requested but GASFREE_API_URL is not set — skipping"
                 )
                 continue
+            if not base_fee:
+                logger.warning(
+                    "exact_gasfree requested but FACILITATOR_BASE_FEE is not set — "
+                    "every token will be reported as unsupported"
+                )
             clients = {network: GasFreeAPIClient(api_url) for network in networks}
             facilitator.register(
-                networks, ExactGasFreeFacilitatorMechanism(signer, clients=clients)
+                networks,
+                ExactGasFreeFacilitatorMechanism(
+                    signer, clients=clients, base_fee=base_fee
+                ),
             )
         else:
             logger.warning("skipping unknown TRON scheme: %s", scheme)

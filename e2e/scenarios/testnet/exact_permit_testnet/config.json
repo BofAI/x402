@@ -4,7 +4,7 @@
   "steps": [
     {
       "name": "start example facilitator",
-      "command": "@start_bg facilitator env FACILITATOR_PORT=8013 FACILITATOR_EVM_PRIVATE_KEY=${BSC_TESTNET_FACILITATOR_KEY} FACILITATOR_EVM_NETWORKS=eip155:97 FACILITATOR_EVM_SCHEMES=exact_permit BSC_TESTNET_RPC_URL=${BSC_TESTNET_RPC_URL} python3 -m examples.facilitator",
+      "command": "@start_bg facilitator env FACILITATOR_PORT=8013 FACILITATOR_EVM_PRIVATE_KEY=${BSC_TESTNET_FACILITATOR_KEY} FACILITATOR_EVM_NETWORKS=eip155:97 FACILITATOR_EVM_SCHEMES=exact_permit BSC_TESTNET_RPC_URL=${BSC_TESTNET_RPC_URL} FACILITATOR_BASE_FEE=${FACILITATOR_BASE_FEE} python3 -m examples.facilitator",
       "workdir": ".",
       "timeout": 10
     },

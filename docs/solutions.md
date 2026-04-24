@@ -114,21 +114,21 @@ Use `/x402:compound` to add new entries after solving a problem.
 
 ---
 
-### 7. BSC testnet has no EIP-2612 permit-compatible stablecoin in the registry
+### 7. Permit / GasFree facilitator mechanisms need `base_fee` — unset means every token is "Unsupported"
 
-- **Category**: protocol
-- **Severity**: medium
-- **Module**: server, tokens
+- **Category**: config
+- **Severity**: high
+- **Module**: facilitator, mechanisms, examples
 
-**Symptom**: `exact_permit_testnet` scenario failed with HTTP 404 at the resource server. Server log repeated "Unsupported scheme/token: network=eip155:97, scheme=exact_permit, asset=0x337610d27c682E347C9cD60BD4b3b107C9d34dDd (skipped)". Route effectively not registered because the facilitator fee_quote returned nothing for any supported token.
+**Symptom**: `exact_permit_testnet` and `exact_gasfree_testnet` scenarios failed with HTTP 404 at the resource server. Facilitator log repeated `Unsupported token: asset=<addr>, network=<net>`. Route effectively not registered because fee_quote returned None for every token.
 
-**Root cause**: BSC testnet USDT (`0x337610d27c682E347C9cD60BD4b3b107C9d34dDd`) does not implement EIP-2612 `permit`. All three tokens currently in the registry for `eip155:97` (USDT, USDC, DHLU) lack permit support; only DHLU has ERC-3009 `transferWithAuthorization`, which is used by the `exact` scheme but not by `exact_permit`.
+**Root cause**: The facilitator mechanisms that extend `BaseExactPermitFacilitatorMechanism` (EVM `exact_permit`, TRON `exact_permit`, TRON `exact_gasfree`) require a `base_fee: dict[str, int]` mapping token symbol → fee in smallest unit. Without it, `self._base_fee_map` is empty and `_get_base_fee()` returns None for every token, which propagates as an Unsupported-token skip. The reference `examples/facilitator/server.py` did not read this from the environment, so every testnet run of permit/gasfree silently skipped all tokens.
 
-**Fix**: Options, none yet taken — (a) migrate `exact_permit_testnet` to Ethereum Sepolia where testnet USDC does implement permit; (b) deploy a test permit token on BSC testnet and add to registry with explicit `exact_permit` support; (c) mark `exact_permit_testnet` as not meaningfully runnable on BSC testnet and rely on the 217 pytest + 51 vitest unit suites to validate the `exact_permit` path.
+**Fix**: `examples/facilitator/server.py` now reads `FACILITATOR_BASE_FEE` as a JSON dict and passes it to every permit/gasfree mechanism at register time. Example: `FACILITATOR_BASE_FEE='{"USDT": 1000, "USDC": 1000, "DHLU": 1000}'` (smallest unit — 1000 at decimals=6 is 0.001 token).
 
-**Rule**: A token being in `TokenRegistry` does NOT imply it supports every scheme. Scheme support is decided by the facilitator via `fee_quote` based on the on-chain token's interface. When adding a testnet scenario for a new scheme, verify on-chain that at least one registry token actually implements the required capability.
+**Rule**: Permit-family mechanisms are **allow-list by symbol**. A token appearing in `TokenRegistry` does NOT imply the facilitator will accept it — the facilitator must also have a `base_fee` entry for that symbol. When adding a new scheme that inherits `BaseExactPermitFacilitatorMechanism`, either (a) wire a base_fee env in your facilitator, or (b) the scheme silently becomes a no-op against every token.
 
-**Ref**: scenario bug found 2026-04-24 while running `e2e/scenarios/run_testnet.sh`; blocked pending token strategy.
+**Ref**: fix on 2026-04-24, commit `<set at commit time>`. Verified live on BSC Testnet: permit tx `0xfc8b32decb99d02cdfc684d3f6f1c7c0a91c8b0ff1f632f98d86d9f334198a23` (block 103475005, USDT at `0x337610d27c682E347C9cD60BD4b3b107C9d34dDd`). BSC testnet USDT does implement EIP-2612 permit — earlier writeup in this entry was a misdiagnosis.
 
 ---
 
