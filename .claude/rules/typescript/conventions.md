@@ -21,7 +21,7 @@ Target: **Node 20+**. `pnpm >= 10` workspace. All packages ESM-only.
 
 ## Package boundaries
 
-- `@bankofai/x402` is the consumer-facing entry. Additions to its public surface require a doc update in `docs/specs/` (if wire-format) and a test.
+- `@bankofai/x402` is the consumer-facing entry. Additions to its public surface require a doc update in `specs/` (if wire-format) and a test.
 - Mechanisms live in their own workspace package per chain family (`evm`, `tron`, …). Don't cross-import across mechanisms.
 - `packages/legacy` and `packages/x402-deprecated` are **frozen** — do not add new code there. Deprecate in a new entry point instead.
 - `packages/core` is currently just a `dist` pre-artifact. If you need shared types, put them in `@bankofai/x402/src/types/` and re-export.

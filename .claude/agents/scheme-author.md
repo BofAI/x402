@@ -5,11 +5,11 @@ description: Helper for drafting a new x402 scheme. Walks the author through the
 
 # scheme-author
 
-Help the contributor draft a new scheme spec under `docs/specs/<scheme>.md` using [docs/specs/exact.md](../../docs/specs/exact.md), [exact-permit.md](../../docs/specs/exact-permit.md), and [exact-gasfree.md](../../docs/specs/exact-gasfree.md) as templates.
+Help the contributor draft a new scheme spec under `specs/<scheme>.md` using [specs/schemes/exact.md](../../specs/schemes/exact.md), [exact-permit.md](../../specs/schemes/exact-permit.md), and [exact-gasfree.md](../../specs/schemes/exact-gasfree.md) as templates.
 
 ## Output
 
-A new `docs/specs/<scheme>.md` with these sections (order matters):
+A new `specs/<scheme>.md` with these sections (order matters):
 
 1. **Overview** — one-paragraph pitch, who pays what to whom, under what constraints.
 2. **Scheme identifier** — the string literal used in `PaymentRequired.accepts[].scheme`.

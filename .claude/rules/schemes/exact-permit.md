@@ -1,6 +1,6 @@
 # Scheme: `exact_permit`
 
-**Spec**: [docs/specs/exact-permit.md](../../../docs/specs/exact-permit.md)
+**Spec**: [specs/schemes/exact-permit.md](../../../specs/schemes/exact-permit.md)
 
 `exact_permit` pays a fixed amount using **EIP-2612 / TIP-2612 `permit`** for tokens that do not support ERC-3009 `transferWithAuthorization`. The user signs a permit; the facilitator submits `permit` + `transferFrom` as a settlement transaction.
 
@@ -24,4 +24,4 @@
 
 ## Testing
 
-See [docs/specs/exact-permit.md](../../../docs/specs/exact-permit.md) for the on-chain flow. Smoke paths live in `examples/bsc-testnet-smoke/`.
+See [specs/schemes/exact-permit.md](../../../specs/schemes/exact-permit.md) for the on-chain flow. Smoke paths live in `examples/bsc-testnet-smoke/`.

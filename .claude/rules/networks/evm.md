@@ -1,6 +1,6 @@
 # Network: EVM
 
-**Config**: [docs/specs/config.md](../../../docs/specs/config.md)
+**Config**: [specs/config.md](../../../specs/config.md)
 
 Identifier: CAIP-2 `eip155:<chainId>`. Chain ID is a decimal integer after the colon.
 
@@ -24,7 +24,7 @@ Identifier: CAIP-2 `eip155:<chainId>`. Chain ID is a decimal integer after the c
 | `PaymentPermit` | EVM zero address |
 | Facilitator | required — no implicit fallback |
 
-BSC has a deployed `PaymentPermit` at `0x1825bB32db3443dEc2cc7508b2D818fc13EaD878` on both mainnet and testnet. See `docs/specs/config.md` for the authoritative registry.
+BSC has a deployed `PaymentPermit` at `0x1825bB32db3443dEc2cc7508b2D818fc13EaD878` on both mainnet and testnet. See `specs/config.md` for the authoritative registry.
 
 ## Token support
 

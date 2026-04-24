@@ -6,7 +6,7 @@ Repository-wide conventions that apply to every component, every language, every
 
 - **Lowercase everything**: addresses, selectors, event topics.
 - **TRON + EIP/TIP-712**: convert TRON Base58 addresses (`T...`) to **0x-prefixed EVM hex** before passing to any EIP-712 / TIP-712 signer. This applies to `verifyingContract`, `token`, `serviceProvider`, `user`, `receiver`, and any other `address`-typed field, **both in the domain and in the message**. See [docs/solutions.md entry #1](../../../docs/solutions.md).
-- **Network identifiers**: CAIP-2 `eip155:<chainId>` for EVM, `tron:<name>` for TRON. Detection rule: `tron:` prefix → TRON, `eip155:` prefix → EVM. See [docs/specs/config.md](../../../docs/specs/config.md).
+- **Network identifiers**: CAIP-2 `eip155:<chainId>` for EVM, `tron:<name>` for TRON. Detection rule: `tron:` prefix → TRON, `eip155:` prefix → EVM. See [specs/config.md](../../../specs/config.md).
 
 ## Amounts & fees
 
@@ -20,7 +20,7 @@ Repository-wide conventions that apply to every component, every language, every
 ## HTTP wire format
 
 - **Header encoding**: `Base64(UTF-8(JSON.stringify(object)))`.
-- **Headers** (see [docs/specs/protocol.md](../../../docs/specs/protocol.md)):
+- **Headers** (see [specs/protocol.md](../../../specs/protocol.md)):
   - `PAYMENT-REQUIRED` — server → client (402 response)
   - `PAYMENT-SIGNATURE` — client → server (retry request)
   - `PAYMENT-RESPONSE` — server → client (success response, with settlement info)
@@ -41,7 +41,7 @@ Repository-wide conventions that apply to every component, every language, every
 
 ## Policy pipeline
 
-Client payment selection is a five-step pipeline (see [docs/specs/roles.md](../../../docs/specs/roles.md)):
+Client payment selection is a five-step pipeline (see [specs/roles.md](../../../specs/roles.md)):
 
 ```
 [1] Filter by scheme  →  [2] Filter by network  →  [3] Filter by max amount

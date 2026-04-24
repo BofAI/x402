@@ -1,6 +1,6 @@
 # Scheme: `exact`
 
-**Spec**: [docs/specs/exact.md](../../../docs/specs/exact.md)
+**Spec**: [specs/schemes/exact.md](../../../specs/schemes/exact.md)
 
 The `exact` scheme pays a fixed, pre-quoted amount in a specified token for a single request. Uses ERC-3009-style `transferWithAuthorization` where the token supports it.
 

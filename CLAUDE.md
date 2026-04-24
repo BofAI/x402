@@ -16,10 +16,9 @@ Each component has its own `CLAUDE.md` (where present) with build/test commands 
 |---|---|---|
 | [python/x402/](python/x402/) | Python | SDK: client, server (FastAPI/Flask), facilitator, mechanisms (EVM + TRON). |
 | [typescript/](typescript/) | TypeScript | SDK: fetch client, server middleware, facilitator, mechanisms (EVM + TRON). |
-| [docs/specs/](docs/specs/) | Markdown | Protocol + role + scheme + config specifications. Read **first** when touching wire formats. |
+| [specs/](specs/) | Markdown | Protocol specs (`protocol.md`, `roles.md`, `config.md`, `schemes/*.md`) + in-flight feature specs (`NNN-<slug>/`). Read **first** when touching wire formats. Mirrors upstream `x402-foundation/x402/specs/` layout. |
 | [docs/solutions.md](docs/solutions.md) | Markdown | Hard-won debugging knowledge. **Read before investigating bugs in related areas.** |
 | [docs/design/](docs/design/) | Markdown | Design documents for in-flight work. |
-| [specs/](specs/) | Markdown | In-flight feature specs (e.g. `001-exact-v2-compat`). |
 | [examples/](examples/) | Mixed | Smoke tests and integration examples. |
 | [integration/](integration/) | Python | Generic step runner used by `e2e/scenarios/`. |
 | [e2e/](e2e/) | Python | End-to-end scenarios (mock facilitator + resource server + client). See [e2e/README.md](e2e/README.md). Wired into CI via `check_e2e.yml`. |
@@ -27,10 +26,10 @@ Each component has its own `CLAUDE.md` (where present) with build/test commands 
 
 ## Key reading order (new contributor)
 
-1. [docs/specs/protocol.md](docs/specs/protocol.md) — wire format, headers, encoding
-2. [docs/specs/roles.md](docs/specs/roles.md) — Client / Server / Facilitator; **payment selection pipeline** (policy hook at step 5)
-3. [docs/specs/config.md](docs/specs/config.md) — network + contract registry
-4. Scheme spec for the scheme you are touching: [`exact.md`](docs/specs/exact.md) · [`exact-permit.md`](docs/specs/exact-permit.md) · [`exact-gasfree.md`](docs/specs/exact-gasfree.md)
+1. [specs/protocol.md](specs/protocol.md) — wire format, headers, encoding
+2. [specs/roles.md](specs/roles.md) — Client / Server / Facilitator; **payment selection pipeline** (policy hook at step 5)
+3. [specs/config.md](specs/config.md) — network + contract registry
+4. Scheme spec for the scheme you are touching: [`schemes/exact.md`](specs/schemes/exact.md) · [`schemes/exact-permit.md`](specs/schemes/exact-permit.md) · [`schemes/exact-gasfree.md`](specs/schemes/exact-gasfree.md)
 5. [docs/solutions.md](docs/solutions.md) — bug-avoidance checklist (TRON address hex, GasFree deadline bounds, balance source, etc.)
 
 ## Conventions

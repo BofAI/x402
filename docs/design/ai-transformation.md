@@ -24,10 +24,10 @@ Reference projects:
 | File | Role |
 |---|---|
 | [docs/solutions.md](../solutions.md) | Hard-won knowledge base. Already references `/x402:compound` slash command (not yet implemented). |
-| [docs/specs/protocol.md](../specs/protocol.md) | HTTP 402 v2 wire format + headers + data structures. |
-| [docs/specs/roles.md](../specs/roles.md) | Client / Server / Facilitator responsibilities. Defines a five-step **payment selection pipeline** with a `[5] Apply policies` hook — this is the insertion point for budget/approval logic, no separate spec needed. |
-| [docs/specs/config.md](../specs/config.md) | Static network + contract registry (TRON + EVM CAIP-2). |
-| [docs/specs/exact.md](../specs/exact.md), [exact-permit.md](../specs/exact-permit.md), [exact-gasfree.md](../specs/exact-gasfree.md) | Three scheme specs. |
+| [specs/protocol.md](../specs/protocol.md) | HTTP 402 v2 wire format + headers + data structures. |
+| [specs/roles.md](../specs/roles.md) | Client / Server / Facilitator responsibilities. Defines a five-step **payment selection pipeline** with a `[5] Apply policies` hook — this is the insertion point for budget/approval logic, no separate spec needed. |
+| [specs/config.md](../specs/config.md) | Static network + contract registry (TRON + EVM CAIP-2). |
+| [specs/schemes/exact.md](../specs/exact.md), [exact-permit.md](../specs/exact-permit.md), [exact-gasfree.md](../specs/exact-gasfree.md) | Three scheme specs. |
 
 ### 2.2 Already in sibling repos
 
@@ -44,7 +44,7 @@ Reference projects:
 |---|---|
 | `typescript/packages/mcp` | `packages/mcp-ts` |
 | `python/x402/mcp` | `packages/mcp-py` |
-| `specs/transports-v2/mcp.md` | Reference for our `docs/specs/mcp.md` (cite + diff) |
+| `specs/transports-v2/mcp.md` | Reference for our `specs/mcp.md` (cite + diff) |
 | `e2e/` (1170-line `test.ts` + `src/` + `templates/`) | `e2e/` matrix harness |
 | `e2e/mock-facilitator` | `e2e/mock-facilitator` |
 
@@ -99,7 +99,7 @@ packages/mcp-py/                       port of Coinbase python/x402/mcp
 ├── client.py client_async.py
 └── tests/
 
-docs/specs/mcp.md                      align with Coinbase specs/transports-v2/mcp.md, document diffs
+specs/mcp.md                      align with Coinbase specs/transports-v2/mcp.md, document diffs
 docs/guides/mcp-server-with-x402.md    end-user guide (adapt Coinbase guide)
 ```
 
@@ -144,7 +144,7 @@ Rationale: apollo-arena scenarios are authoring-friendly (one JSON + expected) a
 | `packages/mcp-ts`, `packages/mcp-py` | MCP server/client for x402 payment flow. Mirror Coinbase. | P2 |
 | `packages/agent-tools` | LangChain / OpenAI function-calling / AutoGen wrappers around the x402 HTTP client. Distinct from skills (IDE-packaged) and MCP (transport-level). | P3 |
 | `packages/budget` | Spend caps + approval hooks + audit log, implemented as **pipeline step [5] policies** (see `roles.md`). **Wallet layer already exists in `agent-wallet` skill — do not re-implement.** | P3 |
-| `packages/registry` | Dynamic priced-endpoint discovery. Thin layer over `docs/specs/config.md` static data with a subscription API. | P3 |
+| `packages/registry` | Dynamic priced-endpoint discovery. Thin layer over `specs/config.md` static data with a subscription API. | P3 |
 | `integration/` | Generic step runner. Vendored from apollo-arena; no behavior changes. | P1 |
 | `e2e/` | Two complementary harnesses (apollo scenarios + Coinbase matrix) sharing mock infra. | P1 scenarios, P4 matrix |
 | `.claude/` | Rules, commands, subagents. | P1 |
@@ -156,9 +156,9 @@ New docs (in addition to what's on main):
 | Path | Purpose |
 |---|---|
 | `docs/design/ai-transformation.md` | **this file** |
-| `docs/specs/mcp.md` | x402 + MCP transport spec; reference Coinbase and document our diffs |
-| `docs/specs/budget-policy.md` | Spec for the pipeline-step-5 policy contract |
-| `docs/specs/registry.md` | Dynamic discovery format, subscription semantics |
+| `specs/mcp.md` | x402 + MCP transport spec; reference Coinbase and document our diffs |
+| `specs/budget-policy.md` | Spec for the pipeline-step-5 policy contract |
+| `specs/registry.md` | Dynamic discovery format, subscription semantics |
 | `docs/guides/agent-pays-for-api.md` | End-to-end walkthrough using `agent-tools` + `agent-wallet` skill + MCP |
 | `docs/guides/mcp-server-with-x402.md` | Port of Coinbase guide, with our scheme examples |
 | `docs/guides/tron-mcp.md` | TRON-specific MCP setup (exact-permit, exact-gasfree) |
@@ -235,7 +235,7 @@ Each phase ≈ one week, merges back to `main`, independently reviewable.
 | Phase | Branch | Scope |
 |---|---|---|
 | **P1 — Scaffold** | `feat/x402-ai` (this branch) | `CLAUDE.md` tree, `.claude/rules/commands/agents` skeleton, `/x402:compound` as the first wizard, vendor `integration/`, first scenario `exact_permit_happy_path/` |
-| **P2 — MCP** | `feat/x402-ai-mcp` | Port `packages/mcp-ts` + `packages/mcp-py` from Coinbase. Add `docs/specs/mcp.md` and guides. Add `mcp_tron_exact` scenario. |
+| **P2 — MCP** | `feat/x402-ai-mcp` | Port `packages/mcp-ts` + `packages/mcp-py` from Coinbase. Add `specs/mcp.md` and guides. Add `mcp_tron_exact` scenario. |
 | **P3 — Budget + Registry + Agent-tools** | `feat/x402-ai-budget` | `packages/budget` as pipeline step-5 policy. `packages/registry`. `packages/agent-tools` (LangChain / OpenAI FC). Corresponding scenarios. |
 | **P4 — Matrix + TRON integration** | `feat/x402-ai-matrix` | Port Coinbase `e2e/` matrix harness. Vendor mock-facilitator. Full CI wiring. |
 

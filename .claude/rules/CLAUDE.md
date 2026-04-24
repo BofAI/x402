@@ -45,7 +45,7 @@ Add a rule **only when the knowledge is non-obvious and would otherwise be relea
 
 Structure every rule file:
 
-1. **Header** — one line: what scope this covers + pointer to the canonical spec under `docs/specs/`.
+1. **Header** — one line: what scope this covers + pointer to the canonical spec under `specs/`.
 2. **When to use** — the decision the rule answers.
 3. **Key invariants** — the short list that must hold.
 4. **Common gotchas** — cite commits or `docs/solutions.md` entries. Every bullet should map to a real incident.
@@ -53,27 +53,27 @@ Structure every rule file:
 
 ### New scheme
 
-1. New spec at `docs/specs/<scheme>.md`.
+1. New spec at `specs/<scheme>.md`.
 2. New rule at `.claude/rules/schemes/<scheme>.md` — link back to the spec.
 3. Register the scheme in the mechanism and the `config.md` registry.
 4. Scenario skeleton: `/x402:create-scenario` (see [../commands/x402/create-scenario.md](../commands/x402/create-scenario.md)).
 
 ### New network
 
-1. Add to `docs/specs/config.md` registry.
+1. Add to `specs/config.md` registry.
 2. New rule at `.claude/rules/networks/<name>.md` — chain ids, signing rules, RPC defaults, contract table.
 3. If it introduces a new signing flavor (e.g. TIP-712 analogue), document the conversion helpers.
 
 ## Relation to other surfaces
 
-- **docs/specs/** — authoritative protocol definitions. Rules cite specs; specs do not cite rules.
+- **specs/** — authoritative protocol definitions. Rules cite specs; specs do not cite rules.
 - **docs/solutions.md** — incident log. Rules point here when a gotcha came from a real bug; new solutions are added via `/x402:compound`.
 - **.claude/agents/** — specialized reviewers (`code-reviewer`, `security-reviewer`, `scheme-author`) that load the rules relevant to their domain. Payment-path / signing changes route through `security-reviewer`.
 - **.claude/commands/x402/** — slash-command wizards that scaffold code + scenarios conforming to these rules.
 
 ## Don'ts
 
-- **No code examples longer than 10 lines** in a rule. If it needs more, it belongs in `docs/specs/` or an example.
+- **No code examples longer than 10 lines** in a rule. If it needs more, it belongs in `specs/` or an example.
 - **No duplicating specs.** Rules are *behavioral guidance*; specs are *definitions*. Link, don't copy.
 - **No rule without a scope.** If you can't say which file touches trigger it, it belongs in `CLAUDE.md` instead.
 - **No rules that rot.** Anything citing a specific line number or commit that isn't a historical anchor will drift — prefer filenames and invariants.

@@ -1,6 +1,6 @@
 # Network: TRON
 
-**Config**: [docs/specs/config.md](../../../docs/specs/config.md)
+**Config**: [specs/config.md](../../../specs/config.md)
 
 Identifier: `tron:<name>` where `<name>` ∈ {`mainnet`, `shasta`, `nile`}.
 
@@ -32,4 +32,4 @@ See [.claude/rules/schemes/exact-gasfree.md](../schemes/exact-gasfree.md).
 
 ## Contracts
 
-See `docs/specs/config.md` for the live registry. Mainnet `PaymentPermit` is `TT8rEWbCoNX7vpEUauxb7rWJsTgs8vDLAn`; Nile is `TFxDcGvS7zfQrS1YzcCMp673ta2NHHzsiH`. TronScan verify all deployed contracts.
+See `specs/config.md` for the live registry. Mainnet `PaymentPermit` is `TT8rEWbCoNX7vpEUauxb7rWJsTgs8vDLAn`; Nile is `TFxDcGvS7zfQrS1YzcCMp673ta2NHHzsiH`. TronScan verify all deployed contracts.

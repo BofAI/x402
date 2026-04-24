@@ -1,6 +1,6 @@
 # Scheme: `exact_gasfree`
 
-**Spec**: [docs/specs/exact-gasfree.md](../../../docs/specs/exact-gasfree.md)
+**Spec**: [specs/schemes/exact-gasfree.md](../../../specs/schemes/exact-gasfree.md)
 
 `exact_gasfree` enables **gasless payments on TRON**. Users hold tokens in a GasFree custodial wallet and sign TIP-712 permits. A service provider (relayer) submits the transaction on-chain, paying TRX gas and collecting a `maxFee`. **TRON-only.**
 

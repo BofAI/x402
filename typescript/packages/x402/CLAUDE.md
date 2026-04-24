@@ -15,7 +15,7 @@ pnpm clean     # rm -rf dist
 ```
 src/
 ├── index.ts             — public surface; keep additions minimal, re-export only
-├── config.ts            — network + contract registry (mirrors docs/specs/config.md)
+├── config.ts            — network + contract registry (mirrors specs/config.md)
 ├── config.test.ts       — wire-format snapshot; update when adding networks
 ├── abi.ts               — ERC-3009 + EIP-2612 + GasFreeController ABIs
 ├── address.ts           — address normalization helpers
@@ -31,7 +31,7 @@ src/
 
 ## Rules for this package
 
-- **Public surface is precious.** Additions to `index.ts` require a corresponding doc update in `docs/specs/` (if a new wire-format field) and ideally a unit test. Prefer re-export over re-implement.
+- **Public surface is precious.** Additions to `index.ts` require a corresponding doc update in `specs/` (if a new wire-format field) and ideally a unit test. Prefer re-export over re-implement.
 - **No direct imports from `dist/`**, even in tests. Import from `./src/...` or from the package name.
 - **`config.ts` is the single source of truth for network identifiers.** Do not hardcode chain IDs or contract addresses elsewhere in this package.
 - **Snapshot tests in `config.test.ts`** will fail if the registry changes — this is intentional. Update the snapshot in the same commit that changes the registry.
