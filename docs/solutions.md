@@ -150,6 +150,42 @@ Use `/x402:compound` to add new entries after solving a problem.
 
 ---
 
+### 9. GasFree `gasFreeAddress` is per-query, not absolute — deposit target depends on the address you used to query
+
+- **Category**: protocol
+- **Severity**: high
+- **Module**: gasfree, client
+
+**Symptom**: `exact_gasfree_testnet` kept returning `insufficient balance in gasfree wallet <addr>` even after USDT was deposited to the `gasFreeAddress` reported by the GasFree API. Deposits were landing on-chain successfully but the facilitator still saw zero balance.
+
+**Root cause**: The GasFree API's `gasFreeAddress` field is a **function of the query address**, not a property of the user. Calling `GET /api/v1/address/<X>` returns `{accountAddress: X, gasFreeAddress: Y}`. Critically, `Y` is a fresh mapping off `X` — so if you query the API with your *main wallet* `TTX1...`, you get one `gasFreeAddress` (say `TErc7...`), but if you then query with `TErc7...` you get a *different* `gasFreeAddress` (`TZDWr...`). Funds deposited to `TZDWr...` never reach the SDK's view because the SDK's client always queries with `signer.get_address()` (the main wallet) and writes that layer's `gasFreeAddress` into `extensions.gasfreeAddress`.
+
+**Fix**: Always deposit to the `gasFreeAddress` returned when querying with your **main wallet address** — the same address `signer.get_address()` returns. In code: `api_client.get_address_info(main_wallet)["gasFreeAddress"]`. Do not recursively follow the mapping.
+
+**Rule**: The GasFree API address endpoint is not idempotent across hops. One query, one deposit target. The SDK client and facilitator both use the main-wallet-derived `gasFreeAddress` as the canonical value for the payment; any other layer's `gasFreeAddress` is effectively a different account.
+
+**Ref**: discovered 2026-04-24 running `exact_gasfree_testnet` against the BankofAI Nile proxy. Verified by tx `1d77f242b72293116e65c46b5ad756dd2f8355ebc625078aec0eb4ea54d148d2` on TRON Nile after depositing to the correct layer.
+
+---
+
+### 10. TRON witness / multi-sig accounts reject single-key tx signing unless `permission_id=2` (active0) is set
+
+- **Category**: signing
+- **Severity**: high
+- **Module**: mechanisms, scripts, external tooling
+
+**Symptom**: Signing and broadcasting any TRX or TRC-20 transaction from a specific TRON key via tronpy's default path (`tx.build().sign(key).broadcast()`) returned `"Validate signature error: sig error"` even though the key derived the correct address and signed message hashes correctly.
+
+**Root cause**: The account had a **non-default permission scheme** — specifically, `owner_permission.threshold=2` with three weight-1 keys (a 2-of-3 multisig for owner-level operations) plus an `active_permission` id=2 "active0" with our key at threshold 1 (single-sig for active-level operations). tronpy defaults to signing under permission id 0 (owner), which requires two signatures and therefore fails with a single key.
+
+**Fix**: Pass `.permission_id(2)` on the TransactionBuilder before building: `tx.with_owner(...).permission_id(2).fee_limit(...).build().sign(key).broadcast()`. The specific id to use comes from the account's `active_permission[].id` field where your key sits at sufficient weight.
+
+**Rule**: Before scripting a TRON broadcast from a given key, inspect the account's permissions via `wallet/getaccount`. If `owner_permission.threshold > 1` or your key isn't in owner, you must sign under an active permission. This matters for any test key that has ever been used as a witness / SR / multisig participant — on Nile these are common because devnet keys get repurposed.
+
+**Ref**: hit 2026-04-24 while funding the GasFree custodial wallet for `exact_gasfree_testnet`. Account on Nile (`TTX1Us19zqsLXhY39PPR7KRUoMa93s3J3i`) is a historical witness account with 2-of-3 owner permissions; active0 with id=2 resolved it. Successful tx: `55de4caa110b50ea7180549c3dd1f08b88d24b5fe0de7f5ea6e7590ab9e36739`.
+
+---
+
 <!-- Template for new entries:
 
 ### N. Short title

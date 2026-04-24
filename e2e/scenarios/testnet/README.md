@@ -15,7 +15,7 @@ These scenarios hit **real testnets** (BSC testnet, TRON Nile) and settle
 |---|---|---|
 | `exact_testnet` | ✅ verified 2026-04-24 | BSC Testnet DHLU transfer, tx `461d17baae60b83031de55bb1635bd5f8453d359887e7e82ebee605ab6c159a0` · ~6 s pay + ~4 s teardown |
 | `exact_permit_testnet` | ✅ verified 2026-04-24 | BSC Testnet USDT permit + transferFrom, tx `0xfc8b32decb99d02cdfc684d3f6f1c7c0a91c8b0ff1f632f98d86d9f334198a23` (block 103475005) · requires `FACILITATOR_BASE_FEE` env (see [solutions.md #7](../../../docs/solutions.md)) |
-| `exact_gasfree_testnet` | 🟡 structurally verified — waiting on funding | GasFree API reachable at `https://facilitator.bankofai.io/nile`; fee_quote / verify / settle all run. Final `/settle` reports `insufficient balance in gasfree wallet <addr>` when the derived GasFree custodial wallet is empty. Deposit USDT (TRC-20, Nile) to the address in the error to close the loop. |
+| `exact_gasfree_testnet` | ✅ verified 2026-04-24 | TRON Nile USDT via GasFree relayer, tx `1d77f242b72293116e65c46b5ad756dd2f8355ebc625078aec0eb4ea54d148d2` (12s pay including relayer submit). Requires funded `gasFreeAddress` — see [solutions.md #9](../../../docs/solutions.md). |
 
 ## Running locally
 
