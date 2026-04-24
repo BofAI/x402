@@ -1,0 +1,44 @@
+name: Check E2E Scenarios
+on: [pull_request]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "python/x402/uv.lock"
+
+      - name: Set up Python
+        working-directory: ./python/x402
+        run: uv python install
+
+      - name: Install SDK in editable mode + e2e deps
+        working-directory: ./python/x402
+        run: |
+          uv sync --all-extras --dev
+          uv pip install uvicorn httpx fastapi
+
+      - name: Run all e2e scenarios
+        working-directory: ./
+        run: |
+          # Expose the SDK and the e2e/ + integration/ packages to python -m
+          export PYTHONPATH="$GITHUB_WORKSPACE:$GITHUB_WORKSPACE/python/x402/src:${PYTHONPATH:-}"
+          # Use the uv-managed python so the installed deps are found.
+          export PATH="$GITHUB_WORKSPACE/python/x402/.venv/bin:$PATH"
+          ./e2e/scenarios/run_all.sh
+
+      - name: Upload scenario reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-reports
+          path: |
+            /tmp/x402-e2e-*.md
+            /tmp/x402-e2e-pids/*.log
+            /tmp/x402-mock-facilitator.log
+          if-no-files-found: ignore

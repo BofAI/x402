@@ -1,0 +1,14 @@
+{
+  "body": {
+    "impl": "e2e-fixture-server",
+    "network": "tron:nile",
+    "ok": true
+  },
+  "payment_response": {
+    "errorReason": null,
+    "network": "tron:nile",
+    "success": true,
+    "transaction": "0x1111111111111111111111111111111111111111111111111111111111111111"
+  },
+  "status_code": 200
+}

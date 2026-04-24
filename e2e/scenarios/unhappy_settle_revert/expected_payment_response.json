@@ -1,0 +1,8 @@
+{
+  "body": {
+    "error": "Settlement failed: settle_reverted",
+    "network": "eip155:97"
+  },
+  "payment_response": null,
+  "status_code": 500
+}
