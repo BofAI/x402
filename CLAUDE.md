@@ -18,7 +18,6 @@ Each component has its own `CLAUDE.md` (where present) with build/test commands 
 | [typescript/](typescript/) | TypeScript | SDK: fetch client, server middleware, facilitator, mechanisms (EVM + TRON). |
 | [specs/](specs/) | Markdown | Protocol specs (`protocol.md`, `roles.md`, `config.md`, `schemes/*.md`) + in-flight feature specs (`NNN-<slug>/`). Read **first** when touching wire formats. Mirrors upstream `x402-foundation/x402/specs/` layout. |
 | [docs/solutions.md](docs/solutions.md) | Markdown | Hard-won debugging knowledge. **Read before investigating bugs in related areas.** |
-| [docs/design/](docs/design/) | Markdown | Design documents for in-flight work. |
 | [examples/](examples/) | Mixed | Smoke tests and integration examples. |
 | [integration/](integration/) | Python | Generic step runner used by `e2e/scenarios/`. |
 | [e2e/](e2e/) | Python | End-to-end scenarios (mock facilitator + resource server + client). See [e2e/README.md](e2e/README.md). Wired into CI via `check_e2e.yml`. |
@@ -43,7 +42,7 @@ Each component has its own `CLAUDE.md` (where present) with build/test commands 
 
 ## AI-native development
 
-This repo is adopting a Claude-Code-native layout. See [docs/design/ai-transformation.md](docs/design/ai-transformation.md) for the full plan.
+This repo uses a Claude-Code-native layout: rules, commands, and agents that let Claude (and other agents following the same conventions) contribute safely without reading every file first.
 
 | Path | What it gives you |
 |---|---|

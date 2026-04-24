@@ -19,7 +19,7 @@ server → 200 OK + PAYMENT-RESPONSE
 
 | Prereq | Status |
 |---|---|
-| Facilitator binary with `--mock` mode | not yet (P2 in [ai-transformation](../../../docs/design/ai-transformation.md)) |
+| Facilitator binary with `--mock` mode | exists: `e2e/mock_facilitator/` |
 | Resource server with `exact_permit` mechanism on BSC testnet | exists: `examples/bsc-testnet-smoke/bsc_exact_client.py` – adapt |
 | Signed payment payload fixture | TODO — generate from a deterministic test key |
 | Expected `PAYMENT-RESPONSE` JSON | `expected_payment_response.json` (stub) |

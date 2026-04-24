@@ -26,8 +26,8 @@ Node: **>=20**. pnpm: **>=10** (see root `package.json` engines).
 | `packages/mechanisms/tron` | TRON mechanisms (`exact`, `exact_permit`, `exact_gasfree`). |
 | `packages/mechanisms/{svm,aptos,stellar}` | Non-EVM scaffolds (no production use yet). |
 | `packages/extensions` | Legacy / non-core payload extensions. |
-| `packages/http` | Fetch middleware + framework adapters (Express/Hono planned — see design doc). |
-| `packages/mcp` | MCP transport — currently stub; P2 in [design](../docs/design/ai-transformation.md). |
+| `packages/http` | Fetch middleware + framework adapters (Express/Hono planned). |
+| `packages/mcp` | MCP transport — currently stub. |
 | `packages/legacy`, `packages/x402-deprecated` | Old entry points kept for backward compat. **Do not add new code here.** |
 
 ## Conventions

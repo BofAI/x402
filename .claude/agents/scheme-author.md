@@ -42,7 +42,7 @@ A new `specs/<scheme>.md` with these sections (order matters):
 3. After generation, suggest:
    - Adding a corresponding `.claude/rules/schemes/<scheme>.md` summarizing gotchas
    - Scaffolding an e2e scenario with `/x402:create-scenario`
-   - Opening a design doc under `docs/design/` if the scheme is non-trivial
+   - Opening an in-flight feature spec under `specs/<NNN>-<slug>/` if the scheme is non-trivial
 
 ## Constraints
 

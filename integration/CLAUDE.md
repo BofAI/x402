@@ -39,4 +39,4 @@ The `@builtin` decorator registers with the dispatcher; `--list-builtins` will s
 ## Non-goals
 
 - Parallel step execution. Scenarios are intentionally sequential for determinism.
-- Matrix / combinatorial testing. That layer belongs in `e2e/test.ts` (planned P4 in [docs/design/ai-transformation.md](../docs/design/ai-transformation.md)).
+- Matrix / combinatorial testing. That belongs in a separate harness (e.g. Coinbase-style `e2e/test.ts`), not in this runner.

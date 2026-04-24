@@ -31,7 +31,7 @@ src/bankofai/x402/
 ├── utils/                  # address conversion, hex helpers, etc.
 ├── tokens/, address/       # registry + helpers
 ├── extensions/             # non-core extension payloads (legacy fallback etc.)
-├── mcp/                    # MCP transport — currently stubbed; see docs/design/ai-transformation.md P2
+├── mcp/                    # MCP transport — currently stubbed
 ├── encoding.py             # Base64(UTF-8(JSON)) header codec
 ├── logging_config.py       # use `logging.getLogger(__name__)` everywhere
 ├── exceptions.py           # X402Error hierarchy — do not raise bare ValueError in the pay path
