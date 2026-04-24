@@ -72,7 +72,12 @@ def _log(entry: dict[str, Any]) -> None:
 def _resolve_mode(mode_query: str | None) -> str:
     if mode_query:
         if mode_query not in _VALID_MODES:
-            raise ValueError(f"invalid mode: {mode_query}")
+            from fastapi import HTTPException
+
+            raise HTTPException(
+                status_code=422,
+                detail=f"invalid mode '{mode_query}'. valid: {sorted(_VALID_MODES)}",
+            )
         return mode_query
     return _default_mode()
 

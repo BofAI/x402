@@ -39,12 +39,13 @@ from eth_account import Account
 from eth_account.messages import encode_defunct, encode_typed_data
 
 from bankofai.x402.clients import X402Client, X402HttpClient
-from bankofai.x402.signers.client import EvmClientSigner
+from bankofai.x402.signers.client import EvmClientSigner, TronClientSigner
 
 ANVIL_KEY_0 = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 
-# Deterministic test TRON key — shared across all local e2e runs. Not secret,
-# just a fixed 32-byte hex so scenarios are reproducible.
+# Deterministic test TRON key — all-ones, trivially guessable.
+# SAFE FOR LOCAL / MOCK E2E ONLY. Never use on mainnet or any real-value network;
+# the derived address is publicly known and its funds can be swept instantly.
 TRON_TEST_KEY = "0x1111111111111111111111111111111111111111111111111111111111111111"
 
 
@@ -129,8 +130,6 @@ def _build_tron_signer(wallet: "LocalTronWallet") -> Any:
     the e2e harness there is no such node, and the mock facilitator does not
     verify balances anyway. We override both to keep the signer fully offline.
     """
-    from bankofai.x402.signers.client import TronClientSigner
-
     class _OfflineTronSigner(TronClientSigner):
         async def check_balance(self, token: str, network: str, address: str | None = None) -> int:
             return 2**256 - 1
@@ -152,10 +151,17 @@ def _schemes() -> list[str]:
 
 
 def _register_client_mechanisms(
-    x402: X402Client, network: str, schemes: list[str], signer: EvmClientSigner
+    x402: X402Client,
+    network: str,
+    schemes: list[str],
+    signer: EvmClientSigner | TronClientSigner,
 ) -> None:
     for scheme in schemes:
         if scheme == "exact":
+            if not network.startswith("eip155:"):
+                raise SystemExit(
+                    f"scheme 'exact' (ERC-3009) requires eip155:* network, got {network}"
+                )
             from bankofai.x402.mechanisms.evm.exact import ExactEvmClientMechanism
 
             x402.register(network, ExactEvmClientMechanism(signer))

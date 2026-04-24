@@ -73,8 +73,15 @@ def _env_base_fee() -> dict[str, int] | None:
         return None
     import json
 
-    parsed = json.loads(raw)
-    return {str(k).upper(): int(v) for k, v in parsed.items()}
+    try:
+        parsed = json.loads(raw)
+        return {str(k).upper(): int(v) for k, v in parsed.items()}
+    except (json.JSONDecodeError, ValueError, TypeError, AttributeError) as exc:
+        print(
+            f"error: FACILITATOR_BASE_FEE is not valid JSON or contains non-integer values: {exc}",
+            file=sys.stderr,
+        )
+        sys.exit(2)
 
 
 def _build_evm_wallet(private_key: str) -> Any:

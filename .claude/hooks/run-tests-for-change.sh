@@ -17,7 +17,9 @@
 
 set -u
 
-REPO_ROOT="/Users/bobo/code/x402/x402"
+# Derive REPO_ROOT from this script's location: .claude/hooks/<script> → repo root is two dirs up.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 LOG_DIR="$REPO_ROOT/.claude/hooks/logs"
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/run-tests.log"

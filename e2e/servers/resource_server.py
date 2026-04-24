@@ -50,9 +50,6 @@ def _install_noop_tx_verifier_if_requested() -> None:
     tx_verification.get_verifier_for_network = _always_raise
 
 
-_install_noop_tx_verifier_if_requested()
-
-
 def _env(name: str, default: str) -> str:
     return os.environ.get(name, default)
 
@@ -116,6 +113,10 @@ def build_app() -> FastAPI:
         )
     facilitator_url = _env("E2E_FACILITATOR_URL", "http://127.0.0.1:4020")
     protected_path = _env("E2E_PROTECTED_PATH", "/protected")
+
+    # Apply the tx-verification monkey-patch only during app construction, and only
+    # when explicitly requested — keeps the side-effect scoped to this entry point.
+    _install_noop_tx_verifier_if_requested()
 
     app = FastAPI(title="x402 e2e resource server")
 

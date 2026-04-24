@@ -161,15 +161,17 @@ def start_bg(args: list[str], workdir: str) -> tuple[int, str, str]:
         pid_file.unlink(missing_ok=True)
 
     log_path = _log_file(tag)
-    log_fd = open(log_path, "w", encoding="utf-8")
-    proc = subprocess.Popen(
-        command,
-        shell=True,
-        cwd=workdir,
-        stdout=log_fd,
-        stderr=subprocess.STDOUT,
-        start_new_session=True,
-    )
+    # Parent must close its copy of the log fd after Popen inherits it; the child
+    # keeps its own copy writing. Without this we leak one fd per @start_bg call.
+    with open(log_path, "w", encoding="utf-8") as log_fd:
+        proc = subprocess.Popen(
+            command,
+            shell=True,
+            cwd=workdir,
+            stdout=log_fd,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
     pid_file.write_text(str(proc.pid))
     return (
         0,
@@ -225,8 +227,10 @@ def stop_bg(args: list[str], workdir: str) -> tuple[int, str, str]:
     except (OSError, ValueError) as exc:
         return (1, "", f"failed to read pid: {exc}")
 
+    # start_bg uses start_new_session=True, so the child is its own session leader
+    # and PGID == PID. Skip the extra os.getpgid() syscall — the PID itself is the PGID.
     try:
-        os.killpg(os.getpgid(pid), signal.SIGTERM)
+        os.killpg(pid, signal.SIGTERM)
     except ProcessLookupError:
         pid_file.unlink(missing_ok=True)
         return (0, f"tag={tag} pid={pid} already gone", "")
@@ -241,7 +245,7 @@ def stop_bg(args: list[str], workdir: str) -> tuple[int, str, str]:
             break
     else:
         try:
-            os.killpg(os.getpgid(pid), signal.SIGKILL)
+            os.killpg(pid, signal.SIGKILL)
         except OSError:
             pass
 

@@ -41,7 +41,7 @@ See [.claude/rules/testing/scenarios.md](../.claude/rules/testing/scenarios.md).
 - **One directory per scenario, JSON-only config.** No Python scenarios.
 - **Ports**: mock facilitator `4020`, resource server `4021`. Pick disjoint ports (`4022`, `4023`, ...) if you need more than one of each in a scenario.
 - **`E2E_*` env vars** are the contract between the config runner and the server/client — see `servers/resource_server.py` for the full list. Don't invent new ones without updating both sides.
-- **Failure modes**: `mock_facilitator` supports `--mode {success, invalid_sig, deadline_expired, network_mismatch, insufficient_balance, settle_reverted}`. Cover new failure modes by extending the mode enum, not by adding bespoke endpoints.
+- **Failure modes**: `mock_facilitator` supports `--mode {success, fail_verify_invalid_sig, fail_verify_expired, fail_verify_network_mismatch, fail_settle_insufficient, fail_settle_revert}` (authoritative set in `mock_facilitator/app.py` as `_VALID_MODES`). Cover new failure modes by extending the mode enum, not by adding bespoke endpoints.
 - **Diff assertion**: use `@json_diff` built-in from `integration/commands.py`. Don't write custom assertions in shell.
 
 ## Adding a scenario

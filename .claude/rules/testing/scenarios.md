@@ -37,7 +37,7 @@ Resource server reads `E2E_*` vars (`E2E_NETWORK`, `E2E_SCHEMES`, `E2E_SERVER_PO
 
 ## Failure modes
 
-`mock_facilitator` takes `--mode`. Currently supports: `success`, `invalid_sig`, `deadline_expired`, `network_mismatch`, `insufficient_balance`, `settle_reverted`. Extend the enum in `mock_facilitator/app.py` rather than adding bespoke endpoints.
+`mock_facilitator` takes `--mode`. Currently supports: `success`, `fail_verify_invalid_sig`, `fail_verify_expired`, `fail_verify_network_mismatch`, `fail_settle_insufficient`, `fail_settle_revert` (authoritative set is `_VALID_MODES` in `mock_facilitator/app.py`). Extend the enum there rather than adding bespoke endpoints.
 
 Unhappy tests assert **HTTP 500** from the resource server (because the retry attempt failed at verify/settle), never HTTP 402.
 
