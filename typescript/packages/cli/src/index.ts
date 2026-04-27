@@ -10,6 +10,7 @@ import { Command } from 'commander';
 import { cmdInit, cmdUse, cmdGet, cmdSet, cmdList } from './commands/config.js';
 import { cmdDoctor } from './commands/doctor.js';
 import { cmdBalance } from './commands/balance.js';
+import { cmdTransfer } from './commands/transfer.js';
 import type { OutputMode } from './output.js';
 
 import { readFileSync } from 'node:fs';
@@ -137,6 +138,42 @@ async function main(argv: string[]): Promise<void> {
         token: typeof opts.token === 'string' ? opts.token : undefined,
         gasfree: opts.gasfree !== false,
         verbose: opts.verbose === true,
+        output: resolveOutputMode(opts),
+      });
+      exitWith(code);
+    });
+
+  // ---- transfer ----
+  program
+    .command('transfer')
+    .description('Direct payment: build PaymentRequirements locally and settle through the facilitator')
+    .requiredOption('--to <address>', 'Recipient address (payTo)')
+    .requiredOption('--amount <decimal>', 'Human-readable amount, e.g. 1.25')
+    .option('--token <symbol>', 'Token symbol from the registry (e.g. USDT)')
+    .option('--asset <address>', 'Explicit token address (use with --decimals when not in registry)')
+    .option('--decimals <n>', 'Decimals when using --asset', (v) => Number.parseInt(v, 10))
+    .option('--network <network>', 'Override network')
+    .option('--scheme <scheme>', 'Scheme (default exact_gasfree for tron:*)')
+    .option('--profile <name>', 'Profile to use')
+    .option('--valid-for <seconds>', 'Override deadline window', (v) => Number.parseInt(v, 10))
+    .option('--payment-id <id>', 'Reuse a paymentId for reconciliation')
+    .option('--dry-run', 'Build the plan + fee quote without signing or settling')
+    .option('--yes', 'Skip interactive confirmation (currently always implicit)')
+    .option('--json', 'Emit machine-readable JSON output')
+    .action(async (opts: Record<string, unknown>) => {
+      const code = await cmdTransfer({
+        to: String(opts.to),
+        amount: String(opts.amount),
+        token: typeof opts.token === 'string' ? opts.token : undefined,
+        asset: typeof opts.asset === 'string' ? opts.asset : undefined,
+        decimals: typeof opts.decimals === 'number' ? opts.decimals : undefined,
+        network: typeof opts.network === 'string' ? opts.network : undefined,
+        scheme: typeof opts.scheme === 'string' ? opts.scheme : undefined,
+        profile: typeof opts.profile === 'string' ? opts.profile : undefined,
+        validForSeconds: typeof opts.validFor === 'number' ? opts.validFor : undefined,
+        paymentId: typeof opts.paymentId === 'string' ? opts.paymentId : undefined,
+        dryRun: opts.dryRun === true,
+        yes: opts.yes === true,
         output: resolveOutputMode(opts),
       });
       exitWith(code);
