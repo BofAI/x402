@@ -14,7 +14,7 @@ specs/
 │   ├── exact-permit.md      — EIP-2612 / TIP-2612 permit + transferFrom
 │   └── exact-gasfree.md     — TRON GasFree custodial + TIP-712 relayer
 └── <NNN>-<slug>/            — in-flight feature spec (spec-kit template)
-    ├── spec.md              — requirements, acceptance criteria, open questions
+    ├── spec.md or <slug>.md — requirements, acceptance criteria, open questions
     ├── plan.md              — implementation plan (if present)
     ├── tasks.md             — task breakdown (if present)
     └── notes/               — QA logs, review comments, decisions
@@ -23,6 +23,7 @@ specs/
 ## Current feature specs
 
 - [001-exact-v2-compat/](001-exact-v2-compat/) — aligning `exact` with Coinbase x402 v2 wire format. Implementation complete; QA in progress.
+- [002-bankofai-cli/bankofai-cli.md](002-bankofai-cli/bankofai-cli.md) — BankofAI x402 CLI for direct payment, gas-free transfer, temporary transfer server, receipts, and diagnostics. Draft.
 
 ## Rules
 
