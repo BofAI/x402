@@ -11,6 +11,9 @@ import { cmdInit, cmdUse, cmdGet, cmdSet, cmdList } from './commands/config.js';
 import { cmdDoctor } from './commands/doctor.js';
 import { cmdBalance } from './commands/balance.js';
 import { cmdTransfer } from './commands/transfer.js';
+import { cmdPay } from './commands/pay.js';
+import { cmdServeTransfer } from './commands/serve.js';
+import { cmdReceiptList, cmdReceiptShow, cmdReceiptExport } from './commands/receipt.js';
 import type { OutputMode } from './output.js';
 
 import { readFileSync } from 'node:fs';
@@ -38,6 +41,10 @@ function resolveOutputMode(opts: Record<string, unknown>): OutputMode {
 function exitWith(code: number): void {
   // Drain stdout before exiting so JSON piped to consumers isn't truncated.
   process.stdout.write('', () => process.exit(code));
+}
+
+function collect(value: string, accumulator: string[]): string[] {
+  return [...accumulator, value];
 }
 
 async function main(argv: string[]): Promise<void> {
@@ -176,6 +183,115 @@ async function main(argv: string[]): Promise<void> {
         yes: opts.yes === true,
         output: resolveOutputMode(opts),
       });
+      exitWith(code);
+    });
+
+  // ---- pay ----
+  program
+    .command('pay <url>')
+    .description('Fetch a 402-protected URL with automatic payment retry')
+    .option('--method <method>', 'HTTP method', 'GET')
+    .option('--header <kv>', 'Add a header (Key: value); repeatable', collect, [])
+    .option('--body <json>', 'Request body (string)')
+    .option('--profile <name>', 'Profile to use')
+    .option('--network <network>', 'Override network')
+    .option('--scheme <scheme>', 'Override scheme (informational; CLI registers exact_gasfree)')
+    .option('--max-amount <smallest-unit>', 'Smallest-unit cap')
+    .option('--dry-run', 'Probe the URL for accepts[] without signing')
+    .option('--json', 'Emit machine-readable JSON output')
+    .action(async (url: string, opts: Record<string, unknown>) => {
+      const code = await cmdPay({
+        url,
+        method: typeof opts.method === 'string' ? opts.method : undefined,
+        headers: Array.isArray(opts.header) ? (opts.header as string[]) : undefined,
+        body: typeof opts.body === 'string' ? opts.body : undefined,
+        profile: typeof opts.profile === 'string' ? opts.profile : undefined,
+        network: typeof opts.network === 'string' ? opts.network : undefined,
+        scheme: typeof opts.scheme === 'string' ? opts.scheme : undefined,
+        maxAmount: typeof opts.maxAmount === 'string' ? opts.maxAmount : undefined,
+        dryRun: opts.dryRun === true,
+        output: resolveOutputMode(opts),
+      });
+      exitWith(code);
+    });
+
+  // ---- serve transfer ----
+  const serve = program.command('serve').description('Run a temporary x402 service');
+  serve
+    .command('transfer')
+    .description('Start a temporary collection server: any payer can settle to --pay-to')
+    .requiredOption('--pay-to <address>', 'Recipient address')
+    .requiredOption('--amount <decimal>', 'Human-readable amount')
+    .option('--token <symbol>', 'Token symbol')
+    .option('--asset <address>', 'Explicit token address')
+    .option('--decimals <n>', 'Decimals when using --asset', (v) => Number.parseInt(v, 10))
+    .option('--host <host>', 'Bind host', '127.0.0.1')
+    .option('--port <port>', 'Bind port', (v) => Number.parseInt(v, 10), 4020)
+    .option('--profile <name>', 'Profile to use')
+    .option('--network <network>', 'Override network')
+    .option('--scheme <scheme>', 'Override scheme')
+    .option('--json', 'Emit machine-readable JSON output')
+    .action(async (opts: Record<string, unknown>) => {
+      const code = await cmdServeTransfer({
+        host: typeof opts.host === 'string' ? opts.host : undefined,
+        port: typeof opts.port === 'number' ? opts.port : undefined,
+        payTo: String(opts.payTo),
+        amount: String(opts.amount),
+        token: typeof opts.token === 'string' ? opts.token : undefined,
+        asset: typeof opts.asset === 'string' ? opts.asset : undefined,
+        decimals: typeof opts.decimals === 'number' ? opts.decimals : undefined,
+        profile: typeof opts.profile === 'string' ? opts.profile : undefined,
+        network: typeof opts.network === 'string' ? opts.network : undefined,
+        scheme: typeof opts.scheme === 'string' ? opts.scheme : undefined,
+        output: resolveOutputMode(opts),
+      });
+      exitWith(code);
+    });
+
+  // ---- receipt ----
+  const receipt = program.command('receipt').description('Inspect the local receipt store');
+  receipt
+    .command('list')
+    .description('List receipts (newest at the end)')
+    .option('--profile <name>', 'Filter by profile')
+    .option('--network <network>', 'Filter by network')
+    .option('--scheme <scheme>', 'Filter by scheme')
+    .option('--token <symbol>', 'Filter by token symbol')
+    .option('--from <ts>', 'Start of range (unix seconds or ISO 8601)')
+    .option('--to <ts>', 'End of range (unix seconds or ISO 8601)')
+    .option('--limit <n>', 'Show only the last <n> matches', (v) => Number.parseInt(v, 10))
+    .option('--json', 'Emit machine-readable JSON output')
+    .action(async (opts: Record<string, unknown>) => {
+      const code = await cmdReceiptList({
+        profile: typeof opts.profile === 'string' ? opts.profile : undefined,
+        network: typeof opts.network === 'string' ? opts.network : undefined,
+        scheme: typeof opts.scheme === 'string' ? opts.scheme : undefined,
+        token: typeof opts.token === 'string' ? opts.token : undefined,
+        from: typeof opts.from === 'string' ? opts.from : undefined,
+        to: typeof opts.to === 'string' ? opts.to : undefined,
+        limit: typeof opts.limit === 'number' ? opts.limit : undefined,
+        output: resolveOutputMode(opts),
+      });
+      exitWith(code);
+    });
+  receipt
+    .command('show <id>')
+    .description('Show a receipt by paymentId or transaction hash')
+    .option('--json', 'Emit machine-readable JSON output')
+    .action(async (id: string, opts: Record<string, unknown>) => {
+      const code = await cmdReceiptShow(id, resolveOutputMode(opts));
+      exitWith(code);
+    });
+  receipt
+    .command('export')
+    .description('Export all receipts as JSON or CSV')
+    .option('--format <format>', 'json | csv', 'json')
+    .option('--json', 'Wrap the output in the standard envelope')
+    .action(async (opts: Record<string, unknown>) => {
+      const code = await cmdReceiptExport(
+        typeof opts.format === 'string' ? opts.format : 'json',
+        resolveOutputMode(opts),
+      );
       exitWith(code);
     });
 
