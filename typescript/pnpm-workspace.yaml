@@ -1,3 +1,5 @@
 packages:
   - 'packages/x402'
+  - 'packages/mcp'
+  - 'packages/cli'
   - '../examples/typescript/client'

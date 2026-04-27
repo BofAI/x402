@@ -1,0 +1,46 @@
+{
+  "name": "@bankofai/x402-cli",
+  "version": "0.1.0",
+  "description": "BankofAI x402 command-line tool: pay 402-protected resources, gas-free transfers on TRON, temporary collection servers, and on-device receipts.",
+  "keywords": ["x402", "cli", "tron", "evm", "payment", "gasfree"],
+  "homepage": "https://github.com/BofAI/x402#readme",
+  "bugs": {
+    "url": "https://github.com/BofAI/x402/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BofAI/x402.git",
+    "directory": "typescript/packages/cli"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "x402": "./dist/index.js"
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "test": "vitest run",
+    "x402": "node ./dist/index.js"
+  },
+  "dependencies": {
+    "@bankofai/x402": "workspace:*",
+    "@bankofai/agent-wallet": "^2.3.0",
+    "commander": "^12.1.0",
+    "tronweb": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.6.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT"
+}
