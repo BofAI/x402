@@ -186,6 +186,74 @@ Use `/x402:compound` to add new entries after solving a problem.
 
 ---
 
+### 11. GasFree API `assets[].balance` field can lag the chain by minutes
+
+- **Category**: api
+- **Severity**: medium
+- **Module**: gasfree, cli, balance
+
+**Symptom**: `GasFreeAPIClient.getAddressInfo(user)` returns
+`assets[0].balance = "0"` for a custodial wallet that just received a
+TRC-20 deposit and which the next `transfer` call settles successfully
+out of. The `balance` field is not authoritative.
+
+**Root cause**: GasFree maintains an internal index of custodial balances
+and updates it asynchronously after observing on-chain Transfer events.
+Indexing latency can be tens of seconds to minutes depending on load. The
+field is best-effort metadata, not a live read.
+
+**Fix**: For any user-facing balance display or pre-flight check, query
+the TRC-20 contract directly via `triggerConstantContract balanceOf` (the
+`getTrc20Balance` helper in `typescript/packages/cli/src/onchain.ts` does
+this). The CLI's `balance` command now surfaces both `chainBalance` and
+`apiBalance` and prints a stderr warning when they disagree.
+
+**Rule**: Do not trust `getAddressInfo` for balances. Use it for
+`active` / `allowSubmit` / `nonce` / `gasFreeAddress` (which are
+deterministic) and read balance from the chain.
+
+**Ref**: 2026-04-27 testnet session; CLI commit 5aa41b6 / follow-up adds
+`onchain.ts` helper.
+
+---
+
+### 12. GasFree fee structure is flat-per-tx — micropayments are uneconomical
+
+- **Category**: economic
+- **Severity**: medium (design trade-off, not a bug)
+- **Module**: gasfree, cli, transfer
+
+**Symptom**: User runs `x402 transfer --amount 0.001 --token USDT` and
+later notices their GasFree wallet decreased by ~0.101 USDT, not the
+expected 0.001. The fee/amount ratio looks pathological for small
+transfers.
+
+**Root cause**: GasFree's `transferFee` is a flat per-tx amount (0.1 USDT
+on Nile USDT) that compensates the service provider for the TRX gas they
+spend broadcasting the on-chain settlement (typically 5-6 TRX per tx,
+fixed regardless of amount). The fee scales with TRX cost, not with
+payment size. Activation also costs ~1 USDT one-time. So:
+- ~0.001 USDT payment → 0.1 USDT fee → 100x overhead.
+- ~10 USDT payment → 0.1 USDT fee → 1% overhead.
+
+The provider's economics are: pay TRX to broadcast, get reimbursed in
+USDT. They are running a small TRX↔USDT relayer market.
+
+**Fix**: There is no "fix" — this is GasFree's design. The CLI's
+`transfer --dry-run` now computes `feeAsPercentageOfAmount` and emits a
+stderr warning when fees are >=10% of the payment amount, so users know
+what they are signing up for. For agent / micropayment use cases under
+~$1, consider batching transfers, or skip GasFree entirely and use
+ERC-3009 `exact` (where the user pays their own gas but no relayer fee).
+
+**Rule**: GasFree is for human-pays-vendor flows where transfer amounts
+are typically dollars+, not for sub-dollar agent calls. Document the
+break-even amount in CLI / SDK consumer guides.
+
+**Ref**: 2026-04-27 evaluation; transfer.ts now emits the warning.
+
+---
+
 <!-- Template for new entries:
 
 ### N. Short title

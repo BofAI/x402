@@ -21,6 +21,8 @@ import { getFacilitatorBaseUrl } from '../facilitator.js';
 import { deriveWalletInfo } from '../wallet.js';
 import { X402CliError } from '../error.js';
 import { GasFreeAPIClient, isTronNetwork } from '@bankofai/x402';
+import { getTrc20Balance } from '../onchain.js';
+import { formatSmallestUnit } from '../amount.js';
 
 export async function cmdBalance(opts: {
   profile?: string;
@@ -64,19 +66,57 @@ export async function cmdBalance(opts: {
     const display = (s: string) => (opts.verbose ? s : maskAddress(s));
 
     // The GasFree address returned here is the canonical one for this wallet —
-    // never recursively re-query it (solutions.md #9).
-    const assets = info.assets
-      .filter((asset) => !opts.token || asset.tokenSymbol === opts.token)
-      .map((asset) => ({
-        symbol: asset.tokenSymbol,
-        address: display(asset.tokenAddress),
-        decimals: asset.decimal,
-        balance: asset.balance ?? '0',
-        balanceDisplay: formatSmallestUnit(asset.balance ?? '0', asset.decimal),
-        transferFee: formatSmallestUnit(asset.transferFee, asset.decimal),
-        activateFee: formatSmallestUnit(asset.activateFee, asset.decimal),
-        frozen: asset.frozen,
-      }));
+    // never recursively re-query it (solutions.md #9). For each asset we query
+    // the chain directly for the authoritative balance (solutions.md #11) and
+    // surface both the chain figure and the API figure so callers can detect
+    // GasFree API caching lag.
+    const candidates = info.assets.filter(
+      (asset) => !opts.token || asset.tokenSymbol === opts.token,
+    );
+    const assets = await Promise.all(
+      candidates.map(async (asset) => {
+        let chainBalance: bigint | null = null;
+        let chainBalanceError: string | null = null;
+        try {
+          chainBalance = await getTrc20Balance({
+            network,
+            token: asset.tokenAddress,
+            holder: info.gasFreeAddress,
+          });
+        } catch (err) {
+          chainBalanceError = (err as Error).message;
+        }
+        const apiBalanceRaw = String(asset.balance ?? '0');
+        const stale =
+          chainBalance !== null && chainBalance !== BigInt(apiBalanceRaw || '0');
+        return {
+          symbol: asset.tokenSymbol,
+          address: display(asset.tokenAddress),
+          decimals: asset.decimal,
+          chainBalance: chainBalance !== null ? chainBalance.toString() : null,
+          chainBalanceDisplay:
+            chainBalance !== null
+              ? formatSmallestUnit(chainBalance, asset.decimal)
+              : null,
+          chainBalanceError,
+          apiBalance: apiBalanceRaw,
+          apiBalanceDisplay: formatSmallestUnit(apiBalanceRaw, asset.decimal),
+          apiBalanceStale: stale,
+          transferFee: formatSmallestUnit(asset.transferFee, asset.decimal),
+          activateFee: formatSmallestUnit(asset.activateFee, asset.decimal),
+          frozen: asset.frozen,
+        };
+      }),
+    );
+
+    const stalewarn = assets.find((a) => a.apiBalanceStale);
+    if (stalewarn) {
+      process.stderr.write(
+        `[x402] GasFree API balance is stale for ${stalewarn.symbol}: ` +
+          `chain=${stalewarn.chainBalanceDisplay} api=${stalewarn.apiBalanceDisplay}. ` +
+          `Trust the chain figure.\n`,
+      );
+    }
 
     return {
       network,
@@ -90,15 +130,3 @@ export async function cmdBalance(opts: {
   });
 }
 
-function formatSmallestUnit(amount: string | number, decimals: number): string {
-  const raw = typeof amount === 'number' ? BigInt(Math.trunc(amount)) : BigInt(amount || '0');
-  if (decimals <= 0) return raw.toString();
-  const negative = raw < 0n;
-  const abs = negative ? -raw : raw;
-  const divisor = 10n ** BigInt(decimals);
-  const whole = abs / divisor;
-  const frac = abs % divisor;
-  const fracStr = frac.toString().padStart(decimals, '0').replace(/0+$/, '');
-  const display = fracStr.length > 0 ? `${whole}.${fracStr}` : whole.toString();
-  return negative ? `-${display}` : display;
-}

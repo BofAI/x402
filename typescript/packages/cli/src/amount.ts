@@ -111,8 +111,16 @@ export function parseHumanAmount(amount: string, decimals: number): bigint {
 }
 
 /** Format a smallest-unit BigInt back to a human-readable string. */
-export function formatSmallestUnit(amount: bigint | string, decimals: number): string {
-  const raw = typeof amount === 'bigint' ? amount : BigInt(amount || '0');
+export function formatSmallestUnit(
+  amount: bigint | string | number,
+  decimals: number,
+): string {
+  const raw =
+    typeof amount === 'bigint'
+      ? amount
+      : typeof amount === 'number'
+        ? BigInt(Math.trunc(amount))
+        : BigInt(amount || '0');
   const negative = raw < 0n;
   const abs = negative ? -raw : raw;
   if (decimals <= 0) return (negative ? '-' : '') + abs.toString();

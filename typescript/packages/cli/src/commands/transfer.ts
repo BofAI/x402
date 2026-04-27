@@ -281,7 +281,27 @@ function buildDryRunResult(
   accountInfo: Awaited<ReturnType<GasFreeAPIClient['getAddressInfo']>>,
 ) {
   const asset = accountInfo.assets.find((a) => a.tokenAddress === token.address);
-  const transferFee = asset ? String(asset.transferFee) : '0';
+  const transferFee = asset ? BigInt(String(asset.transferFee)) : 0n;
+  const activateFee =
+    asset && !accountInfo.active ? BigInt(String(asset.activateFee)) : 0n;
+  const amount = BigInt(requirements.amount);
+  const totalFee = transferFee + activateFee;
+  const feePctOfAmount =
+    amount > 0n ? Number((totalFee * 10000n) / amount) / 100 : null;
+  // Warn loud when GasFree fee dwarfs the actual payment — the SDK can't fix
+  // this; users should know what they're spending the relayer fee on.
+  if (feePctOfAmount !== null && feePctOfAmount >= 10) {
+    process.stderr.write(
+      `[x402] WARNING: GasFree relayer fee is ` +
+        `${formatSmallestUnit(totalFee, token.decimals)} ${token.symbol}, ` +
+        `which is ${feePctOfAmount.toFixed(1)}% of the ${formatSmallestUnit(
+          amount,
+          token.decimals,
+        )} ${token.symbol} payment. ` +
+        `GasFree fees are flat per-tx; small payments are uneconomical. See ` +
+        `docs/solutions.md #12.\n`,
+    );
+  }
   return {
     dryRun: true,
     profile,
@@ -296,7 +316,10 @@ function buildDryRunResult(
     amount: requirements.amount,
     amountDisplay: `${formatSmallestUnit(requirements.amount, token.decimals)} ${token.symbol}`,
     payTo: requirements.payTo,
-    estimatedTransferFee: transferFee,
+    estimatedTransferFee: transferFee.toString(),
+    estimatedTransferFeeDisplay: formatSmallestUnit(transferFee, token.decimals),
+    estimatedActivateFee: activateFee.toString(),
+    feeAsPercentageOfAmount: feePctOfAmount,
     paymentId: paymentPermitContext.meta.paymentId,
   };
 }

@@ -66,6 +66,17 @@ Queries the GasFree API for the wallet's account info: main address, derived `ga
 
 The wallet's `gasFreeAddress` is read directly from the API response. Per [`docs/solutions.md` #9](../../../docs/solutions.md), do **not** recursively query that address again — its further `gasFreeAddress` is a different account.
 
+## GasFree economics — read this before paying
+
+The default `nile` profile uses `exact_gasfree` on TRON. GasFree has two cost components users should know about (see [`docs/solutions.md` #11 + #12](../../../docs/solutions.md)):
+
+- **`transferFee`** — flat per-tx, ~0.1 USDT on Nile USDT, paid to the GasFree service provider as compensation for the TRX gas they spend broadcasting your settlement. Does **not** scale with the payment amount, so very small payments have a high fee/amount ratio.
+- **`activateFee`** — one-time ~1 USDT charged the first time a custodial address is used.
+
+`x402 transfer --dry-run` now reports `feeAsPercentageOfAmount` and warns when the fee is ≥10% of the payment. Below that threshold GasFree is fine; far above it (e.g. an agent paying $0.001 per API call) you are mostly paying the relayer, not the recipient. For those cases, fall back to `exact` (ERC-3009) where the user pays their own TRX gas but there is no flat relayer fee.
+
+`x402 balance` queries the TRC-20 contract directly for the canonical balance (the GasFree API's `assets[].balance` field can lag minutes behind the chain). The output surfaces both `chainBalance` and `apiBalance` so cache lag is visible; trust the chain figure.
+
 ## Configuration sources & precedence
 
 | Source | Example |
