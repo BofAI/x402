@@ -111,6 +111,33 @@ TRON_GRID_API_KEY        — optional, forwarded to SDK for TronGrid RPC
 
 **Revisit when.** If we ever support a non-x402 protocol from the same CLI binary, we'd need to revisit — but that's out of MVP scope.
 
+## D4. Facilitator endpoint — **locked to BankofAI hosted**
+
+**Decision.** The CLI talks to **BankofAI's hosted facilitator only**. The URL is derived from the chosen `network`, not configured per-profile and not surfaced as a CLI flag in normal help:
+
+```text
+tron:mainnet  → https://facilitator.bankofai.io/mainnet
+tron:shasta   → https://facilitator.bankofai.io/shasta
+tron:nile     → https://facilitator.bankofai.io/nile
+eip155:*      → https://facilitator.bankofai.io/<chain-slug>   (TBD per chain)
+```
+
+**Specifically supersedes** the spec's profile example which shows `"facilitatorUrl": "..."` per profile and the per-command `--facilitator-url <url>` flag listed under `pay` / `transfer` flags. Both are dropped from the user-facing surface.
+
+**Mechanism in code.** Add a `getFacilitatorBaseUrl(network)` helper in the CLI (or hoist into `@bankofai/x402` config like the existing `getGasFreeApiBaseUrl`). All commands resolve the facilitator URL from `network` alone — no manual override path in normal use.
+
+**Escape hatch — internal only.** A single env var, `X402_FACILITATOR_URL_OVERRIDE`, lets the e2e harness (and only the e2e harness) point the CLI at a local `examples/facilitator/` instance. Not advertised in `--help`, mentioned only in `e2e/CLAUDE.md` and the CLI README's troubleshooting section. If set, every command logs a one-line warning to stderr ("CLI facilitator override active: <url>") so it's never silent.
+
+**Rationale.**
+- Brand & product cohesion: BankofAI x402 CLI talks to BankofAI's facilitator. Letting users swap in Coinbase / Cloudflare / self-hosted dilutes the product story and shifts support burden to us for endpoints we don't run.
+- Reliability story is concrete: we know exactly which facilitator the CLI hits, so SLAs and runbooks have one target.
+- Less to teach: zero `--facilitator-url` in the docs, in `pay --help`, in the profile schema. Users learn one thing — `network` — and the rest follows.
+- Backward path: adding an override flag later is cheap. Removing one (after users depend on it) is hard. Lock first; expand later only if real demand surfaces.
+
+**What we lose.** Power users running their own facilitator can't use the CLI without the env-var workaround. That's accepted; the CLI is for the BankofAI default flow, not for facilitator-operator self-service.
+
+**Revisit when.** Any of: (a) we publish a facilitator-operator product / SDK and need first-party support; (b) Linux Foundation x402 spec mandates client-side facilitator selection (currently it doesn't); (c) repeated user requests for non-BankofAI facilitator support in standard flows.
+
 ## Open items deferred (NOT blocking MVP)
 
 These can be answered while implementing:
