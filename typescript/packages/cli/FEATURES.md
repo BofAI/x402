@@ -5,7 +5,6 @@
 - `serve`: 拉起一个 x402 payment server，声明收款网络、token、金额和收款账户。
 - `client`: 作为 x402 payer，请求一个 x402 URL，收到 402 后签名并完成支付。
 
-这个 CLI 不维护本地状态，不要求 profile，不提供 balance/receipt/config/transfer 这类长期管理命令。一次命令包含一次操作需要的全部参数。
 
 ## 核心设计
 
@@ -15,15 +14,6 @@
 |---|---|
 | `x402-tools serve` | 启动收款 server，暴露标准 x402 payment endpoint |
 | `x402-tools client <url>` | 请求 x402 endpoint，自动完成 402 支付 flow |
-
-不把这些能力做成独立命令：
-
-| 能力 | 原因 |
-|---|---|
-| 直接转账命令 | 转账通过 `serve + client` 的 x402 HTTP flow 完成，不额外定义新命令 |
-| 余额查询 | 避免把 wallet/account 状态管理塞进一次性工具 |
-| 本地配置管理 | 不保存 profile；所有参数都从命令行或环境变量传入 |
-| 本地凭证管理 | 不维护本地 receipt store；结果直接输出到 stdout |
 
 ### 默认值
 
