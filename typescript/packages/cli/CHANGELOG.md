@@ -4,11 +4,24 @@ All notable changes to `@bankofai/x402-cli` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0] — 2026-04-28 (unreleased)
+## [0.1.0-beta.0] — 2026-04-28
 
-First public iteration of the BankofAI x402 CLI, scoped per
-[`FEATURES.md`](FEATURES.md). Spec:
-[`specs/002-bankofai-cli/bankofai-cli.md`](../../../specs/002-bankofai-cli/bankofai-cli.md).
+First public beta of the BankofAI x402 CLI, scoped per
+[`FEATURES.md`](FEATURES.md). Live spec is in `FEATURES.md`; the
+historical 9-command design at
+[`specs/002-bankofai-cli/bankofai-cli.md`](../../../specs/002-bankofai-cli/bankofai-cli.md)
+is retained as design history (status: superseded). Decisions D1–D4 in
+[`specs/002-bankofai-cli/notes/decisions.md`](../../../specs/002-bankofai-cli/notes/decisions.md)
+still apply.
+
+### Beta surface
+
+- Binary: `x402-tools` (`@bankofai/x402-cli`), Node ≥ 20, ESM-only.
+- Result fields are snake_case; protocol amount field is `amount`
+  (smallest unit) — matches `PaymentRequirements.amount`. Human form
+  is `decimal`.
+- Beta is published as `0.1.0-beta.0`; expect a `0.1.0` once the four
+  follow-ups below are either closed or formally deferred.
 
 ### Added
 
@@ -20,19 +33,19 @@ First public iteration of the BankofAI x402 CLI, scoped per
     against the issued challenge on retry, and settles in-process:
     - `exact_gasfree` → `GasFreeAPIClient.submit` + `waitForSuccess`.
     - any other scheme → root facilitator `/verify` + `/settle`.
-  - Supports `--decimal | --raw-amount` (mutually exclusive),
+  - Supports `--decimal | --amount` (mutually exclusive),
     `--network`, `--token` (default USDT), `--scheme`, `--host`,
     `--port`, `--resource-url`, `--wallet <agent-wallet | env>`,
     `--daemon`, `--json`.
   - Human output and `--json` envelope both report
     `pay_url / resource_url / network / scheme / token / decimal /
-    raw_amount / pay_to`. `--daemon` spawns a detached child and
+    amount / pay_to`. `--daemon` spawns a detached child and
     prints its PID.
 - **`x402-tools client <url>`** — pays an x402-protected URL.
   - Probes once; if not 402, prints a summary and exits.
   - On 402, parses `PAYMENT-REQUIRED` (header first, body fallback),
     filters server `accepts[]` against caller-supplied guards
-    (`--max-decimal | --max-raw-amount`, `--network`, `--token`,
+    (`--max-decimal | --max-amount`, `--network`, `--token`,
     `--scheme`), then signs and retries.
   - Registers `exact + exact_permit` for EVM and
     `exact_permit + exact_gasfree` for TRON via the SDK's

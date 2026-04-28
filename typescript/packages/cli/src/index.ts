@@ -62,7 +62,7 @@ async function main(argv: string[]): Promise<void> {
     .description('Start a local x402 payment server')
     .requiredOption('--pay-to <address>', 'Recipient wallet address')
     .option('--decimal <decimal>', 'Human-readable amount, e.g. 1.25')
-    .option('--raw-amount <integer>', 'Smallest-unit amount, e.g. 1250000 for 1.25 USDT')
+    .option('--amount <integer>', 'Smallest-unit amount, e.g. 1250000 for 1.25 USDT')
     .requiredOption('--network <id>', 'Payment network, e.g. tron:nile, eip155:97')
     .option('--token <symbol>', 'Token symbol from the registry (default: USDT)', 'USDT')
     .option('--asset <address>', 'Explicit token address (out of registry)')
@@ -78,7 +78,7 @@ async function main(argv: string[]): Promise<void> {
       const code = await cmdServer({
         payTo: String(opts.payTo),
         decimal: typeof opts.decimal === 'string' ? opts.decimal : undefined,
-        rawAmount: typeof opts.rawAmount === 'string' ? opts.rawAmount : undefined,
+        amount: typeof opts.amount === 'string' ? opts.amount : undefined,
         network: String(opts.network),
         token: typeof opts.token === 'string' ? opts.token : undefined,
         asset: typeof opts.asset === 'string' ? opts.asset : undefined,
@@ -98,7 +98,7 @@ async function main(argv: string[]): Promise<void> {
     .command('client <url>')
     .description('Pay an x402-protected URL when the server returns 402 Payment Required')
     .option('--max-decimal <decimal>', 'Maximum human-readable amount allowed')
-    .option('--max-raw-amount <integer>', 'Maximum smallest-unit amount allowed')
+    .option('--max-amount <integer>', 'Maximum smallest-unit amount allowed')
     .option('--network <id>', 'Require a specific network')
     .option('--token <symbol>', 'Require a specific token (default: USDT)')
     .option('--scheme <name>', 'Require a specific x402 scheme')
@@ -116,7 +116,7 @@ async function main(argv: string[]): Promise<void> {
         headers: Array.isArray(opts.header) ? (opts.header as string[]) : undefined,
         body: typeof opts.body === 'string' ? opts.body : undefined,
         maxDecimal: typeof opts.maxDecimal === 'string' ? opts.maxDecimal : undefined,
-        maxRawAmount: typeof opts.maxRawAmount === 'string' ? opts.maxRawAmount : undefined,
+        maxAmount: typeof opts.maxAmount === 'string' ? opts.maxAmount : undefined,
         network: typeof opts.network === 'string' ? opts.network : undefined,
         token: typeof opts.token === 'string' ? opts.token : undefined,
         scheme: typeof opts.scheme === 'string' ? opts.scheme : undefined,

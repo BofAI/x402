@@ -29,11 +29,11 @@ describe('cmdClient (validation)', () => {
     expect(env.error.code).toBe('INVALID_INPUT');
   });
 
-  it('rejects --max-decimal and --max-raw-amount together', async () => {
+  it('rejects --max-decimal and --max-amount together', async () => {
     const code = await cmdClient({
       url: 'http://127.0.0.1:0/pay',
       maxDecimal: '1',
-      maxRawAmount: '1000000',
+      maxAmount: '1000000',
       output: 'json',
     });
     expect(code).toBe(1);
@@ -94,7 +94,7 @@ describe('cmdClient (--dry-run)', () => {
     expect(env.result.chosen.network).toBe('eip155:97');
   });
 
-  it('rejects when --max-raw-amount is below the server quote', async () => {
+  it('rejects when --max-amount is below the server quote', async () => {
     const accepts = [
       {
         scheme: 'exact_permit',
@@ -113,7 +113,7 @@ describe('cmdClient (--dry-run)', () => {
     );
     const code = await cmdClient({
       url: 'http://127.0.0.1:0/pay',
-      maxRawAmount: '1',
+      maxAmount: '1',
       dryRun: true,
       output: 'json',
     });

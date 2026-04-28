@@ -1,6 +1,6 @@
 {
   "name": "@bankofai/x402-cli",
-  "version": "0.1.0",
+  "version": "0.1.0-beta.0",
   "description": "x402-tools — one-shot BankofAI x402 CLI: serve a 402 payment endpoint, or pay one as a client.",
   "keywords": ["x402", "cli", "tron", "evm", "payment"],
   "homepage": "https://github.com/BofAI/x402#readme",

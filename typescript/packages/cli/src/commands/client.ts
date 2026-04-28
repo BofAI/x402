@@ -5,7 +5,7 @@
  *   1. fetch the URL once.
  *   2. if not 402: print response summary and exit.
  *   3. if 402: parse PaymentRequirements, validate against caller-supplied
- *      guards (--max-decimal | --max-raw-amount, --network, --token,
+ *      guards (--max-decimal | --max-amount, --network, --token,
  *      --scheme), sign + retry, and print the settlement.
  */
 
@@ -41,7 +41,7 @@ export interface ClientOpts {
   /** Caps in human form (parsed against the chosen requirement's token). */
   maxDecimal?: string;
   /** Caps in smallest-unit BigInt-able string. */
-  maxRawAmount?: string;
+  maxAmount?: string;
   network?: string;
   token?: string;
   scheme?: string;
@@ -56,10 +56,10 @@ export async function cmdClient(opts: ClientOpts): Promise<number> {
     if (!opts.url) {
       throw new X402CliError('INVALID_INPUT', `URL is required.`);
     }
-    if (opts.maxDecimal && opts.maxRawAmount) {
+    if (opts.maxDecimal && opts.maxAmount) {
       throw new X402CliError(
         'INVALID_AMOUNT',
-        `--max-decimal and --max-raw-amount are mutually exclusive.`,
+        `--max-decimal and --max-amount are mutually exclusive.`,
       );
     }
 
@@ -164,15 +164,15 @@ function filterAccepts(accepts: PaymentRequirements[], opts: ClientOpts): Paymen
     out = out.filter((r) => {
       const symbol = (r.extra?.name || '').toUpperCase();
       // Only match when the requirement's token symbol metadata aligns;
-      // otherwise let the caller use --max-raw-amount as the safety net.
+      // otherwise let the caller use --max-amount as the safety net.
       return !symbol || symbol.startsWith(wanted) || symbol === wanted;
     });
   }
-  if (opts.maxRawAmount) {
-    if (!/^[0-9]+$/.test(opts.maxRawAmount)) {
-      throw new X402CliError('INVALID_AMOUNT', `--max-raw-amount must be a non-negative integer.`);
+  if (opts.maxAmount) {
+    if (!/^[0-9]+$/.test(opts.maxAmount)) {
+      throw new X402CliError('INVALID_AMOUNT', `--max-amount must be a non-negative integer.`);
     }
-    const cap = BigInt(opts.maxRawAmount);
+    const cap = BigInt(opts.maxAmount);
     out = out.filter((r) => BigInt(r.amount) <= cap);
   }
   if (opts.maxDecimal) {
@@ -267,7 +267,7 @@ function summarizeRequirement(r: PaymentRequirements) {
     scheme: r.scheme,
     asset: r.asset,
     pay_to: r.payTo,
-    raw_amount: r.amount,
+    amount: r.amount,
     decimal,
   };
 }

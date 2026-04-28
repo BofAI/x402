@@ -115,22 +115,22 @@ describe('newPaymentId', () => {
 describe('parseAmountFlags', () => {
   it('accepts --decimal alone', () => {
     expect(parseAmountFlags(6, { decimal: '1.25' })).toEqual({
-      rawBigInt: 1_250_000n,
-      raw: '1250000',
+      amountBigInt: 1_250_000n,
+      amount: '1250000',
       decimal: '1.25',
     });
   });
 
-  it('accepts --raw-amount alone and produces a decimal', () => {
-    expect(parseAmountFlags(6, { rawAmount: '1250000' })).toEqual({
-      rawBigInt: 1_250_000n,
-      raw: '1250000',
+  it('accepts --amount alone and produces a decimal', () => {
+    expect(parseAmountFlags(6, { amount: '1250000' })).toEqual({
+      amountBigInt: 1_250_000n,
+      amount: '1250000',
       decimal: '1.25',
     });
   });
 
-  it('rejects when both --decimal and --raw-amount are provided', () => {
-    expect(() => parseAmountFlags(6, { decimal: '1', rawAmount: '1000000' })).toThrowError(
+  it('rejects when both --decimal and --amount are provided', () => {
+    expect(() => parseAmountFlags(6, { decimal: '1', amount: '1000000' })).toThrowError(
       /mutually exclusive/,
     );
   });
@@ -139,15 +139,15 @@ describe('parseAmountFlags', () => {
     expect(() => parseAmountFlags(6, {})).toThrowError(/must be provided/);
   });
 
-  it('rejects --raw-amount that is not a non-negative integer', () => {
-    expect(() => parseAmountFlags(6, { rawAmount: '1.5' })).toThrowError(/non-negative integer/);
-    expect(() => parseAmountFlags(6, { rawAmount: '-3' })).toThrowError(/non-negative integer/);
-    expect(() => parseAmountFlags(6, { rawAmount: 'abc' })).toThrowError(/non-negative integer/);
+  it('rejects --amount that is not a non-negative integer', () => {
+    expect(() => parseAmountFlags(6, { amount: '1.5' })).toThrowError(/non-negative integer/);
+    expect(() => parseAmountFlags(6, { amount: '-3' })).toThrowError(/non-negative integer/);
+    expect(() => parseAmountFlags(6, { amount: 'abc' })).toThrowError(/non-negative integer/);
   });
 
   it('round-trips for 18-decimal tokens', () => {
-    const a = parseAmountFlags(18, { rawAmount: '1500000000000000000' });
+    const a = parseAmountFlags(18, { amount: '1500000000000000000' });
     expect(a.decimal).toBe('1.5');
-    expect(a.raw).toBe('1500000000000000000');
+    expect(a.amount).toBe('1500000000000000000');
   });
 });

@@ -37,9 +37,9 @@ Both `server` and `client` accept either form, never both:
 | Flag | Meaning | Example |
 |---|---|---|
 | `--decimal <decimal>` | human-readable; resolved against the token's `decimals` | `1.25` |
-| `--raw-amount <integer>` | smallest-unit BigInt-able string, fed straight into `PaymentRequirements.amount` | `1250000` for 1.25 USDT |
+| `--amount <integer>` | smallest-unit BigInt-able string, fed straight into `PaymentRequirements.amount` | `1250000` for 1.25 USDT |
 
-JSON output always reports both as `decimal` and `raw_amount`.
+JSON output always reports both as `decimal` and `amount`.
 
 ## Wallet
 
@@ -59,7 +59,7 @@ Every command emits the same wrapped JSON envelope under `--json` (or `X402_OUTP
 { "ok": false, "command": "...", "error": { "code": "...", "message": "...", "hint": "..." } }
 ```
 
-15 standardized error codes are documented in [`src/error.ts`](src/error.ts). Result fields use `snake_case` (`pay_url`, `resource_url`, `pay_to`, `raw_amount`).
+15 standardized error codes are documented in [`src/error.ts`](src/error.ts). Result fields use `snake_case` (`pay_url`, `resource_url`, `pay_to`, `amount`).
 
 ## Schemes
 

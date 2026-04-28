@@ -44,7 +44,7 @@ const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 export interface ServerOpts {
   payTo: string;
   decimal?: string;
-  rawAmount?: string;
+  amount?: string;
   network: string;
   token?: string;
   scheme?: string;
@@ -77,7 +77,7 @@ export async function cmdServer(opts: ServerOpts): Promise<number> {
     });
     const amount = parseAmountFlags(token.decimals, {
       decimal: opts.decimal,
-      rawAmount: opts.rawAmount,
+      amount: opts.amount,
     });
 
     const scheme =
@@ -127,7 +127,7 @@ export async function cmdServer(opts: ServerOpts): Promise<number> {
             token: ctx.token.symbol,
             asset: ctx.token.address,
             decimal: amount.decimal,
-            raw_amount: amount.raw,
+            amount: amount.amount,
             pay_to: ctx.payTo,
             pay_url: payUrl,
             resource_url: resourceUrl,
@@ -164,7 +164,7 @@ export async function cmdServer(opts: ServerOpts): Promise<number> {
         `  scheme:       ${ctx.scheme}\n` +
         `  token:        ${ctx.token.symbol}\n` +
         `  decimal:      ${amount.decimal}\n` +
-        `  raw_amount:   ${amount.raw}\n` +
+        `  amount:       ${amount.amount}\n` +
         `  pay_to:       ${ctx.payTo}\n`,
     );
 
@@ -186,7 +186,7 @@ export async function cmdServer(opts: ServerOpts): Promise<number> {
       scheme: ctx.scheme,
       token: ctx.token.symbol,
       decimal: amount.decimal,
-      raw_amount: amount.raw,
+      amount: amount.amount,
       pay_to: ctx.payTo,
     };
   });
@@ -218,7 +218,7 @@ async function handlePay(req: IncomingMessage, res: ServerResponse, ctx: Ctx): P
     const requirements: PaymentRequirements = {
       scheme: ctx.scheme,
       network: ctx.network,
-      amount: ctx.amount.raw,
+      amount: ctx.amount.amount,
       asset: ctx.token.address,
       payTo: ctx.payTo,
       maxTimeoutSeconds: 180,

@@ -133,51 +133,53 @@ export function formatSmallestUnit(
 }
 
 /**
- * Parse a (decimal, rawAmount) pair according to the x402-tools amount
+ * Parse a (decimal, amount) pair according to the x402-tools amount
  * convention: exactly one of the two must be present, and the result is
  * always returned in both forms so JSON output can surface them together.
  *
- * Both inputs accept strings to keep BigInt round-tripping safe.
+ * `amount` is the protocol-canonical smallest-unit value (matches
+ * `PaymentRequirements.amount`); `decimal` is the human-readable form.
+ * Both inputs are strings to keep BigInt round-tripping safe.
  */
 export interface ParsedAmount {
-  /** smallest-unit BigInt — what goes into PaymentRequirements.amount */
-  rawBigInt: bigint;
-  /** smallest-unit string — what callers serialize */
-  raw: string;
+  /** smallest-unit BigInt — convenience for callers that need bigint math */
+  amountBigInt: bigint;
+  /** smallest-unit string — what goes into PaymentRequirements.amount */
+  amount: string;
   /** human-readable decimal string */
   decimal: string;
 }
 
 export function parseAmountFlags(
   decimals: number,
-  opts: { decimal?: string; rawAmount?: string },
+  opts: { decimal?: string; amount?: string },
 ): ParsedAmount {
   const hasDecimal = typeof opts.decimal === 'string' && opts.decimal.length > 0;
-  const hasRaw = typeof opts.rawAmount === 'string' && opts.rawAmount.length > 0;
-  if (hasDecimal && hasRaw) {
+  const hasAmount = typeof opts.amount === 'string' && opts.amount.length > 0;
+  if (hasDecimal && hasAmount) {
     throw new X402CliError(
       'INVALID_AMOUNT',
-      `--decimal and --raw-amount are mutually exclusive; pass exactly one.`,
+      `--decimal and --amount are mutually exclusive; pass exactly one.`,
     );
   }
-  if (!hasDecimal && !hasRaw) {
+  if (!hasDecimal && !hasAmount) {
     throw new X402CliError(
       'INVALID_AMOUNT',
-      `Either --decimal <decimal> or --raw-amount <integer> must be provided.`,
+      `Either --decimal <decimal> or --amount <integer> must be provided.`,
     );
   }
   if (hasDecimal) {
     const raw = parseHumanAmount(opts.decimal!, decimals);
-    return { rawBigInt: raw, raw: raw.toString(), decimal: opts.decimal! };
+    return { amountBigInt: raw, amount: raw.toString(), decimal: opts.decimal! };
   }
-  if (!/^[0-9]+$/.test(opts.rawAmount!)) {
+  if (!/^[0-9]+$/.test(opts.amount!)) {
     throw new X402CliError(
       'INVALID_AMOUNT',
-      `--raw-amount must be a non-negative integer (got '${opts.rawAmount}').`,
+      `--amount must be a non-negative integer (got '${opts.amount}').`,
     );
   }
-  const raw = BigInt(opts.rawAmount!);
-  return { rawBigInt: raw, raw: raw.toString(), decimal: formatSmallestUnit(raw, decimals) };
+  const raw = BigInt(opts.amount!);
+  return { amountBigInt: raw, amount: raw.toString(), decimal: formatSmallestUnit(raw, decimals) };
 }
 
 /** 16 random bytes as `0x` + 32 lowercase hex chars. */

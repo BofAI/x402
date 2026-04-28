@@ -21,32 +21,32 @@
 |---|---|
 | token | `USDT` |
 | network | 由 server/client 参数显式传入；可以给常用测试网默认值，但 help 中必须可见 |
-| payment amount | 必须显式传入 `--decimal` 或 `--raw-amount` |
+| payment amount | 必须显式传入 `--decimal` 或 `--amount` |
 | output | 默认 human；`--json` 输出机器可读 JSON |
 
 ### 金额字段
 
-金额必须区分 `decimal` 和 `raw_amount`：
+金额必须区分 `decimal` 和 `amount`：
 
 | 字段 | 含义 | 示例 |
 |---|---|---|
 | `decimal` | 人类可读金额，由 token registry 解析 | `1.25` USDT |
-| `raw_amount` | token smallest unit，直接进入 x402 payment requirements | `1250000` for USDT |
+| `amount` | token smallest unit，直接进入 x402 payment requirements | `1250000` for USDT |
 
 CLI 参数设计：
 
 ```text
 --decimal <decimal>     Human-readable token amount, e.g. 1.25
---raw-amount <integer>  smallest-unit amount, e.g. 1250000 for 1.25 USDT
+--amount <integer>  smallest-unit amount, e.g. 1250000 for 1.25 USDT
 ```
 
 规则：
 
-- `--decimal` 和 `--raw-amount` 二选一。
+- `--decimal` 和 `--amount` 二选一。
 - 同时传入时直接报错，避免歧义。
 - `--decimal` 用于人类操作。
-- `--raw-amount` 用于 Agent、脚本、服务间精确传参。
-- JSON 输出里同时展示两者：`decimal` 和 `raw_amount`。
+- `--amount` 用于 Agent、脚本、服务间精确传参。
+- JSON 输出里同时展示两者：`decimal` 和 `amount`。
 
 示例：
 
@@ -54,7 +54,7 @@ CLI 参数设计：
 {
   "token": "USDT",
   "decimal": "1.25",
-  "raw_amount": "1250000"
+  "amount": "1250000"
 }
 ```
 
@@ -79,7 +79,7 @@ Examples:
   x402-tools server --pay-to TJWdoJk8... --decimal 1.25 --network tron:nile
 
   # Same amount, passed as raw smallest-unit USDT amount
-  x402-tools server --pay-to TJWdoJk8... --raw-amount 1250000 --network tron:nile
+  x402-tools server --pay-to TJWdoJk8... --amount 1250000 --network tron:nile
 
   # Pay the x402 endpoint
   x402-tools client http://127.0.0.1:4020/pay
@@ -99,7 +99,7 @@ Required options:
   --pay-to <address>        Recipient wallet address
   --decimal <decimal>      Human-readable amount, e.g. 1.25
     or
-  --raw-amount <integer>    Smallest-unit amount, e.g. 1250000 for 1.25 USDT
+  --amount <integer>    Smallest-unit amount, e.g. 1250000 for 1.25 USDT
 
 Payment options:
   --network <id>            Payment network, e.g. tron:nile, tron:mainnet, eip155:97
@@ -127,7 +127,7 @@ Examples:
 
   x402-tools server \
     --pay-to TJWdoJk8... \
-    --raw-amount 1250000 \
+    --amount 1250000 \
     --token USDT \
     --network tron:nile \
     --scheme exact_gasfree \
@@ -166,7 +166,7 @@ x402-tools server listening
   scheme:       exact_gasfree
   token:        USDT
   decimal:      1.25
-  raw_amount:   1250000
+  amount:   1250000
   pay_to:       TJWdoJk8...
 ```
 
@@ -193,7 +193,7 @@ x402-tools server started
     "scheme": "exact_gasfree",
     "token": "USDT",
     "decimal": "1.25",
-    "raw_amount": "1250000",
+    "amount": "1250000",
     "pay_to": "TJWdoJk8..."
   }
 }
@@ -225,7 +225,7 @@ Arguments:
 
 Payment safety options:
   --max-decimal <decimal>   Maximum human-readable amount allowed
-  --max-raw-amount <int>    Maximum smallest-unit amount allowed
+  --max-amount <int>    Maximum smallest-unit amount allowed
   --network <id>            Require a specific network
   --token <symbol>          Require a specific token (default: USDT)
   --scheme <name>           Require a specific x402 scheme
@@ -256,7 +256,7 @@ Examples:
     --method POST \
     --header 'Content-Type: application/json' \
     --body '{"prompt":"hello"}' \
-    --max-raw-amount 1250000 \
+    --max-amount 1250000 \
     --json
 
   x402-tools client http://127.0.0.1:4020/pay --dry-run --json
@@ -269,7 +269,7 @@ Examples:
 1. 请求目标 URL。
 2. 如果不是 402，直接输出 response 摘要。
 3. 如果返回 402，解析 payment requirements。
-4. 检查 `--max-decimal` / `--max-raw-amount` / `--network` / `--token` / `--scheme` 限制。
+4. 检查 `--max-decimal` / `--max-amount` / `--network` / `--token` / `--scheme` 限制。
 5. 用 agent wallet 或 env fallback 签名。
 6. 携带 payment payload 重试请求。
 7. 输出最终 response 和 payment result。
@@ -289,7 +289,7 @@ Dry-run 输出示例：
         "scheme": "exact_gasfree",
         "token": "USDT",
         "decimal": "1.25",
-        "raw_amount": "1250000",
+        "amount": "1250000",
         "pay_to": "TJWdoJk8..."
       }
     ]
@@ -310,7 +310,7 @@ Dry-run 输出示例：
     "scheme": "exact_gasfree",
     "token": "USDT",
     "decimal": "1.25",
-    "raw_amount": "1250000",
+    "amount": "1250000",
     "transaction": "0x...",
     "response_body": {}
   }
@@ -337,7 +337,7 @@ x402-tools client http://127.0.0.1:4020/pay --max-decimal 1 --json
 
 ```bash
 x402-tools client https://api.example.com/premium \
-  --max-raw-amount 1000000 \
+  --max-amount 1000000 \
   --token USDT \
   --json
 ```
@@ -349,7 +349,7 @@ x402-tools server \
   --host 0.0.0.0 \
   --port 4020 \
   --pay-to TJWdoJk8... \
-  --raw-amount 5000000 \
+  --amount 5000000 \
   --token USDT \
   --network tron:nile \
   --scheme exact_gasfree

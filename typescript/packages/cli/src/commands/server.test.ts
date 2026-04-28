@@ -45,11 +45,11 @@ describe('cmdServer (validation)', () => {
     expect(env.error.code).toBe('INVALID_INPUT');
   });
 
-  it('rejects when both --decimal and --raw-amount are passed', async () => {
+  it('rejects when both --decimal and --amount are passed', async () => {
     const code = await cmdServer({
       payTo: 'TJWdoJk8KyrfxZ2iDUqz7fwpXaMkNqPehx',
       decimal: '1',
-      rawAmount: '1000000',
+      amount: '1000000',
       network: 'tron:nile',
       output: 'json',
     });
@@ -58,7 +58,7 @@ describe('cmdServer (validation)', () => {
     expect(env.error.code).toBe('INVALID_AMOUNT');
   });
 
-  it('rejects when neither --decimal nor --raw-amount is given', async () => {
+  it('rejects when neither --decimal nor --amount is given', async () => {
     const code = await cmdServer({
       payTo: 'TJWdoJk8KyrfxZ2iDUqz7fwpXaMkNqPehx',
       network: 'tron:nile',
@@ -93,7 +93,7 @@ describe('cmdServer (live HTTP probe)', () => {
       expect(body.network).toBe('tron:nile');
       expect(body.token).toBe('USDT');
       expect(body.decimal).toBe('1.25');
-      expect(body.raw_amount).toBe('1250000');
+      expect(body.amount).toBe('1250000');
       expect(body.pay_url).toBe(`http://127.0.0.1:${port}/pay`);
       expect(body.resource_url).toBe(`http://127.0.0.1:${port}/pay`);
 

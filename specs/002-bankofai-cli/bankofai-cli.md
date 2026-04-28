@@ -2,8 +2,36 @@
 
 **Feature Branch**: `002-bankofai-cli`  
 **Created**: 2026-04-27  
-**Status**: MVP implemented  
+**Last revised**: 2026-04-28  
+**Status**: **Superseded** — see [`typescript/packages/cli/FEATURES.md`](../../typescript/packages/cli/FEATURES.md) for the live spec.  
 **Input**: User description: "设计 x402 cli 命令行工具，能直接发起支付；或者拉起一个 server 设置网络、token 和金额，通过 BankofAI x402 SDK 的 GasFree 功能实现 gas-free 转账"
+
+## ⚠ This document is historical
+
+This file captures the **original 9-command design** that drove the early
+implementation (Apr 27). On Apr 28 the scope was collapsed to a focused
+**2-command** binary `x402-tools` (`server`, `client`). The shipping
+spec lives at [`typescript/packages/cli/FEATURES.md`](../../typescript/packages/cli/FEATURES.md).
+
+What changed:
+
+| Item | Original spec (below) | Shipped reality |
+|---|---|---|
+| Binary | `x402` | `x402-tools` |
+| Commands | `pay / transfer / serve / balance / inspect / config / request / receipt / doctor` | `server` / `client` |
+| Profile store | `~/.x402/config.json` | None — flags + env only |
+| Receipt store | `~/.x402/receipts.jsonl` | None — out of scope |
+| Diagnostics | `x402 doctor` | Out of scope |
+
+The four design decisions in [`notes/decisions.md`](notes/decisions.md)
+(D1 wallet source, D2 wrapped JSON envelope, D3 `X402_*` env namespace,
+D4 facilitator URL locked to BankofAI) all still apply to the 2-command
+shipping CLI — they survived the scope collapse.
+
+The remainder of this file is preserved verbatim as design history;
+**do not treat it as a spec for current code**.
+
+---
 
 ## 目标
 

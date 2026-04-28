@@ -163,35 +163,56 @@ These can be answered while implementing:
 | `pay --body @file` 402 retry replay | spec § "x402 pay" | Read body fully into memory before first request; replay from buffer on retry. Document `--body @-` (stdin) as not supported in MVP |
 | `server` graceful shutdown | spec § "x402 server" | `SIGINT` / `SIGTERM` → flush in-flight settle calls, then exit 0. Outstanding (issued but not paid) challenges are dropped (memory-only by design) |
 
-## Implementation status as of 2026-04-27
+## Implementation status as of 2026-04-28 (post scope-collapse)
+
+The original 9-command design was collapsed to a **2-command** binary
+`x402-tools` (`server`, `client`) — see
+[`typescript/packages/cli/FEATURES.md`](../../../typescript/packages/cli/FEATURES.md).
+The four decisions above (D1–D4) survived the rewrite unchanged.
 
 Implemented in `typescript/packages/cli`:
 
-- `config init/use/get/set/list`
-- `doctor`
-- `balance`
-- `transfer`
-  - TRON `exact_permit` via facilitator verify/settle
-  - TRON `exact_permit` approval failure auto-falls back to `exact_gasfree`
-  - TRON `exact_gasfree` fallback via GasFree submit/poll
-  - BSC/EVM `exact_permit` / `exact` via facilitator verify/settle
-- `pay`
-  - TRON `exact_permit` and `exact_gasfree`
-  - BSC/EVM `exact_permit` / `exact`
-- temporary collection server implementation; public command target is `x402 server`
-- `request`
-- `receipt list/show/export`
+- `x402-tools server`
+  - `GET /health`, `GET /.well-known/x402`, `GET | POST /pay`
+  - `exact_gasfree` (TRON) → in-process GasFree submit + waitForSuccess
+  - other schemes (TRON / EVM) → root facilitator `/verify` + `/settle`
+  - `--daemon` (detached spawn + PID), `--decimal | --amount`, `--token`,
+    `--network`, `--scheme`, `--host`, `--port`, `--resource-url`,
+    `--wallet <agent-wallet | env>`, `--json`
+- `x402-tools client <url>`
+  - probe → 402 → guard (`--max-decimal | --max-amount`, `--network`,
+    `--token`, `--scheme`) → sign → retry
+  - registers `exact + exact_permit` (EVM) and
+    `exact_permit + exact_gasfree` (TRON) via `X402FetchClient`
+  - `--method`, repeated `--header`, `--body`,
+    `--wallet <agent-wallet | env>`, `--dry-run`, `--yes`, `--json`
+
+Dropped from earlier in-progress design:
+
+- `config init/use/get/set/list`, `doctor`, `balance`, `transfer`,
+  `receipt`, `request`, `inspect`
+- `~/.x402/config.json`, `~/.x402/receipts.jsonl`,
+  `src/onchain.ts` (TRC-20 balance helper)
 
 Validation trajectory:
 
-- `pnpm --filter @bankofai/x402-cli test` passes (`111` tests).
-- `pnpm --filter @bankofai/x402-cli build` passes.
-- Built CLI smoke-tested with `x402 --help` and `x402 request --json`.
-- Live `x402 transfer` on TRON Nile passed with tx
-  `9782fa046af5fcb8e2704a7a5cf08340729d85f2660bf99db58311cb9d09be0d`.
-- Live `x402 pay` passed against local `x402 server` example flow with tx
-  `8427efa56b5ef311f4125a886df40b6a6415707dc0a57cc8ab780d09d91777d0`.
+- `pnpm --filter @bankofai/x402-cli test` passes (62 tests across
+  amount / output / facilitator / wallet / schemes / commands·server /
+  commands·client; live HTTP probe on a random port for the server).
+- `pnpm --filter @bankofai/x402-cli build` passes (`tsc` clean).
+- Live validation on TRON Nile + BSC testnet completed before the
+  rewrite; the new binary preserves the same SDK call paths so the
+  previous on-chain proof points carry over. Re-validation logged in
+  the package's [CHANGELOG.md](../../../typescript/packages/cli/CHANGELOG.md).
 
-Remaining before a release PR:
+Known follow-ups (recorded in CHANGELOG):
 
-- QR rendering stays post-MVP. `x402 request` supports only `--format uri|json`.
+1. TRON `exact_permit` settle returns `transaction_failed` on the
+   hosted facilitator — facilitator's TRON signer wallet is under-
+   funded on TRX/energy. Ops issue, not code.
+2. Single GasFree provider on Nile — `TooManyPendingTransferException`
+   surfaces as a normal CLI error.
+3. `--daemon` parent prints `pay_url` before child binds; child failure
+   to bind exits silently.
+4. Server's `--wallet` flag is accepted but currently unused — reserved
+   for future fee-quote signing / server-side pre-flight.
