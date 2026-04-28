@@ -1,324 +1,346 @@
-# `x402` CLI 设计与用法样例
+# `x402-tools` CLI 设计与 `--help` 样例
 
-`x402` 是 BankofAI x402 的命令行入口，面向开发者、脚本和 Agent。它把支付、转账、临时收款 server、收款请求和本地凭证统一成一组可组合命令。
+`x402-tools` 是一个一次性的 x402 命令行工具，只做两件事：
 
-## 设计目标
+- `serve`: 拉起一个 x402 payment server，声明收款网络、token、金额和收款账户。
+- `client`: 作为 x402 payer，请求一个 x402 URL，收到 402 后签名并完成支付。
 
-- **直接支付**：`x402 pay <url>` 访问 x402 protected endpoint，遇到 `402 Payment Required` 后自动完成支付并重试请求。
-- **直接转账**：`x402 transfer` 不依赖业务 server，直接按 `network + token + amount + recipient` 发起转账。
-- **临时收款**：`x402 server` 启动一个本地收款 endpoint，设置网络、token、金额和收款账户，付款方用 `x402 pay` 完成支付。
-- **Agent 友好**：所有命令支持 `--json`，输出稳定结构，便于 Agent 解析和继续执行。
-- **Gas-free 优先**：优先选择用户侧不需要链上 gas 的路径，例如 BSC `exact` / `exact_permit`、TRON `exact_permit`，必要时兼容 TRON `exact_gasfree`。
+这个 CLI 不维护本地状态，不要求 profile，不提供 balance/receipt/config/transfer 这类长期管理命令。一次命令包含一次操作需要的全部参数。
 
-## 使用场景
+## 核心设计
 
-### Agent 直接转账
+### 命令边界
 
-Agent 先检查环境和余额，再发起一次可解析的 JSON 转账。
-
-```bash
-x402 doctor --json
-x402 balance --token USDT --json
-x402 transfer --to TJWdoJk8... --amount 0.1 --token USDT --network tron:nile --json
-```
-
-### 一方开 server，另一方付款
-
-收款方启动临时收款 server：
-
-```bash
-x402 server --pay-to TJWdoJk8... --amount 1 --token USDT --network tron:nile --port 4020
-```
-
-付款方通过标准 x402 flow 支付：
-
-```bash
-x402 pay http://receiver.example.com:4020/pay --json
-```
-
-### 生成请求，交给另一个 Agent 支付
-
-收款方先生成结构化请求：
-
-```bash
-x402 request --to TJWdoJk8... --amount 1 --token USDT --network tron:nile --format json
-```
-
-另一个 Agent 读取请求后执行转账：
-
-```bash
-x402 transfer --to TJWdoJk8... --amount 1 --token USDT --network tron:nile
-```
-
-## 全局设计
-
-### 钱包
-
-产品形态优先使用 BankofAI `agent-wallet` 的 active wallet：
-
-| 网络 | 钱包来源 |
+| 命令 | 作用 |
 |---|---|
-| `tron:*` | agent wallet 的 TRON active wallet |
-| `eip155:*` | agent wallet 的 EVM active wallet |
+| `x402-tools serve` | 启动收款 server，暴露标准 x402 payment endpoint |
+| `x402-tools client <url>` | 请求 x402 endpoint，自动完成 402 支付 flow |
 
-开发和本地调试可以保留环境变量 fallback：
+不把这些能力做成独立命令：
 
-| 变量 | 用途 |
+| 能力 | 原因 |
 |---|---|
-| `TRON_PRIVATE_KEY` | TRON fallback signer |
-| `EVM_PRIVATE_KEY` | EVM fallback signer |
+| 直接转账命令 | 转账通过 `serve + client` 的 x402 HTTP flow 完成，不额外定义新命令 |
+| 余额查询 | 避免把 wallet/account 状态管理塞进一次性工具 |
+| 本地配置管理 | 不保存 profile；所有参数都从命令行或环境变量传入 |
+| 本地凭证管理 | 不维护本地 receipt store；结果直接输出到 stdout |
 
-CLI 不提供 `--private-key` 参数，避免私钥进入 shell history。
+### 默认值
 
-### 配置
+| 字段 | 默认值 |
+|---|---|
+| token | `USDT` |
+| network | 由 server/client 参数显式传入；可以给常用测试网默认值，但 help 中必须可见 |
+| amount | 必须显式传入 `--amount` 或 `--raw-amount` |
+| output | 默认 human；`--json` 输出机器可读 JSON |
 
-默认配置放在 `~/.x402/config.json`。命令参数优先级：
+### 金额字段
+
+金额必须区分 `amount` 和 `raw_amount`：
+
+| 字段 | 含义 | 示例 |
+|---|---|---|
+| `amount` | 人类可读金额，按 token decimals 解析 | `1.25` USDT |
+| `raw_amount` | token smallest unit，直接进入 x402 payment requirements | `1250000` for USDT(6 decimals) |
+
+CLI 参数设计：
 
 ```text
-CLI flag > environment variable > profile > BankofAI default
+--amount <decimal>      human-readable token amount, e.g. 1.25
+--raw-amount <integer>  smallest-unit amount, e.g. 1250000 for 1.25 USDT
 ```
 
-典型 profile：
+规则：
+
+- `--amount` 和 `--raw-amount` 二选一。
+- 同时传入时直接报错，避免歧义。
+- `--amount` 用于人类操作。
+- `--raw-amount` 用于 Agent、脚本、服务间精确传参。
+- JSON 输出里同时展示两者：`amount` 和 `raw_amount`。
+
+示例：
 
 ```json
 {
-  "defaultProfile": "nile",
-  "profiles": {
-    "nile": {
-      "network": "tron:nile",
-      "scheme": "exact_permit",
-      "token": "USDT",
-      "wallet": { "network": "tron", "source": "agent-wallet" }
-    }
-  }
+  "token": "USDT",
+  "decimals": 6,
+  "amount": "1.25",
+  "raw_amount": "1250000"
 }
 ```
 
-### 输出
+## `x402-tools --help`
 
-默认输出给人看；`--json` 输出给 Agent 和脚本看。
+```text
+Usage: x402-tools <command> [options]
+
+One-shot BankofAI x402 tools for serving and paying x402 endpoints.
+
+Commands:
+  serve                 Start a local x402 payment server
+  client <url>          Pay an x402 endpoint as a client
+
+Global options:
+  --json                Print machine-readable JSON
+  -h, --help            Show help
+  -v, --version         Show version
+
+Examples:
+  # Start a payment server that charges 1.25 USDT on TRON Nile
+  x402-tools serve --pay-to TJWdoJk8... --amount 1.25 --network tron:nile
+
+  # Same amount, passed as raw smallest-unit USDT amount
+  x402-tools serve --pay-to TJWdoJk8... --raw-amount 1250000 --network tron:nile
+
+  # Pay the x402 endpoint
+  x402-tools client http://127.0.0.1:4020/pay
+
+  # Agent-friendly JSON output
+  x402-tools client http://127.0.0.1:4020/pay --json
+```
+
+## `x402-tools serve --help`
+
+```text
+Usage: x402-tools serve [options]
+
+Start a temporary x402 payment server.
+
+Required options:
+  --pay-to <address>        Recipient wallet address
+  --amount <decimal>        Human-readable amount, e.g. 1.25
+    or
+  --raw-amount <integer>    Smallest-unit amount, e.g. 1250000 for 1.25 USDT
+
+Payment options:
+  --network <id>            Payment network, e.g. tron:nile, tron:mainnet, eip155:97
+  --token <symbol>          Token symbol (default: USDT)
+  --asset <address>         Token contract address; optional when token is known
+  --decimals <number>       Token decimals; optional when token is known
+  --scheme <name>           x402 scheme: exact_permit, exact, exact_gasfree
+
+Server options:
+  --host <host>             Bind host (default: 127.0.0.1)
+  --port <port>             Bind port (default: 4020)
+  --path <path>             Payment path (default: /pay)
+
+Wallet options:
+  --wallet <source>         Wallet source: agent-wallet, env (default: agent-wallet)
+
+Output options:
+  --json                    Print server info as JSON
+  -h, --help                Show help
+
+Examples:
+  x402-tools serve --pay-to TJWdoJk8... --amount 1.25 --network tron:nile
+
+  x402-tools serve \
+    --pay-to TJWdoJk8... \
+    --raw-amount 1250000 \
+    --token USDT \
+    --network tron:nile \
+    --scheme exact_gasfree \
+    --port 4020
+
+  x402-tools serve \
+    --pay-to 0x742d... \
+    --amount 0.5 \
+    --network eip155:97 \
+    --scheme exact_permit
+```
+
+### `serve` 行为
+
+`serve` 启动一个本地 HTTP endpoint，用标准 x402 方式收款：
+
+| Endpoint | 行为 |
+|---|---|
+| `GET /health` | 返回 server 状态 |
+| `GET /.well-known/x402` | 返回当前收款配置 |
+| `GET/POST /pay` | 未支付时返回 402；带 payment payload 时验证并结算 |
+
+启动后 human 输出示例：
+
+```text
+x402-tools serve listening
+  pay_url:      http://127.0.0.1:4020/pay
+  network:      tron:nile
+  scheme:       exact_gasfree
+  token:        USDT
+  amount:       1.25
+  raw_amount:   1250000
+  pay_to:       TJWdoJk8...
+```
+
+`--json` 输出示例：
 
 ```json
 {
   "ok": true,
-  "command": "transfer",
-  "network": "tron:nile",
-  "scheme": "exact_permit",
-  "result": {}
-}
-```
-
-失败输出保持同一 envelope：
-
-```json
-{
-  "ok": false,
-  "command": "transfer",
-  "error": {
-    "code": "VERIFY_FAILED",
-    "message": "Payment verification failed",
-    "hint": "Check token, amount, network, and wallet balance."
+  "command": "serve",
+  "result": {
+    "pay_url": "http://127.0.0.1:4020/pay",
+    "network": "tron:nile",
+    "scheme": "exact_gasfree",
+    "token": "USDT",
+    "amount": "1.25",
+    "raw_amount": "1250000",
+    "pay_to": "TJWdoJk8..."
   }
 }
 ```
 
-## 命令设计
-
-| 命令 | 设计用途 |
-|---|---|
-| `x402 config` | 管理 profile、默认网络、默认 token、默认 scheme |
-| `x402 doctor` | 检查钱包、网络、facilitator、token 配置是否可用 |
-| `x402 balance` | 查看钱包余额、GasFree address 和费用信息 |
-| `x402 transfer` | 给一个账户直接转账 |
-| `x402 pay <url>` | 支付一个 x402 protected resource |
-| `x402 server` | 启动临时收款 server |
-| `x402 request` | 离线生成转账请求 URI/JSON |
-| `x402 receipt` | 查看本地支付/转账凭证 |
-
-## 转账路径设计
-
-### 默认选择
-
-`x402 transfer` 在未指定 `--scheme` 时按 `(network, token)` 选择推荐路径。
-
-| 网络 | Token | 推荐 scheme | 用户侧 gas |
-|---|---|---|---|
-| `tron:nile` | USDT | `exact_permit` | 不需要 TRX |
-| `tron:mainnet` | USDT | `exact_permit` | 不需要 TRX |
-| `eip155:97` | USDT / USDC | `exact_permit` | 不需要 BNB |
-| `eip155:97` | DHLU | `exact` | 不需要 BNB |
-| `tron:*` | 不支持 permit 的 token | `exact_gasfree` | 不需要 TRX，但会扣 GasFree fee |
-
-### TRON 兼容策略
-
-TRON USDT 默认走 `exact_permit`。如果需要首次 approve 且钱包没有 TRX/energy/bandwidth 导致 approve 不可完成，CLI 可以 fallback 到 `exact_gasfree`。
+## `x402-tools client --help`
 
 ```text
-TRON USDT -> exact_permit -> approve 不可用 -> exact_gasfree fallback
+Usage: x402-tools client <url> [options]
+
+Request an x402 endpoint and pay when the server returns 402 Payment Required.
+
+Arguments:
+  url                       x402 protected URL, e.g. http://127.0.0.1:4020/pay
+
+Payment safety options:
+  --max-amount <decimal>    Maximum human-readable amount allowed
+  --max-raw-amount <int>    Maximum smallest-unit amount allowed
+  --network <id>            Require a specific network
+  --token <symbol>          Require a specific token (default: USDT)
+  --scheme <name>           Require a specific x402 scheme
+
+Request options:
+  --method <method>         HTTP method (default: GET)
+  --header <k:v>            HTTP header; can be repeated
+  --body <value>            Request body string or JSON
+
+Wallet options:
+  --wallet <source>         Wallet source: agent-wallet, env (default: agent-wallet)
+
+Mode options:
+  --dry-run                 Read payment requirements but do not sign or pay
+  --yes                     Skip interactive confirmation
+  --json                    Print machine-readable JSON
+  -h, --help                Show help
+
+Examples:
+  x402-tools client http://127.0.0.1:4020/pay
+
+  x402-tools client http://127.0.0.1:4020/pay \
+    --max-amount 1.25 \
+    --network tron:nile \
+    --token USDT
+
+  x402-tools client https://api.example.com/generate \
+    --method POST \
+    --header 'Content-Type: application/json' \
+    --body '{"prompt":"hello"}' \
+    --max-raw-amount 1250000 \
+    --json
+
+  x402-tools client http://127.0.0.1:4020/pay --dry-run --json
 ```
 
-### 费用语义
+### `client` 行为
 
-- `exact`：用户签授权，settler 支付链上 gas。
-- `exact_permit`：用户签 permit/typed data，settler 支付链上 gas。
-- `exact_gasfree`：TRON GasFree provider 代付 TRX gas，费用从 GasFree 余额中扣除。
+`client` 的职责是完成标准 x402 client flow：
 
-## 用法样例
+1. 请求目标 URL。
+2. 如果不是 402，直接输出 response 摘要。
+3. 如果返回 402，解析 payment requirements。
+4. 检查 `--max-amount` / `--max-raw-amount` / `--network` / `--token` / `--scheme` 限制。
+5. 用 agent wallet 或 env fallback 签名。
+6. 携带 payment payload 重试请求。
+7. 输出最终 response 和 payment result。
 
-### 1. 初始化配置
+Dry-run 输出示例：
 
-```bash
-x402 config init --profile nile --network tron:nile --token USDT --scheme exact_permit
-x402 config use nile
-x402 config get
+```json
+{
+  "ok": true,
+  "command": "client",
+  "dry_run": true,
+  "result": {
+    "url": "http://127.0.0.1:4020/pay",
+    "accepts": [
+      {
+        "network": "tron:nile",
+        "scheme": "exact_gasfree",
+        "token": "USDT",
+        "amount": "1.25",
+        "raw_amount": "1250000",
+        "pay_to": "TJWdoJk8..."
+      }
+    ]
+  }
+}
 ```
 
-### 2. 检查环境
+支付成功输出示例：
 
-```bash
-x402 doctor
-x402 doctor --network tron:nile --json
+```json
+{
+  "ok": true,
+  "command": "client",
+  "result": {
+    "url": "http://127.0.0.1:4020/pay",
+    "status": 200,
+    "network": "tron:nile",
+    "scheme": "exact_gasfree",
+    "token": "USDT",
+    "amount": "1.25",
+    "raw_amount": "1250000",
+    "transaction": "0x...",
+    "response_body": {}
+  }
+}
 ```
 
-### 3. 查看余额
+## 使用场景
+
+### 本地收款测试
+
+终端 A：
 
 ```bash
-x402 balance --token USDT
-x402 balance --network tron:nile --token USDT --json
+x402-tools serve --pay-to TJWdoJk8... --amount 1 --network tron:nile
 ```
 
-### 4. 直接转账给一个账户
-
-TRON USDT，默认走 `exact_permit`：
+终端 B：
 
 ```bash
-x402 transfer --to TJWdoJk8... --amount 1.25 --token USDT --network tron:nile
+x402-tools client http://127.0.0.1:4020/pay --max-amount 1 --json
 ```
 
-显式指定 TRON GasFree：
+### Agent 支付 API
 
 ```bash
-x402 transfer --to TJWdoJk8... --amount 1.25 --token USDT --network tron:nile --scheme exact_gasfree
+x402-tools client https://api.example.com/premium \
+  --max-raw-amount 1000000 \
+  --token USDT \
+  --json
 ```
 
-BSC testnet USDT，走 `exact_permit`：
+### 服务端生成固定金额收款口
 
 ```bash
-x402 transfer --to 0x742d... --amount 0.5 --token USDT --network eip155:97 --scheme exact_permit
-```
-
-BSC testnet DHLU，走 `exact`：
-
-```bash
-x402 transfer --to 0x742d... --amount 10 --token DHLU --network eip155:97 --scheme exact
-```
-
-Dry-run 预览，不签名、不付款：
-
-```bash
-x402 transfer --to TJWdoJk8... --amount 0.1 --token USDT --dry-run --json
-```
-
-### 5. 支付一个 x402 URL
-
-```bash
-x402 pay https://api.example.com/premium
-```
-
-带请求体：
-
-```bash
-x402 pay https://api.example.com/generate \
-  --method POST \
-  --header 'Content-Type: application/json' \
-  --body '{"prompt":"hello"}'
-```
-
-限制最大支付金额，单位是 token smallest unit：
-
-```bash
-x402 pay https://api.example.com/premium --max-amount 1000000 --json
-```
-
-Dry-run 只查看服务端接受哪些 payment requirements：
-
-```bash
-x402 pay https://api.example.com/premium --dry-run --json
-```
-
-### 6. 启动临时收款 server
-
-收 TRON Nile USDT：
-
-```bash
-x402 server \
+x402-tools serve \
   --host 0.0.0.0 \
   --port 4020 \
   --pay-to TJWdoJk8... \
-  --amount 1.25 \
+  --raw-amount 5000000 \
   --token USDT \
   --network tron:nile \
   --scheme exact_gasfree
 ```
 
-付款方支付：
+### BSC gas-free 用户体验
 
 ```bash
-x402 pay http://localhost:4020/pay
-```
+x402-tools serve \
+  --pay-to 0x742d... \
+  --amount 0.5 \
+  --token USDT \
+  --network eip155:97 \
+  --scheme exact_permit
 
-查看收款配置：
-
-```bash
-curl http://localhost:4020/.well-known/x402-transfer
-```
-
-返回示例：
-
-```json
-{
-  "network": "tron:nile",
-  "scheme": "exact_gasfree",
-  "token": "USDT",
-  "amount": "1250000",
-  "amountDisplay": "1.25 USDT",
-  "payTo": "TJWdoJk8...",
-  "payUrl": "http://localhost:4020/pay"
-}
-```
-
-### 7. 离线生成收款请求
-
-生成 URI：
-
-```bash
-x402 request --to TJWdoJk8... --amount 1.25 --token USDT --network tron:nile --format uri
-```
-
-生成 JSON：
-
-```bash
-x402 request --to TJWdoJk8... --amount 1.25 --token USDT --network tron:nile --format json
-```
-
-输出示例：
-
-```json
-{
-  "type": "x402-transfer-request",
-  "network": "tron:nile",
-  "scheme": "exact_permit",
-  "token": "USDT",
-  "amount": "1250000",
-  "amountDisplay": "1.25 USDT",
-  "to": "TJWdoJk8..."
-}
-```
-
-### 8. 查看凭证
-
-```bash
-x402 receipt list --limit 10
-x402 receipt show <paymentId-or-txHash>
-x402 receipt export --format csv > receipts.csv
+x402-tools client http://127.0.0.1:4020/pay --max-amount 0.5 --network eip155:97
 ```
