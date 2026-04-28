@@ -2,7 +2,7 @@
 
 **Feature Branch**: `002-bankofai-cli`  
 **Created**: 2026-04-27  
-**Status**: Draft  
+**Status**: MVP implemented  
 **Input**: User description: "设计 x402 cli 命令行工具，能直接发起支付；或者拉起一个 server 设置网络、token 和金额，通过 BankofAI x402 SDK 的 GasFree 功能实现 gas-free 转账"
 
 ## 目标
@@ -60,10 +60,10 @@ CLI 第一版默认使用 BankofAI 的实现和托管服务：
 
 - SDK package: `@bankofai/x402`
 - CLI package: `@bankofai/x402-cli`
-- Wallet provider: `@bankofai/agent-wallet`
+- Wallet source: `TRON_PRIVATE_KEY` / `EVM_PRIVATE_KEY` environment variables for MVP
 - TRON GasFree/facilitator proxy: `https://facilitator.bankofai.io/<network>`
 - Token registry: BankofAI SDK 内置 token registry
-- 默认转账路径: `tron:nile` + `USDT` + `exact_gasfree`
+- 默认转账路径: `tron:nile` + `USDT` + `exact_permit`
 
 第三方 facilitator、RPC、token registry 可以作为高级配置保留，但不作为默认体验。
 
@@ -85,23 +85,15 @@ CLI 使用 profile 保存默认网络、facilitator、GasFree API、RPC 和钱�
   "profiles": {
     "nile": {
       "network": "tron:nile",
-      "scheme": "exact_gasfree",
-      "facilitatorUrl": "https://facilitator.bankofai.io/nile",
-      "gasfreeApiUrl": "https://facilitator.bankofai.io/nile",
-      "wallet": {
-        "provider": "agent-wallet",
-        "network": "tron"
-      }
+      "scheme": "exact_permit",
+      "token": "USDT",
+      "wallet": { "network": "tron" }
     },
     "mainnet": {
       "network": "tron:mainnet",
-      "scheme": "exact_gasfree",
-      "facilitatorUrl": "https://facilitator.bankofai.io/mainnet",
-      "gasfreeApiUrl": "https://facilitator.bankofai.io/mainnet",
-      "wallet": {
-        "provider": "agent-wallet",
-        "network": "tron"
-      }
+      "scheme": "exact_permit",
+      "token": "USDT",
+      "wallet": { "network": "tron" }
     }
   }
 }
@@ -111,10 +103,10 @@ CLI 使用 profile 保存默认网络、facilitator、GasFree API、RPC 和钱�
 
 ### wallet
 
-MVP 只接入 BankofAI SDK 现有 signer factory：
+MVP 使用环境变量私钥构造 BankofAI SDK signer：
 
-- TRON: `TronClientSigner.create()`
-- EVM: `EvmClientSigner.create()`
+- TRON: `TRON_PRIVATE_KEY` -> CLI local wallet adapter -> `TronClientSigner`
+- EVM: `EVM_PRIVATE_KEY` -> CLI local wallet adapter -> `EvmClientSigner`
 
 避免在命令行 flag 中传私钥。后续如需本地私钥，可只支持环境变量或系统 keychain，不支持 shell history 中可见的 `--private-key`。
 
@@ -175,8 +167,6 @@ x402 pay <url>
   --scheme <scheme>
   --token <symbol>
   --max-amount <smallest-unit>
-  --facilitator-url <url>
-  --gasfree-api-url <url>
   --dry-run                          parse challenge and build plan, do not sign
   --yes                              skip interactive confirmation
   --json                             machine-readable output
@@ -237,8 +227,6 @@ x402 transfer
   --decimals <n>                     required when --asset is not in registry
   --network <network>
   --scheme <exact_gasfree|exact_permit|exact>
-  --facilitator-url <url>
-  --gasfree-api-url <url>
   --payment-id <id>                  optional reconciliation id
   --valid-for <seconds>              default by scheme/network
   --dry-run
@@ -275,8 +263,7 @@ x402 serve transfer \
   --amount 1.25 \
   --token USDT \
   --network tron:nile \
-  --scheme exact_gasfree \
-  --facilitator-url https://facilitator.bankofai.io/nile
+  --scheme exact_gasfree
 ```
 
 Endpoints：
@@ -356,7 +343,7 @@ x402 inspect transfer --to TYm... --amount 1 --token USDT --network tron:nile
 x402 config init
 x402 config use nile
 x402 config get
-x402 config set nile.facilitatorUrl https://facilitator.bankofai.io/nile
+x402 config set nile.network tron:nile
 ```
 
 常用参数：
@@ -365,7 +352,7 @@ x402 config set nile.facilitatorUrl https://facilitator.bankofai.io/nile
 x402 config init
   --profile <name>                   default: nile
   --network <network>                default: tron:nile
-  --scheme <scheme>                  default: exact_gasfree
+  --scheme <scheme>                  default: exact_permit
   --force                            overwrite existing config
 
 x402 config use <profile>
@@ -382,13 +369,9 @@ x402 config list
   "profiles": {
     "nile": {
       "network": "tron:nile",
-      "scheme": "exact_gasfree",
-      "facilitatorUrl": "https://facilitator.bankofai.io/nile",
-      "gasfreeApiUrl": "https://facilitator.bankofai.io/nile",
-      "wallet": {
-        "provider": "agent-wallet",
-        "network": "tron"
-      }
+      "scheme": "exact_permit",
+      "token": "USDT",
+      "wallet": { "network": "tron" }
     }
   }
 }
@@ -404,13 +387,13 @@ x402 request \
   --amount 1.25 \
   --token USDT \
   --network tron:nile \
-  --scheme exact_gasfree
+  --scheme exact_permit
 ```
 
 默认输出 URI：
 
 ```text
-x402://transfer?network=tron%3Anile&scheme=exact_gasfree&token=USDT&amount=1250000&to=TYm...
+x402://transfer?network=tron%3Anile&scheme=exact_permit&token=USDT&amount=1250000&to=TYm...
 ```
 
 常用参数：
@@ -426,7 +409,7 @@ x402 request
   --scheme <scheme>
   --memo <text>
   --expires-in <seconds>
-  --format <uri|json|qr>             default: uri
+  --format <uri|json>                default: uri
 ```
 
 `--format json` 输出：
@@ -435,7 +418,7 @@ x402 request
 {
   "type": "x402-transfer-request",
   "network": "tron:nile",
-  "scheme": "exact_gasfree",
+  "scheme": "exact_permit",
   "token": "USDT",
   "asset": "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
   "amount": "1250000",
@@ -511,8 +494,8 @@ x402 doctor --profile nile
 检查项：
 
 - Node.js 版本满足 CLI 要求。
-- 能加载 `@bankofai/x402` 和 `@bankofai/agent-wallet`。
-- 当前 wallet provider 能返回地址。
+- 能加载 `@bankofai/x402`。
+- 当前 `TRON_PRIVATE_KEY` 能派生 TRON 地址。
 - `https://facilitator.bankofai.io/nile` 可访问。
 - GasFree API 能返回 address info。
 - token registry 能解析目标 token。
@@ -599,9 +582,9 @@ tron:*       exact_permit, exact_gasfree
 对 `exact_gasfree` 必须创建 network -> `GasFreeAPIClient` 映射：
 
 ```text
-tron:mainnet -> getGasFreeApiBaseUrl("tron:mainnet") or --gasfree-api-url
-tron:nile    -> getGasFreeApiBaseUrl("tron:nile") or --gasfree-api-url
-tron:shasta  -> getGasFreeApiBaseUrl("tron:shasta") or --gasfree-api-url
+tron:mainnet -> getGasFreeApiBaseUrl("tron:mainnet")
+tron:nile    -> getGasFreeApiBaseUrl("tron:nile")
+tron:shasta  -> getGasFreeApiBaseUrl("tron:shasta")
 ```
 
 默认注册 `SufficientBalancePolicy`，但 `--skip-balance-check` 可作为专家参数保留。
@@ -610,12 +593,12 @@ BankofAI 默认 factory 伪代码：
 
 ```ts
 async function createBankofAIClient(profile: Profile) {
-  const signer = await TronClientSigner.create()
+  const signer = createTronClientSignerFromEnv()
   const x402 = new X402Client()
 
   x402.register('tron:*', new ExactPermitTronClientMechanism(signer))
   x402.registerGasFree(signer, {
-    [profile.network]: new GasFreeAPIClient(profile.gasfreeApiUrl),
+    [profile.network]: new GasFreeAPIClient(getGasFreeApiBaseUrl(profile.network)),
   })
   x402.registerPolicy(SufficientBalancePolicy)
 
@@ -741,6 +724,7 @@ SETTLE_FAILED
 FACILITATOR_UNAVAILABLE
 PAYMENT_CANCELLED
 RECEIPT_NOT_FOUND
+INVALID_INPUT
 ```
 
 每个错误都应该包含 `message` 和可选 `hint`。例如 GasFree 余额不足时，hint 必须提示充值到 main wallet 派生的 `gasFreeAddress`。
@@ -756,15 +740,18 @@ RECEIPT_NOT_FOUND
 
 ## MVP 范围
 
-第一版建议只做 BankofAI TRON GasFree 闭环：
+第一版实现 BankofAI TRON/BSC `exact_permit`、BSC `exact`，并保留 TRON GasFree fallback/server 路径：
 
 1. `x402 config init/use/get`：生成并读取 BankofAI `nile` profile。
-2. `x402 doctor`：确认 wallet、BankofAI facilitator、GasFree account 可用。
-3. `x402 balance --gasfree`：显示 main wallet、GasFree address、USDT 余额和 fee。
-4. `x402 transfer`：支持 `tron:nile` + `exact_gasfree` + `USDT`，打通 gas-free 转账闭环。
-5. `x402 pay <url>`：复用 `X402FetchClient`，支持 BankofAI TRON GasFree protected URL。
-6. `x402 serve transfer`：本地临时收款 server，内存 challenge 和 receipt。
-7. `x402 receipt list/show`：查询本地成功支付记录。
+2. `x402 doctor`：确认 wallet 和 BankofAI facilitator 可用；GasFree 仅在 `exact_gasfree` profile 下检查。
+3. `x402 balance --gasfree`：显示 main wallet、GasFree address、USDT 余额和 fee，用于 fallback/server flows。
+4. `x402 transfer`：默认支持 `tron:nile` + `USDT` + `exact_permit`，本地签名后通过 facilitator `verify/settle` 结算，settler 支付链上 gas。
+5. `x402 transfer`：支持 BSC/EVM `exact_permit` 和 `exact`。
+6. `x402 transfer --scheme exact_gasfree`：保留 TRON GasFree fallback；TRON `exact_permit` 因 allowance/approve 失败时自动 fallback 到 GasFree。
+7. `x402 pay <url>`：复用 `X402FetchClient`，支持 BankofAI TRON/BSC `exact_permit`、BSC `exact` 和 TRON GasFree protected URL。
+8. `x402 serve transfer`：本地临时收款 server，当前使用 TRON GasFree settlement。
+9. `x402 request`：离线生成 `x402://transfer?...` 或 JSON 收款请求。
+10. `x402 receipt list/show`：查询本地成功支付记录。
 
 暂不做：
 
@@ -782,7 +769,7 @@ RECEIPT_NOT_FOUND
 
 - 没有配置文件时，`x402 config init` 能创建 `~/.x402/config.json`。
 - `x402 config get` 能显示当前 profile。
-- flag 可以覆盖 profile 中的 network/scheme/facilitator/gasfree URL。
+- flag 可以覆盖 profile 中的 network/scheme/token。BankofAI facilitator/GasFree endpoint 从 network 派生，普通用户不配置 URL。
 
 `doctor`：
 
@@ -798,7 +785,11 @@ RECEIPT_NOT_FOUND
 `transfer`：
 
 - `--dry-run` 不签名、不调用 settle。
-- 正常路径调用 `fee_quote -> createPaymentPayload -> verify -> settle`。
+- TRON `exact_permit` 正常路径调用 `fee_quote -> createPaymentPayload -> verify -> settle`。
+- TRON `exact_permit` 如果 approval 需要 TRX 且 approve 失败，自动改走 `exact_gasfree`。
+- TRON `exact_gasfree` fallback 路径调用 GasFree submit/poll。
+- BSC/EVM `exact_permit` 正常路径调用 `fee_quote -> createPaymentPayload -> verify -> settle`。
+- BSC/EVM `exact` 正常路径调用 `createPaymentPayload -> verify -> settle`。
 - verify 失败不 settle。
 - settle 成功写入 `~/.x402/receipts.jsonl`。
 - `--json` 输出稳定 JSON，便于 Agent 使用。
@@ -806,7 +797,7 @@ RECEIPT_NOT_FOUND
 `pay`：
 
 - 能解析 402 response header/body。
-- 能根据 profile 注册 `exact_gasfree`。
+- 能根据 profile/network 注册 TRON/BSC `exact_permit`、BSC `exact` 或 TRON `exact_gasfree`。
 - 成功响应保存 receipt。
 
 `serve transfer`：
@@ -815,6 +806,12 @@ RECEIPT_NOT_FOUND
 - `POST /pay` 未付款返回 402。
 - 付款后返回 settlement receipt。
 - payload accepted fields 必须和 server issued requirements 一致。
+
+`request`：
+
+- 不签名、不读取 wallet、不访问 facilitator。
+- 没有本地 config 时可以使用内置 `nile` 默认 profile 生成请求。
+- MVP 支持 `--format uri|json`；`qr` 明确返回 `INVALID_INPUT`。
 
 ## 后续扩展
 

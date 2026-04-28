@@ -2,23 +2,28 @@
  * `x402 pay` — fetch a 402-protected URL with automatic payment.
  *
  * Wraps the SDK's X402FetchClient. The CLI's job is to:
- *  - resolve the active profile + register a TRON GasFree mechanism
+ *  - resolve the active profile + register the matching client mechanisms
  *  - call client.request(url, ...) so the SDK handles the 402 challenge
  *  - extract the PAYMENT-RESPONSE header from the final response
  *  - append a receipt and print a stable envelope
  *
- * MVP scope: TRON exact_gasfree (the only client mechanism the CLI registers
- * by default). Adding `exact` / `exact_permit` is straightforward but lands
- * with EVM wallet support, post-MVP.
+ * TRON defaults to exact_permit. EVM/BSC registers exact_permit and exact so
+ * facilitator/merchant settlement pays chain gas while the user signs only.
  */
 
 import {
   X402Client,
   X402FetchClient,
-  TronClientSigner,
   GasFreeAPIClient,
+  ExactEvmClientMechanism,
+  ExactPermitEvmClientMechanism,
+  ExactPermitTronClientMechanism,
   decodePaymentPayload,
+  isEvmNetwork,
+  isTronNetwork,
   type SettleResponse,
+  type ClientSigner,
+  type PaymentRequirements,
 } from '@bankofai/x402';
 import { runCommand, type OutputMode } from '../output.js';
 import { loadConfig, getProfile, applyEnvOverrides } from '../config.js';
@@ -26,6 +31,7 @@ import { getFacilitatorBaseUrl } from '../facilitator.js';
 import { X402CliError } from '../error.js';
 import { newPaymentId } from '../amount.js';
 import { appendReceipt, type Receipt } from '../receipts.js';
+import { createEvmClientSignerFromEnv, createTronClientSignerFromEnv } from '../wallet.js';
 
 export interface PayOpts {
   url: string;
@@ -53,25 +59,9 @@ export async function cmdPay(opts: PayOpts): Promise<number> {
     const network = opts.network || effective.network;
     const scheme = opts.scheme || effective.scheme;
 
-    if (!network.startsWith('tron:')) {
-      throw new X402CliError(
-        'UNSUPPORTED_NETWORK',
-        `pay currently registers TRON GasFree only; got ${network}.`,
-        `EVM payment support lands with the next iteration.`,
-      );
+    if (!isTronNetwork(network) && !isEvmNetwork(network)) {
+      throw new X402CliError('UNSUPPORTED_NETWORK', `Unsupported network ${network}.`);
     }
-    if (scheme && scheme !== 'exact_gasfree') {
-      // Fallthrough — server may offer a different scheme; we register only
-      // gasfree and let the SDK skip mismatched options. Surface a warning.
-      // (We don't fail outright since the server's `accepts[]` is authoritative.)
-      process.stderr.write(
-        `[x402] profile scheme=${scheme}; CLI registers exact_gasfree only. ` +
-          `Server-side scheme mismatch will surface as 'no supported payment requirements'.\n`,
-      );
-    }
-
-    const facilitatorUrl = getFacilitatorBaseUrl(network);
-    const gasFreeClient = new GasFreeAPIClient(facilitatorUrl);
 
     const init = buildRequestInit(opts);
 
@@ -104,10 +94,9 @@ export async function cmdPay(opts: PayOpts): Promise<number> {
       };
     }
 
-    const signer = await TronClientSigner.create();
     const x402 = new X402Client();
-    x402.registerGasFree(signer, { [network]: gasFreeClient });
-    const client = new X402FetchClient(x402);
+    const signer = registerPayMechanisms(x402, network);
+    const client = new X402FetchClient(x402, buildSelector({ network, scheme, maxAmount: opts.maxAmount }));
 
     let response: Response;
     try {
@@ -140,7 +129,7 @@ export async function cmdPay(opts: PayOpts): Promise<number> {
         createdAt: new Date().toISOString(),
         profile: profileName,
         network,
-        scheme: scheme || 'exact_gasfree',
+        scheme: scheme || (isEvmNetwork(network) ? 'exact_permit/exact' : 'exact_permit/exact_gasfree'),
         payer,
         payTo: '',
         token: '',
@@ -175,6 +164,46 @@ export async function cmdPay(opts: PayOpts): Promise<number> {
       body: bodyJson,
     };
   });
+}
+
+function registerPayMechanisms(x402: X402Client, network: string): ClientSigner {
+  if (isEvmNetwork(network)) {
+    const signer = createEvmClientSignerFromEnv();
+    x402.register('eip155:*', new ExactPermitEvmClientMechanism(signer));
+    x402.register('eip155:*', new ExactEvmClientMechanism(signer));
+    return signer;
+  }
+  const signer = createTronClientSignerFromEnv();
+  const facilitatorUrl = getFacilitatorBaseUrl(network);
+  x402.register('tron:*', new ExactPermitTronClientMechanism(signer));
+  x402.registerGasFree(signer, { [network]: new GasFreeAPIClient(facilitatorUrl) });
+  return signer;
+}
+
+function buildSelector(filters: {
+  network: string;
+  scheme?: string;
+  maxAmount?: string;
+}): ((requirements: PaymentRequirements[]) => PaymentRequirements) {
+  return (requirements) => {
+    let candidates = requirements.filter((r) => r.network === filters.network);
+    const supportedSchemes = isEvmNetwork(filters.network)
+      ? new Set(['exact_permit', 'exact'])
+      : new Set(['exact_permit', 'exact_gasfree']);
+    candidates = candidates.filter((r) => supportedSchemes.has(r.scheme));
+    if (filters.scheme) candidates = candidates.filter((r) => r.scheme === filters.scheme);
+    if (filters.maxAmount) {
+      const max = BigInt(filters.maxAmount);
+      candidates = candidates.filter((r) => BigInt(r.amount) <= max);
+    }
+    if (!candidates.length) {
+      throw new X402CliError(
+        'UNSUPPORTED_SCHEME',
+        `Server did not offer a supported payment requirement for ${filters.network}.`,
+      );
+    }
+    return candidates[0]!;
+  };
 }
 
 function buildRequestInit(opts: PayOpts): RequestInit {

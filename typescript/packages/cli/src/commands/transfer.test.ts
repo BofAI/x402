@@ -5,6 +5,7 @@ import os from 'node:os';
 import { cmdTransfer } from './transfer.js';
 import { cmdInit } from './config.js';
 import { GasFreeAPIClient, TronClientSigner, X402Client } from '@bankofai/x402';
+import { FacilitatorHttpClient } from '../facilitatorClient.js';
 
 const SAMPLE_KEY = '0xddb8ff7605526a250bd37f5c3733badf9860f8708e808b79f40f8c56470004ba';
 const SAMPLE_TRON = 'TTX1Us19zqsLXhY39PPR7KRUoMa93s3J3i';
@@ -50,6 +51,7 @@ afterEach(async () => {
   delete process.env.X402_CONFIG_FILE;
   delete process.env.X402_RECEIPT_FILE;
   delete process.env.TRON_PRIVATE_KEY;
+  delete process.env.EVM_PRIVATE_KEY;
   stdoutSpy.mockRestore();
   vi.restoreAllMocks();
   await fs.rm(tmpDir, { recursive: true, force: true });
@@ -67,6 +69,7 @@ describe('cmdTransfer', () => {
       to: PAY_TO,
       amount: '0.001',
       token: 'USDT',
+      scheme: 'exact_gasfree',
       dryRun: true,
       output: 'json',
     });
@@ -79,25 +82,13 @@ describe('cmdTransfer', () => {
     expect(env.result.estimatedTransferFee).toBe('100000');
   });
 
-  it('rejects --scheme other than exact_gasfree', async () => {
+  it('rejects exact on TRON because non-GasFree transfer is EVM-only in CLI', async () => {
     const code = await cmdTransfer({
       to: PAY_TO,
       amount: '0.001',
       token: 'USDT',
+      scheme: 'exact_gasfree',
       scheme: 'exact',
-      output: 'json',
-    });
-    expect(code).toBe(1);
-    const env = lastJson<{ ok: false; error: { code: string } }>();
-    expect(env.error.code).toBe('UNSUPPORTED_SCHEME');
-  });
-
-  it('rejects EVM networks (post-MVP for transfer)', async () => {
-    const code = await cmdTransfer({
-      to: PAY_TO,
-      amount: '0.001',
-      token: 'USDT',
-      network: 'eip155:97',
       output: 'json',
     });
     expect(code).toBe(1);
@@ -105,11 +96,167 @@ describe('cmdTransfer', () => {
     expect(env.error.code).toBe('UNSUPPORTED_NETWORK');
   });
 
+  it('supports EVM dry-run transfer with the recommended BSC exact_permit scheme', async () => {
+    process.env.EVM_PRIVATE_KEY = SAMPLE_KEY;
+    vi.spyOn(FacilitatorHttpClient.prototype, 'feeQuote').mockResolvedValue([
+      {
+        fee: { feeTo: '0x0000000000000000000000000000000000000001', feeAmount: '0' },
+        pricing: 'fixed',
+        scheme: 'exact_permit',
+        network: 'eip155:97',
+        asset: '0x55d398326f99059fF775485246999027B3197955',
+      },
+    ]);
+    const code = await cmdTransfer({
+      to: '0x0000000000000000000000000000000000000002',
+      amount: '0.001',
+      token: 'USDT',
+      network: 'eip155:97',
+      dryRun: true,
+      output: 'json',
+    });
+    expect(code).toBe(0);
+    const env = lastJson<{ ok: true; result: { dryRun: boolean; scheme: string; network: string } }>();
+    expect(env.result.dryRun).toBe(true);
+    expect(env.result.scheme).toBe('exact_permit');
+    expect(env.result.network).toBe('eip155:97');
+  });
+
+  it('settles EVM exact_permit via facilitator verify/settle', async () => {
+    process.env.EVM_PRIVATE_KEY = SAMPLE_KEY;
+    vi.spyOn(FacilitatorHttpClient.prototype, 'feeQuote').mockResolvedValue([
+      {
+        fee: { feeTo: '0x0000000000000000000000000000000000000001', feeAmount: '10' },
+        pricing: 'fixed',
+        scheme: 'exact_permit',
+        network: 'eip155:97',
+        asset: '0x55d398326f99059fF775485246999027B3197955',
+      },
+    ]);
+    vi.spyOn(FacilitatorHttpClient.prototype, 'verify').mockResolvedValue({ isValid: true });
+    vi.spyOn(FacilitatorHttpClient.prototype, 'settle').mockResolvedValue({
+      success: true,
+      transaction: '0x' + '12'.repeat(32),
+      network: 'eip155:97',
+    });
+    vi.spyOn(X402Client.prototype, 'createPaymentPayload').mockResolvedValue({
+      x402Version: 2,
+      accepted: {} as never,
+      payload: { signature: '0x' + 'ab'.repeat(65), paymentPermit: undefined },
+    });
+
+    const code = await cmdTransfer({
+      to: '0x0000000000000000000000000000000000000002',
+      amount: '0.001',
+      token: 'USDT',
+      network: 'eip155:97',
+      output: 'json',
+    });
+    expect(code).toBe(0);
+    const env = lastJson<{ ok: true; result: { transaction: string; feeAmount: string } }>();
+    expect(env.result.transaction).toMatch(/^0x12/);
+    expect(env.result.feeAmount).toBe('10');
+  });
+
+  it('settles TRON USDT exact_permit via facilitator verify/settle by default', async () => {
+    vi.spyOn(FacilitatorHttpClient.prototype, 'feeQuote').mockResolvedValue([
+      {
+        fee: { feeTo: 'TFxDcGvS7zfQrS1YzcCMp673ta2NHHzsiH', feeAmount: '0' },
+        pricing: 'fixed',
+        scheme: 'exact_permit',
+        network: 'tron:nile',
+        asset: 'TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf',
+      },
+    ]);
+    vi.spyOn(FacilitatorHttpClient.prototype, 'verify').mockResolvedValue({ isValid: true });
+    vi.spyOn(FacilitatorHttpClient.prototype, 'settle').mockResolvedValue({
+      success: true,
+      transaction: '0x' + '34'.repeat(32),
+      network: 'tron:nile',
+    });
+    vi.spyOn(X402Client.prototype, 'createPaymentPayload').mockResolvedValue({
+      x402Version: 2,
+      accepted: {} as never,
+      payload: { signature: '0x' + 'ab'.repeat(65), paymentPermit: undefined },
+    });
+
+    const code = await cmdTransfer({
+      to: PAY_TO,
+      amount: '0.001',
+      token: 'USDT',
+      output: 'json',
+    });
+    expect(code).toBe(0);
+    const env = lastJson<{ ok: true; result: { transaction: string; feeAmount: string } }>();
+    expect(env.result.transaction).toMatch(/^0x34/);
+    expect(env.result.feeAmount).toBe('0');
+  });
+
+  it('falls back to GasFree when TRON exact_permit needs approval but approval fails', async () => {
+    vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    vi.spyOn(FacilitatorHttpClient.prototype, 'feeQuote').mockResolvedValue([
+      {
+        fee: { feeTo: 'TFxDcGvS7zfQrS1YzcCMp673ta2NHHzsiH', feeAmount: '0' },
+        pricing: 'fixed',
+        scheme: 'exact_permit',
+        network: 'tron:nile',
+        asset: 'TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf',
+      },
+    ]);
+    vi.spyOn(GasFreeAPIClient.prototype, 'submit').mockResolvedValue('trace-fallback');
+    vi.spyOn(GasFreeAPIClient.prototype, 'waitForSuccess').mockResolvedValue({
+      id: 'trace-fallback',
+      state: 'SUCCEED',
+      createdAt: '2026-04-27T00:00:00.000Z',
+      accountAddress: SAMPLE_TRON,
+      gasFreeAddress: 'TErc...',
+      providerAddress: 'TKtWb...',
+      targetAddress: PAY_TO,
+      nonce: 1,
+      tokenAddress: 'TXYZ...',
+      amount: '1000',
+      expiredAt: '2026-04-27T00:30:00.000Z',
+      txnHash: '0x' + '56'.repeat(32),
+      txnState: 'ON_CHAIN',
+    });
+    const allowanceError = new Error('Approve transaction failed: insufficient TRX balance');
+    allowanceError.name = 'InsufficientAllowanceError';
+    vi.spyOn(X402Client.prototype, 'createPaymentPayload')
+      .mockRejectedValueOnce(allowanceError)
+      .mockResolvedValueOnce({
+        x402Version: 2,
+        accepted: {} as never,
+        payload: {
+          signature: 'sig',
+          paymentPermit: {
+            meta: { kind: 'PAYMENT_ONLY', paymentId: 'pid', nonce: '0', validAfter: 0, validBefore: 0 },
+            buyer: SAMPLE_TRON,
+            caller: 'caller',
+            payment: { payToken: 'tok', payAmount: '1000', payTo: PAY_TO },
+            fee: { feeTo: 'caller', feeAmount: '100000' },
+          },
+        },
+      });
+
+    const code = await cmdTransfer({
+      to: PAY_TO,
+      amount: '0.001',
+      token: 'USDT',
+      output: 'json',
+    });
+    expect(code).toBe(0);
+    const env = lastJson<{ ok: true; result: { scheme: string; fallbackFrom: string; traceId: string } }>();
+    expect(env.result.scheme).toBe('exact_gasfree');
+    expect(env.result.fallbackFrom).toBe('exact_permit');
+    expect(env.result.traceId).toBe('trace-fallback');
+  });
+
   it('rejects --to omitted', async () => {
     const code = await cmdTransfer({
       to: '',
       amount: '0.001',
       token: 'USDT',
+      scheme: 'exact_gasfree',
       output: 'json',
     });
     expect(code).toBe(1);
@@ -182,6 +329,7 @@ describe('cmdTransfer', () => {
       to: PAY_TO,
       amount: '0.001',
       token: 'USDT',
+      scheme: 'exact_gasfree',
       output: 'json',
     });
     expect(code).toBe(0);
@@ -227,6 +375,7 @@ describe('cmdTransfer', () => {
       to: PAY_TO,
       amount: '0.001',
       token: 'USDT',
+      scheme: 'exact_gasfree',
       output: 'json',
     });
     expect(code).toBe(1);

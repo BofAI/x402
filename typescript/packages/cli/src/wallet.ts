@@ -2,17 +2,20 @@
  * Wallet detection (read-only).
  *
  * Read-only commands (config / doctor / balance) don't sign anything; they
- * only need the wallet's address. We derive it from the env-var private key
- * locally, so we don't pull in @bankofai/agent-wallet's full provider flow
- * for this. Signing commands (transfer / pay / serve) will use
- * `TronClientSigner.create()` from the SDK proper.
+ * only need the wallet's address. Signing commands also use the env-var key
+ * directly by wrapping it in the SDK's TronClientSigner interface. This keeps
+ * the CLI aligned with D1: no private keys in config files and no dependency
+ * on an external agent-wallet profile for MVP.
  *
  * Env vars (D1, D3 in decisions.md):
  *   TRON_PRIVATE_KEY  — required when wallet.network === 'tron'
- *   EVM_PRIVATE_KEY   — required when wallet.network === 'evm' (post-MVP)
+ *   EVM_PRIVATE_KEY   — required when wallet.network === 'evm'
  */
 
 import { TronWeb } from 'tronweb';
+import { privateKeyToAccount } from 'viem/accounts';
+import type { Hex } from 'viem';
+import { EvmClientSigner, TronClientSigner, type AgentWallet } from '@bankofai/x402';
 import { X402CliError } from './error.js';
 
 export interface WalletInfo {
@@ -65,10 +68,138 @@ export function deriveWalletInfo(walletNetwork: 'tron' | 'evm'): WalletInfo {
     const evmHex = '0x' + (TronWeb.address.toHex(base58) as string).replace(/^41/, '');
     return { network: 'tron', address: base58, evmHexAddress: evmHex.toLowerCase() };
   }
-  // EVM: post-MVP. Stub for now; transfer/pay commands will fill this in.
-  throw new X402CliError(
-    'UNSUPPORTED_NETWORK',
-    'EVM wallet derivation is not implemented in this CLI release.',
-    'MVP scope is TRON GasFree. EVM support lands with the transfer/pay commands.',
-  );
+  const account = privateKeyToAccount(privateKey as Hex);
+  return { network: 'evm', address: account.address, evmHexAddress: account.address.toLowerCase() };
+}
+
+export function createTronClientSignerFromEnv(): TronClientSigner {
+  const wallet = createLocalTronWallet();
+  const signer = new TronClientSigner(wallet);
+  signer.setAddress(wallet.address);
+  return signer;
+}
+
+export function createEvmClientSignerFromEnv(): EvmClientSigner {
+  const wallet = createLocalEvmWallet();
+  const signer = new EvmClientSigner(wallet);
+  signer.setAddress(wallet.address);
+  return signer;
+}
+
+interface LocalTronWallet extends AgentWallet {
+  address: string;
+}
+
+interface LocalEvmWallet extends AgentWallet {
+  address: `0x${string}`;
+}
+
+function createLocalTronWallet(): LocalTronWallet {
+  const privateKey = readPrivateKey('tron');
+  const hex = privateKey.startsWith('0x') ? privateKey.slice(2) : privateKey;
+  if (!/^[0-9a-fA-F]{64}$/.test(hex)) {
+    throw new X402CliError(
+      'WALLET_NOT_AVAILABLE',
+      'TRON_PRIVATE_KEY must be a 32-byte (64-hex-character) value.',
+    );
+  }
+  const address = TronWeb.address.fromPrivateKey(hex) as string;
+  if (!address) {
+    throw new X402CliError(
+      'WALLET_NOT_AVAILABLE',
+      'Failed to derive TRON address from TRON_PRIVATE_KEY.',
+    );
+  }
+  const fullHost = process.env.TRON_NILE_RPC_URL || process.env.TRON_RPC_URL || 'https://nile.trongrid.io';
+  const headers = process.env.TRON_GRID_API_KEY
+    ? { 'TRON-PRO-API-KEY': process.env.TRON_GRID_API_KEY }
+    : undefined;
+  const tronWeb = new TronWeb({ fullHost, privateKey: hex, headers });
+
+  return {
+    address,
+    async getAddress(): Promise<string> {
+      return address;
+    },
+    async signMessage(msg: Uint8Array): Promise<string> {
+      return tronWeb.trx.signMessageV2(Buffer.from(msg).toString('hex'), hex);
+    },
+    async signTypedData(data: Record<string, unknown>): Promise<string> {
+      const typed = data as {
+        domain: Record<string, unknown>;
+        types: Record<string, unknown>;
+        primaryType: string;
+        message: Record<string, unknown>;
+      };
+      const types = { ...typed.types } as Record<string, unknown>;
+      delete types.EIP712Domain;
+      const trx = tronWeb.trx as unknown as {
+        signTypedData?: (
+          domain: Record<string, unknown>,
+          types: Record<string, unknown>,
+          message: Record<string, unknown>,
+          privateKey: string,
+        ) => Promise<string>;
+        _signTypedData?: (
+          domain: Record<string, unknown>,
+          types: Record<string, unknown>,
+          message: Record<string, unknown>,
+          privateKey: string,
+        ) => Promise<string>;
+      };
+      const signer = trx.signTypedData ?? trx._signTypedData;
+      if (!signer) {
+        throw new X402CliError(
+          'WALLET_NOT_AVAILABLE',
+          'Installed tronweb does not support TIP-712 signTypedData.',
+        );
+      }
+      return signer.call(tronWeb.trx, typed.domain, types, typed.message, hex);
+    },
+    async signTransaction(payload: Record<string, unknown>): Promise<string> {
+      const signed = await tronWeb.trx.sign(payload as never, hex);
+      return JSON.stringify(signed);
+    },
+  };
+}
+
+function createLocalEvmWallet(): LocalEvmWallet {
+  const privateKey = readPrivateKey('evm');
+  if (!/^0x[0-9a-fA-F]{64}$/.test(privateKey)) {
+    throw new X402CliError(
+      'WALLET_NOT_AVAILABLE',
+      'EVM_PRIVATE_KEY must be a 32-byte (64-hex-character) 0x-prefixed value.',
+    );
+  }
+  const account = privateKeyToAccount(privateKey as Hex);
+  return {
+    address: account.address,
+    async getAddress(): Promise<string> {
+      return account.address;
+    },
+    async signMessage(msg: Uint8Array): Promise<string> {
+      return account.signMessage({ message: { raw: msg } });
+    },
+    async signTypedData(data: Record<string, unknown>): Promise<string> {
+      const typed = data as {
+        domain: Record<string, unknown>;
+        types: Record<string, unknown>;
+        primaryType: string;
+        message: Record<string, unknown>;
+      };
+      const types = { ...typed.types } as Record<string, unknown>;
+      delete types.EIP712Domain;
+      return (account as unknown as {
+        signTypedData(input: Record<string, unknown>): Promise<string>;
+      }).signTypedData({
+        domain: typed.domain as never,
+        types: types as never,
+        primaryType: typed.primaryType as never,
+        message: typed.message as never,
+      });
+    },
+    async signTransaction(payload: Record<string, unknown>): Promise<string> {
+      return account.signTransaction(payload as never);
+    },
+  };
 }

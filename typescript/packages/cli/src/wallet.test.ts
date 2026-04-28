@@ -44,8 +44,11 @@ describe('deriveWalletInfo', () => {
     expect(() => deriveWalletInfo('tron')).toThrowError(/64-hex-character|WALLET_NOT_AVAILABLE/);
   });
 
-  it('throws UNSUPPORTED_NETWORK for evm wallets (post-MVP)', () => {
+  it('derives an EVM address from EVM_PRIVATE_KEY', () => {
     process.env.EVM_PRIVATE_KEY = SAMPLE_KEY;
-    expect(() => deriveWalletInfo('evm')).toThrowError(/UNSUPPORTED_NETWORK|EVM wallet/);
+    const w = deriveWalletInfo('evm');
+    expect(w.network).toBe('evm');
+    expect(w.address).toMatch(/^0x[0-9a-fA-F]{40}$/);
+    expect(w.evmHexAddress).toBe(w.address.toLowerCase());
   });
 });

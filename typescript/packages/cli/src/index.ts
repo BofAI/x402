@@ -14,6 +14,7 @@ import { cmdTransfer } from './commands/transfer.js';
 import { cmdPay } from './commands/pay.js';
 import { cmdServeTransfer } from './commands/serve.js';
 import { cmdReceiptList, cmdReceiptShow, cmdReceiptExport } from './commands/receipt.js';
+import { cmdRequest } from './commands/request.js';
 import type { OutputMode } from './output.js';
 
 import { readFileSync } from 'node:fs';
@@ -61,7 +62,7 @@ async function main(argv: string[]): Promise<void> {
     .description('Create the default x402 config under ~/.x402/config.json')
     .option('--profile <name>', 'Profile name to set as default (default: nile)')
     .option('--network <network>', 'CAIP-2 network for the chosen profile')
-    .option('--scheme <scheme>', 'Scheme (e.g. exact_gasfree)')
+    .option('--scheme <scheme>', 'Scheme (e.g. exact_permit, exact_gasfree)')
     .option('--force', 'Overwrite an existing config file')
     .option('--json', 'Emit machine-readable JSON output')
     .action(async (opts: Record<string, unknown>) => {
@@ -160,7 +161,7 @@ async function main(argv: string[]): Promise<void> {
     .option('--asset <address>', 'Explicit token address (use with --decimals when not in registry)')
     .option('--decimals <n>', 'Decimals when using --asset', (v) => Number.parseInt(v, 10))
     .option('--network <network>', 'Override network')
-    .option('--scheme <scheme>', 'Scheme (default exact_gasfree for tron:*)')
+    .option('--scheme <scheme>', 'Scheme (default exact_permit for TRON USDT)')
     .option('--profile <name>', 'Profile to use')
     .option('--valid-for <seconds>', 'Override deadline window', (v) => Number.parseInt(v, 10))
     .option('--payment-id <id>', 'Reuse a paymentId for reconciliation')
@@ -195,7 +196,7 @@ async function main(argv: string[]): Promise<void> {
     .option('--body <json>', 'Request body (string)')
     .option('--profile <name>', 'Profile to use')
     .option('--network <network>', 'Override network')
-    .option('--scheme <scheme>', 'Override scheme (informational; CLI registers exact_gasfree)')
+    .option('--scheme <scheme>', 'Override scheme filter')
     .option('--max-amount <smallest-unit>', 'Smallest-unit cap')
     .option('--dry-run', 'Probe the URL for accepts[] without signing')
     .option('--json', 'Emit machine-readable JSON output')
@@ -210,6 +211,40 @@ async function main(argv: string[]): Promise<void> {
         scheme: typeof opts.scheme === 'string' ? opts.scheme : undefined,
         maxAmount: typeof opts.maxAmount === 'string' ? opts.maxAmount : undefined,
         dryRun: opts.dryRun === true,
+        output: resolveOutputMode(opts),
+      });
+      exitWith(code);
+    });
+
+  // ---- request ----
+  program
+    .command('request')
+    .description('Generate an offline x402 transfer request URI or JSON object')
+    .requiredOption('--to <address>', 'Recipient address')
+    .requiredOption('--amount <decimal>', 'Human-readable amount')
+    .option('--token <symbol>', 'Token symbol')
+    .option('--asset <address>', 'Explicit token address')
+    .option('--decimals <n>', 'Decimals when using --asset', (v) => Number.parseInt(v, 10))
+    .option('--profile <name>', 'Profile to use')
+    .option('--network <network>', 'Override network')
+    .option('--scheme <scheme>', 'Override scheme')
+    .option('--memo <text>', 'Optional memo')
+    .option('--expires-in <seconds>', 'Expiry in seconds', (v) => Number.parseInt(v, 10))
+    .option('--format <format>', 'uri | json', 'uri')
+    .option('--json', 'Emit machine-readable JSON output')
+    .action(async (opts: Record<string, unknown>) => {
+      const code = await cmdRequest({
+        to: String(opts.to),
+        amount: String(opts.amount),
+        token: typeof opts.token === 'string' ? opts.token : undefined,
+        asset: typeof opts.asset === 'string' ? opts.asset : undefined,
+        decimals: typeof opts.decimals === 'number' ? opts.decimals : undefined,
+        profile: typeof opts.profile === 'string' ? opts.profile : undefined,
+        network: typeof opts.network === 'string' ? opts.network : undefined,
+        scheme: typeof opts.scheme === 'string' ? opts.scheme : undefined,
+        memo: typeof opts.memo === 'string' ? opts.memo : undefined,
+        expiresIn: typeof opts.expiresIn === 'number' ? opts.expiresIn : undefined,
+        format: typeof opts.format === 'string' ? opts.format : 'uri',
         output: resolveOutputMode(opts),
       });
       exitWith(code);

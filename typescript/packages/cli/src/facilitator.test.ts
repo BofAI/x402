@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { getFacilitatorBaseUrl } from './facilitator.js';
+import { getFacilitatorBaseUrl, getSettlementFacilitatorBaseUrl } from './facilitator.js';
 
 afterEach(() => {
   delete process.env.X402_FACILITATOR_URL_OVERRIDE;
@@ -14,8 +14,14 @@ describe('getFacilitatorBaseUrl', () => {
     expect(getFacilitatorBaseUrl('tron:mainnet')).toBe('https://facilitator.bankofai.io/mainnet');
   });
 
-  it('resolves eip155:97 to the BSC testnet endpoint', () => {
-    expect(getFacilitatorBaseUrl('eip155:97')).toBe('https://facilitator.bankofai.io/bsc-testnet');
+  it('resolves eip155:97 (and any EVM network) to the root facilitator', () => {
+    expect(getFacilitatorBaseUrl('eip155:97')).toBe('https://facilitator.bankofai.io');
+    expect(getFacilitatorBaseUrl('eip155:56')).toBe('https://facilitator.bankofai.io');
+    expect(getFacilitatorBaseUrl('eip155:1')).toBe('https://facilitator.bankofai.io');
+  });
+
+  it('resolves TRON non-GasFree settlement to the root facilitator', () => {
+    expect(getSettlementFacilitatorBaseUrl('tron:nile')).toBe('https://facilitator.bankofai.io');
   });
 
   it('respects the X402_FACILITATOR_URL_OVERRIDE escape hatch', () => {
@@ -23,8 +29,11 @@ describe('getFacilitatorBaseUrl', () => {
     expect(getFacilitatorBaseUrl('tron:nile')).toBe('http://127.0.0.1:8013');
   });
 
-  it('throws UNSUPPORTED_NETWORK for an unknown EVM chain', () => {
-    expect(() => getFacilitatorBaseUrl('eip155:9999')).toThrowError(/UNSUPPORTED_NETWORK|configured/);
+  it('returns root facilitator for any well-formed EVM chain id (even unknown)', () => {
+    // We no longer maintain a per-chain slug map; the facilitator decides
+    // whether to serve a chain via /supported or /fee/quote. Returning the
+    // root URL lets that handshake happen rather than failing client-side.
+    expect(getFacilitatorBaseUrl('eip155:9999')).toBe('https://facilitator.bankofai.io');
   });
 
   it('throws UNSUPPORTED_NETWORK for a malformed network identifier', () => {

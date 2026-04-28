@@ -75,7 +75,7 @@ describe('cmdDoctor', () => {
     expect(findCheck(env, 'node').status).toBe('ok');
   });
 
-  it('reports overall=ok when wallet + facilitator + gasfree all green', async () => {
+  it('reports overall=ok when wallet + facilitator are green and gasfree is not applicable', async () => {
     process.env.TRON_PRIVATE_KEY = SAMPLE_KEY;
     getInfoSpy = vi.spyOn(GasFreeAPIClient.prototype, 'getAddressInfo').mockResolvedValue({
       accountAddress: 'TTX1Us19zqsLXhY39PPR7KRUoMa93s3J3i',
@@ -90,12 +90,14 @@ describe('cmdDoctor', () => {
     const env = lastJson();
     expect(env.result.overall).toBe('ok');
     expect(env.result.wallet).toMatch(/^TTX1Us\.\.\./);
-    expect(findCheck(env, 'gasfree').status).toBe('ok');
+    expect(findCheck(env, 'gasfree').status).toBe('skipped');
   });
 
-  it('reports facilitator=fail when the readiness probe rejects', async () => {
+  it('reports facilitator=fail when every readiness probe rejects', async () => {
     process.env.TRON_PRIVATE_KEY = SAMPLE_KEY;
-    fetchSpy.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+    // The doctor probes /api/v1/config/provider/all then /supported in series;
+    // make every fetch reject so the probe's both attempts fail.
+    fetchSpy.mockRejectedValue(new Error('ECONNREFUSED'));
     const code = await cmdDoctor({ output: 'json' });
     expect(code).toBe(0);
     const env = lastJson();
@@ -103,8 +105,9 @@ describe('cmdDoctor', () => {
     expect(env.result.overall).toBe('fail');
   });
 
-  it('reports gasfree=fail when getAddressInfo throws', async () => {
+  it('reports gasfree=fail for exact_gasfree when getAddressInfo throws', async () => {
     process.env.TRON_PRIVATE_KEY = SAMPLE_KEY;
+    process.env.X402_SCHEME = 'exact_gasfree';
     getInfoSpy = vi
       .spyOn(GasFreeAPIClient.prototype, 'getAddressInfo')
       .mockRejectedValue(new Error('boom'));

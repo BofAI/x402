@@ -2,7 +2,7 @@
 
 BankofAI x402 command-line tool.
 
-> **Status:** read-only commands first (`config`, `doctor`, `balance`). Signing commands (`transfer`, `pay`, `serve transfer`, `receipt`) ship in subsequent iterations.
+> **Status:** MVP implemented for BankofAI TRON/BSC `exact_permit`, BSC `exact`, and TRON GasFree fallback/server flows.
 
 Source spec: [`specs/002-bankofai-cli/bankofai-cli.md`](../../../specs/002-bankofai-cli/bankofai-cli.md). Implementation decisions: [`specs/002-bankofai-cli/notes/decisions.md`](../../../specs/002-bankofai-cli/notes/decisions.md).
 
@@ -23,16 +23,25 @@ x402 --help
 ## First-run flow
 
 ```bash
-# 1. Create the default profile (nile / TRON / exact_gasfree)
+# 1. Create the default profile (nile / TRON / exact_permit, with mainnet preset)
 x402 config init
 
-# 2. Make sure your wallet is wired and our facilitator is reachable
-export TRON_PRIVATE_KEY=0x...
+# 2. Wire a wallet + verify our facilitator is reachable
+export TRON_PRIVATE_KEY=0x...   # for tron:* networks
+export EVM_PRIVATE_KEY=0x...    # for eip155:* networks
 x402 doctor
 
-# 3. Inspect your GasFree wallet balance
+# 3. Inspect chain balance + GasFree state (chain-truthed; --verbose unmasks)
 x402 balance --json
+
+# 4. Preview a transfer (no signing, no chain spend)
+x402 transfer --to <addr> --amount 1.25 --token USDT --dry-run --json
 ```
+
+**Recommended fee-free network: BSC testnet (`eip155:97`).** We've
+verified `exact_permit` settlement on BSC USDT with `feeAmount=0` —
+users sign once, the facilitator pays gas. Pass `--network eip155:97`
+or switch profiles.
 
 ## Commands
 
@@ -66,14 +75,76 @@ Queries the GasFree API for the wallet's account info: main address, derived `ga
 
 The wallet's `gasFreeAddress` is read directly from the API response. Per [`docs/solutions.md` #9](../../../docs/solutions.md), do **not** recursively query that address again — its further `gasFreeAddress` is a different account.
 
-## GasFree economics — read this before paying
+### `x402 transfer`
 
-The default `nile` profile uses `exact_gasfree` on TRON. GasFree has two cost components users should know about (see [`docs/solutions.md` #11 + #12](../../../docs/solutions.md)):
+```bash
+x402 transfer --to <address> --amount <decimal> [--token USDT] [--dry-run] [--yes] [--json]
+```
+
+Builds local `PaymentRequirements` and signs with the SDK. TRON/BSC `exact_permit` and BSC `exact` call facilitator `verify`/`settle`; the user signs authorization while the settler pays chain gas. If TRON `exact_permit` needs an on-chain approval and that approval fails because the wallet has no TRX/energy, the CLI automatically falls back to `exact_gasfree`. Successful transfers append a local receipt.
+
+### `x402 pay`
+
+```bash
+x402 pay <url> [--method GET] [--header 'Key: value'] [--body '{}'] [--dry-run] [--json]
+```
+
+Fetches a 402-protected URL. In `--dry-run` mode it only reports the server's `accepts[]`. Without `--dry-run`, the SDK handles the 402 challenge/response and the CLI saves a receipt when settlement succeeds.
+
+### `x402 serve transfer`
+
+```bash
+x402 serve transfer --pay-to <address> --amount <decimal> [--token USDT] [--port 4020]
+```
+
+Starts a temporary collection server with `GET /health`, `GET /.well-known/x402-transfer`, and `POST /pay`.
+
+### `x402 request`
+
+```bash
+x402 request --to <address> --amount <decimal> [--token USDT] [--format uri|json]
+```
+
+Generates an offline transfer request. This command does not sign, read a wallet, or call the facilitator.
+If `~/.x402/config.json` does not exist, it falls back to the built-in `nile` defaults. QR output is intentionally post-MVP; use `uri` or `json`.
+
+### `x402 receipt`
+
+```bash
+x402 receipt list [--json]
+x402 receipt show <payment-id-or-tx>
+x402 receipt export --format json|csv
+```
+
+Reads the local append-only receipt store at `~/.x402/receipts.jsonl` (override with `X402_RECEIPT_FILE`).
+
+## Schemes & fees — pick the cheapest path for your case
+
+The CLI auto-selects the scheme per `(network, token)` from
+[`src/schemes.ts`](src/schemes.ts) when `--scheme` isn't passed. Three
+options, in cost order from a user's perspective:
+
+| Scheme | Fee paid by user | Pros | Cons |
+|---|---|---|---|
+| **`exact`** (ERC-3009) | 0 (facilitator pays chain gas) | Single signature; no allowance setup | Token must implement `transferWithAuthorization` (ERC-3009) |
+| **`exact_permit`** (EIP/TIP-712 + transferFrom) | 0 (facilitator pays chain gas) | Works for any EIP-2612 token; one-time approve covers all subsequent transfers | Two-call settlement; first-time approve costs gas |
+| **`exact_gasfree`** (TRON only) | 0.1 USDT flat per tx | Works on TRON without a token-side EIP-2612 nor user-side TRX | Fee scales with tx count, not amount; uneconomical for sub-$1 payments |
+
+**Verified live on testnets (2026-04-28):**
+
+- BSC Testnet `exact_permit` USDT, tx `0xe6458fcbf1da1da9a0c638cf68b357982781ae932b6742a02331d2371bfeaf30` — feeAmount=0, user paid only the principal.
+- TRON Nile `exact_gasfree` USDT, prior session txs (see git log) — feeAmount=0.1 USDT.
+
+**Known issue: TRON `exact_permit` settle reverts** because TRC-20 USDT's `transferFrom` returns no data. Until that lands, pin `--scheme exact_gasfree` for TRON USDT or use BSC. See [`docs/solutions.md` #13](../../../docs/solutions.md).
+
+### GasFree fee details (when actually using `exact_gasfree`)
+
+The hosted GasFree relayer (`facilitator.bankofai.io/<network>`) has two cost components — see [`docs/solutions.md` #11 + #12](../../../docs/solutions.md):
 
 - **`transferFee`** — flat per-tx, ~0.1 USDT on Nile USDT, paid to the GasFree service provider as compensation for the TRX gas they spend broadcasting your settlement. Does **not** scale with the payment amount, so very small payments have a high fee/amount ratio.
 - **`activateFee`** — one-time ~1 USDT charged the first time a custodial address is used.
 
-`x402 transfer --dry-run` now reports `feeAsPercentageOfAmount` and warns when the fee is ≥10% of the payment. Below that threshold GasFree is fine; far above it (e.g. an agent paying $0.001 per API call) you are mostly paying the relayer, not the recipient. For those cases, fall back to `exact` (ERC-3009) where the user pays their own TRX gas but there is no flat relayer fee.
+`x402 transfer --dry-run` now reports `feeAsPercentageOfAmount` and warns when the fee is ≥10% of the payment. Below that threshold GasFree is fine; far above it (e.g. an agent paying $0.001 per API call) you are mostly paying the relayer, not the recipient. For those cases, use a network/token that supports `exact_permit` or `exact` settlement, such as BSC testnet USDT/USDC for `exact_permit` or DHLU for `exact`.
 
 `x402 balance` queries the TRC-20 contract directly for the canonical balance (the GasFree API's `assets[].balance` field can lag minutes behind the chain). The output surfaces both `chainBalance` and `apiBalance` so cache lag is visible; trust the chain figure.
 
@@ -97,7 +168,7 @@ CLI flag wins, then env var, then profile, then SDK default.
 | `X402_OUTPUT` | `json` or `human` (default) |
 | `X402_CONFIG_FILE` | Path to the config JSON |
 | `TRON_PRIVATE_KEY` | TRON wallet key (0x-prefixed hex) |
-| `EVM_PRIVATE_KEY` | EVM wallet key (post-MVP) |
+| `EVM_PRIVATE_KEY` | EVM wallet key for `eip155:*` exact/exact_permit payments |
 | `X402_FACILITATOR_URL_OVERRIDE` | **e2e only.** Forces every command onto a non-default facilitator and emits a warning to stderr. |
 
 The CLI never accepts a wallet key as a flag — that would expose it via shell history.

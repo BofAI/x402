@@ -35,7 +35,7 @@ If the relevant variable is unset, the command fails with `WALLET_NOT_AVAILABLE`
   "ok": true,
   "command": "transfer",
   "network": "tron:nile",
-  "scheme": "exact_gasfree",
+  "scheme": "exact_permit",
   "result": {
     /* command-specific payload */
   }
@@ -59,7 +59,7 @@ Failure shape stays as the spec already defines:
   "ok": true,
   "command": "pay",
   "network": "tron:nile",
-  "scheme": "exact_gasfree",
+  "scheme": "exact_permit",
   "result": {
     "status": 200,
     "token": "USDT",
@@ -85,8 +85,6 @@ Failure shape stays as the spec already defines:
 X402_PROFILE             — name of the profile to load (default: "nile")
 X402_NETWORK             — network override, e.g. "tron:nile"
 X402_SCHEME              — scheme override, e.g. "exact_gasfree"
-X402_FACILITATOR_URL     — facilitator base URL override
-X402_GASFREE_API_URL     — GasFree API base URL override
 X402_TOKEN               — default token symbol
 X402_MAX_AMOUNT          — smallest-unit cap for `pay`
 X402_OUTPUT              — "human" (default) or "json"; equivalent to --json
@@ -104,6 +102,8 @@ TRON_GRID_API_KEY        — optional, forwarded to SDK for TronGrid RPC
 
 **Precedence (re-affirmed).** CLI flag → env var → profile → SDK default. CLI flags always win; env vars override the profile; profile overrides SDK defaults.
 
+**Endpoint exception.** Facilitator/GasFree endpoints do **not** use normal user-facing env overrides. D4 locks them to BankofAI-hosted URLs derived from `network`, with the internal-only `X402_FACILITATOR_URL_OVERRIDE` escape hatch for e2e.
+
 **Rationale.**
 - `X402_*` namespace prevents accidental collision with third-party tools and signals "this is x402 CLI's own setting".
 - Keeping wallet keys under their native names (`TRON_PRIVATE_KEY`, `EVM_PRIVATE_KEY`) means a single `.env` works across SDK, e2e harness, and CLI. Forcing a rename to `X402_TRON_PRIVATE_KEY` would create three places to set the same secret.
@@ -119,7 +119,7 @@ TRON_GRID_API_KEY        — optional, forwarded to SDK for TronGrid RPC
 tron:mainnet  → https://facilitator.bankofai.io/mainnet
 tron:shasta   → https://facilitator.bankofai.io/shasta
 tron:nile     → https://facilitator.bankofai.io/nile
-eip155:*      → https://facilitator.bankofai.io/<chain-slug>   (TBD per chain)
+eip155:*      → https://facilitator.bankofai.io  (root URL; no per-chain slug)
 ```
 
 **Specifically supersedes** the spec's profile example which shows `"facilitatorUrl": "..."` per profile and the per-command `--facilitator-url <url>` flag listed under `pay` / `transfer` flags. Both are dropped from the user-facing surface.
@@ -150,6 +150,35 @@ These can be answered while implementing:
 | `pay --body @file` 402 retry replay | spec § "x402 pay" | Read body fully into memory before first request; replay from buffer on retry. Document `--body @-` (stdin) as not supported in MVP |
 | `serve transfer` graceful shutdown | spec § "x402 serve transfer" | `SIGINT` / `SIGTERM` → flush in-flight settle calls, then exit 0. Outstanding (issued but not paid) challenges are dropped (memory-only by design) |
 
-## Next step
+## Implementation status as of 2026-04-27
 
-With D1 / D2 / D3 fixed, implementation can start. Suggested commit boundary for the first PR (no wallet signing yet): `config init/use/get` + `doctor` (read-only against BankofAI Nile) + `balance --gasfree` (read-only). That demonstrates the CLI shell, profile loader, output envelope, and SDK-import path — without touching anything that needs a private key. `transfer`, `pay`, `serve transfer`, `receipt` follow once the read-only path is solid.
+Implemented in `typescript/packages/cli`:
+
+- `config init/use/get/set/list`
+- `doctor`
+- `balance`
+- `transfer`
+  - TRON `exact_permit` via facilitator verify/settle
+  - TRON `exact_permit` approval failure auto-falls back to `exact_gasfree`
+  - TRON `exact_gasfree` fallback via GasFree submit/poll
+  - BSC/EVM `exact_permit` / `exact` via facilitator verify/settle
+- `pay`
+  - TRON `exact_permit` and `exact_gasfree`
+  - BSC/EVM `exact_permit` / `exact`
+- `serve transfer`
+- `request`
+- `receipt list/show/export`
+
+Validation trajectory:
+
+- `pnpm --filter @bankofai/x402-cli test` passes (`111` tests).
+- `pnpm --filter @bankofai/x402-cli build` passes.
+- Built CLI smoke-tested with `x402 --help` and `x402 request --json`.
+- Live `x402 transfer` on TRON Nile passed with tx
+  `9782fa046af5fcb8e2704a7a5cf08340729d85f2660bf99db58311cb9d09be0d`.
+- Live `x402 pay` passed against `x402 serve transfer` local example server with tx
+  `8427efa56b5ef311f4125a886df40b6a6415707dc0a57cc8ab780d09d91777d0`.
+
+Remaining before a release PR:
+
+- QR rendering stays post-MVP. `x402 request` supports only `--format uri|json`.

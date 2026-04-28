@@ -77,7 +77,7 @@ export async function cmdServeTransfer(opts: ServeTransferOpts): Promise<number>
     const { name: profileName, profile } = getProfile(cfg, opts.profile);
     const effective = applyEnvOverrides(profile);
     const network = opts.network || effective.network;
-    const scheme = opts.scheme || effective.scheme;
+    const scheme = opts.scheme || (effective.scheme === 'exact_gasfree' ? effective.scheme : 'exact_gasfree');
 
     if (scheme !== 'exact_gasfree' || !network.startsWith('tron:')) {
       throw new X402CliError(

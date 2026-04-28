@@ -5,8 +5,8 @@
  * Precedence (D3 in decisions.md): CLI flag > env var > profile > SDK default.
  *
  * The default `nile` profile points at the BankofAI Nile proxy and uses
- * `exact_gasfree`. After D4 the profile no longer carries `facilitatorUrl` —
- * the URL is always derived from `network`.
+ * `exact_permit`. The facilitator/GasFree URL is derived from `network`
+ * by facilitator.ts so profiles stay small and portable.
  */
 
 import { promises as fs } from 'node:fs';
@@ -22,8 +22,11 @@ export interface WalletProfile {
 export interface Profile {
   /** CAIP-2 network id, e.g. "tron:nile" or "eip155:97". */
   network: string;
-  /** Default scheme, e.g. "exact_gasfree". */
-  scheme: string;
+  /** Default scheme, e.g. "exact_permit". Optional — when omitted, the CLI
+   *  picks based on the (network, token) pair via schemes.ts. Set this to
+   *  pin a specific scheme (e.g. force `exact_gasfree` on TRON even if a
+   *  cheaper path becomes available later). */
+  scheme?: string;
   /** Default token symbol resolved against the SDK token registry. */
   token?: string;
   wallet: WalletProfile;
@@ -40,15 +43,16 @@ export function defaultConfig(): CliConfig {
   return {
     defaultProfile: DEFAULT_PROFILE_NAME,
     profiles: {
+      // BankofAI default: TRON Nile USDT via PaymentPermit settlement.
       [DEFAULT_PROFILE_NAME]: {
         network: 'tron:nile',
-        scheme: 'exact_gasfree',
+        scheme: 'exact_permit',
         token: 'USDT',
         wallet: { network: 'tron' },
       },
       mainnet: {
         network: 'tron:mainnet',
-        scheme: 'exact_gasfree',
+        scheme: 'exact_permit',
         token: 'USDT',
         wallet: { network: 'tron' },
       },
@@ -120,7 +124,7 @@ export function applyEnvOverrides(profile: Profile): Profile {
   return {
     ...profile,
     network: env.X402_NETWORK?.trim() || profile.network,
-    scheme: env.X402_SCHEME?.trim() || profile.scheme,
+    scheme: env.X402_SCHEME?.trim() ?? profile.scheme,
     token: env.X402_TOKEN?.trim() || profile.token,
   };
 }
@@ -145,10 +149,16 @@ function validateConfig(value: unknown, source: string): CliConfig {
       throw new X402CliError('IO_ERROR', `Profile '${name}' is not an object.`);
     }
     const p = raw as Record<string, unknown>;
-    if (typeof p.network !== 'string' || typeof p.scheme !== 'string') {
+    if (typeof p.network !== 'string') {
       throw new X402CliError(
         'IO_ERROR',
-        `Profile '${name}' is missing required string fields 'network' / 'scheme'.`,
+        `Profile '${name}' is missing required string field 'network'.`,
+      );
+    }
+    if (p.scheme !== undefined && typeof p.scheme !== 'string') {
+      throw new X402CliError(
+        'IO_ERROR',
+        `Profile '${name}'.scheme must be a string when present.`,
       );
     }
     const wallet = p.wallet as Record<string, unknown> | undefined;
@@ -160,7 +170,7 @@ function validateConfig(value: unknown, source: string): CliConfig {
     }
     out.profiles[name] = {
       network: p.network,
-      scheme: p.scheme,
+      scheme: typeof p.scheme === 'string' ? p.scheme : undefined,
       token: typeof p.token === 'string' ? p.token : undefined,
       wallet: { network: wallet.network },
     };

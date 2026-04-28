@@ -1,35 +1,31 @@
 /**
- * `x402 transfer` — direct gas-free transfer.
+ * `x402 transfer` — direct account transfer.
  *
- * The CLI builds PaymentRequirements locally, runs them through the SDK's
- * X402Client + ExactGasFreeClientMechanism (which signs TIP-712 and produces a
- * full PaymentPermit), then submits the permit straight to the BankofAI
- * GasFree proxy via `GasFreeAPIClient.submit`. We do NOT route through the
- * facilitator's `/fee/quote` / `/verify` / `/settle` HTTP surface — the hosted
- * BankofAI endpoint at `facilitator.bankofai.io/<network>` is the GasFree
- * proxy only; the full facilitator surface lives in `examples/facilitator/`
- * for e2e and is not what we want CLI users to depend on.
- *
- * MVP scope: TRON `exact_gasfree`. The signing path goes through
- * `TronClientSigner.create()`, which means @bankofai/agent-wallet's
- * resolveWalletProvider must find a wallet via TRON_PRIVATE_KEY (D1).
+ * TRON `exact_gasfree` uses BankofAI's GasFree submit API directly. EVM
+ * `exact_permit` / `exact` signs locally and asks the facilitator to verify
+ * and settle; the user signs authorization while the settler pays chain gas.
  */
 
 import {
   X402Client,
-  TronClientSigner,
   GasFreeAPIClient,
+  ExactEvmClientMechanism,
+  ExactPermitEvmClientMechanism,
+  ExactPermitTronClientMechanism,
   getChainId,
   getGasFreeControllerAddress,
+  isEvmNetwork,
+  isTronNetwork,
   type PaymentRequirements,
   type PaymentPermitContext,
   type PaymentPayload,
   type PaymentPermit,
+  type SettleResponse,
 } from '@bankofai/x402';
 import { TronWeb } from 'tronweb';
 import { runCommand, type OutputMode } from '../output.js';
 import { loadConfig, getProfile, applyEnvOverrides } from '../config.js';
-import { getFacilitatorBaseUrl } from '../facilitator.js';
+import { getFacilitatorBaseUrl, getSettlementFacilitatorBaseUrl } from '../facilitator.js';
 import { X402CliError } from '../error.js';
 import {
   resolveToken,
@@ -39,6 +35,9 @@ import {
   type ResolvedToken,
 } from '../amount.js';
 import { appendReceipt, type Receipt } from '../receipts.js';
+import { createEvmClientSignerFromEnv, createTronClientSignerFromEnv } from '../wallet.js';
+import { FacilitatorHttpClient } from '../facilitatorClient.js';
+import { isKnownScheme, pickScheme } from '../schemes.js';
 
 const RESOURCE_PSEUDO_URI = 'cli://transfer';
 
@@ -64,22 +63,6 @@ export async function cmdTransfer(opts: TransferOpts): Promise<number> {
     const { name: profileName, profile } = getProfile(cfg, opts.profile);
     const effective = applyEnvOverrides(profile);
     const network = opts.network || effective.network;
-    const scheme = opts.scheme || effective.scheme;
-
-    if (scheme !== 'exact_gasfree') {
-      throw new X402CliError(
-        'UNSUPPORTED_SCHEME',
-        `transfer currently supports scheme=exact_gasfree only; got '${scheme}'.`,
-        `Drop --scheme or pin the profile to exact_gasfree until other schemes ship.`,
-      );
-    }
-    if (!network.startsWith('tron:')) {
-      throw new X402CliError(
-        'UNSUPPORTED_NETWORK',
-        `transfer with exact_gasfree requires a tron:* network; got '${network}'.`,
-      );
-    }
-
     const tokenSymbol = opts.token || effective.token;
     const token = resolveToken({
       network,
@@ -87,6 +70,20 @@ export async function cmdTransfer(opts: TransferOpts): Promise<number> {
       asset: opts.asset,
       decimals: opts.decimals,
     });
+    const scheme =
+      opts.scheme ||
+      (opts.network ? pickScheme(network, token.symbol) : effective.scheme) ||
+      pickScheme(network, token.symbol);
+    if (!scheme) {
+      throw new X402CliError(
+        'UNSUPPORTED_SCHEME',
+        `No default transfer scheme is registered for ${network} ${token.symbol}.`,
+        'Pass --scheme explicitly if the token supports an x402 settlement scheme.',
+      );
+    }
+    if (!isKnownScheme(scheme)) {
+      throw new X402CliError('UNSUPPORTED_SCHEME', `Unknown transfer scheme '${scheme}'.`);
+    }
     const amountSmallest = parseHumanAmount(opts.amount, token.decimals);
     const amountStr = amountSmallest.toString();
 
@@ -107,9 +104,6 @@ export async function cmdTransfer(opts: TransferOpts): Promise<number> {
       },
     };
 
-    const facilitatorUrl = getFacilitatorBaseUrl(network);
-    const gasFreeClient = new GasFreeAPIClient(facilitatorUrl);
-
     // PaymentPermitContext seed: paymentId (16 random bytes) + validAfter (now-5).
     // The mechanism overwrites nonce from the GasFree API and clamps validBefore
     // to the network deadline window.
@@ -125,7 +119,61 @@ export async function cmdTransfer(opts: TransferOpts): Promise<number> {
       },
     };
 
+    const facilitatorUrl = scheme === 'exact_gasfree'
+      ? getFacilitatorBaseUrl(network)
+      : getSettlementFacilitatorBaseUrl(network);
+    if (scheme !== 'exact_gasfree') {
+      try {
+        return await settleViaFacilitator({
+          profileName,
+          network,
+          scheme,
+          token,
+          amountSmallest,
+          requirements,
+          paymentPermitContext,
+          facilitatorUrl,
+          dryRun: Boolean(opts.dryRun),
+        });
+      } catch (err) {
+        if (
+          !opts.dryRun &&
+          scheme === 'exact_permit' &&
+          isTronNetwork(network) &&
+          isAllowanceFailure(err)
+        ) {
+          process.stderr.write(
+            `[x402] exact_permit requires an on-chain approve but approval failed ` +
+              `(${(err as Error).message}). Falling back to exact_gasfree.\n`,
+          );
+          const gasFreeRequirements: PaymentRequirements = {
+            ...requirements,
+            scheme: 'exact_gasfree',
+            extra: { ...requirements.extra },
+          };
+          return settleViaGasFree({
+            profileName,
+            network,
+            token,
+            amountSmallest,
+            requirements: gasFreeRequirements,
+            paymentPermitContext,
+            facilitatorUrl: getFacilitatorBaseUrl(network),
+            fallbackFrom: 'exact_permit',
+          });
+        }
+        throw err;
+      }
+    }
+
     if (opts.dryRun) {
+      if (!network.startsWith('tron:')) {
+        throw new X402CliError(
+          'UNSUPPORTED_NETWORK',
+          `transfer with exact_gasfree requires a tron:* network; got '${network}'.`,
+        );
+      }
+      const gasFreeClient = new GasFreeAPIClient(facilitatorUrl);
       const accountInfo = await gasFreeClient.getAddressInfo(
         await tempSignerAddressForDryRun(profile.wallet.network),
       );
@@ -141,95 +189,247 @@ export async function cmdTransfer(opts: TransferOpts): Promise<number> {
       );
     }
 
-    // Sign + build the permit (this is where TIP-712 happens).
-    const signer = await TronClientSigner.create();
-    const x402 = new X402Client();
-    x402.registerGasFree(signer, { [network]: gasFreeClient });
-
-    const payload = await x402.createPaymentPayload(requirements, RESOURCE_PSEUDO_URI, {
-      paymentPermitContext,
-    });
-    const permit = (payload as PaymentPayload).payload.paymentPermit;
-    if (!permit) {
-      throw new X402CliError(
-        'SETTLE_FAILED',
-        'createPaymentPayload returned without a paymentPermit; cannot submit GasFree settlement.',
-      );
-    }
-    const signature = (payload as PaymentPayload).payload.signature;
-
-    // Submit straight to GasFree.
-    const { domain, message } = buildGasFreeSubmitBody(network, permit);
-    let traceId: string;
-    try {
-      traceId = await gasFreeClient.submit(domain, message, signature);
-    } catch (err) {
-      throw new X402CliError(
-        'SETTLE_FAILED',
-        `GasFree submit failed: ${(err as Error).message}`,
-      );
-    }
-    let resultData;
-    try {
-      resultData = await gasFreeClient.waitForSuccess(traceId);
-    } catch (err) {
-      throw new X402CliError(
-        'SETTLE_FAILED',
-        `GasFree settlement timed out / failed: ${(err as Error).message}`,
-      );
-    }
-    const txnHash = resultData.txnHash;
-    if (!txnHash) {
-      throw new X402CliError(
-        'SETTLE_FAILED',
-        `GasFree polling returned ${resultData.state} but txnHash was empty.`,
-      );
-    }
-
-    // Receipt.
-    const payer = signer.getAddress();
-    const receipt: Receipt = {
-      paymentId,
-      command: 'transfer',
-      createdAt: new Date().toISOString(),
-      profile: profileName,
+    return settleViaGasFree({
+      profileName,
       network,
-      scheme,
-      payer,
-      payTo: requirements.payTo,
-      token: token.symbol,
-      asset: token.address,
-      amount: amountStr,
-      amountDisplay: `${formatSmallestUnit(amountSmallest, token.decimals)} ${token.symbol}`,
-      feeAmount: permit.fee.feeAmount,
-      settlement: {
-        success: true,
-        transaction: txnHash,
-      },
-      extra: {
-        traceId,
-        gasFreeAddress: permit.buyer,
-        serviceProvider: permit.fee.feeTo,
-        deadline: permit.meta.validBefore,
-      },
-    };
-    const receiptPath = await appendReceipt(receipt);
-
-    return {
-      paymentId,
-      payer,
-      payTo: requirements.payTo,
-      token: token.symbol,
-      asset: token.address,
-      amount: amountStr,
-      amountDisplay: `${formatSmallestUnit(amountSmallest, token.decimals)} ${token.symbol}`,
-      feeAmount: permit.fee.feeAmount,
-      transaction: txnHash,
-      traceId,
-      gasFreeProvider: permit.fee.feeTo,
-      receiptPath,
-    };
+      token,
+      amountSmallest,
+      requirements,
+      paymentPermitContext,
+      facilitatorUrl,
+    });
   });
+}
+
+async function settleViaGasFree(args: {
+  profileName: string;
+  network: string;
+  token: ResolvedToken;
+  amountSmallest: bigint;
+  requirements: PaymentRequirements;
+  paymentPermitContext: PaymentPermitContext;
+  facilitatorUrl: string;
+  fallbackFrom?: string;
+}) {
+  if (!args.network.startsWith('tron:')) {
+    throw new X402CliError(
+      'UNSUPPORTED_NETWORK',
+      `transfer with exact_gasfree requires a tron:* network; got '${args.network}'.`,
+    );
+  }
+  const gasFreeClient = new GasFreeAPIClient(args.facilitatorUrl);
+  const signer = createTronClientSignerFromEnv();
+  const x402 = new X402Client();
+  x402.registerGasFree(signer, { [args.network]: gasFreeClient });
+
+  const payload = await x402.createPaymentPayload(args.requirements, RESOURCE_PSEUDO_URI, {
+    paymentPermitContext: args.paymentPermitContext,
+  });
+  const permit = (payload as PaymentPayload).payload.paymentPermit;
+  if (!permit) {
+    throw new X402CliError(
+      'SETTLE_FAILED',
+      'createPaymentPayload returned without a paymentPermit; cannot submit GasFree settlement.',
+    );
+  }
+  const signature = (payload as PaymentPayload).payload.signature;
+
+  // Submit straight to GasFree.
+  const { domain, message } = buildGasFreeSubmitBody(args.network, permit);
+  let traceId: string;
+  try {
+    traceId = await gasFreeClient.submit(domain, message, signature);
+  } catch (err) {
+    throw new X402CliError(
+      'SETTLE_FAILED',
+      `GasFree submit failed: ${(err as Error).message}`,
+    );
+  }
+  let resultData;
+  try {
+    resultData = await gasFreeClient.waitForSuccess(traceId);
+  } catch (err) {
+    throw new X402CliError(
+      'SETTLE_FAILED',
+      `GasFree settlement timed out / failed: ${(err as Error).message}`,
+    );
+  }
+  const txnHash = resultData.txnHash;
+  if (!txnHash) {
+    throw new X402CliError(
+      'SETTLE_FAILED',
+      `GasFree polling returned ${resultData.state} but txnHash was empty.`,
+    );
+  }
+
+  const payer = signer.getAddress();
+  const receipt: Receipt = {
+    paymentId: args.paymentPermitContext.meta.paymentId,
+    command: 'transfer',
+    createdAt: new Date().toISOString(),
+    profile: args.profileName,
+    network: args.network,
+    scheme: 'exact_gasfree',
+    payer,
+    payTo: args.requirements.payTo,
+    token: args.token.symbol,
+    asset: args.token.address,
+    amount: args.requirements.amount,
+    amountDisplay: `${formatSmallestUnit(args.amountSmallest, args.token.decimals)} ${args.token.symbol}`,
+    feeAmount: permit.fee.feeAmount,
+    settlement: {
+      success: true,
+      transaction: txnHash,
+    },
+    extra: {
+      traceId,
+      gasFreeAddress: permit.buyer,
+      serviceProvider: permit.fee.feeTo,
+      deadline: permit.meta.validBefore,
+      ...(args.fallbackFrom ? { fallbackFrom: args.fallbackFrom } : {}),
+    },
+  };
+  const receiptPath = await appendReceipt(receipt);
+
+  return {
+    paymentId: args.paymentPermitContext.meta.paymentId,
+    payer,
+    payTo: args.requirements.payTo,
+    token: args.token.symbol,
+    asset: args.token.address,
+    amount: args.requirements.amount,
+    amountDisplay: `${formatSmallestUnit(args.amountSmallest, args.token.decimals)} ${args.token.symbol}`,
+    feeAmount: permit.fee.feeAmount,
+    transaction: txnHash,
+    traceId,
+    gasFreeProvider: permit.fee.feeTo,
+    scheme: 'exact_gasfree',
+    ...(args.fallbackFrom ? { fallbackFrom: args.fallbackFrom } : {}),
+    receiptPath,
+  };
+}
+
+async function settleViaFacilitator(args: {
+  profileName: string;
+  network: string;
+  scheme: 'exact' | 'exact_permit';
+  token: ResolvedToken;
+  amountSmallest: bigint;
+  requirements: PaymentRequirements;
+  paymentPermitContext: PaymentPermitContext;
+  facilitatorUrl: string;
+  dryRun: boolean;
+}) {
+  if (!isEvmNetwork(args.network) && !(isTronNetwork(args.network) && args.scheme === 'exact_permit')) {
+    throw new X402CliError(
+      'UNSUPPORTED_NETWORK',
+      `transfer with ${args.scheme} supports eip155:* networks and tron:* exact_permit; got '${args.network}'.`,
+    );
+  }
+
+  const facilitator = new FacilitatorHttpClient(args.facilitatorUrl);
+  const requirements = { ...args.requirements, extra: { ...args.requirements.extra } };
+
+  if (args.scheme === 'exact_permit') {
+    const quotes = await facilitator.feeQuote([requirements], args.paymentPermitContext);
+    const quote = quotes.find(
+      (q) =>
+        q.scheme === args.scheme &&
+        q.network === args.network &&
+        q.asset.toLowerCase() === args.token.address.toLowerCase(),
+    ) ?? quotes[0];
+    if (!quote) {
+      throw new X402CliError(
+        'FEE_QUOTE_NOT_FOUND',
+        `No facilitator fee quote returned for ${args.network} ${args.scheme}.`,
+      );
+    }
+    requirements.extra = { ...requirements.extra, fee: quote.fee };
+  }
+
+  const feeAmount = requirements.extra?.fee?.feeAmount ?? '0';
+  if (args.dryRun) {
+    const payer = await tempSignerAddressForDryRun(isEvmNetwork(args.network) ? 'evm' : 'tron');
+    return {
+      dryRun: true,
+      profile: args.profileName,
+      network: args.network,
+      scheme: args.scheme,
+      facilitatorUrl: args.facilitatorUrl,
+      payer,
+      token: args.token.symbol,
+      asset: args.token.address,
+      amount: requirements.amount,
+      amountDisplay: `${formatSmallestUnit(args.amountSmallest, args.token.decimals)} ${args.token.symbol}`,
+      payTo: requirements.payTo,
+      estimatedFee: feeAmount,
+      paymentId: args.paymentPermitContext.meta.paymentId,
+    };
+  }
+
+  const signer = isEvmNetwork(args.network)
+    ? createEvmClientSignerFromEnv()
+    : createTronClientSignerFromEnv();
+  const x402 = new X402Client();
+  if (isEvmNetwork(args.network)) {
+    x402.register('eip155:*', new ExactPermitEvmClientMechanism(signer));
+    x402.register('eip155:*', new ExactEvmClientMechanism(signer));
+  } else {
+    x402.register('tron:*', new ExactPermitTronClientMechanism(signer));
+  }
+
+  const payload = await x402.createPaymentPayload(requirements, RESOURCE_PSEUDO_URI, {
+    paymentPermitContext: args.paymentPermitContext,
+  });
+  const verify = await facilitator.verify(payload, requirements);
+  if (!verify.isValid) {
+    throw new X402CliError(
+      'VERIFY_FAILED',
+      `Facilitator rejected payment payload: ${verify.invalidReason ?? 'unknown reason'}`,
+    );
+  }
+  const settlement = await facilitator.settle(payload, requirements);
+  if (!settlement.success) {
+    throw new X402CliError(
+      'SETTLE_FAILED',
+      `Facilitator settlement failed: ${settlement.errorReason ?? 'unknown reason'}`,
+    );
+  }
+
+  const payer = signer.getAddress();
+  const receiptPath = await appendReceipt({
+    paymentId: args.paymentPermitContext.meta.paymentId,
+    command: 'transfer',
+    createdAt: new Date().toISOString(),
+    profile: args.profileName,
+    network: args.network,
+    scheme: args.scheme,
+    payer,
+    payTo: requirements.payTo,
+    token: args.token.symbol,
+    asset: args.token.address,
+    amount: requirements.amount,
+    amountDisplay: `${formatSmallestUnit(args.amountSmallest, args.token.decimals)} ${args.token.symbol}`,
+    feeAmount,
+    settlement: settlement as SettleResponse & { success: true },
+    extra: {
+      facilitatorUrl: args.facilitatorUrl,
+      paymentPermitContext: args.paymentPermitContext,
+    },
+  });
+
+  return {
+    paymentId: args.paymentPermitContext.meta.paymentId,
+    payer,
+    payTo: requirements.payTo,
+    token: args.token.symbol,
+    asset: args.token.address,
+    amount: requirements.amount,
+    amountDisplay: `${formatSmallestUnit(args.amountSmallest, args.token.decimals)} ${args.token.symbol}`,
+    feeAmount,
+    transaction: settlement.transaction ?? null,
+    receiptPath,
+  };
 }
 
 function buildGasFreeSubmitBody(network: string, permit: PaymentPermit) {
@@ -255,6 +455,16 @@ function buildGasFreeSubmitBody(network: string, permit: PaymentPermit) {
   return { domain, message };
 }
 
+function isAllowanceFailure(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const e = err as { name?: string; message?: string };
+  return (
+    e.name === 'InsufficientAllowanceError' ||
+    e.name === 'AllowanceError' ||
+    /allowance|approve|tron|energy|balance|bandwidth/i.test(e.message ?? '')
+  );
+}
+
 function base58ToEvmHex(address: string): string {
   if (address.startsWith('0x')) return address.toLowerCase();
   const tronHex = TronWeb.address.toHex(address) as string;
@@ -263,8 +473,8 @@ function base58ToEvmHex(address: string): string {
 
 async function tempSignerAddressForDryRun(walletNetwork: 'tron' | 'evm'): Promise<string> {
   // For --dry-run we want to surface what the GasFree API knows about the
-  // payer without going through @bankofai/agent-wallet's full provider flow.
-  // Reuse deriveWalletInfo to read the env-key address; this throws cleanly
+  // payer without signing. Reuse deriveWalletInfo to read the env-key address;
+  // this throws cleanly
   // (WALLET_NOT_AVAILABLE) when TRON_PRIVATE_KEY is not set.
   const { deriveWalletInfo } = await import('../wallet.js');
   return deriveWalletInfo(walletNetwork).address;

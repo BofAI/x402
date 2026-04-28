@@ -17,9 +17,6 @@ importers:
 
   packages/cli:
     dependencies:
-      '@bankofai/agent-wallet':
-        specifier: ^2.3.0
-        version: 2.3.0(@types/node@20.19.31)(typescript@5.9.3)
       '@bankofai/x402':
         specifier: workspace:*
         version: link:../x402
@@ -29,6 +26,9 @@ importers:
       tronweb:
         specifier: ^6.0.0
         version: 6.1.1
+      viem:
+        specifier: ^2.21.49
+        version: 2.45.2(typescript@5.9.3)(zod@3.25.76)
     devDependencies:
       '@types/node':
         specifier: ^20.10.0

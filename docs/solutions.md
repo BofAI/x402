@@ -254,6 +254,85 @@ break-even amount in CLI / SDK consumer guides.
 
 ---
 
+### 13. TRON USDT (TRC-20) `transferFrom` returns no data — breaks `exact_permit` settle
+
+- **Category**: protocol
+- **Severity**: high
+- **Module**: mechanisms, exact_permit, tron
+
+**Symptom**: `x402 transfer --scheme exact_permit` against Nile USDT
+fails at the facilitator's `/settle` step with
+`SETTLE_FAILED: transaction_failed`. The PaymentPermit signature
+verifies, the on-chain tx is broadcast, but the settler reports failure.
+
+**Root cause**: TRON's USDT TRC-20 contract does not return the
+ERC-20-standard `bool success` from `transferFrom` — it reverts on
+failure but emits no return data on success. The PaymentPermit
+settlement contract checks the return value and treats the missing
+boolean as a transfer failure. This is a long-standing TRC-20 vs ERC-20
+mismatch that affects more than just our flow.
+
+**Fix**: Two paths, both deferred:
+
+1. SDK adds a TRON-specific `transferFrom` adapter that uses
+   `safeTransferFrom`-style logic (no return-value check; rely on
+   absence of revert).
+2. The PaymentPermit contract on TRON is upgraded to skip the return
+   check.
+
+**Workaround in CLI**: The `transfer` command auto-falls-back to
+`exact_gasfree` when allowance approval fails. For users with
+already-approved allowances, pin `--scheme exact_gasfree` on TRON
+USDT until either fix lands.
+
+**Rule**: Any new TRON token integration must be tested against an
+actual `transferFrom` from an unrelated spender before claiming
+`exact_permit` support. The signature path can pass while the on-chain
+settlement reverts.
+
+**Ref**: discovered 2026-04-28 while validating CLI default scheme on
+Nile. BSC USDT (`exact_permit`) confirmed working in the same session
+via tx `0xe6458fcbf1da1da9a0c638cf68b357982781ae932b6742a02331d2371bfeaf30`.
+
+---
+
+### 14. BankofAI facilitator: root URL is the full facilitator, network-scoped paths are GasFree-only
+
+- **Category**: config
+- **Severity**: medium
+- **Module**: cli, facilitator
+
+**Symptom**: `getFacilitatorBaseUrl('eip155:97')` initially returned
+`https://facilitator.bankofai.io/bsc-testnet`, which 404s. Tests
+written against this URL passed but real CLI calls failed at the first
+`fetch`.
+
+**Root cause**: We assumed each chain would have its own facilitator
+slug (`/bsc-testnet`, `/bsc-mainnet`, …) the way TRON has `/nile`,
+`/mainnet`, `/shasta`. In practice the BankofAI proxy serves EVM
+schemes from the **root URL** (`https://facilitator.bankofai.io`).
+The network-scoped paths exist only for the TRON GasFree API
+(`/api/v1/...` calls). Settlement for `exact` / `exact_permit` —
+whether TRON or EVM — lives at the root.
+
+**Fix**: `getFacilitatorBaseUrl` now returns the root URL for any
+`eip155:*` network, regardless of whether we have it in a hand-rolled
+slug map. `getSettlementFacilitatorBaseUrl` returns root for both TRON
+and EVM. `doctor`'s readiness probe falls back to `/supported` (which
+the root facilitator serves) when `/api/v1/config/provider/all` 404s
+(EVM case).
+
+**Rule**: When integrating with a new chain on the BankofAI
+facilitator, the URL is the root unless explicitly proven to be a
+network-scoped subpath. Verify with `curl
+https://facilitator.bankofai.io/supported` to see what the host
+actually advertises.
+
+**Ref**: 2026-04-28 CLI 0.1.0 prep. The supported-kinds `/supported`
+response on root lists tron:nile and eip155:* mechanisms together.
+
+---
+
 <!-- Template for new entries:
 
 ### N. Short title

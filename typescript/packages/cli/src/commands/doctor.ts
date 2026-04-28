@@ -40,6 +40,7 @@ export async function cmdDoctor(opts: {
     const { name: profileName, profile } = getProfile(cfg, opts.profile);
     const effective = applyEnvOverrides(profile);
     const network = opts.network || effective.network;
+    const scheme = effective.scheme || 'exact_gasfree';
 
     const checks: Check[] = [];
 
@@ -70,18 +71,18 @@ export async function cmdDoctor(opts: {
         status: 'fail',
         detail: isCliError(err) ? err.message : (err as Error).message,
       });
-      return finalize(checks, profileName, network, effective.scheme, address);
+      return finalize(checks, profileName, network, scheme, address);
     }
     checks.push(await pingFacilitator(facilitatorUrl));
 
     // 4. GasFree API returns address info (only for exact_gasfree on TRON)
-    if (effective.scheme === 'exact_gasfree' && isTronNetwork(network) && address) {
+    if (scheme === 'exact_gasfree' && isTronNetwork(network) && address) {
       checks.push(await checkGasFreeAddress(facilitatorUrl, address));
     } else {
       checks.push({
         name: 'gasfree',
         status: 'skipped',
-        detail: `not applicable: scheme=${effective.scheme} network=${network}`,
+        detail: `not applicable: scheme=${scheme} network=${network}`,
       });
     }
 
@@ -92,7 +93,7 @@ export async function cmdDoctor(opts: {
       checks.push({ name: 'token', status: 'skipped', detail: 'no default token in profile' });
     }
 
-    return finalize(checks, profileName, network, effective.scheme, address);
+    return finalize(checks, profileName, network, scheme, address);
   });
 }
 
@@ -128,27 +129,27 @@ function checkNode(): Check {
 }
 
 async function pingFacilitator(baseUrl: string): Promise<Check> {
-  // Use the GasFree config endpoint as a generic readiness probe. It returns
-  // 200 even on a fresh proxy and exercises the same TLS / DNS / routing path
-  // every command will use.
-  const probe = `${baseUrl}/api/v1/config/provider/all`;
-  try {
-    const res = await fetch(probe, { signal: AbortSignal.timeout(5000) });
-    if (res.ok) {
-      return { name: 'facilitator', status: 'ok', detail: probe };
+  // We probe two endpoints in series so the check works on both the
+  // network-scoped GasFree proxy (e.g. /nile) and the root facilitator
+  // (which serves /supported but no /api/v1/...). The first one to reply
+  // with 2xx wins.
+  const probes = [
+    `${baseUrl}/api/v1/config/provider/all`, // GasFree proxy on TRON nodes
+    `${baseUrl}/supported`, // root facilitator (TRON + EVM) — fits both
+  ];
+  let lastDetail = '';
+  for (const probe of probes) {
+    try {
+      const res = await fetch(probe, { signal: AbortSignal.timeout(5000) });
+      if (res.ok) {
+        return { name: 'facilitator', status: 'ok', detail: probe };
+      }
+      lastDetail = `${probe} returned HTTP ${res.status}`;
+    } catch (err) {
+      lastDetail = `${probe}: ${(err as Error).message}`;
     }
-    return {
-      name: 'facilitator',
-      status: 'fail',
-      detail: `${probe} returned HTTP ${res.status}`,
-    };
-  } catch (err) {
-    return {
-      name: 'facilitator',
-      status: 'fail',
-      detail: `${probe}: ${(err as Error).message}`,
-    };
   }
+  return { name: 'facilitator', status: 'fail', detail: lastDetail };
 }
 
 async function checkGasFreeAddress(facilitatorUrl: string, address: string): Promise<Check> {

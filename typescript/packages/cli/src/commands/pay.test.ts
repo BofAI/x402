@@ -31,6 +31,7 @@ afterEach(async () => {
   delete process.env.X402_CONFIG_FILE;
   delete process.env.X402_RECEIPT_FILE;
   delete process.env.TRON_PRIVATE_KEY;
+  delete process.env.EVM_PRIVATE_KEY;
   stdoutSpy.mockRestore();
   vi.restoreAllMocks();
   await fs.rm(tmpDir, { recursive: true, force: true });
@@ -49,7 +50,7 @@ describe('cmdPay', () => {
     expect(env.error.code).toBe('INVALID_INPUT');
   });
 
-  it('rejects EVM networks (post-MVP for pay)', async () => {
+  it('requires EVM_PRIVATE_KEY for EVM pay networks', async () => {
     const code = await cmdPay({
       url: 'http://127.0.0.1:0/pay',
       network: 'eip155:97',
@@ -57,7 +58,7 @@ describe('cmdPay', () => {
     });
     expect(code).toBe(1);
     const env = lastJson<{ ok: false; error: { code: string } }>();
-    expect(env.error.code).toBe('UNSUPPORTED_NETWORK');
+    expect(env.error.code).toBe('WALLET_NOT_AVAILABLE');
   });
 
   it('--dry-run reports server accepts when 402 is returned', async () => {
@@ -133,6 +134,31 @@ describe('cmdPay', () => {
     const r = JSON.parse(receipts.trim());
     expect(r.command).toBe('pay');
     expect(r.settlement.transaction).toBe(settlement.transaction);
+  });
+
+  it('registers EVM exact/exact_permit pay when EVM_PRIVATE_KEY is present', async () => {
+    process.env.EVM_PRIVATE_KEY = SAMPLE_KEY;
+    const settlement = {
+      success: true,
+      transaction: '0xabc' + '123'.repeat(20),
+      network: 'eip155:97',
+    };
+    vi.spyOn(X402FetchClient.prototype, 'request').mockResolvedValue(
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'PAYMENT-RESPONSE': encodePaymentPayload(settlement) },
+      }) as unknown as Response,
+    );
+    const code = await cmdPay({
+      url: 'http://127.0.0.1:0/pay',
+      network: 'eip155:97',
+      scheme: 'exact_permit',
+      output: 'json',
+    });
+    expect(code).toBe(0);
+    const env = lastJson<{ result: { status: number; paymentResponse: typeof settlement } }>();
+    expect(env.result.status).toBe(200);
+    expect(env.result.paymentResponse.network).toBe('eip155:97');
   });
 
   it('returns SETTLE_FAILED when the post-payment response is 4xx', async () => {

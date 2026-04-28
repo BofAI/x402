@@ -30,9 +30,9 @@
   },
   "dependencies": {
     "@bankofai/x402": "workspace:*",
-    "@bankofai/agent-wallet": "^2.3.0",
     "commander": "^12.1.0",
-    "tronweb": "^6.0.0"
+    "tronweb": "^6.0.0",
+    "viem": "^2.21.49"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",

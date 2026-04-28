@@ -15,12 +15,7 @@ import { X402CliError } from './error.js';
 
 const OVERRIDE_ENV = 'X402_FACILITATOR_URL_OVERRIDE';
 
-const BSC_FACILITATOR_URLS: Record<string, string> = {
-  // EVM networks use the same host pattern; slugs are TBD by the BankofAI
-  // operations team. For now the only EVM endpoint we serve is BSC testnet.
-  'eip155:97': 'https://facilitator.bankofai.io/bsc-testnet',
-  'eip155:56': 'https://facilitator.bankofai.io/bsc',
-};
+const ROOT_FACILITATOR = 'https://facilitator.bankofai.io';
 
 let _overrideWarned = false;
 
@@ -43,23 +38,41 @@ export function getFacilitatorBaseUrl(network: string): string {
   }
 
   if (isTronNetwork(network)) {
-    // For TRON the GasFree API URL and the facilitator URL are the same host.
+    // For TRON the GasFree API URL and the facilitator URL are the same host
+    // (network-scoped proxy at /nile, /mainnet, /shasta).
     return getGasFreeApiBaseUrl(network).replace(/\/$/, '');
   }
 
   if (isEvmNetwork(network)) {
-    const url = BSC_FACILITATOR_URLS[network];
-    if (url) return url.replace(/\/$/, '');
-    throw new X402CliError(
-      'UNSUPPORTED_NETWORK',
-      `No BankofAI facilitator endpoint configured for ${network}.`,
-      `Use a TRON network (tron:nile / tron:mainnet) or set ${OVERRIDE_ENV} to point at a local facilitator.`,
-    );
+    // EVM has no GasFree proxy; commands that probe a "GasFree-shaped"
+    // endpoint should use the root facilitator instead. Settlement
+    // (/fee/quote /verify /settle) likewise lives at root for EVM.
+    return ROOT_FACILITATOR;
   }
 
   throw new X402CliError(
     'UNSUPPORTED_NETWORK',
     `Unrecognized network identifier: ${network}.`,
     'Network must start with "tron:" or "eip155:".',
+  );
+}
+
+/**
+ * Resolve the generic facilitator settlement surface for non-GasFree schemes.
+ * Both TRON and EVM `exact` / `exact_permit` settlement (`/fee/quote`,
+ * `/verify`, `/settle`) lives at the root URL — only TRON GasFree balance
+ * lookups go through the network-scoped proxy at `/nile`, `/mainnet`, etc.
+ */
+export function getSettlementFacilitatorBaseUrl(network: string): string {
+  const override = process.env[OVERRIDE_ENV];
+  if (override && override.trim()) {
+    return override.trim().replace(/\/$/, '');
+  }
+  if (isTronNetwork(network) || isEvmNetwork(network)) {
+    return ROOT_FACILITATOR;
+  }
+  throw new X402CliError(
+    'UNSUPPORTED_NETWORK',
+    `Unrecognized network identifier: ${network}.`,
   );
 }
