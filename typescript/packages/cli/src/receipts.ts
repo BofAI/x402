@@ -2,7 +2,7 @@
  * Local receipt store: append-only JSONL at ~/.x402/receipts.jsonl
  * (overridable via X402_RECEIPT_FILE).
  *
- * The CLI writes one line per successful pay/transfer/serve transfer settle.
+ * The CLI writes one line per successful pay/transfer/server settle.
  * Reads are streamed line-by-line so the file can grow without bloating
  * memory; rotation is post-MVP.
  */
@@ -14,7 +14,7 @@ import { X402CliError } from './error.js';
 
 export interface Receipt {
   paymentId: string;
-  command: 'pay' | 'transfer' | 'serve-transfer';
+  command: 'pay' | 'transfer' | 'server';
   createdAt: string; // ISO 8601
   profile: string;
   network: string;

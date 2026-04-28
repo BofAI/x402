@@ -91,10 +91,10 @@ x402 pay <url> [--method GET] [--header 'Key: value'] [--body '{}'] [--dry-run] 
 
 Fetches a 402-protected URL. In `--dry-run` mode it only reports the server's `accepts[]`. Without `--dry-run`, the SDK handles the 402 challenge/response and the CLI saves a receipt when settlement succeeds.
 
-### `x402 serve transfer`
+### `x402 server`
 
 ```bash
-x402 serve transfer --pay-to <address> --amount <decimal> [--token USDT] [--port 4020]
+x402 server --pay-to <address> --amount <decimal> [--token USDT] [--port 4020]
 ```
 
 Starts a temporary collection server with `GET /health`, `GET /.well-known/x402-transfer`, and `POST /pay`.

@@ -60,7 +60,7 @@ CLI 第一版默认使用 BankofAI 的实现和托管服务：
 
 - SDK package: `@bankofai/x402`
 - CLI package: `@bankofai/x402-cli`
-- Wallet source: `TRON_PRIVATE_KEY` / `EVM_PRIVATE_KEY` environment variables for MVP
+- Wallet source: BankofAI `agent-wallet` first; `TRON_PRIVATE_KEY` / `EVM_PRIVATE_KEY` as developer fallback
 - TRON GasFree/facilitator proxy: `https://facilitator.bankofai.io/<network>`
 - Token registry: BankofAI SDK 内置 token registry
 - 默认转账路径: `tron:nile` + `USDT` + `exact_permit`
@@ -87,13 +87,13 @@ CLI 使用 profile 保存默认网络、facilitator、GasFree API、RPC 和钱�
       "network": "tron:nile",
       "scheme": "exact_permit",
       "token": "USDT",
-      "wallet": { "network": "tron" }
+      "wallet": { "network": "tron", "source": "agent-wallet" }
     },
     "mainnet": {
       "network": "tron:mainnet",
       "scheme": "exact_permit",
       "token": "USDT",
-      "wallet": { "network": "tron" }
+      "wallet": { "network": "tron", "source": "agent-wallet" }
     }
   }
 }
@@ -103,12 +103,19 @@ CLI 使用 profile 保存默认网络、facilitator、GasFree API、RPC 和钱�
 
 ### wallet
 
-MVP 使用环境变量私钥构造 BankofAI SDK signer：
+目标设计使用 BankofAI `agent-wallet` 提供 active wallet，并构造 SDK signer：
+
+- TRON: `agent-wallet` active wallet -> `TronClientSigner`
+- EVM: `agent-wallet` active wallet -> `EvmClientSigner`
+
+兼容 fallback：
 
 - TRON: `TRON_PRIVATE_KEY` -> CLI local wallet adapter -> `TronClientSigner`
 - EVM: `EVM_PRIVATE_KEY` -> CLI local wallet adapter -> `EvmClientSigner`
 
-避免在命令行 flag 中传私钥。后续如需本地私钥，可只支持环境变量或系统 keychain，不支持 shell history 中可见的 `--private-key`。
+避免在命令行 flag 中传私钥。即使使用 fallback，也只支持环境变量或安全注入，不支持 shell history 中可见的 `--private-key`。
+
+当前实现状态：已实现 env private key fallback；`agent-wallet` 优先接入作为评审后的下一步落地。
 
 ### amount
 
@@ -139,7 +146,7 @@ CLI 需要本地 receipt store，默认位置：
 ~/.x402/receipts.jsonl
 ```
 
-每次 `pay`、`transfer`、`serve transfer` 成功 settle 后追加一行 JSON，便于审计和 Agent 后续引用。
+每次 `pay`、`transfer`、`server` 成功 settle 后追加一行 JSON，便于审计和 Agent 后续引用。
 
 ## 命令设计
 
@@ -251,12 +258,12 @@ x402 transfer
 
 `exact_gasfree` 场景下，这个命令就是 gas-free transfer：用户签 TIP-712，GasFree service provider 代付 TRON gas，费用从 GasFree custodial wallet 中扣除。
 
-### 3. `x402 serve transfer`
+### 3. `x402 server`
 
 启动一个临时收款 server，把收款条件暴露成标准 x402 protected endpoint。付款方只需要执行 `x402 pay <server-url>/pay`。
 
 ```bash
-x402 serve transfer \
+x402 server \
   --host 0.0.0.0 \
   --port 4020 \
   --pay-to TYm... \
@@ -429,7 +436,7 @@ x402 request
 }
 ```
 
-MVP 只生成请求，不直接保证收款。真正收款仍由 `x402 transfer` 或 `x402 serve transfer` 执行。
+MVP 只生成请求，不直接保证收款。真正收款仍由 `x402 transfer` 或 `x402 server` 执行。
 
 ### 8. `x402 receipt`
 
@@ -561,7 +568,7 @@ src/output.ts
 index.ts
   x402 pay
   x402 transfer
-  x402 serve transfer
+  x402 server
   x402 balance
   x402 inspect
   x402 config
@@ -656,11 +663,11 @@ VERIFY_FAILED
 
 `settle` 成功后立即写 receipt。
 
-### serve transfer 的幂等性
+### server 的幂等性
 
 每次 402 challenge 生成新的 `paymentId` 和 `nonce`。`POST /pay` 成功后返回 settlement receipt。MVP 可以只保存在内存；后续可加 `--receipt-db sqlite:///...`。
 
-`serve transfer` 必须缓存已发出的 challenge，settle 时做 anti-tampering 校验：
+`server` 必须缓存已发出的 challenge，settle 时做 anti-tampering 校验：
 
 ```text
 payload.accepted.scheme == issued.scheme
@@ -749,7 +756,7 @@ INVALID_INPUT
 5. `x402 transfer`：支持 BSC/EVM `exact_permit` 和 `exact`。
 6. `x402 transfer --scheme exact_gasfree`：保留 TRON GasFree fallback；TRON `exact_permit` 因 allowance/approve 失败时自动 fallback 到 GasFree。
 7. `x402 pay <url>`：复用 `X402FetchClient`，支持 BankofAI TRON/BSC `exact_permit`、BSC `exact` 和 TRON GasFree protected URL。
-8. `x402 serve transfer`：本地临时收款 server，当前使用 TRON GasFree settlement。
+8. `x402 server`：本地临时收款 server，当前使用 TRON GasFree settlement。
 9. `x402 request`：离线生成 `x402://transfer?...` 或 JSON 收款请求。
 10. `x402 receipt list/show`：查询本地成功支付记录。
 
@@ -800,7 +807,7 @@ INVALID_INPUT
 - 能根据 profile/network 注册 TRON/BSC `exact_permit`、BSC `exact` 或 TRON `exact_gasfree`。
 - 成功响应保存 receipt。
 
-`serve transfer`：
+`server`：
 
 - `GET /.well-known/x402-transfer` 返回收款配置。
 - `POST /pay` 未付款返回 402。
@@ -819,5 +826,5 @@ INVALID_INPUT
 - `x402 receipt export --format csv`: 导出支付记录。
 - `x402 mcp`: 把 CLI 暴露为 MCP tool，给 Agent 直接调用。
 - `x402 faucet/deposit-helper`: 测试网辅助充值到 GasFree address。
-- `x402 serve transfer --public-url`: 配合 tunnel 生成可外部访问的收款链接。
+- `x402 server --public-url`: 配合 tunnel 生成可外部访问的收款链接。
 - `x402 transfer --from-request <uri>`: 读取 `x402://transfer?...` 收款请求并付款。

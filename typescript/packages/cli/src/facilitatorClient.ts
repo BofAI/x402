@@ -5,7 +5,7 @@
  * VerifyResponse, SettleResponse, FeeQuoteResponse) but not an HTTP wrapper
  * that calls /fee/quote, /verify, /settle. The CLI needs those for the
  * `transfer` command (where it acts as both requirements-issuer and payer)
- * and for `serve transfer` later.
+ * and for `server` later.
  *
  * Single endpoint surface; no retries; no auth headers (the BankofAI proxy is
  * unauthenticated). Errors normalize to X402CliError with the standard codes.

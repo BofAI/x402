@@ -1,5 +1,5 @@
 /**
- * `x402 serve transfer` — start a temporary collection server.
+ * `x402 server` — start a temporary collection server.
  *
  * Exposes a single payable endpoint that any `x402 pay <url>` (or any other
  * x402-compatible client) can settle into. The CLI plays the role of a
@@ -72,7 +72,7 @@ export interface ServeTransferOpts {
 }
 
 export async function cmdServeTransfer(opts: ServeTransferOpts): Promise<number> {
-  return runCommand({ command: 'serve transfer' }, opts.output, async () => {
+  return runCommand({ command: 'server' }, opts.output, async () => {
     const cfg = await loadConfig();
     const { name: profileName, profile } = getProfile(cfg, opts.profile);
     const effective = applyEnvOverrides(profile);
@@ -82,7 +82,7 @@ export async function cmdServeTransfer(opts: ServeTransferOpts): Promise<number>
     if (scheme !== 'exact_gasfree' || !network.startsWith('tron:')) {
       throw new X402CliError(
         'UNSUPPORTED_SCHEME',
-        `serve transfer currently supports tron:* + exact_gasfree only; got ${network} / ${scheme}.`,
+        `server currently supports tron:* + exact_gasfree only; got ${network} / ${scheme}.`,
       );
     }
     if (!opts.payTo || !opts.payTo.trim()) {
@@ -139,7 +139,7 @@ export async function cmdServeTransfer(opts: ServeTransferOpts): Promise<number>
         }
         sendJson(res, 404, { error: 'not found' });
       } catch (err) {
-        process.stderr.write(`[x402 serve] handler error: ${(err as Error).message}\n`);
+        process.stderr.write(`[x402 server] handler error: ${(err as Error).message}\n`);
         sendJson(res, 500, { error: (err as Error).message });
       }
     });
@@ -157,7 +157,7 @@ export async function cmdServeTransfer(opts: ServeTransferOpts): Promise<number>
     }, 60_000);
 
     process.stdout.write(
-      `x402 serve transfer listening on http://${host}:${port}/pay  ` +
+      `x402 server listening on http://${host}:${port}/pay  ` +
         `(network=${network} scheme=${scheme} token=${token.symbol} amount=${formatSmallestUnit(
           amountSmallest,
           token.decimals,
@@ -166,7 +166,7 @@ export async function cmdServeTransfer(opts: ServeTransferOpts): Promise<number>
 
     await new Promise<void>((resolve) => {
       const shutdown = () => {
-        process.stderr.write('[x402 serve] shutting down\n');
+        process.stderr.write('[x402 server] shutting down\n');
         clearInterval(cleanupTimer);
         server.close(() => resolve());
       };
@@ -306,7 +306,7 @@ async function handlePay(req: IncomingMessage, res: ServerResponse, ctx: PayCtx)
   // Receipt.
   const receipt: Receipt = {
     paymentId: issuedId,
-    command: 'serve-transfer',
+    command: 'server',
     createdAt: new Date().toISOString(),
     profile: ctx.profileName,
     network: ctx.network,

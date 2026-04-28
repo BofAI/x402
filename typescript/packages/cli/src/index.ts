@@ -250,10 +250,9 @@ async function main(argv: string[]): Promise<void> {
       exitWith(code);
     });
 
-  // ---- serve transfer ----
-  const serve = program.command('serve').description('Run a temporary x402 service');
-  serve
-    .command('transfer')
+  // ---- server ----
+  program
+    .command('server')
     .description('Start a temporary collection server: any payer can settle to --pay-to')
     .requiredOption('--pay-to <address>', 'Recipient address')
     .requiredOption('--amount <decimal>', 'Human-readable amount')
