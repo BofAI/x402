@@ -4,6 +4,63 @@ All notable changes to `@bankofai/x402-cli` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-beta.2] — 2026-04-28
+
+### Fixed (CLI bugs surfaced by re-testing exact_permit on TRON Nile)
+
+- **Server now calls `/fee/quote` before issuing the 402** for
+  `exact_permit` and `exact` schemes. Previously the server emitted
+  PaymentRequirements with no `extra.fee`, the client signed
+  `PaymentPermit` with `feeTo: 0x0`, and `/settle` rejected the payload
+  with `fee_to_mismatch` (facilitator expected its own configured
+  feeTo). The quote is fetched once per challenge and merged into
+  `requirements.extra.fee` before encoding the 402 body. `exact_gasfree`
+  is unchanged — its fee is supplied by the GasFree API on the client
+  side.
+- **`paymentPermitContext.meta.validBefore`** was hardcoded to `0`,
+  which the facilitator interprets as "already expired" once the signed
+  payload reaches `/settle`. Now set to `now + 300s` for `exact_permit`
+  / `exact`, `now + 540s` for `exact_gasfree` (within Nile's GasFree
+  deadline window of [50, 3600] testnet / [50, 600] mainnet).
+- **Server `/settle` failure logs the full SettleResponse to stderr**
+  and surfaces `transaction` (when present) in the 500 body — useful
+  for diagnosing on-chain reverts vs. facilitator misconfiguration.
+
+### Smoke results after fixes
+
+| Network | Scheme | Status | Detail |
+|---|---|---|---|
+| `tron:nile` | `exact_gasfree` | ✅ end-to-end on-chain | tx [`7df082de…be4acc0`](https://nile.tronscan.org/#/transaction/7df082de1b5a5ce12af6a980761ce891f5ddb79d9026ce5d9bfd62eb3be4acc0) (beta.1) |
+| `tron:nile` | `exact_permit` | ⚠ CLI green; facilitator returns `transaction_failed` (`transaction: null`) | facilitator-side ops issue persists — sign + verify pass; on-chain submit doesn't happen |
+| `eip155:97` | `exact_permit` | ⚠ CLI green; facilitator returns `('0x1fb09b80', '0x1fb09b80')` | facilitator's PaymentPermit on-chain call reverts with custom selector `0x1fb09b80` (PaymentPermit contract error — needs facilitator-team triage) |
+
+The CLI side is now consistent end-to-end — `fee_to_mismatch`,
+`expired`, and `--token` filter bugs are all closed. Residual failures
+are unambiguously on the facilitator / on-chain side and out of CLI
+scope.
+
+### Known issues (revised)
+
+- TRON `exact_permit` settle returns `transaction_failed` with no tx
+  hash on the hosted facilitator. Same root cause as before
+  (facilitator-side TRON signer wallet ops state). CLI cannot move
+  past this without facilitator changes. Workaround: TRON USDT users
+  should pin `--scheme exact_gasfree`.
+- BSC testnet `exact_permit` settle reverts with custom error
+  `0x1fb09b80` from PaymentPermit. Different error from Nile but same
+  shape: facilitator-side, requires triage by the contracts team.
+- Single GasFree provider on Nile —
+  `TooManyPendingTransferException` surfaces as a normal CLI error.
+- `--daemon` parent prints `pay_url` before child binds.
+- Server's `--wallet` flag is accepted but currently unused.
+
+### Facilitator rate limit observed during smoke
+
+The hosted facilitator's `/settle` is rate-limited at **1 request per
+minute per source**. Back-to-back smoke runs need at least a 70-second
+gap; the CLI surfaces the 429 verbatim. Not a CLI bug — recorded here
+for reproducer authors.
+
 ## [0.1.0-beta.1] — 2026-04-28
 
 ### Added

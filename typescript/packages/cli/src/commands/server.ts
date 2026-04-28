@@ -215,7 +215,19 @@ async function handlePay(req: IncomingMessage, res: ServerResponse, ctx: Ctx): P
   const sigValue = Array.isArray(sigHeader) ? sigHeader[0] : sigHeader;
 
   if (!sigValue) {
-    const requirements: PaymentRequirements = {
+    const paymentId = newPaymentId();
+    const nowSec = Math.floor(Date.now() / 1000);
+    const validBeforeSec = nowSec + (ctx.scheme === 'exact_gasfree' ? 540 : 300);
+    const paymentPermitContext = {
+      meta: {
+        kind: 'PAYMENT_ONLY' as const,
+        paymentId,
+        nonce: '0',
+        validAfter: nowSec - 5,
+        validBefore: validBeforeSec,
+      },
+    };
+    const baseRequirements: PaymentRequirements = {
       scheme: ctx.scheme,
       network: ctx.network,
       amount: ctx.amount.amount,
@@ -224,7 +236,34 @@ async function handlePay(req: IncomingMessage, res: ServerResponse, ctx: Ctx): P
       maxTimeoutSeconds: 180,
       extra: { name: ctx.token.name, version: ctx.token.version },
     };
-    const paymentId = newPaymentId();
+
+    // exact_permit / exact need a fee_quote from the facilitator so the
+    // client signs PaymentPermit with the facilitator's expected feeTo /
+    // feeAmount. exact_gasfree carries its own quote via the GasFree API.
+    let requirements = baseRequirements;
+    if (ctx.scheme !== 'exact_gasfree') {
+      try {
+        const quotes = await ctx.facilitator.feeQuote(
+          [baseRequirements],
+          paymentPermitContext,
+        );
+        const quote = quotes.find(
+          (q) => q.scheme === baseRequirements.scheme && q.network === baseRequirements.network,
+        );
+        if (quote?.fee) {
+          requirements = {
+            ...baseRequirements,
+            extra: { ...baseRequirements.extra, fee: quote.fee },
+          };
+        }
+      } catch (err) {
+        process.stderr.write(
+          `[x402-tools server] fee_quote failed: ${(err as Error).message}; ` +
+            `proceeding without fee — settle will surface the underlying issue.\n`,
+        );
+      }
+    }
+
     ctx.challenges.set(paymentId, {
       paymentId,
       requirements,
@@ -234,17 +273,7 @@ async function handlePay(req: IncomingMessage, res: ServerResponse, ctx: Ctx): P
       x402Version: 2,
       accepts: [requirements],
       resource: { url: ctx.resourceUrl },
-      extensions: {
-        paymentPermitContext: {
-          meta: {
-            kind: 'PAYMENT_ONLY',
-            paymentId,
-            nonce: '0',
-            validAfter: Math.floor(Date.now() / 1000) - 5,
-            validBefore: 0,
-          },
-        },
-      },
+      extensions: { paymentPermitContext },
     };
     res.statusCode = 402;
     res.setHeader(PAYMENT_REQUIRED_HEADER, encodePaymentPayload(challenge));
@@ -292,8 +321,12 @@ async function handlePay(req: IncomingMessage, res: ServerResponse, ctx: Ctx): P
   }
 
   if (!settle.success) {
+    process.stderr.write(
+      `[x402-tools server] settle failed: ${JSON.stringify(settle)}\n`,
+    );
     return sendJson(res, 500, {
       error: `settle reported failure: ${settle.errorReason || 'unknown'}`,
+      transaction: settle.transaction ?? null,
     });
   }
 
