@@ -135,7 +135,7 @@ options, in cost order from a user's perspective:
 - BSC Testnet `exact_permit` USDT, tx `0xe6458fcbf1da1da9a0c638cf68b357982781ae932b6742a02331d2371bfeaf30` — feeAmount=0, user paid only the principal.
 - TRON Nile `exact_gasfree` USDT, prior session txs (see git log) — feeAmount=0.1 USDT.
 
-**Known issue: TRON `exact_permit` settle reverts** because TRC-20 USDT's `transferFrom` returns no data. Until that lands, pin `--scheme exact_gasfree` for TRON USDT or use BSC. See [`docs/solutions.md` #13](../../../docs/solutions.md).
+**Known issue: TRON `exact_permit` returns `transaction_failed`** when the BankofAI-hosted facilitator's TRON signer wallet is under-funded on TRX/energy. Verify and signing pass; only the facilitator's broadcast step fails. **This is an ops issue, not SDK / protocol** — TRC-20 USDT's `transferFrom` is fully ERC-20-compliant on Nile (verified). Workaround until facilitator funding is restored: pin `--scheme exact_gasfree` for TRON, or use BSC `exact_permit`. See [`docs/solutions.md` #13](../../../docs/solutions.md).
 
 ### GasFree fee details (when actually using `exact_gasfree`)
 

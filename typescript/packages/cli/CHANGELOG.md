@@ -38,11 +38,15 @@ First public iteration of the BankofAI x402 CLI. Spec:
     - **TRON GasFree** (`exact_gasfree`) → in-process GasFree submit
       (`GasFreeAPIClient.submit` + `waitForSuccess`). 0.1 USDT relayer
       fee per tx (set by GasFree contract, not us).
-    - **TRON `exact_permit`** is the new default for tron:* USDT but
-      currently fails at on-chain settle (TRC-20 USDT `transferFrom`
-      revert; documented in [solutions.md #13](../../../docs/solutions.md)).
-      The CLI auto-falls-back to `exact_gasfree` when allowance approval
-      fails.
+    - **TRON `exact_permit`** is the new default for tron:* USDT.
+      Sign + verify pass; settle currently returns
+      `transaction_failed` because the BankofAI-hosted facilitator's
+      TRON signer wallet is under-funded on TRX/energy (ops issue,
+      not SDK / protocol). See
+      [solutions.md #13](../../../docs/solutions.md). Workaround:
+      pin `--scheme exact_gasfree` on TRON. The CLI's
+      allowance-failure auto-fallback does NOT trigger here because
+      allowance is already maxed.
   - `--dry-run` returns the resolved plan + live `feeAsPercentageOfAmount`
     and warns to stderr when fees ≥ 10% of the payment.
 - **HTTP 402 client**:
@@ -90,13 +94,14 @@ First public iteration of the BankofAI x402 CLI. Spec:
 
 ### Known limitations / follow-ups
 
-- **TRON USDT `exact_permit` settle reverts** on Nile. The signature
-  paths through fine; the TRC-20 USDT contract's `transferFrom` does
-  not return a standard ERC-20 boolean and the PaymentPermit settler
-  treats absence of return data as failure. Track via
-  [solutions.md #13](../../../docs/solutions.md). Workaround: pin
-  `--scheme exact_gasfree` for TRON USDT until the SDK ships a
-  TRON-specific `transferFrom` adapter.
+- **TRON `exact_permit` settle returns `transaction_failed`** against
+  the BankofAI-hosted facilitator. Root cause is the facilitator's
+  TRON signer wallet running low on TRX/energy, not anything in the
+  SDK or protocol. See [solutions.md #13](../../../docs/solutions.md).
+  Workaround: pin `--scheme exact_gasfree` on TRON until the
+  facilitator's TRX is topped up. The CLI's existing
+  allowance-failure fallback does NOT cover this case because
+  allowance is already maxed; users must set the flag explicitly.
 - **No hosted EVM facilitator slug** — the BankofAI facilitator serves
   EVM via the root URL only; per-chain slugs (`/bsc-testnet`, `/bsc`)
   do not exist. Reflected in `getFacilitatorBaseUrl` returning the root

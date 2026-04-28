@@ -254,45 +254,67 @@ break-even amount in CLI / SDK consumer guides.
 
 ---
 
-### 13. TRON USDT (TRC-20) `transferFrom` returns no data — breaks `exact_permit` settle
+### 13. TRON `exact_permit` settle returns `transaction_failed` because the hosted facilitator's TRON signer wallet has no TRX/energy
 
-- **Category**: protocol
-- **Severity**: high
-- **Module**: mechanisms, exact_permit, tron
+- **Category**: ops
+- **Severity**: medium (hosted-infra issue, not protocol or SDK)
+- **Module**: facilitator (hosted), tron
 
 **Symptom**: `x402 transfer --scheme exact_permit` against Nile USDT
-fails at the facilitator's `/settle` step with
-`SETTLE_FAILED: transaction_failed`. The PaymentPermit signature
-verifies, the on-chain tx is broadcast, but the settler reports failure.
+fails at `/settle` with `SETTLE_FAILED: transaction_failed`. The
+facilitator returns HTTP 200 with `{ success: false, transaction:
+null, errorReason: "transaction_failed" }`. `verify` returns
+`isValid: true` and the signature/permit are well-formed.
 
-**Root cause**: TRON's USDT TRC-20 contract does not return the
-ERC-20-standard `bool success` from `transferFrom` — it reverts on
-failure but emits no return data on success. The PaymentPermit
-settlement contract checks the return value and treats the missing
-boolean as a transfer failure. This is a long-standing TRC-20 vs ERC-20
-mismatch that affects more than just our flow.
+**Initial misdiagnosis (2026-04-28, since corrected)**: I first wrote
+this entry blaming TRC-20 USDT's `transferFrom` for not returning a
+`bool` — that hypothesis is **wrong**. A static `triggerconstantcontract`
+call against `TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf` (Nile USDT) confirms
+`transferFrom(...)` returns `0x...0001` (true), is ERC-20-compliant,
+and would settle correctly if the tx ever reached the chain.
 
-**Fix**: Two paths, both deferred:
+**Actual root cause**: The facilitator never broadcasts. In
+[`python/x402/src/bankofai/x402/mechanisms/_exact_permit_base/facilitator.py:204`](../python/x402/src/bankofai/x402/mechanisms/_exact_permit_base/facilitator.py),
+`_settle_payment_only` returns `None` when the broadcast helper
+fails, and the facilitator wraps that as
+`error_reason="transaction_failed"`. The doc-comment lists the four
+things that cause the broadcast helper to return `None`:
 
-1. SDK adds a TRON-specific `transferFrom` adapter that uses
-   `safeTransferFrom`-style logic (no return-value check; rely on
-   absence of revert).
-2. The PaymentPermit contract on TRON is upgraded to skip the return
-   check.
+1. Insufficient bandwidth/energy on the **facilitator account**.
+2. Insufficient TRX balance on the **facilitator account**.
+3. Network connectivity issues from the facilitator host.
+4. Contract execution error before broadcast (ABI/address mismatch).
 
-**Workaround in CLI**: The `transfer` command auto-falls-back to
-`exact_gasfree` when allowance approval fails. For users with
-already-approved allowances, pin `--scheme exact_gasfree` on TRON
-USDT until either fix lands.
+In our case, the BankofAI-hosted facilitator's TRON signer wallet
+isn't keeping enough TRX/energy to cover `permitTransferFrom` (~5–6
+TRX worth of energy per tx). BSC `exact_permit` works against the
+same hosted facilitator because its EVM signer wallet is funded
+separately and BNB is plentiful.
 
-**Rule**: Any new TRON token integration must be tested against an
-actual `transferFrom` from an unrelated spender before claiming
-`exact_permit` support. The signature path can pass while the on-chain
-settlement reverts.
+**Fix paths**, in order of practicality:
 
-**Ref**: discovered 2026-04-28 while validating CLI default scheme on
-Nile. BSC USDT (`exact_permit`) confirmed working in the same session
-via tx `0xe6458fcbf1da1da9a0c638cf68b357982781ae932b6742a02331d2371bfeaf30`.
+1. **Ops fix (correct one)**: BankofAI top up the TRON facilitator
+   wallet's TRX or stake TRX for energy delegation. Surfacing the
+   sub-reason via the `errorReason` field would also help — currently
+   "transaction_failed" is opaque from the client side.
+2. **SDK / facilitator improvement**: include the underlying error
+   text in `errorReason` (e.g. `"insufficient_energy:NEED_X_GOT_Y"`),
+   not the catch-all `"transaction_failed"` string.
+3. **CLI workaround**: pin `--scheme exact_gasfree` on TRON until the
+   facilitator's TRX is healthy. The CLI's existing
+   allowance-failure-fallback to `exact_gasfree` does NOT trigger here
+   because allowance is already maxed; users must set the flag
+   manually.
+
+**Rule**: When a hosted facilitator returns `transaction_failed`
+with no tx hash, the failure is on the facilitator's side (signer
+funding, RPC, ABI), not the user's. Don't search the chain for a
+revert reason; check the facilitator's signer balance first.
+
+**Ref**: 2026-04-28 CLI 0.1.0 prep. BSC `exact_permit` USDT verified
+end-to-end same day (tx
+`0xe6458fcbf1da1da9a0c638cf68b357982781ae932b6742a02331d2371bfeaf30`),
+so the SDK + protocol path is correct.
 
 ---
 
