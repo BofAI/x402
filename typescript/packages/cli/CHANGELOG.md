@@ -4,6 +4,42 @@ All notable changes to `@bankofai/x402-cli` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-beta.1] — 2026-04-28
+
+### Added
+
+- Live end-to-end smoke test on TRON Nile, scheme `exact_gasfree`, USDT
+  0.01: tx
+  [`7df082de1b5a5ce12af6a980761ce891f5ddb79d9026ce5d9bfd62eb3be4acc0`](https://nile.tronscan.org/#/transaction/7df082de1b5a5ce12af6a980761ce891f5ddb79d9026ce5d9bfd62eb3be4acc0).
+  Server `--daemon`-less, port 4321, payer
+  `TTX1Us19zqsLXhY39PPR7KRUoMa93s3J3i` → recipient
+  `TJWdoJk8KyrfxZ2iDUqz7fwpXaMkNqPehx`, GasFree provider
+  `TKtWbdzEq5ss9vTS9kwRhBp5mXmBfBns3E`, fee 0.1 USDT cap.
+
+### Fixed
+
+- `client --token <SYM>` now resolves the requirement's `asset` through
+  the SDK token registry and compares against the registry **symbol**,
+  instead of the previous broken comparison against
+  `requirement.extra.name` (which is the EIP-712 domain `name`, e.g.
+  "Tether USD" — never matched user input "USDT"). Pre-fix the filter
+  silently rejected every registry-known requirement.
+
+### Known issues (unchanged from beta.0 unless noted)
+
+- **NEW**: BSC testnet `exact_permit` against the hosted facilitator
+  returns `fee_to_mismatch` from `/settle`. Looks parallel to the
+  TRON `exact_permit` ops issue (facilitator-side configuration / signer
+  state); needs facilitator-team triage. Smoke-paying BSC USDT via the
+  CLI is therefore blocked on the hosted facilitator. Workaround: stay
+  on TRON `exact_gasfree` for the beta validation window.
+- TRON `exact_permit` settle `transaction_failed` on the hosted
+  facilitator (under-funded TRX/energy) — same as beta.0.
+- Single GasFree provider on Nile —
+  `TooManyPendingTransferException` surfaces as a normal CLI error.
+- `--daemon` parent prints `pay_url` before child binds.
+- Server's `--wallet` flag is accepted but currently unused.
+
 ## [0.1.0-beta.0] — 2026-04-28
 
 First public beta of the BankofAI x402 CLI, scoped per

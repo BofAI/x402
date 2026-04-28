@@ -149,4 +149,33 @@ describe('cmdClient (--dry-run)', () => {
     const env = lastJson<{ ok: false; error: { code: string } }>();
     expect(env.error.code).toBe('PAYMENT_CANCELLED');
   });
+
+  it('passes --token USDT against a Nile USDT server (resolves via registry)', async () => {
+    const accepts = [
+      {
+        scheme: 'exact_gasfree',
+        network: 'tron:nile',
+        amount: '10000',
+        asset: 'TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf',
+        payTo: 'TJWdoJk8KyrfxZ2iDUqz7fwpXaMkNqPehx',
+        extra: { name: 'Tether USD', version: '1' },
+      },
+    ];
+    const required = { x402Version: 2, accepts };
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify(required), {
+        status: 402,
+        headers: { 'PAYMENT-REQUIRED': encodePaymentPayload(required) },
+      }) as unknown as Response,
+    );
+    const code = await cmdClient({
+      url: 'http://127.0.0.1:0/pay',
+      token: 'USDT',
+      dryRun: true,
+      output: 'json',
+    });
+    expect(code).toBe(0);
+    const env = lastJson<{ result: { chosen: { network: string } } }>();
+    expect(env.result.chosen.network).toBe('tron:nile');
+  });
 });

@@ -162,10 +162,12 @@ function filterAccepts(accepts: PaymentRequirements[], opts: ClientOpts): Paymen
   if (opts.token) {
     const wanted = opts.token.toUpperCase();
     out = out.filter((r) => {
-      const symbol = (r.extra?.name || '').toUpperCase();
-      // Only match when the requirement's token symbol metadata aligns;
-      // otherwise let the caller use --max-amount as the safety net.
-      return !symbol || symbol.startsWith(wanted) || symbol === wanted;
+      try {
+        const token = resolveToken({ network: r.network, asset: r.asset });
+        return token.symbol.toUpperCase() === wanted;
+      } catch {
+        return false;
+      }
     });
   }
   if (opts.maxAmount) {
