@@ -86,6 +86,41 @@ export function createEvmClientSignerFromEnv(): EvmClientSigner {
   return signer;
 }
 
+export type WalletSource = 'agent-wallet' | 'env';
+
+/**
+ * Resolve a network's client signer per D1 (decisions.md): prefer agent-wallet
+ * when source = "agent-wallet" and fall back to the env-key path on failure.
+ * Pass source = "env" to skip agent-wallet entirely (CI / dev).
+ */
+export async function resolveTronClientSigner(
+  source: WalletSource = 'agent-wallet',
+): Promise<TronClientSigner> {
+  if (source === 'env') return createTronClientSignerFromEnv();
+  try {
+    return await TronClientSigner.create();
+  } catch (err) {
+    process.stderr.write(
+      `[x402-tools] agent-wallet TRON wallet unavailable (${(err as Error).message}); falling back to TRON_PRIVATE_KEY.\n`,
+    );
+    return createTronClientSignerFromEnv();
+  }
+}
+
+export async function resolveEvmClientSigner(
+  source: WalletSource = 'agent-wallet',
+): Promise<EvmClientSigner> {
+  if (source === 'env') return createEvmClientSignerFromEnv();
+  try {
+    return await EvmClientSigner.create();
+  } catch (err) {
+    process.stderr.write(
+      `[x402-tools] agent-wallet EVM wallet unavailable (${(err as Error).message}); falling back to EVM_PRIVATE_KEY.\n`,
+    );
+    return createEvmClientSignerFromEnv();
+  }
+}
+
 interface LocalTronWallet extends AgentWallet {
   address: string;
 }

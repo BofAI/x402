@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { resolveToken, parseHumanAmount, formatSmallestUnit, newPaymentId } from './amount.js';
+import {
+  resolveToken,
+  parseHumanAmount,
+  formatSmallestUnit,
+  newPaymentId,
+  parseAmountFlags,
+} from './amount.js';
 
 describe('resolveToken', () => {
   it('resolves a registry symbol on tron:nile', () => {
@@ -103,5 +109,45 @@ describe('newPaymentId', () => {
     const a = newPaymentId();
     const b = newPaymentId();
     expect(a).not.toBe(b);
+  });
+});
+
+describe('parseAmountFlags', () => {
+  it('accepts --decimal alone', () => {
+    expect(parseAmountFlags(6, { decimal: '1.25' })).toEqual({
+      rawBigInt: 1_250_000n,
+      raw: '1250000',
+      decimal: '1.25',
+    });
+  });
+
+  it('accepts --raw-amount alone and produces a decimal', () => {
+    expect(parseAmountFlags(6, { rawAmount: '1250000' })).toEqual({
+      rawBigInt: 1_250_000n,
+      raw: '1250000',
+      decimal: '1.25',
+    });
+  });
+
+  it('rejects when both --decimal and --raw-amount are provided', () => {
+    expect(() => parseAmountFlags(6, { decimal: '1', rawAmount: '1000000' })).toThrowError(
+      /mutually exclusive/,
+    );
+  });
+
+  it('rejects when neither is provided', () => {
+    expect(() => parseAmountFlags(6, {})).toThrowError(/must be provided/);
+  });
+
+  it('rejects --raw-amount that is not a non-negative integer', () => {
+    expect(() => parseAmountFlags(6, { rawAmount: '1.5' })).toThrowError(/non-negative integer/);
+    expect(() => parseAmountFlags(6, { rawAmount: '-3' })).toThrowError(/non-negative integer/);
+    expect(() => parseAmountFlags(6, { rawAmount: 'abc' })).toThrowError(/non-negative integer/);
+  });
+
+  it('round-trips for 18-decimal tokens', () => {
+    const a = parseAmountFlags(18, { rawAmount: '1500000000000000000' });
+    expect(a.decimal).toBe('1.5');
+    expect(a.raw).toBe('1500000000000000000');
   });
 });

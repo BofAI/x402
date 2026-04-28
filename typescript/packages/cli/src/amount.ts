@@ -132,6 +132,54 @@ export function formatSmallestUnit(
   return negative ? `-${display}` : display;
 }
 
+/**
+ * Parse a (decimal, rawAmount) pair according to the x402-tools amount
+ * convention: exactly one of the two must be present, and the result is
+ * always returned in both forms so JSON output can surface them together.
+ *
+ * Both inputs accept strings to keep BigInt round-tripping safe.
+ */
+export interface ParsedAmount {
+  /** smallest-unit BigInt — what goes into PaymentRequirements.amount */
+  rawBigInt: bigint;
+  /** smallest-unit string — what callers serialize */
+  raw: string;
+  /** human-readable decimal string */
+  decimal: string;
+}
+
+export function parseAmountFlags(
+  decimals: number,
+  opts: { decimal?: string; rawAmount?: string },
+): ParsedAmount {
+  const hasDecimal = typeof opts.decimal === 'string' && opts.decimal.length > 0;
+  const hasRaw = typeof opts.rawAmount === 'string' && opts.rawAmount.length > 0;
+  if (hasDecimal && hasRaw) {
+    throw new X402CliError(
+      'INVALID_AMOUNT',
+      `--decimal and --raw-amount are mutually exclusive; pass exactly one.`,
+    );
+  }
+  if (!hasDecimal && !hasRaw) {
+    throw new X402CliError(
+      'INVALID_AMOUNT',
+      `Either --decimal <decimal> or --raw-amount <integer> must be provided.`,
+    );
+  }
+  if (hasDecimal) {
+    const raw = parseHumanAmount(opts.decimal!, decimals);
+    return { rawBigInt: raw, raw: raw.toString(), decimal: opts.decimal! };
+  }
+  if (!/^[0-9]+$/.test(opts.rawAmount!)) {
+    throw new X402CliError(
+      'INVALID_AMOUNT',
+      `--raw-amount must be a non-negative integer (got '${opts.rawAmount}').`,
+    );
+  }
+  const raw = BigInt(opts.rawAmount!);
+  return { rawBigInt: raw, raw: raw.toString(), decimal: formatSmallestUnit(raw, decimals) };
+}
+
 /** 16 random bytes as `0x` + 32 lowercase hex chars. */
 export function newPaymentId(): string {
   const buf = randomBytes(16);

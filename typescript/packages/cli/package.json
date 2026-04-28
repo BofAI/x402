@@ -1,8 +1,8 @@
 {
   "name": "@bankofai/x402-cli",
   "version": "0.1.0",
-  "description": "BankofAI x402 command-line tool: pay 402-protected resources, gas-free transfers on TRON, temporary collection servers, and on-device receipts.",
-  "keywords": ["x402", "cli", "tron", "evm", "payment", "gasfree"],
+  "description": "x402-tools — one-shot BankofAI x402 CLI: serve a 402 payment endpoint, or pay one as a client.",
+  "keywords": ["x402", "cli", "tron", "evm", "payment"],
   "homepage": "https://github.com/BofAI/x402#readme",
   "bugs": {
     "url": "https://github.com/BofAI/x402/issues"
@@ -19,14 +19,14 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "x402": "./dist/index.js"
+    "x402-tools": "./dist/index.js"
   },
-  "files": ["dist", "README.md"],
+  "files": ["dist", "README.md", "FEATURES.md", "CHANGELOG.md"],
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
     "test": "vitest run",
-    "x402": "node ./dist/index.js"
+    "x402-tools": "node ./dist/index.js"
   },
   "dependencies": {
     "@bankofai/x402": "workspace:*",
