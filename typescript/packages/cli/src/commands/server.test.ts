@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { decodePaymentPayload, type PaymentRequired } from '@bankofai/x402';
 import { cmdServer } from './server.js';
 
 let stdoutSpy: ReturnType<typeof vi.spyOn>;
@@ -101,6 +102,49 @@ describe('cmdServer (live HTTP probe)', () => {
       expect(probe.status).toBe(402);
       expect(probe.headers.get('PAYMENT-REQUIRED')).toBeTruthy();
     } finally {
+      process.emit('SIGTERM');
+      await startPromise;
+    }
+  }, 10_000);
+
+  it('issues a fresh exact_permit nonce for every /pay challenge', async () => {
+    const port = 4500 + Math.floor(Math.random() * 100);
+    const previousOverride = process.env.X402_FACILITATOR_URL_OVERRIDE;
+    process.env.X402_FACILITATOR_URL_OVERRIDE = 'http://127.0.0.1:9';
+    const startPromise = cmdServer({
+      payTo: 'TJWdoJk8KyrfxZ2iDUqz7fwpXaMkNqPehx',
+      decimal: '0.0001',
+      network: 'tron:nile',
+      token: 'USDT',
+      scheme: 'exact_permit',
+      port,
+      output: 'json',
+    });
+    await new Promise((r) => setTimeout(r, 100));
+    try {
+      const first = await fetch(`http://127.0.0.1:${port}/pay`);
+      const second = await fetch(`http://127.0.0.1:${port}/pay`);
+      const firstChallenge = decodePaymentPayload<PaymentRequired>(
+        first.headers.get('PAYMENT-REQUIRED')!,
+      );
+      const secondChallenge = decodePaymentPayload<PaymentRequired>(
+        second.headers.get('PAYMENT-REQUIRED')!,
+      );
+      const firstNonce = firstChallenge.extensions?.paymentPermitContext?.meta?.nonce;
+      const secondNonce = secondChallenge.extensions?.paymentPermitContext?.meta?.nonce;
+
+      expect(first.status).toBe(402);
+      expect(second.status).toBe(402);
+      expect(firstNonce).toMatch(/^[0-9]+$/);
+      expect(secondNonce).toMatch(/^[0-9]+$/);
+      expect(firstNonce).not.toBe('0');
+      expect(secondNonce).not.toBe(firstNonce);
+    } finally {
+      if (previousOverride === undefined) {
+        delete process.env.X402_FACILITATOR_URL_OVERRIDE;
+      } else {
+        process.env.X402_FACILITATOR_URL_OVERRIDE = previousOverride;
+      }
       process.emit('SIGTERM');
       await startPromise;
     }

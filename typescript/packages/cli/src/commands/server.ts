@@ -15,6 +15,7 @@
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { spawn } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import {
   GasFreeAPIClient,
   encodePaymentPayload,
@@ -40,6 +41,10 @@ const PAYMENT_REQUIRED_HEADER = 'PAYMENT-REQUIRED';
 const PAYMENT_SIGNATURE_HEADER = 'PAYMENT-SIGNATURE';
 const PAYMENT_RESPONSE_HEADER = 'PAYMENT-RESPONSE';
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
+
+function newPermitNonce(): string {
+  return BigInt(`0x${randomBytes(32).toString('hex')}`).toString(10);
+}
 
 export interface ServerOpts {
   payTo: string;
@@ -222,7 +227,7 @@ async function handlePay(req: IncomingMessage, res: ServerResponse, ctx: Ctx): P
       meta: {
         kind: 'PAYMENT_ONLY' as const,
         paymentId,
-        nonce: '0',
+        nonce: ctx.scheme === 'exact_permit' ? newPermitNonce() : '0',
         validAfter: nowSec - 5,
         validBefore: validBeforeSec,
       },
@@ -314,6 +319,25 @@ async function handlePay(req: IncomingMessage, res: ServerResponse, ctx: Ctx): P
     if (ctx.scheme === 'exact_gasfree') {
       settle = await settleGasFree(ctx, payload);
     } else {
+      // Pre-flight /verify so we can distinguish signature/structure errors
+      // from on-chain submission failures. Logs verbosely; surfaces verify
+      // failures with their isValid=false reason instead of a vague settle
+      // failure.
+      try {
+        const verify = await ctx.facilitator.verify(payload, issued.requirements);
+        process.stderr.write(
+          `[x402-tools server] verify: ${JSON.stringify(verify)}\n`,
+        );
+        if (verify && (verify as { isValid?: boolean }).isValid === false) {
+          return sendJson(res, 500, {
+            error: `verify rejected payload: ${(verify as { invalidReason?: string }).invalidReason || 'unknown'}`,
+          });
+        }
+      } catch (err) {
+        process.stderr.write(
+          `[x402-tools server] verify call threw: ${(err as Error).message}\n`,
+        );
+      }
       settle = await ctx.facilitator.settle(payload, issued.requirements);
     }
   } catch (err) {

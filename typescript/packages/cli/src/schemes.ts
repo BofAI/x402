@@ -31,19 +31,19 @@ const TOKEN_SCHEME_TABLE: Record<string, Record<string, Scheme[]>> = {
     USDT: ['exact_permit'],
     USDC: ['exact_permit'],
   },
-  // TRON: prefer PaymentPermit settlement for USDT. First-time allowance may
-  // still require an on-chain approve; after that payments are signature-only
-  // from the user's side and the settler pays chain gas.
+  // TRON: default USDT to GasFree because hosted/self-hosted exact_permit
+  // settlement can verify signatures but still fail during permitTransferFrom
+  // broadcast. Users can still force `--scheme exact_permit` for diagnostics.
   'tron:mainnet': {
-    USDT: ['exact_permit'],
+    USDT: ['exact_gasfree'],
     USDD: ['exact_gasfree'],
   },
   'tron:nile': {
-    USDT: ['exact_permit'],
+    USDT: ['exact_gasfree'],
     USDD: ['exact_gasfree'],
   },
   'tron:shasta': {
-    USDT: ['exact_permit'],
+    USDT: ['exact_gasfree'],
   },
 };
 

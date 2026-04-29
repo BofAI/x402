@@ -4,6 +4,90 @@ All notable changes to `@bankofai/x402-cli` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-beta.3] — 2026-04-29
+
+### Fixed
+
+- **`paymentPermitContext.meta.nonce`** for `exact_permit` is now a
+  cryptographically random 256-bit value (`randomBytes(32)` →
+  decimal uint256) per challenge, not the previous hardcoded `'0'`.
+  PaymentPermit on both BSC testnet and (likely) other EVM networks
+  rejects nonce reuse with custom error `0x1fb09b80`. With nonce='0'
+  the contract reverted on every retry; with a fresh random nonce
+  per challenge the call goes through. `exact_gasfree` keeps `'0'`
+  because GasFree's permit space is keyed by GasFree-API nonce, not
+  this field.
+
+### Verified end-to-end against local facilitator
+
+A reference facilitator was spun up via
+`python -m examples.facilitator` on `http://127.0.0.1:8014`, pointed at
+by `X402_FACILITATOR_URL_OVERRIDE`, with BankofAI `eip155:97` +
+`tron:nile` keys. Smoke results:
+
+| Network | Scheme | Status | Detail |
+|---|---|---|---|
+| `eip155:97` | `exact_permit` | ✅ end-to-end on-chain | tx [`a261ef2b…7d4ebf`](https://testnet.bscscan.com/tx/0xa261ef2ba7afddbb80e89904d5aa5c69e1265f386ffe21932589cb89bb7d4ebf), block 104417509, 0.01 USDT 0x0f2A→0x6d36 |
+| `tron:nile` | `exact_permit` | ⚠ blocked at the facilitator's TRON wallet shim | not a CLI bug — see "Local facilitator gap" below |
+| `tron:nile` | `exact_gasfree` | ✅ end-to-end on-chain (proved beta.1) | tx [`7df082de…be4acc0`](https://nile.tronscan.org/#/transaction/7df082de1b5a5ce12af6a980761ce891f5ddb79d9026ce5d9bfd62eb3be4acc0); GasFree path doesn't traverse facilitator `/settle`, unaffected by override |
+
+The CLI is fully correct end-to-end against a working facilitator.
+Both observed residual failures (BSC `0x1fb09b80` and Nile
+`transaction_failed`) are facilitator-side, now diagnosed:
+
+- **BSC `0x1fb09b80`** — PaymentPermit's nonce-reuse rejection. Fixed
+  in CLI by emitting a fresh uint256 nonce per challenge.
+- **Nile `transaction_failed (transaction:null)`** — root cause is in
+  the **facilitator** path, not the CLI. The example reference
+  facilitator throws `NotImplementedError("raw TRON tx signing not
+  used by facilitator")` from
+  [`examples/facilitator/server.py:142`](../../../examples/facilitator/server.py)
+  when its TRON wallet shim is asked to `sign_transaction`. The
+  hosted facilitator likely has the same gap or a related one — its
+  `/verify` returns `isValid: true` but `/settle` returns
+  `transaction_failed` with no transaction hash. Hosted-facilitator
+  triage is needed; CLI cannot move past this without changes there.
+
+### Local facilitator gap
+
+`examples/facilitator/server.py:117–144` has an EVM wallet shim with
+a real `sign_transaction` (uses `eth_account`) but a TRON wallet shim
+whose `sign_transaction` is a `NotImplementedError` stub. This is
+why local Nile `exact_permit` cannot complete in this beta. The
+fix would either (a) implement raw TRON tx signing using `tronpy`'s
+`PrivateKey.sign_msg_hash` against the canonical raw_data hash, or
+(b) restructure `tron_signer.write_contract` to use a high-level
+`tronpy` flow that doesn't require the shim. Per
+[`examples/CLAUDE.md`](../../../examples/CLAUDE.md), changes here are
+"protocol-impacting" and need security-reviewer review — out of scope
+for this beta.
+
+### Known issues (revised)
+
+- TRON `exact_permit` against the hosted facilitator returns
+  `transaction_failed` (`transaction: null`); same shape as the local
+  facilitator's `NotImplementedError`. Suspected same root cause.
+  Workaround: TRON USDT users should pin `--scheme exact_gasfree`
+  until facilitator-team triage closes this.
+- `exact_gasfree` keeps using `paymentPermitContext.meta.nonce: '0'`
+  because GasFree maintains its own nonce in the GasFree-API
+  response. Only `exact_permit` needs the random uint256 nonce.
+- Single GasFree provider on Nile —
+  `TooManyPendingTransferException` surfaces as a normal CLI error.
+- `--daemon` parent prints `pay_url` before child binds.
+- Server's `--wallet` flag is accepted but currently unused.
+- Hosted facilitator `/settle` rate-limits at 1 request per minute
+  per source.
+
+### Diagnostic improvements
+
+- Server's `/settle` now logs the full `SettleResponse` to stderr on
+  failure and surfaces `transaction` (when present) in the 500 body.
+- Server runs `/verify` before `/settle` for non-`exact_gasfree`
+  schemes; logs both responses; returns the `invalidReason` instead
+  of a generic settle error when verify rejects. This is what made
+  it tractable to diagnose hosted-facilitator vs CLI fault.
+
 ## [0.1.0-beta.2] — 2026-04-28
 
 ### Fixed (CLI bugs surfaced by re-testing exact_permit on TRON Nile)

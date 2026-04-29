@@ -10,8 +10,8 @@ describe('recommendedSchemes', () => {
     expect(recommendedSchemes('eip155:97', 'USDT')).toEqual(['exact_permit']);
   });
 
-  it('returns exact_permit for USDT on tron:nile', () => {
-    expect(recommendedSchemes('tron:nile', 'USDT')).toEqual(['exact_permit']);
+  it('returns exact_gasfree for USDT on tron:nile', () => {
+    expect(recommendedSchemes('tron:nile', 'USDT')).toEqual(['exact_gasfree']);
   });
 
   it('case-insensitive on token symbol', () => {
@@ -30,7 +30,7 @@ describe('recommendedSchemes', () => {
 describe('pickScheme', () => {
   it('picks the first recommended scheme', () => {
     expect(pickScheme('eip155:97', 'DHLU')).toBe('exact');
-    expect(pickScheme('tron:nile', 'USDT')).toBe('exact_permit');
+    expect(pickScheme('tron:nile', 'USDT')).toBe('exact_gasfree');
   });
 
   it('returns null when nothing is registered', () => {
