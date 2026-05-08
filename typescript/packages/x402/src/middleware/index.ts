@@ -6,13 +6,7 @@
  * - {@link processX402Request} — framework-agnostic core (build your own adapter)
  */
 
-export {
-  PAYMENT_REQUIRED_HEADER,
-  PAYMENT_RESPONSE_HEADER,
-  PAYMENT_SIGNATURE_HEADER,
-  processX402Request,
-  X402_VERSION,
-} from './core.js';
+export { processX402Request, X402_VERSION } from './core.js';
 export type { X402Decision, X402MiddlewareConfig } from './core.js';
 export { x402Hono } from './hono.js';
 export { x402Express } from './express.js';

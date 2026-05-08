@@ -12,6 +12,11 @@
  */
 
 import type { FacilitatorClient } from '../facilitator/client.js';
+import {
+  PAYMENT_REQUIRED_HEADER,
+  PAYMENT_RESPONSE_HEADER,
+  PAYMENT_SIGNATURE_HEADER,
+} from '../http/client.js';
 import type {
   PaymentPayload,
   PaymentRequired,
@@ -23,10 +28,12 @@ import {
   encodePaymentPayload,
 } from '../utils/encoding.js';
 
-/** Header names — match the x402 spec exactly (case-insensitive on the wire). */
-export const PAYMENT_SIGNATURE_HEADER = 'PAYMENT-SIGNATURE';
-export const PAYMENT_REQUIRED_HEADER = 'PAYMENT-REQUIRED';
-export const PAYMENT_RESPONSE_HEADER = 'PAYMENT-RESPONSE';
+// Re-export header constants from http/client (single source of truth).
+export {
+  PAYMENT_REQUIRED_HEADER,
+  PAYMENT_RESPONSE_HEADER,
+  PAYMENT_SIGNATURE_HEADER,
+};
 
 export const X402_VERSION = 2;
 
