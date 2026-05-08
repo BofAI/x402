@@ -17,6 +17,9 @@ export * from './address.js';
 // HTTP Client
 export * from './http/client.js';
 
+// Facilitator client (talks to remote /verify, /settle, /supported, /fee/quote)
+export * from './facilitator/index.js';
+
 // Mechanisms
 export * from './mechanisms/index.js';
 
