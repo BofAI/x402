@@ -13,6 +13,8 @@ specs/
 │   ├── exact.md             — ERC-3009 transferWithAuthorization
 │   ├── exact-permit.md      — EIP-2612 / TIP-2612 permit + transferFrom
 │   └── exact-gasfree.md     — TRON GasFree custodial + TIP-712 relayer
+├── transports/
+│   └── facilitator-http.md  — server ↔ facilitator REST API (verify / settle / supported / fee/quote)
 └── <NNN>-<slug>/            — in-flight feature spec (spec-kit template)
     ├── spec.md              — requirements, acceptance criteria, open questions
     ├── plan.md              — implementation plan (if present)
