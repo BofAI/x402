@@ -83,6 +83,10 @@ class GasFreeAPIClient:
         try:
             headers = self._get_headers()
             response = await self._client.get(url, headers=headers)
+            if response.status_code == 404:
+                # Network not supported by GasFree service — return empty list gracefully
+                logger.warning(f"GasFree service not available for this network (404): {url}")
+                return []
             if response.status_code != 200:
                 logger.error(f"GasFree API error {response.status_code}: {response.text}")
                 response.raise_for_status()
@@ -98,6 +102,7 @@ class GasFreeAPIClient:
         except Exception as e:
             logger.error(f"Failed to get providers from GasFree API: {e}")
             raise
+
 
     async def get_nonce(self, user: str, token: str, chain_id: int) -> int:
         """Get current recommended nonce for a user"""
