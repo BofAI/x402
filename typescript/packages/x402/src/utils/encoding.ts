@@ -74,6 +74,22 @@ export function decodePaymentPayload<T>(encoded: string): T {
 }
 
 /**
+ * Generate a random 16-byte payment ID, formatted as `0x` + 32 hex chars.
+ *
+ * Used by `X402Server.createPaymentRequiredResponse` when the caller doesn't
+ * supply an explicit `paymentId`. Mirrors Python `generate_payment_id`.
+ */
+export function generatePaymentId(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  let hex = '';
+  for (const byte of bytes) {
+    hex += byte.toString(16).padStart(2, '0');
+  }
+  return `0x${hex}`;
+}
+
+/**
  * Convert hex string to Uint8Array
  */
 export function hexToBytes(hex: string): Uint8Array {

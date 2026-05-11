@@ -20,6 +20,9 @@ export * from './http/client.js';
 // Facilitator client (talks to remote /verify, /settle, /supported, /fee/quote)
 export * from './facilitator/index.js';
 
+// High-level server API (X402Server, ResourceConfig, ServerMechanism)
+export * from './server/index.js';
+
 // Server middleware (Hono / Express adapters + framework-agnostic core)
 export * from './middleware/index.js';
 
