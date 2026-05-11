@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ExactEvmClientMechanism } from './nativeExactEvm.js';
-import type { ClientSigner } from '../client/x402Client.js';
+import { ExactEvmClientMechanism } from './client.js';
+import type { ClientSigner } from '../../../client/x402Client.js';
 
 describe('ExactEvmClientMechanism', () => {
   const signer: ClientSigner = {

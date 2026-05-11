@@ -76,3 +76,18 @@ export class PermitValidationError extends ValidationError {
     this.reason = reason;
   }
 }
+
+/** Facilitator HTTP / protocol error */
+export class FacilitatorError extends X402Error {
+  /** HTTP status code returned by facilitator (0 if request itself failed) */
+  status: number;
+  /** Response body, decoded as text or null if unavailable */
+  body: string | null;
+
+  constructor(message: string, status: number, body: string | null = null) {
+    super(message);
+    this.name = 'FacilitatorError';
+    this.status = status;
+    this.body = body;
+  }
+}

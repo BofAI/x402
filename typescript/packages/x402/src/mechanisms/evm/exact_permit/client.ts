@@ -1,7 +1,5 @@
 /**
- * ExactPermitTronClientMechanism - TRON client mechanism for "exact_permit" payment scheme
- *
- * Uses TIP-712 (TRON's EIP-712 implementation) for signing PaymentPermit.
+ * ExactPermitEvmClientMechanism - EVM client mechanism for "exact_permit" payment scheme
  */
 
 import type {
@@ -11,25 +9,25 @@ import type {
   PaymentPayload,
   PaymentPermit,
   PaymentPermitContext,
-} from '../index.js';
+} from '../../../index.js';
 import {
   KIND_MAP,
   PAYMENT_PERMIT_TYPES,
   PAYMENT_PERMIT_PRIMARY_TYPE,
   getChainId,
   getPaymentPermitAddress,
-  TronAddressConverter,
-  TRON_ZERO_ADDRESS,
-  paymentIdToBytes,
+  EVM_ZERO_ADDRESS,
+  EvmAddressConverter,
+  ZERO_ADDRESS_HEX,
   PermitValidationError,
-} from '../index.js';
+} from '../../../index.js';
 
 /**
- * TRON client mechanism for "exact_permit" payment scheme
+ * EVM client mechanism for "exact_permit" payment scheme
  */
-export class ExactPermitTronClientMechanism implements ClientMechanism {
+export class ExactPermitEvmClientMechanism implements ClientMechanism {
   private signer: ClientSigner;
-  private addressConverter = new TronAddressConverter();
+  private addressConverter = new EvmAddressConverter();
 
   constructor(signer: ClientSigner) {
     this.signer = signer;
@@ -54,7 +52,7 @@ export class ExactPermitTronClientMechanism implements ClientMechanism {
     }
 
     const buyerAddress = this.signer.getAddress();
-    const zeroAddress = TRON_ZERO_ADDRESS; // Use TRON zero address for consistency with Python
+    const zeroAddress = EVM_ZERO_ADDRESS;
 
     const permit: PaymentPermit = {
       meta: {
@@ -85,8 +83,7 @@ export class ExactPermitTronClientMechanism implements ClientMechanism {
       requirements.network
     );
 
-    // Build EIP-712 domain (no version field per contract spec)
-    // Note: domain name is "PaymentPermit", not "PaymentPermitDetails"
+    // Build EIP-712 domain
     const permitAddress = getPaymentPermitAddress(requirements.network);
     const domain = {
       name: 'PaymentPermit',
@@ -94,15 +91,11 @@ export class ExactPermitTronClientMechanism implements ClientMechanism {
       verifyingContract: this.addressConverter.toEvmFormat(permitAddress),
     };
 
-    // Convert permit to EIP-712 compatible format:
-    // 1. kind: string -> uint8 (number)
-    // 2. paymentId: keep as hex string (TronWeb expects hex for bytes16)
-    // 3. uint256 values: string -> BigInt (for proper EIP-712 encoding)
-    // 4. All addresses: TRON Base58 -> EVM hex
+    // Convert permit to EIP-712 compatible format
     const permitForSigning = {
       meta: {
         kind: KIND_MAP[permit.meta.kind],
-        paymentId: permit.meta.paymentId,  // Keep as hex string
+        paymentId: permit.meta.paymentId,
         nonce: BigInt(permit.meta.nonce),
         validAfter: permit.meta.validAfter,
         validBefore: permit.meta.validBefore,
@@ -120,26 +113,12 @@ export class ExactPermitTronClientMechanism implements ClientMechanism {
       },
     };
 
-    // Debug: log exact message being signed
-    console.log('[SIGN] Domain:', JSON.stringify(domain));
-    console.log('[SIGN] Message:', JSON.stringify(permitForSigning, (key, value) => {
-      if (value instanceof Uint8Array) {
-        return '0x' + Array.from(value).map(b => b.toString(16).padStart(2, '0')).join('');
-      }
-      if (typeof value === 'bigint') {
-        return value.toString();
-      }
-      return value;
-    }));
-
     const signature = await this.signer.signTypedData(
       domain,
       PAYMENT_PERMIT_TYPES,
       permitForSigning as unknown as Record<string, unknown>,
       PAYMENT_PERMIT_PRIMARY_TYPE
     );
-
-    console.log('[SIGN] Signature:', signature);
 
     return {
       x402Version: 2,

@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — develop branch (toward v0.6.0)
+
+### Added — TypeScript SDK 与 Python parity 对齐
+
+- `FacilitatorClient` (`typescript/packages/x402/src/facilitator/client.ts`) — TS 端补齐对远程 facilitator 的客户端调用（`/supported`、`/fee/quote`、`/verify`、`/settle`），与 Python `bankofai.x402.facilitator.FacilitatorClient` 接口一致。
+- `X402Facilitator` (`typescript/packages/x402/src/facilitator/x402Facilitator.ts`) — TS 端 facilitator 引擎，按 `(network, scheme)` 路由 `FacilitatorMechanism`，支持 EVM 地址 checksum 规范化，与 Python `bankofai.x402.facilitator.X402Facilitator` 接口一致。
+- `x402Hono` / `x402Express` server middleware (`typescript/packages/x402/src/middleware/`) — Hono + Express 一行接入收费 API，框架无关核心逻辑封装在 `processX402Request`。
+- `X402FetchClient` 增强 (`typescript/packages/x402/src/http/client.ts`) — 补齐 `put` / `patch` / `delete` 方法，支持注入 `fetchImpl` / `selector`；新增 `parsePaymentResponseHeader()` 从成功响应里提取 settle receipt。
+- `FacilitatorError` (`typescript/packages/x402/src/errors.ts`) — facilitator HTTP / 协议错误类型，含 status + body。
+- 公开协议常量 `PAYMENT_SIGNATURE_HEADER` / `PAYMENT_REQUIRED_HEADER` / `PAYMENT_RESPONSE_HEADER`。
+- 测试覆盖：facilitator client (11) + facilitator engine (14) + middleware core (9) + Hono adapter (5) + Express adapter (4) + fetch client (7) = 50 个新测试，整体 101/101 通过。
+
+### Changed
+
+- Hono 和 Express 加为 `peerDependenciesMeta` 的可选 peer deps；不安装也能用框架无关核心。
+
 ## [0.5.9] - 2026-04-14
 
 ### Added
