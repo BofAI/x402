@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { ExactPermitEvmClientMechanism } from './exactEvm.js';
-import { EvmClientSigner } from '../signers/evmSigner.js';
-import type { AgentWallet } from '../signers/signer.js';
-import { PermitValidationError } from '../errors.js';
+import { ExactPermitEvmClientMechanism } from './client.js';
+import { EvmClientSigner } from '../../../signers/evmSigner.js';
+import type { AgentWallet } from '../../../signers/signer.js';
+import { PermitValidationError } from '../../../errors.js';
 
 function createMockWallet(address: string): AgentWallet {
   return {

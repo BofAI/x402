@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ExactGasFreeClientMechanism } from './exactGasfree.js';
-import { GasFreeAPIClient } from '../utils/gasfree.js';
-import { PaymentRequirements, ClientSigner } from '../index.js';
+import { ExactGasFreeClientMechanism } from './client.js';
+import { GasFreeAPIClient } from '../../../utils/gasfree.js';
+import { PaymentRequirements, ClientSigner } from '../../../index.js';
 
 const assembleGasFreeTransactionJson = vi.fn((params: any) => ({
   domain: {
@@ -38,7 +38,7 @@ vi.mock('@gasfree/gasfree-sdk', () => {
   };
 });
 
-vi.mock('../utils/gasfree.js', () => {
+vi.mock('../../../utils/gasfree.js', () => {
   return {
     GasFreeAPIClient: vi.fn().mockImplementation(() => {
       return {

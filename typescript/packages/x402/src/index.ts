@@ -30,7 +30,7 @@ export * from './middleware/index.js';
 export * from './mechanisms/index.js';
 
 // EVM ExactPermit Mechanism
-export * from './mechanisms/exactEvm.js';
+export * from './mechanisms/evm/exact_permit/index.js';
 
 // TRON Signer
 export * from './signers/signer.js';
