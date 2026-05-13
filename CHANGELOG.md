@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0-beta.1] - 2026-05-13
+
+### Added — TypeScript facilitator settlement parity
+
+- TS facilitator signer layer (`FacilitatorSigner`, `EvmFacilitatorSigner`, `TronFacilitatorSigner`) for off-chain typed-data verification, contract writes, balance checks, and receipt polling.
+- TS `exact` facilitator settlement for EVM and TRON via `transferWithAuthorization`.
+- TS `exact_permit` facilitator settlement for EVM and TRON via `PaymentPermit.permitTransferFrom`.
+- TS `exact_gasfree` facilitator verify + settle via GasFree API proxy, matching the Python facilitator behavior.
+- Unit coverage for TS GasFree facilitator quote, verify, and settle paths.
+
+### Changed
+
+- TS facilitator mechanism constructors now use explicit facilitator signers, aligning the TypeScript API with Python's signer-injected facilitator model.
+- `exact` fee quote now returns a zero-fee quote instead of `null`, matching the Python facilitator.
+
+### Verified
+
+- TS SDK build passed.
+- TS SDK test suite passed: 19 files / 158 tests.
+- Published npm beta: `@bankofai/x402@0.6.0-beta.1` under the `beta` dist-tag.
+- x402-demo TypeScript flow verified on TRON Nile:
+  - `exact_gasfree`: `97ec5443edaf4bbe8633ee8fc0dc923c4809df4f95625718d1f33e499cf2313d`
+  - `exact_permit`: `6aeccd9ff25e9c241b08082ea11149177597ae041daf6aa5dd6c0b7c0634d20a`
+
 ## [0.6.0-beta.0] - 2026-05-12
 
 ### Added — TypeScript SDK 与 Python parity 对齐
