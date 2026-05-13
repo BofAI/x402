@@ -61,6 +61,7 @@ export class TronFacilitatorSigner extends FacilitatorSigner {
    * round-trip can drift the tx's raw_data and invalidate the txID/signature).
    */
   private privateKey: string | null = null;
+  private privateKeyAddress: string | null = null;
   /**
    * TRON permission id used when building transactions.
    * Default `2` = active permission (required for multi-sig facilitator
@@ -78,6 +79,11 @@ export class TronFacilitatorSigner extends FacilitatorSigner {
         null;
       if (pk) {
         this.privateKey = pk.startsWith('0x') ? pk.slice(2) : pk;
+        const derived = TronWebClass.address.fromPrivateKey(this.privateKey);
+        if (!derived) {
+          throw new Error('Invalid TRON facilitator private key');
+        }
+        this.privateKeyAddress = derived;
       }
       const permId = process.env?.TRON_PERMISSION_ID;
       if (permId) {
@@ -92,7 +98,20 @@ export class TronFacilitatorSigner extends FacilitatorSigner {
     const provider = resolveWalletProvider({ network: 'tron' });
     const wallet = await provider.getActiveWallet();
     const signer = new TronFacilitatorSigner(wallet as unknown as AgentWallet);
-    signer.setAddress(await wallet.getAddress());
+    const walletAddress = await wallet.getAddress();
+    if (signer.privateKeyAddress) {
+      signer.setAddress(signer.privateKeyAddress);
+      if (walletAddress !== signer.privateKeyAddress) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[TronFacilitatorSigner] TRON_FACILITATOR_PRIVATE_KEY/TRON_PRIVATE_KEY address ` +
+            `${signer.privateKeyAddress} differs from agent-wallet active address ${walletAddress}; ` +
+            `using the private-key address for facilitator settlement.`,
+        );
+      }
+    } else {
+      signer.setAddress(walletAddress);
+    }
     return signer;
   }
 
@@ -259,6 +278,11 @@ export class TronFacilitatorSigner extends FacilitatorSigner {
       // round-trip the raw_data and produce an invalid signature.
       let signedTx: unknown;
       if (this.privateKey) {
+        if (this.privateKeyAddress && this.privateKeyAddress !== this.getAddress()) {
+          throw new Error(
+            `TRON private key address ${this.privateKeyAddress} does not match transaction owner ${this.getAddress()}`,
+          );
+        }
         signedTx = await (tw.trx as unknown as {
           sign: (txObj: unknown, pk: string) => Promise<unknown>;
         }).sign(tx.transaction, this.privateKey);

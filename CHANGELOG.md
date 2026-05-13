@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0-beta.2] - 2026-05-13
+
+### Fixed
+
+- TS TRON facilitator settlement now derives the facilitator address from `TRON_FACILITATOR_PRIVATE_KEY` / `TRON_PRIVATE_KEY` when direct private-key signing is enabled. This keeps the transaction owner address aligned with the key used by TronWeb signing and fixes `Private key does not match address in transaction` during `exact_permit` settle.
+- TS TRON facilitator startup now warns when the direct-signing private key address differs from the agent-wallet active address, making stale keystore/env mismatches visible in QA logs.
+
 ## [0.6.0] - 2026-05-13
 
 ### Added — TypeScript / Python facilitator parity
