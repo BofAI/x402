@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — develop branch (toward v0.6.0)
+## [0.6.0-beta.0] - 2026-05-12
 
 ### Added — TypeScript SDK 与 Python parity 对齐
 
@@ -20,6 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Hono 和 Express 加为 `peerDependenciesMeta` 的可选 peer deps；不安装也能用框架无关核心。
+
+### Fixed
+
+- `test_nile_uses_default_without_api_key` 测试断言对齐 nile fallback RPC URL 行为（之前实现已加 fallback 但测试未跟上）。
+
+### Released
+
+- npm: `@bankofai/x402@0.6.0-beta.0`
+- PyPI: `bankofai-x402==0.6.0b0`
 
 ## [0.5.9] - 2026-04-14
 

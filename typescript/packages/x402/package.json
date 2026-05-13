@@ -1,6 +1,6 @@
 {
   "name": "@bankofai/x402",
-  "version": "0.5.9",
+  "version": "0.6.0-beta.0",
   "description": "x402 TypeScript SDK (TRON and EVM support)",
   "keywords": [
     "x402",
@@ -53,8 +53,12 @@
     "express": "^4.0.0 || ^5.0.0"
   },
   "peerDependenciesMeta": {
-    "hono": { "optional": true },
-    "express": { "optional": true }
+    "hono": {
+      "optional": true
+    },
+    "express": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/express": "^5.0.6",

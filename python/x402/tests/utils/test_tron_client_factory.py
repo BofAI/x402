@@ -43,12 +43,19 @@ class TestCreateAsyncTronClientFallback:
         mock_tron_cls.assert_called_once_with(provider=mock_provider, network="mainnet")
 
     @patch("bankofai.x402.utils.tron_client.AsyncTron")
+    @patch("bankofai.x402.utils.tron_client.AsyncHTTPProvider")
     @patch.dict("os.environ", {}, clear=True)
-    def test_nile_uses_default_without_api_key(self, mock_tron_cls):
-        """Non-mainnet networks should use tronpy defaults when API key is not set."""
+    def test_nile_uses_default_without_api_key(self, mock_provider_cls, mock_tron_cls):
+        """Non-mainnet networks use the nile fallback RPC URL when API key is not set."""
+        from bankofai.x402.utils.tron_client import TRON_NILE_FALLBACK_URL
+
+        mock_provider = MagicMock()
+        mock_provider_cls.return_value = mock_provider
+
         create_async_tron_client("nile")
 
-        mock_tron_cls.assert_called_once_with(network="nile")
+        mock_provider_cls.assert_called_once_with(endpoint_uri=TRON_NILE_FALLBACK_URL)
+        mock_tron_cls.assert_called_once_with(provider=mock_provider, network="nile")
 
     @patch("bankofai.x402.utils.tron_client.AsyncTron")
     @patch("bankofai.x402.utils.tron_client.AsyncHTTPProvider")

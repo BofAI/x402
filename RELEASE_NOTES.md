@@ -1,21 +1,32 @@
-# v0.5.9 - Exact V2 Compatibility
+# v0.6.0-beta.0 — TypeScript / Python Parity
 
-Release date: April 14, 2026
+Release date: May 12, 2026
+
+## Highlights
+
+This beta brings the TypeScript SDK to functional parity with the Python SDK. TS clients can now run a full facilitator engine in-process, serve framework-native middleware (Hono / Express), and call remote facilitator endpoints through a typed client.
 
 ## Changes
 
-- **Exact V2 spec alignment**: The `exact` payment scheme (EVM and TRON) now produces V2-compatible payloads that conform to the x402 Foundation (formerly Coinbase) wire format. This enables interoperability with the upstream facilitator and other V2-compliant implementations.
-- **BSC Testnet support**: Added BSC Testnet (`eip155:97`) with DHLU test token for `exact` EVM payments. Includes smoke test examples in both TypeScript and Python.
-- **Payload structure update**: `nativeExact`, `nativeExactEvm`, and `nativeExactTron` mechanisms now emit structured `authorization` objects instead of flat hex blobs, matching the V2 spec.
-- **GasFree utility cleanup**: Refactored status polling and error handling in the GasFree API client.
+- **`FacilitatorClient` (TS)**: typed client for `/supported`, `/fee/quote`, `/verify`, `/settle`, mirroring the Python `bankofai.x402.facilitator.FacilitatorClient` surface.
+- **`X402Facilitator` engine (TS)**: routes `(network, scheme)` to a `FacilitatorMechanism` with EVM checksum normalization. Same interface as Python.
+- **`x402Hono` / `x402Express` middleware**: one-line integration for charging on Hono and Express. Framework-agnostic core lives in `processX402Request` so other adapters can be added without rewiring.
+- **`X402FetchClient` extensions**: `put` / `patch` / `delete` methods, injectable `fetchImpl` / `selector`, and `parsePaymentResponseHeader()` for pulling settle receipts off success responses.
+- **`FacilitatorError`**: typed facilitator HTTP / protocol error class with status + body.
+- **Public header constants**: `PAYMENT_SIGNATURE_HEADER`, `PAYMENT_REQUIRED_HEADER`, `PAYMENT_RESPONSE_HEADER`.
 
 ## Verification
 
-- TypeScript: 51/51 tests passed (8 test files)
-- Python: 217/217 tests passed
-- BSC Testnet end-to-end: settlement tx confirmed on `eip155:97`
+- TypeScript: 101/101 tests pass (50 new tests: facilitator client 11 + facilitator engine 14 + middleware core 9 + Hono adapter 5 + Express adapter 4 + fetch client 7).
+- Python: 217/217 tests pass.
+- TRON Nile + BSC Testnet end-to-end settle paths verified.
 
-## Affected SDKs
+## Released
 
-- **Python**: `bankofai-x402==0.5.9`
-- **TypeScript**: `@bankofai/x402@0.5.9`
+- npm: `@bankofai/x402@0.6.0-beta.0`
+- PyPI: `bankofai-x402==0.6.0b0`
+
+## Compatibility
+
+- Hono and Express are optional peer deps. Apps that don't import the framework adapters do not need to install them.
+- Minimum Node.js 20 (unchanged from 0.5.9). Python 3.11+.
