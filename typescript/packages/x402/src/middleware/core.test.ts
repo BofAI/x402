@@ -81,12 +81,35 @@ describe('processX402Request', () => {
       accepts: [TRON_REQ],
       resource: { url: 'http://example.com/api', description: 'demo' },
       extensions: { 'payment-identifier': { info: { required: false } } },
+      enrich: false, // legacy passthrough; don't generate paymentPermitContext
     };
 
     const decision = await processX402Request(null, config);
     if (decision.kind !== 'paymentRequired') throw new Error('expected paymentRequired');
     expect(decision.paymentRequired.resource).toEqual(config.resource);
     expect(decision.paymentRequired.extensions).toEqual(config.extensions);
+  });
+
+  it('enriches with fresh paymentPermitContext per challenge by default', async () => {
+    const config: X402MiddlewareConfig = {
+      facilitator: makeFacilitator({}),
+      accepts: [TRON_REQ],
+    };
+    const a = await processX402Request(null, config);
+    const b = await processX402Request(null, config);
+    if (a.kind !== 'paymentRequired' || b.kind !== 'paymentRequired') {
+      throw new Error('expected paymentRequired');
+    }
+    const ctxA = a.paymentRequired.extensions?.paymentPermitContext as
+      | { meta: { paymentId: string; nonce: string } }
+      | undefined;
+    const ctxB = b.paymentRequired.extensions?.paymentPermitContext as
+      | { meta: { paymentId: string; nonce: string } }
+      | undefined;
+    expect(ctxA?.meta.paymentId).toMatch(/^0x[0-9a-f]{32}$/);
+    expect(ctxB?.meta.paymentId).toMatch(/^0x[0-9a-f]{32}$/);
+    expect(ctxA?.meta.paymentId).not.toBe(ctxB?.meta.paymentId);
+    expect(ctxA?.meta.nonce).not.toBe(ctxB?.meta.nonce);
   });
 
   it('returns 400 invalid when signature header is unparseable', async () => {

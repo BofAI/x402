@@ -25,7 +25,7 @@ export { ExactPermitEvmFacilitatorMechanism } from './evm/exact_permit/index.js'
 export { ExactTronFacilitatorMechanism } from './tron/exact/index.js';
 export { ExactPermitTronFacilitatorMechanism } from './tron/exact_permit/index.js';
 export { ExactGasFreeFacilitatorMechanism } from './tron/exact_gasfree/index.js';
-export type { ExactGasFreeFee } from './tron/exact_gasfree/index.js';
+export type { ExactGasFreeFacilitatorOptions } from './tron/exact_gasfree/index.js';
 
 // === Shared base classes (for users wanting to subclass) ===
 export {

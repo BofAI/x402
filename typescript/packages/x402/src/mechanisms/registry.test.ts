@@ -3,8 +3,7 @@
  *
  * Verifies registration into X402Server / X402Facilitator and the cheap,
  * non-RPC paths (scheme name, feeQuote, parsePrice, validate, structural
- * verify). Chain-RPC integration (signature recovery, settle) is stubbed
- * in v0.6.0 and gets its own tests in v0.6.0b.
+ * verify). Chain-RPC integration is covered in per-mechanism tests.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -24,8 +23,41 @@ import {
   ExactTronFacilitatorMechanism,
   ExactTronServerMechanism,
 } from './index.js';
+import { FacilitatorSigner } from '../signers/facilitator/base.js';
+import { GasFreeAPIClient } from '../utils/gasfree.js';
 
-const FAKE_FEE = { feeTo: 'TFeeAddress', defaultBaseFee: '100' };
+/**
+ * Minimal mock signer that satisfies `FacilitatorSigner`. The registry
+ * tests never reach `verify`/`settle`/`checkBalance` — they only need
+ * `getAddress()` so the mechanism constructor doesn't blow up.
+ */
+class MockSigner extends FacilitatorSigner {
+  constructor(private readonly addr: string) {
+    super();
+  }
+  getAddress(): string {
+    return this.addr;
+  }
+  async verifyTypedData(): Promise<boolean> {
+    return true;
+  }
+  async writeContract(): Promise<string | null> {
+    return null;
+  }
+  async checkBalance(): Promise<bigint> {
+    return BigInt(0);
+  }
+  async waitForTransactionReceipt() {
+    return { hash: '0x', blockNumber: '0', status: 'confirmed' as const };
+  }
+}
+
+const MOCK_TRON_SIGNER = new MockSigner('TFeeAddress');
+const MOCK_EVM_SIGNER = new MockSigner('0xFeeAddress');
+const FAKE_GASFREE_FEE = {
+  clients: { 'tron:nile': new GasFreeAPIClient('https://gasfree.test') },
+  baseFee: { USDT: '100' },
+};
 
 describe('Server mechanisms register into X402Server', () => {
   it('registers all 5 server mechanisms across (chain, scheme)', () => {
@@ -88,11 +120,14 @@ describe('Server mechanisms register into X402Server', () => {
 describe('Facilitator mechanisms register into X402Facilitator', () => {
   it('registers all 5 facilitator mechanisms', () => {
     const fac = new X402Facilitator()
-      .register(['eip155:97'], new ExactEvmFacilitatorMechanism())
-      .register(['eip155:97'], new ExactPermitEvmFacilitatorMechanism(FAKE_FEE))
-      .register(['tron:nile'], new ExactTronFacilitatorMechanism())
-      .register(['tron:nile'], new ExactPermitTronFacilitatorMechanism(FAKE_FEE))
-      .register(['tron:nile'], new ExactGasFreeFacilitatorMechanism(FAKE_FEE));
+      .register(['eip155:97'], new ExactEvmFacilitatorMechanism(MOCK_EVM_SIGNER))
+      .register(['eip155:97'], new ExactPermitEvmFacilitatorMechanism(MOCK_EVM_SIGNER))
+      .register(['tron:nile'], new ExactTronFacilitatorMechanism(MOCK_TRON_SIGNER))
+      .register(['tron:nile'], new ExactPermitTronFacilitatorMechanism(MOCK_TRON_SIGNER))
+      .register(
+        ['tron:nile'],
+        new ExactGasFreeFacilitatorMechanism(MOCK_TRON_SIGNER, FAKE_GASFREE_FEE),
+      );
 
     const supported = fac.supported();
     expect(supported.kinds).toHaveLength(5);
@@ -106,8 +141,8 @@ describe('Facilitator mechanisms register into X402Facilitator', () => {
     ]);
   });
 
-  it('exact feeQuote returns null (no fee for exact scheme)', async () => {
-    const mech = new ExactEvmFacilitatorMechanism();
+  it('exact feeQuote returns a zero-fee quote', async () => {
+    const mech = new ExactEvmFacilitatorMechanism(MOCK_EVM_SIGNER);
     const quote = await mech.feeQuote({
       scheme: 'exact',
       network: 'eip155:97',
@@ -115,13 +150,14 @@ describe('Facilitator mechanisms register into X402Facilitator', () => {
       asset: '0x337610d27c682E347C9cD60BD4b3b107C9d34dDd',
       payTo: '0x1825bB32db3443dEc2cc7508b2D818fc13EaD878',
     });
-    expect(quote).toBeNull();
+    expect(quote?.fee.feeAmount).toBe('0');
+    expect(quote?.pricing).toBe('flat');
   });
 
-  it('permit feeQuote returns the configured fee', async () => {
-    const mech = new ExactPermitEvmFacilitatorMechanism({
+  it('permit feeQuote returns the configured fee for a known symbol', async () => {
+    const mech = new ExactPermitEvmFacilitatorMechanism(MOCK_EVM_SIGNER, {
       feeTo: '0xFee',
-      defaultBaseFee: '5000',
+      baseFee: { USDT: '5000' },
     });
     const quote = await mech.feeQuote({
       scheme: 'exact_permit',
@@ -132,14 +168,13 @@ describe('Facilitator mechanisms register into X402Facilitator', () => {
     });
     expect(quote?.fee.feeTo).toBe('0xFee');
     expect(quote?.fee.feeAmount).toBe('5000');
-    expect(quote?.pricing).toBe('fixed');
+    expect(quote?.pricing).toBe('flat');
   });
 
-  it('per-token base fee override wins over default', async () => {
-    const mech = new ExactPermitEvmFacilitatorMechanism({
+  it('permit feeQuote returns null for an unknown symbol', async () => {
+    const mech = new ExactPermitEvmFacilitatorMechanism(MOCK_EVM_SIGNER, {
       feeTo: '0xFee',
-      defaultBaseFee: '100',
-      baseFeesByToken: { 'eip155:97:0x337610d27c682e347c9cd60bd4b3b107c9d34ddd': '999' },
+      baseFee: { /* no entries */ },
     });
     const quote = await mech.feeQuote({
       scheme: 'exact_permit',
@@ -148,11 +183,11 @@ describe('Facilitator mechanisms register into X402Facilitator', () => {
       asset: '0x337610d27c682E347C9cD60BD4b3b107C9d34dDd',
       payTo: '0x1825bB32db3443dEc2cc7508b2D818fc13EaD878',
     });
-    expect(quote?.fee.feeAmount).toBe('999');
+    expect(quote).toBeNull();
   });
 
-  it('settle for stubbed mechanisms returns success:false with TODO marker', async () => {
-    const mech = new ExactEvmFacilitatorMechanism();
+  it('settle returns verify failure when the authorization is invalid', async () => {
+    const mech = new ExactEvmFacilitatorMechanism(MOCK_EVM_SIGNER);
     const result = await mech.settle(
       {
         x402Version: 2,
@@ -168,6 +203,6 @@ describe('Facilitator mechanisms register into X402Facilitator', () => {
       },
     );
     expect(result.success).toBe(false);
-    expect(result.errorReason).toContain('not_implemented');
+    expect(result.errorReason).toBe('amount_mismatch');
   });
 });

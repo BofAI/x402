@@ -37,3 +37,13 @@ export * from './signers/signer.js';
 // EVM Signer
 export * from './signers/evmSigner.js';
 export type { TronWeb, TypedDataDomain, TypedDataField, TronNetwork, TRON_CHAIN_IDS } from './signers/types.js';
+
+// Facilitator signers (verify + writeContract + receipt polling)
+export { FacilitatorSigner } from './signers/facilitator/base.js';
+export type {
+  FacilitatorTypedDataDomain,
+  FacilitatorTypedDataTypes,
+  FacilitatorTransactionReceipt,
+} from './signers/index.js';
+export { TronFacilitatorSigner } from './signers/facilitator/tronSigner.js';
+export { EvmFacilitatorSigner } from './signers/facilitator/evmSigner.js';

@@ -1,37 +1,54 @@
+/**
+ * EVM (BSC) facilitator mechanism for the `exact` (ERC-3009) scheme.
+ *
+ * Mirrors Python `mechanisms.evm.exact.facilitator.ExactEvmFacilitatorMechanism`.
+ *
+ * Settles by calling `transferWithAuthorization(from, to, value, validAfter,
+ * validBefore, nonce, v, r, s)` directly on the ERC20 token contract via
+ * viem's typed encoding.
+ */
+
 import { ExactBaseFacilitatorMechanism } from '../../_exact_base/facilitator.js';
 import { EvmChainAdapter } from '../../_exact_base/evmAdapter.js';
 import type {
-  PaymentPayload,
   PaymentRequirements,
-  SettleResponse,
+  TransferAuthorization,
 } from '../../../types/index.js';
+import { FacilitatorSigner } from '../../../signers/facilitator/base.js';
+import { TRANSFER_WITH_AUTHORIZATION_ABI } from '../../../abi.js';
 
-/**
- * BSC / EVM facilitator mechanism for the `exact` scheme.
- *
- * Mirrors Python `mechanisms.evm.exact.facilitator.ExactEvmFacilitatorMechanism`.
- */
 export class ExactEvmFacilitatorMechanism extends ExactBaseFacilitatorMechanism {
-  constructor() {
-    super(new EvmChainAdapter());
+  constructor(
+    signer: FacilitatorSigner,
+    options: { allowedTokens?: ReadonlyArray<string> } = {},
+  ) {
+    super(signer, new EvmChainAdapter(), options);
   }
 
-  /**
-   * Settle the ERC-3009 authorization by calling `transferWithAuthorization`
-   * on the token contract.
-   *
-   * TODO(v0.6.0b): wire a viem `WalletClient` and invoke the contract. Until
-   * then this returns `success: false` so the upstream caller knows the
-   * chain integration is not yet wired.
-   */
-  async settle(
-    _payload: PaymentPayload,
+  protected async settlePaymentOnly(
+    auth: TransferAuthorization,
+    signature: string,
     requirements: PaymentRequirements,
-  ): Promise<SettleResponse> {
-    return {
-      success: false,
-      network: requirements.network,
-      errorReason: 'evm_exact_settle_not_implemented',
-    };
+  ): Promise<string | null> {
+    const adapter = this.adapter;
+    const { v, r, s } = this.splitSignature(signature);
+
+    return this.signer.writeContract(
+      requirements.asset, // token contract is the verifying contract for ERC-3009
+      TRANSFER_WITH_AUTHORIZATION_ABI as unknown as unknown[],
+      'transferWithAuthorization',
+      [
+        adapter.toSigningAddress(auth.from),
+        adapter.toSigningAddress(auth.to),
+        BigInt(auth.value),
+        BigInt(auth.validAfter),
+        BigInt(auth.validBefore),
+        auth.nonce.startsWith('0x') ? auth.nonce : `0x${auth.nonce}`,
+        v,
+        r,
+        s,
+      ],
+      requirements.network,
+    );
   }
 }
