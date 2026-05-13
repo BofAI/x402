@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-05-13
+
+### Added — TypeScript / Python facilitator parity
+
+- TS facilitator client, facilitator engine, Hono / Express middleware, and fetch wrapper introduced during the 0.6.0 beta line.
+- TS facilitator signer layer (`FacilitatorSigner`, `EvmFacilitatorSigner`, `TronFacilitatorSigner`) for off-chain typed-data verification, contract writes, balance checks, and receipt polling.
+- TS `exact`, `exact_permit`, and `exact_gasfree` facilitator verify + settle paths, matching the Python facilitator behavior.
+- Public TS exports for facilitator APIs, signer APIs, protocol constants, middleware, and updated mechanism constructors.
+
+### Changed
+
+- TS facilitator mechanisms now use explicit facilitator signers, aligning the TypeScript API with Python's signer-injected facilitator model.
+- Python package metadata is aligned to the final `0.6.0` release version.
+- `exact` fee quote now returns a zero-fee quote instead of `null`, matching the Python facilitator.
+
+### Verified
+
+- TS SDK build passed.
+- TS SDK test suite passed: 19 files / 158 tests.
+- x402-demo TypeScript flow verified on TRON Nile:
+  - `exact_gasfree`: `97ec5443edaf4bbe8633ee8fc0dc923c4809df4f95625718d1f33e499cf2313d`
+  - `exact_permit`: `6aeccd9ff25e9c241b08082ea11149177597ae041daf6aa5dd6c0b7c0634d20a`
+
 ## [0.6.0-beta.1] - 2026-05-13
 
 ### Added — TypeScript facilitator settlement parity

@@ -19,7 +19,7 @@
 
 | 版本 | 功能 | 工作量 | 说明 | 连带改动组件 |
 |---|---|---|---|---|
-| **v0.6.0** | TS 补全 Py parity | **7-10d** | TS 端补齐：facilitator 客户端 + facilitator 服务端 + Hono / Express 中间件 + Fetch wrapper。上游 TS v1.2.0 有现成参考可直接端口 | TS SDK；demo |
+| **v0.6.0** | TS 补全 Py parity | **完成，准备发布** | TS 端已补齐：facilitator 客户端 + facilitator 服务端 + Hono / Express 中间件 + Fetch wrapper + signer-injected facilitator verify/settle（`exact` / `exact_permit` / `exact_gasfree`）。x402-demo 已用 0.6.0 beta 线完成 TypeScript QA smoke 和 TRON Nile 上链验证 | TS SDK；demo |
 | **v0.6.1** | Extension 框架（双端新建） | **5d** | 对齐上游 `ResourceServerExtension` 接口 + 7 个 hooks（onBeforeVerify / onAfterVerify / onVerifyFailure / onBeforeSettle / onAfterSettle / onSettleFailure / onVerifiedPaymentCanceled）+ declaration / extraction helpers。后续所有 extension 的地基 | TS SDK；Py SDK；specs；facilitator；cli；demo |
 | **v0.6.2** | Permit2 集成（TRON） | **7-10d** | 复用 SUN.io 主网部署 Permit2，新增 `exact_permit2_tron` mechanism。客户端按标准 `PermitTransferFrom` typed-data 签名（钱包能识别）。upto 的前置。含合约部署 | TS SDK；Py SDK；specs；cli；facilitator；demo；skills；tron-contrib |
 | **v0.6.3** | Permit2 集成（BSC） | **3d** | 端口 Coinbase EVM 实现（`eip155:*` 通配自动适配 BSC）。MetaMask / OKX / Trust Wallet 原生识别签名；与 Coinbase 上游 EVM 路径互通 | TS SDK；Py SDK；facilitator；demo |
@@ -43,7 +43,7 @@
 | 协议新能力 | v0.6.4 + v0.7.0 | 10d |
 | **主线总计** | 6 个版本 | **32-38d** |
 
-候选全做再加 25-33d。最关键的工作量黑洞是 **v0.6.0**（5 个补齐项打包）和 **batch-settlement**（facilitator 大改）。
+候选全做再加 25-33d。当前最大的工作量黑洞转到 **batch-settlement**（facilitator 大改）；**v0.6.0** 已完成并进入正式发布准备。
 
 ## Permit2 背景说明（v0.6.2 + v0.6.3）
 
