@@ -103,7 +103,6 @@ class GasFreeAPIClient:
             logger.error(f"Failed to get providers from GasFree API: {e}")
             raise
 
-
     async def get_nonce(self, user: str, token: str, chain_id: int) -> int:
         """Get current recommended nonce for a user"""
         try:

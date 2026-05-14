@@ -48,12 +48,12 @@ class TronFacilitatorSigner(FacilitatorSigner):
         # Resolve private key for direct tronpy signing (bypasses agent-wallet
         # sign_transaction which requires raw_data_hex that tronpy does not expose).
         # Priority: TRON_FACILITATOR_PRIVATE_KEY env → TRON_PRIVATE_KEY env
-        raw_pk = (
-            os.environ.get("TRON_FACILITATOR_PRIVATE_KEY")
-            or os.environ.get("TRON_PRIVATE_KEY")
+        raw_pk = os.environ.get("TRON_FACILITATOR_PRIVATE_KEY") or os.environ.get(
+            "TRON_PRIVATE_KEY"
         )
         if raw_pk:
             from tronpy.keys import PrivateKey as TronPrivateKey
+
             signer._private_key = TronPrivateKey(bytes.fromhex(raw_pk))
         return signer
 
@@ -300,8 +300,7 @@ class TronFacilitatorSigner(FacilitatorSigner):
             # AsyncTron: func(*args) returns a coroutine, need to await it first
             txn_builder = await func(*args)
             txn_builder = (
-                txn_builder
-                .with_owner(address)
+                txn_builder.with_owner(address)
                 .permission_id(self._permission_id)  # use active permission (id=2) by default
                 .fee_limit(1_000_000_000)
             )
