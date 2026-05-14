@@ -2,6 +2,8 @@
 
 Python SDK for the x402 payment protocol — supports TRON and EVM (BSC) networks.
 
+Current release: `bankofai-x402==0.6.0`. This release is aligned with the TypeScript SDK for client, server, and facilitator `exact`, `exact_permit`, and `exact_gasfree` flows.
+
 ## Compatibility Notes
 
 - The EVM `exact` flow is being aligned to the Coinbase x402 v2 payload shape.
@@ -11,7 +13,7 @@ Python SDK for the x402 payment protocol — supports TRON and EVM (BSC) network
 ## Installation
 
 ```bash
-pip install bankofai-x402
+pip install bankofai-x402==0.6.0
 ```
 
 Optional extras:

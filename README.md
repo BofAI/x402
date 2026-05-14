@@ -10,6 +10,10 @@ x402 currently supports the **TRON** and **BSC** networks, with plans to expand 
 
 ---
 
+## Current Release
+
+Version `0.6.0` completes the TypeScript parity milestone against the Python SDK. Both SDKs support facilitator verify and settle flows for `exact`, `exact_permit`, and `exact_gasfree`, with TRON Nile smoke coverage for permit and GasFree settlement.
+
 ## Features
 
 - **Protocol Native**: Restores the HTTP `402` status code to its intended purpose.
@@ -32,19 +36,16 @@ x402 currently supports the **TRON** and **BSC** networks, with plans to expand 
 The Python SDK includes support for Server (FastAPI/Flask), Client, and Facilitator.
 
 ```bash
-# Clone the repository
-git clone https://github.com/BofAI/x402.git
-cd x402/python/x402
-
-# Install with all dependencies
-pip install -e .[all]
+pip install "bankofai-x402[all]==0.6.0"
 ```
 
+For local development from source, use `pip install -e .[all]` inside `python/x402`.
+
 ### TypeScript
-The TypeScript SDK provides client-side integration tools.
+The TypeScript SDK provides client, server, and facilitator integration tools.
 
 ```bash
-npm install @bankofai/x402
+npm install @bankofai/x402@0.6.0
 ```
 
 ## AI Agent Integration
