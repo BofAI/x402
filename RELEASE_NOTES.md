@@ -23,17 +23,16 @@ This release completes the 0.6.0 TypeScript parity work against the Python SDK. 
 
 - TypeScript build passed.
 - TypeScript test suite passed: 19 files / 158 tests.
-- npm beta tarball inspected before final release prep: `ExactGasFreeFacilitatorMechanism(signer, options)` and `ExactEvmFacilitatorMechanism(signer, options?)` are present in the declarations.
-- x402-demo TypeScript smoke passed against the 0.6.0 beta package line.
+- npm release tarball inspected before final release prep: `ExactGasFreeFacilitatorMechanism(signer, options)` and `ExactEvmFacilitatorMechanism(signer, options?)` are present in the declarations.
+- x402-demo TypeScript smoke passed against the 0.6.0 release candidate.
 - TRON Nile on-chain smoke transactions:
   - `exact_gasfree`: `97ec5443edaf4bbe8633ee8fc0dc923c4809df4f95625718d1f33e499cf2313d`
-  - `exact_permit`: `6aeccd9ff25e9c241b08082ea11149177597ae041daf6aa5dd6c0b7c0634d20a`
+  - `exact_permit`: `ae91d7e02fea6855f22ffcb945dbf280ff526f72ef156f997e22d4cc8c053e80`
 
 ## Release Artifacts
 
 - npm package version prepared: `@bankofai/x402@0.6.0`
 - Python package version prepared: `bankofai-x402==0.6.0`
-- Previous QA beta: `@bankofai/x402@0.6.0-beta.1` (`beta` dist-tag), `bankofai-x402==0.6.0b0`
 
 ## Compatibility
 
