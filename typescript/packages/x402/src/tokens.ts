@@ -115,3 +115,72 @@ export function registerToken(network: string, token: TokenInfo): void {
   }
   TOKENS[network][token.symbol.toUpperCase()] = token;
 }
+
+/** Parsed asset amount returned by {@link parsePrice}. */
+export interface AssetAmount {
+  /** Amount in smallest unit (e.g. "1000000" for 1 USDT with 6 decimals). */
+  amount: string;
+  /** Token contract address on the network. */
+  asset: string;
+  /** Token decimals. */
+  decimals: number;
+  /** Token symbol (e.g. "USDT"). */
+  symbol: string;
+  /** Token display name. */
+  name: string;
+  /** EIP-712 / TIP-712 contract version (for permit) when applicable. */
+  version?: string;
+}
+
+/**
+ * Parse a human-readable price string into a typed asset amount.
+ *
+ * @param price - `"<decimal-amount> <symbol>"` (e.g. `"1.25 USDT"` or `"100 USDC"`).
+ *                Whitespace-tolerant. `<symbol>` lookup is case-insensitive.
+ * @param network - CAIP-2 network identifier (e.g. `"tron:nile"`, `"eip155:97"`).
+ *
+ * @throws if the price format is invalid, the amount cannot be parsed,
+ *         the token is not registered on `network`, or the amount has more
+ *         decimal places than the token supports.
+ *
+ * Mirrors `bankofai.x402.tokens.TokenRegistry.parse_price`.
+ */
+export function parsePrice(price: string, network: string): AssetAmount {
+  const parts = price.trim().split(/\s+/);
+  if (parts.length !== 2) {
+    throw new Error(
+      `Invalid price format: "${price}". Expected "<amount> <symbol>" (e.g. "1.25 USDT").`,
+    );
+  }
+  const [amountStr, symbol] = parts as [string, string];
+
+  if (!/^\d+(\.\d+)?$/.test(amountStr)) {
+    throw new Error(`Invalid amount in price "${price}": "${amountStr}" is not a non-negative decimal.`);
+  }
+
+  const token = getToken(network, symbol);
+  if (!token) {
+    throw new Error(`Unknown token "${symbol}" on network "${network}".`);
+  }
+
+  // BigInt-safe smallest-unit conversion. Reject precision overflow.
+  const [intPart, fracPart = ''] = amountStr.split('.') as [string, string?];
+  if (fracPart.length > token.decimals) {
+    throw new Error(
+      `Amount "${amountStr}" has more decimal places (${fracPart.length}) than ${symbol} supports (${token.decimals}).`,
+    );
+  }
+  const paddedFrac = fracPart.padEnd(token.decimals, '0');
+  // strip leading zeros to keep canonical numeric string
+  const combined = `${intPart}${paddedFrac}`.replace(/^0+(?=\d)/, '');
+  const amount = combined === '' ? '0' : combined;
+
+  return {
+    amount,
+    asset: token.address,
+    decimals: token.decimals,
+    symbol: token.symbol,
+    name: token.name,
+    ...(token.version !== undefined ? { version: token.version } : {}),
+  };
+}

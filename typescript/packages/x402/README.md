@@ -2,6 +2,8 @@
 
 TypeScript SDK for the x402 payment protocol. Supports TRON and EVM (BSC) networks with automatic HTTP 402 payment handling.
 
+Current release: `@bankofai/x402@0.6.0`. This release includes TypeScript client, server, and facilitator parity with the Python SDK for `exact`, `exact_permit`, and `exact_gasfree` verify/settle flows.
+
 ## Compatibility Notes
 
 - The EVM `exact` flow is being aligned to the Coinbase x402 v2 payload shape.
@@ -20,7 +22,7 @@ TypeScript SDK for the x402 payment protocol. Supports TRON and EVM (BSC) networ
 ## Installation
 
 ```bash
-npm i @bankofai/x402 tronweb
+npm i @bankofai/x402@0.6.0 tronweb
 ```
 
 ## Quick Start

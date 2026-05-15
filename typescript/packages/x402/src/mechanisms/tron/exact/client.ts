@@ -1,8 +1,8 @@
 /**
- * ExactEvmClientMechanism - EVM client mechanism for "exact" payment scheme
+ * ExactTronClientMechanism - TRON client mechanism for "exact" payment scheme
  *
- * Uses ERC-3009 TransferWithAuthorization with EIP-712 signing.
- * EVM addresses are used directly without conversion.
+ * Uses ERC-3009 TransferWithAuthorization with TIP-712 signing.
+ * Addresses are converted from TRON Base58 to EVM hex for signing.
  */
 
 import type {
@@ -10,12 +10,12 @@ import type {
   ClientSigner,
   PaymentRequirements,
   PaymentPayload,
-} from '../index.js';
+} from '../../../index.js';
 import {
   getChainId,
-  EvmAddressConverter,
-} from '../index.js';
-import { findByAddress } from '../tokens.js';
+  TronAddressConverter,
+} from '../../../index.js';
+import { findByAddress } from '../../../tokens.js';
 import {
   SCHEME_EXACT,
   TRANSFER_AUTH_EIP712_TYPES,
@@ -24,15 +24,15 @@ import {
   buildEip712Message,
   createNonce,
   createValidityWindow,
-} from './nativeExact.js';
-import type { TransferAuthorization } from './nativeExact.js';
+} from '../../_exact_base/types.js';
+import type { TransferAuthorization } from '../../_exact_base/types.js';
 
 /**
- * EVM client mechanism for "exact" payment scheme
+ * TRON client mechanism for "exact" payment scheme
  */
-export class ExactEvmClientMechanism implements ClientMechanism {
+export class ExactTronClientMechanism implements ClientMechanism {
   private signer: ClientSigner;
-  private addressConverter = new EvmAddressConverter();
+  private addressConverter = new TronAddressConverter();
 
   constructor(signer: ClientSigner) {
     this.signer = signer;

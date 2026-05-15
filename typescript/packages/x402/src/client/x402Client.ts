@@ -4,7 +4,7 @@
  * Manages payment mechanism registry and coordinates payment flows.
  */
 
-import { ExactGasFreeClientMechanism } from '../mechanisms/exactGasfree.js';
+import { ExactGasFreeClientMechanism } from '../mechanisms/tron/exact_gasfree/index.js';
 import { GasFreeAPIClient } from '../utils/gasfree.js';
 import type {
   PaymentRequirements,

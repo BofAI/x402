@@ -15,6 +15,8 @@ from tronpy.providers.async_http import AsyncHTTPProvider
 logger = logging.getLogger(__name__)
 
 TRON_MAINNET_FALLBACK_URL = "https://hptg.bankofai.io"
+TRON_NILE_FALLBACK_URL = "https://api.nileex.io"
+TRON_SHASTA_FALLBACK_URL = "https://api.shasta.trongrid.io"
 
 
 def create_async_tron_client(network: str) -> Any:
@@ -48,6 +50,24 @@ def create_async_tron_client(network: str) -> Any:
                 "Creating AsyncTron client with fallback provider for network=%s (%s)",
                 network,
                 TRON_MAINNET_FALLBACK_URL,
+            )
+            return AsyncTron(provider=provider, network=network)
+
+        if network == "nile":
+            provider = AsyncHTTPProvider(endpoint_uri=TRON_NILE_FALLBACK_URL)
+            logger.info(
+                "Creating AsyncTron client with fallback provider for network=%s (%s)",
+                network,
+                TRON_NILE_FALLBACK_URL,
+            )
+            return AsyncTron(provider=provider, network=network)
+
+        if network == "shasta":
+            provider = AsyncHTTPProvider(endpoint_uri=TRON_SHASTA_FALLBACK_URL)
+            logger.info(
+                "Creating AsyncTron client with fallback provider for network=%s (%s)",
+                network,
+                TRON_SHASTA_FALLBACK_URL,
             )
             return AsyncTron(provider=provider, network=network)
 

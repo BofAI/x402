@@ -5,6 +5,83 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-05-13
+
+### Added — TypeScript / Python facilitator parity
+
+- TS facilitator client, facilitator engine, Hono / Express middleware, and fetch wrapper.
+- TS facilitator signer layer (`FacilitatorSigner`, `EvmFacilitatorSigner`, `TronFacilitatorSigner`) for off-chain typed-data verification, contract writes, balance checks, and receipt polling.
+- TS `exact`, `exact_permit`, and `exact_gasfree` facilitator verify + settle paths, matching the Python facilitator behavior.
+- Public TS exports for facilitator APIs, signer APIs, protocol constants, middleware, and updated mechanism constructors.
+
+### Changed
+
+- TS facilitator mechanisms now use explicit facilitator signers, aligning the TypeScript API with Python's signer-injected facilitator model.
+- Python package metadata is aligned to the final `0.6.0` release version.
+- `exact` fee quote now returns a zero-fee quote instead of `null`, matching the Python facilitator.
+
+### Fixed
+
+- TS TRON facilitator settlement derives the facilitator address from `TRON_FACILITATOR_PRIVATE_KEY` / `TRON_PRIVATE_KEY` when direct private-key signing is enabled. This keeps the transaction owner address aligned with the key used by TronWeb signing and fixes `Private key does not match address in transaction` during `exact_permit` settle.
+- TS TRON facilitator startup warns when the direct-signing private key address differs from the agent-wallet active address, making stale keystore/env mismatches visible in QA logs.
+
+### Verified
+
+- TS SDK build passed.
+- TS SDK test suite passed: 19 files / 158 tests.
+- x402-demo TypeScript flow verified on TRON Nile:
+  - `exact_gasfree`: `97ec5443edaf4bbe8633ee8fc0dc923c4809df4f95625718d1f33e499cf2313d`
+  - `exact_permit`: `ae91d7e02fea6855f22ffcb945dbf280ff526f72ef156f997e22d4cc8c053e80`
+
+## [0.6.0-beta.1] - 2026-05-13
+
+### Added — TypeScript facilitator settlement parity
+
+- TS facilitator signer layer (`FacilitatorSigner`, `EvmFacilitatorSigner`, `TronFacilitatorSigner`) for off-chain typed-data verification, contract writes, balance checks, and receipt polling.
+- TS `exact` facilitator settlement for EVM and TRON via `transferWithAuthorization`.
+- TS `exact_permit` facilitator settlement for EVM and TRON via `PaymentPermit.permitTransferFrom`.
+- TS `exact_gasfree` facilitator verify + settle via GasFree API proxy, matching the Python facilitator behavior.
+- Unit coverage for TS GasFree facilitator quote, verify, and settle paths.
+
+### Changed
+
+- TS facilitator mechanism constructors now use explicit facilitator signers, aligning the TypeScript API with Python's signer-injected facilitator model.
+- `exact` fee quote now returns a zero-fee quote instead of `null`, matching the Python facilitator.
+
+### Verified
+
+- TS SDK build passed.
+- TS SDK test suite passed: 19 files / 158 tests.
+- Published npm beta: `@bankofai/x402@0.6.0-beta.1` under the `beta` dist-tag.
+- x402-demo TypeScript flow verified on TRON Nile:
+  - `exact_gasfree`: `97ec5443edaf4bbe8633ee8fc0dc923c4809df4f95625718d1f33e499cf2313d`
+  - `exact_permit`: `6aeccd9ff25e9c241b08082ea11149177597ae041daf6aa5dd6c0b7c0634d20a`
+
+## [0.6.0-beta.0] - 2026-05-12
+
+### Added — TypeScript SDK 与 Python parity 对齐
+
+- `FacilitatorClient` (`typescript/packages/x402/src/facilitator/client.ts`) — TS 端补齐对远程 facilitator 的客户端调用（`/supported`、`/fee/quote`、`/verify`、`/settle`），与 Python `bankofai.x402.facilitator.FacilitatorClient` 接口一致。
+- `X402Facilitator` (`typescript/packages/x402/src/facilitator/x402Facilitator.ts`) — TS 端 facilitator 引擎，按 `(network, scheme)` 路由 `FacilitatorMechanism`，支持 EVM 地址 checksum 规范化，与 Python `bankofai.x402.facilitator.X402Facilitator` 接口一致。
+- `x402Hono` / `x402Express` server middleware (`typescript/packages/x402/src/middleware/`) — Hono + Express 一行接入收费 API，框架无关核心逻辑封装在 `processX402Request`。
+- `X402FetchClient` 增强 (`typescript/packages/x402/src/http/client.ts`) — 补齐 `put` / `patch` / `delete` 方法，支持注入 `fetchImpl` / `selector`；新增 `parsePaymentResponseHeader()` 从成功响应里提取 settle receipt。
+- `FacilitatorError` (`typescript/packages/x402/src/errors.ts`) — facilitator HTTP / 协议错误类型，含 status + body。
+- 公开协议常量 `PAYMENT_SIGNATURE_HEADER` / `PAYMENT_REQUIRED_HEADER` / `PAYMENT_RESPONSE_HEADER`。
+- 测试覆盖：facilitator client (11) + facilitator engine (14) + middleware core (9) + Hono adapter (5) + Express adapter (4) + fetch client (7) = 50 个新测试，整体 101/101 通过。
+
+### Changed
+
+- Hono 和 Express 加为 `peerDependenciesMeta` 的可选 peer deps；不安装也能用框架无关核心。
+
+### Fixed
+
+- `test_nile_uses_default_without_api_key` 测试断言对齐 nile fallback RPC URL 行为（之前实现已加 fallback 但测试未跟上）。
+
+### Released
+
+- npm: `@bankofai/x402@0.6.0-beta.0`
+- PyPI: `bankofai-x402==0.6.0b0`
+
 ## [0.5.9] - 2026-04-14
 
 ### Added

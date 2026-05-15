@@ -1,6 +1,8 @@
 import {
   GASFREE_PRIMARY_TYPE,
 } from '../abi.js';
+import { getChainId, getGasFreeControllerAddress } from '../config.js';
+import { toEvmHex } from '../address.js';
 
 /**
  * GasFree utility functions for API interaction and domain helpers.
@@ -76,6 +78,15 @@ export const GASFREE_TYPES = {
     { name: 'nonce', type: 'uint256' },
   ],
 } as const;
+
+export function getGasFreeDomain(network: string) {
+  return {
+    name: 'GasFreeController',
+    version: 'V1.0.0',
+    chainId: getChainId(network),
+    verifyingContract: toEvmHex(getGasFreeControllerAddress(network)),
+  };
+}
 
 const DEFAULT_TIMEOUT_MS = 30000;
 

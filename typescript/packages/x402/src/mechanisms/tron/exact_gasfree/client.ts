@@ -10,10 +10,10 @@ import {
   GASFREE_PRIMARY_TYPE,
   getChainId,
   UnsupportedNetworkError,
-} from '../index.js';
-import { GASFREE_TYPES, GasFreeAPIClient, type GasFreeAddressInfo } from '../utils/gasfree.js';
-import { findByAddress } from '../tokens.js';
-import { TronAddressConverter, ZERO_ADDRESS_HEX } from '../address.js';
+} from '../../../index.js';
+import { GASFREE_TYPES, GasFreeAPIClient, type GasFreeAddressInfo } from '../../../utils/gasfree.js';
+import { findByAddress } from '../../../tokens.js';
+import { TronAddressConverter, ZERO_ADDRESS_HEX } from '../../../address.js';
 
 function requireEvmAddress(
   raw: unknown,
