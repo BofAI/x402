@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { TronAddressConverter } from '../../../address.js';
 import { FacilitatorSigner } from '../../../signers/facilitator/base.js';
 import type { PaymentPayload, PaymentRequirements } from '../../../types/index.js';
 import {
@@ -182,8 +183,12 @@ describe('ExactGasFreeFacilitatorMechanism', () => {
   it('settles through GasFree API and returns the TRON transaction hash', async () => {
     const client = new MockGasFreeClient([provider]);
     const { mechanism } = makeMechanism(client);
+    const converter = new TronAddressConverter();
+    const payload = makePayload();
+    const nonce = '150059107766486682482117853208163347732';
+    payload.payload.paymentPermit!.meta.nonce = nonce;
 
-    const result = await mechanism.settle(makePayload(), makeRequirements());
+    const result = await mechanism.settle(payload, makeRequirements());
 
     expect(result).toEqual({
       success: true,
@@ -191,13 +196,24 @@ describe('ExactGasFreeFacilitatorMechanism', () => {
       network: 'tron:nile',
     });
     expect(client.submittedMessage).toMatchObject({
-      token: TOKEN,
-      serviceProvider: PROVIDER,
-      user: BUYER,
-      receiver: PAY_TO,
-      value: '1000000',
-      maxFee: '100000',
-      nonce: 7,
+      token: converter.toEvmFormat(TOKEN),
+      serviceProvider: converter.toEvmFormat(PROVIDER),
+      user: converter.toEvmFormat(BUYER),
+      receiver: converter.toEvmFormat(PAY_TO),
+      value: BigInt(1000000),
+      maxFee: BigInt(100000),
+      nonce: BigInt(nonce),
     });
+  });
+
+  it('rejects not-yet-valid GasFree permits', async () => {
+    const client = new MockGasFreeClient([provider]);
+    const { mechanism } = makeMechanism(client);
+    const payload = makePayload();
+    payload.payload.paymentPermit!.meta.validAfter = Math.floor(Date.now() / 1000) + 600;
+
+    const result = await mechanism.verify(payload, makeRequirements());
+
+    expect(result).toEqual({ isValid: false, invalidReason: 'not_yet_valid' });
   });
 });

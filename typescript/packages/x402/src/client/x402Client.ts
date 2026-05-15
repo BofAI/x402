@@ -209,10 +209,10 @@ export class X402Client {
     }
 
     if (this.tokenStrategy) {
-      return this.tokenStrategy.select(candidates);
+      return await this.tokenStrategy.select(candidates);
     }
 
-    return new DefaultTokenSelectionStrategy().select(candidates);
+    return await new DefaultTokenSelectionStrategy().select(candidates);
   }
 
   /**

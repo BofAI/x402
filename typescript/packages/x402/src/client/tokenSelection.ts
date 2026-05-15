@@ -10,7 +10,7 @@ import type { PaymentRequirements } from '../types/index.js';
 
 /** Strategy for selecting which payment option to use */
 export interface TokenSelectionStrategy {
-  select(accepts: PaymentRequirements[]): PaymentRequirements;
+  select(accepts: PaymentRequirements[]): PaymentRequirements | Promise<PaymentRequirements>;
 }
 
 function getDecimals(req: PaymentRequirements): number {

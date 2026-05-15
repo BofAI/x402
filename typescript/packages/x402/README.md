@@ -95,7 +95,7 @@ x402Client.register('tron:*', new ExactPermitTronClientMechanism(signer));
 x402Client.register('tron:nile', new ExactPermitTronClientMechanism(nileSigner));
 ```
 
-##### `selectPaymentRequirements(accepts: PaymentRequirements[], filters?: PaymentRequirementsFilter): PaymentRequirements`
+##### `selectPaymentRequirements(accepts: PaymentRequirements[], filters?: PaymentRequirementsFilter): Promise<PaymentRequirements>`
 
 Select payment requirements from available options.
 

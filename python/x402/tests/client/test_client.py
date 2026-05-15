@@ -125,6 +125,36 @@ async def test_client_select_with_evm_filter():
 
 
 @pytest.mark.anyio
+async def test_client_select_with_max_amount_filter():
+    """测试使用金额上限过滤支付要求"""
+    client = X402Client()
+    mechanism = MockClientMechanism()
+    client.register("tron:shasta", mechanism)
+
+    accepts = [
+        PaymentRequirements(
+            scheme="exact_permit",
+            network="tron:shasta",
+            amount="2000000",
+            asset="TTestUSDT",
+            payTo="TTestMerchant",
+        ),
+        PaymentRequirements(
+            scheme="exact_permit",
+            network="tron:shasta",
+            amount="1000000",
+            asset="TTestUSDT",
+            payTo="TTestMerchant",
+        ),
+    ]
+
+    selected = await client.select_payment_requirements(
+        accepts, filters=PaymentRequirementsFilter(max_amount="1000000")
+    )
+    assert selected.amount == "1000000"
+
+
+@pytest.mark.anyio
 async def test_client_create_payment_payload():
     """测试创建支付载荷"""
     client = X402Client()

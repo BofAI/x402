@@ -247,6 +247,9 @@ export class ExactGasFreeFacilitatorMechanism extends BaseExactPermitFacilitator
     }
 
     const now = Math.floor(Date.now() / 1000);
+    if (permit.meta.validAfter > now) {
+      return 'not_yet_valid';
+    }
     if (permit.meta.validBefore < now) {
       return 'expired';
     }
@@ -289,16 +292,17 @@ export class ExactGasFreeFacilitatorMechanism extends BaseExactPermitFacilitator
     signature: string,
     requirements: PaymentRequirements,
   ): Promise<string | null> {
+    const converter = this.addressConverter;
     const message = {
-      token: permit.payment.payToken,
-      serviceProvider: permit.fee.feeTo,
-      user: permit.buyer,
-      receiver: permit.payment.payTo,
-      value: permit.payment.payAmount,
-      maxFee: permit.fee.feeAmount,
-      deadline: permit.meta.validBefore,
-      version: 1,
-      nonce: Number(permit.meta.nonce),
+      token: converter.toEvmFormat(permit.payment.payToken),
+      serviceProvider: converter.toEvmFormat(permit.fee.feeTo),
+      user: converter.toEvmFormat(permit.buyer),
+      receiver: converter.toEvmFormat(permit.payment.payTo),
+      value: BigInt(permit.payment.payAmount),
+      maxFee: BigInt(permit.fee.feeAmount),
+      deadline: BigInt(permit.meta.validBefore),
+      version: BigInt(1),
+      nonce: BigInt(permit.meta.nonce),
     };
 
     return this.getApiClient(requirements.network).submit(

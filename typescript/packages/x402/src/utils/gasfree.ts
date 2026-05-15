@@ -259,7 +259,7 @@ export class GasFreeAPIClient {
       maxFee: message.maxFee.toString(),
       deadline: Number(message.deadline),
       version: 1,
-      nonce: Number(message.nonce),
+      nonce: message.nonce.toString(),
       sig: signature.startsWith('0x') ? signature.slice(2) : signature,
       requestId: `x402-${Date.now()}-${signature.slice(2, 10)}`,
     };

@@ -65,8 +65,10 @@ export interface SupportedResponse {
 export interface FeeQuoteResponse {
   /** Fee information */
   fee: {
+    facilitatorId?: string;
     feeTo: string;
     feeAmount: string;
+    caller?: string;
   };
   /** Pricing model */
   pricing: string;

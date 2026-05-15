@@ -65,6 +65,12 @@ describe('GasFreeAPIClient', () => {
 
     const traceId = await client.submit({}, message, '0xabc');
     expect(traceId).toBe('trace-123');
+    const request = (fetch as any).mock.calls[0][1];
+    expect(JSON.parse(request.body)).toMatchObject({
+      value: '100',
+      maxFee: '10',
+      nonce: '1',
+    });
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('/api/v1/gasfree/submit'),
       expect.objectContaining({
