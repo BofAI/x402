@@ -4,6 +4,13 @@ Python SDK for the x402 payment protocol — supports TRON and EVM (BSC) network
 
 Current release: `bankofai-x402==0.6.0`. This release is aligned with the TypeScript SDK for client, server, and facilitator `exact`, `exact_permit`, and `exact_gasfree` flows.
 
+## Related Tools
+
+- [`x402-cli`](https://github.com/BofAI/x402-cli): command-line client/server for local payment tests and one-off transfers.
+- [`x402-gateway`](https://github.com/BofAI/x402-gateway): YAML-driven provider gateway. It reads `providers/**/provider.yml`, exposes paid proxy endpoints, and builds the provider catalog.
+
+The SDK is the shared protocol layer. CLI and Gateway both depend on this package; this package does not depend on either tool.
+
 ## Compatibility Notes
 
 - The EVM `exact` flow is being aligned to the Coinbase x402 v2 payload shape.

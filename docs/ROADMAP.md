@@ -7,6 +7,7 @@
 - **specs** = `specs/`（本仓）+ 上游 `x402-foundation/x402/specs/`
 - **cli** = `/Users/bobo/code/x402/x402-cli/`
 - **facilitator** = `/Users/bobo/code/x402/x402-facilitator/`
+- **gateway** = `/Users/bobo/code/x402/x402-gateway/`
 - **demo** = `/Users/bobo/code/x402/x402-demo/`
 - **skills** = `/Users/bobo/code/x402/skills/`（含 `agent-wallet` / `recharge-skill`）
 - **tron-contrib** = `tron-contribution/`（合约 + 上游 PR）
@@ -20,17 +21,19 @@
 | 版本 | 功能 | 工作量 | 说明 | 连带改动组件 |
 |---|---|---|---|---|
 | **v0.6.0** | TS 补全 Py parity | **完成，可发布** | TS 端已补齐：facilitator 客户端 + facilitator 服务端 + Hono / Express 中间件 + Fetch wrapper + signer-injected facilitator verify/settle（`exact` / `exact_permit` / `exact_gasfree`）。x402-demo 已完成 TypeScript QA smoke 和 TRON Nile 上链验证 | TS SDK；demo |
-| **v0.6.1** | Extension 框架（双端新建） | **5d** | 对齐上游 `ResourceServerExtension` 接口 + 7 个 hooks（onBeforeVerify / onAfterVerify / onVerifyFailure / onBeforeSettle / onAfterSettle / onSettleFailure / onVerifiedPaymentCanceled）+ declaration / extraction helpers。后续所有 extension 的地基 | TS SDK；Py SDK；specs；facilitator；cli；demo |
-| **v0.6.2** | Permit2 集成（TRON） | **7-10d** | 复用 SUN.io 主网部署 Permit2，新增 `exact_permit2_tron` mechanism。客户端按标准 `PermitTransferFrom` typed-data 签名（钱包能识别）。upto 的前置。含合约部署 | TS SDK；Py SDK；specs；cli；facilitator；demo；skills；tron-contrib |
-| **v0.6.3** | Permit2 集成（BSC） | **3d** | 端口 Coinbase EVM 实现（`eip155:*` 通配自动适配 BSC）。MetaMask / OKX / Trust Wallet 原生识别签名；与 Coinbase 上游 EVM 路径互通 | TS SDK；Py SDK；facilitator；demo |
-| **v0.6.4** | upto 计量计费 scheme | **7d** | 客户端签 max-authorization，服务端按实际消耗 partial-settle。LLM token / 推理时长 / 带宽计量。EVM 端可端口上游 [`coinbase-x402/python/x402/mechanisms/evm/upto/`](../coinbase-x402/python/x402/mechanisms/evm/upto/)（1400+ LoC）；TRON 端基于 v0.6.2 Permit2 自研 | TS SDK；Py SDK；specs；cli；facilitator；demo；skills；tron-contrib |
-| **v0.7.0** | 支付幂等键扩展（payment-identifier） | **3d** | 客户端在 `extensions["payment-identifier"]` 带唯一 id，服务端去重重试请求防止重复扣费。Coinbase v2 spec 标配，依赖 v0.6.1 Extension 框架 | TS SDK；Py SDK；specs；cli；facilitator；demo |
+| **v0.6.1** | x402-gateway 反代网关（卖家快速接入） | **20-25d** | 把任意 HTTP API 包成 x402 收费端点。`server start provider.yml`：pydantic ProviderSpec + FastAPI catch-all + endpoints allowlist + 反向代理（STRIP_HEADERS）+ metering 引擎（dimensions / tiers / variants / 命名 recipients splits）+ facilitator verify/settle 接入。上游 auth 5 种策略（header / query / hmac / oauth2 / access_token），signer 4 级 fallback（sandbox / operator.signer / --profile / 拒启动），`/__402/*` 管理端点。catalog 子命令 scaffold / check / build（listing.md + FQN + 7 态 probe + 增量 build），独立 repo `bankofai/x402-skills` 两条 CI workflow（validate.yml + build-skills.yml）。详见 [x402-gateway/gateway.md](../../x402-gateway/gateway.md) | gateway（新建）；facilitator；demo；x402-skills（新建 repo） |
+| **v0.6.2** | base 链互通 | **3d** | 客户端识别 `eip155:8453` accepts。不在 base 上部署任何 BankofAI 合约，只让 TS/Py 客户端能跟 Coinbase 在 base 上的 facilitator 走 `exact` 路径互通。等 base 上有真实 agent 需求触发再启动 | TS SDK；Py SDK |
+| **v0.6.3** | Extension 框架（双端新建） | **5d** | 对齐上游 `ResourceServerExtension` 接口 + 7 个 hooks（onBeforeVerify / onAfterVerify / onVerifyFailure / onBeforeSettle / onAfterSettle / onSettleFailure / onVerifiedPaymentCanceled）+ declaration / extraction helpers。后续所有 extension 的地基 | TS SDK；Py SDK；specs；facilitator；cli；demo |
+| **v0.6.4** | Permit2 集成（TRON） | **5d** | 复用 SUN.io 主网部署 Permit2，新增 `exact_permit2_tron` mechanism。客户端按标准 `PermitTransferFrom` typed-data 签名（钱包能识别）。upto 的前置。含合约部署 | TS SDK；Py SDK；specs；cli；facilitator；demo；skills；tron-contrib |
+| **v0.6.5** | Permit2 集成（BSC） | **3d** | 端口 Coinbase EVM 实现（`eip155:*` 通配自动适配 BSC）。MetaMask / OKX / Trust Wallet 原生识别签名；与 Coinbase 上游 EVM 路径互通 | TS SDK；Py SDK；facilitator；demo |
+| **v0.6.6** | upto 计量计费 scheme | **7d** | 客户端签 max-authorization，服务端按实际消耗 partial-settle。LLM token / 推理时长 / 带宽计量。EVM 端可端口上游 [`coinbase-x402/python/x402/mechanisms/evm/upto/`](../../coinbase-x402/python/x402/mechanisms/evm/upto/)（1400+ LoC）；TRON 端基于 v0.6.4 Permit2 自研 | TS SDK；Py SDK；specs；cli；facilitator；demo；skills；tron-contrib |
+| **v0.7.0** | 支付幂等键扩展（payment-identifier） | **3d** | 客户端在 `extensions["payment-identifier"]` 带唯一 id，服务端去重重试请求防止重复扣费。Coinbase v2 spec 标配，依赖 v0.6.3 Extension 框架 | TS SDK；Py SDK；specs；cli；facilitator；demo |
 
 ## 候选（待拍）
 
 | 候选 | 功能 | 工作量 | 说明 | 连带改动组件 |
 |---|---|---|---|---|
-| **batch-settlement scheme** | 批量结算（agent 高频微支付场景） | **15-20d** | Coinbase 刚发的新 scheme（[spec](../coinbase-x402/specs/schemes/batch-settlement/scheme_batch_settlement.md) + TS SDK）。客户端先签 voucher 服务端立即放行，最后批量结算。AI agent LLM 每 token 收钱场景必备。facilitator 需要全新 commitment + async redemption 体系，工作量主要在这 | TS SDK；Py SDK；specs；facilitator；cli；demo；skills |
+| **batch-settlement scheme** | 批量结算（agent 高频微支付场景） | **15-20d** | Coinbase 刚发的新 scheme（[spec](../../coinbase-x402/specs/schemes/batch-settlement/scheme_batch_settlement.md) + TS SDK）。客户端先签 voucher 服务端立即放行，最后批量结算。AI agent LLM 每 token 收钱场景必备。facilitator 需要全新 commitment + async redemption 体系，工作量主要在这 | TS SDK；Py SDK；specs；facilitator；cli；demo；skills |
 | **auth-hints extension** | 在 PaymentRequired 里提示哪些 accepts 需要 auth | **3d** | 上游新 extension。比 payment-identifier 更面向 agent 工具链。Server ↔ Client 扩展，不经 facilitator | TS SDK；Py SDK；specs；cli |
 | **bazaar 服务发现 + MCP discovery** | agent 通过 MCP 自动发现并付费调用 x402 endpoint | **7-10d** | 之前砍掉了，但上游加了 MCP discovery 集成 —— 跟 `apollo-arena` / `ainft-merchant-agent` 强相关 | TS SDK；Py SDK；cli；facilitator；skills |
 
@@ -38,14 +41,15 @@
 
 | 阶段 | 主线 | 天数 |
 |---|---|---|
-| 两端对齐基础 | v0.6.0 + v0.6.1 | 12-15d |
-| Permit2 双链 | v0.6.2 + v0.6.3 | 10-13d |
-| 协议新能力 | v0.6.4 + v0.7.0 | 10d |
-| **主线总计** | 6 个版本 | **32-38d** |
+| 网关 + base 互通 | v0.6.1 + v0.6.2 | 23-28d |
+| 两端对齐基础 | v0.6.3 | 5d |
+| Permit2 双链 | v0.6.4 + v0.6.5 | 8d |
+| 协议新能力 | v0.6.6 + v0.7.0 | 10d |
+| **主线总计** | 7 个版本 | **46-51d** |
 
-候选全做再加 25-33d。当前最大的工作量黑洞转到 **batch-settlement**（facilitator 大改）；**v0.6.0** 已完成并可正式发布。
+候选全做再加 25-33d。当前最大的工作量黑洞在 **v0.6.1 网关**（独立组件首发，多周交付）和候选里的 **batch-settlement**（facilitator 大改）；**v0.6.0** 已完成并可正式发布。
 
-## Permit2 背景说明（v0.6.2 + v0.6.3）
+## Permit2 背景说明（v0.6.4 + v0.6.5）
 
 **当前 `exact_permit` 用的是我们自有的 `PaymentPermit` 合约**（TRON mainnet `TT8rEWbCoNX7vpEUauxb7rWJsTgs8vDLAn`、BSC `0x1825bB32db3443dEc2cc7508b2D818fc13EaD878`），自定义 EIP-712 type。**不是** EIP-2612 token 原生 permit，**也不是** Uniswap Permit2。
 
