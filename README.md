@@ -14,6 +14,18 @@ x402 currently supports the **TRON** and **BSC** networks, with plans to expand 
 
 Version `0.6.0` completes the TypeScript parity milestone against the Python SDK. Both SDKs support facilitator verify and settle flows for `exact`, `exact_permit`, and `exact_gasfree`, with TRON Nile smoke coverage for permit and GasFree settlement.
 
+## Project Split
+
+The x402 stack is split into three repositories:
+
+| Repository | Role |
+|---|---|
+| [`x402`](https://github.com/BofAI/x402) | Protocol SDKs for Python and TypeScript. Client, server, signer, scheme, and facilitator integration code live here. |
+| [`x402-cli`](https://github.com/BofAI/x402-cli) | Command-line tool for paying x402-protected URLs, running local paywalls, roundtrip tests, and searching gateway catalogs. |
+| [`x402-gateway`](https://github.com/BofAI/x402-gateway) | YAML-driven provider gateway. It loads `providers/**/provider.yml`, exposes paid proxy endpoints, and builds provider catalog artifacts. |
+
+Use the SDK when integrating x402 directly into an application. Use the CLI for manual tests and agent-facing command execution. Use the gateway when onboarding existing HTTP APIs without changing provider application code.
+
 ## Features
 
 - **Protocol Native**: Restores the HTTP `402` status code to its intended purpose.

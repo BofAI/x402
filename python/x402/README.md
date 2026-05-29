@@ -11,6 +11,19 @@ Current release: `bankofai-x402==0.6.0`. This release is aligned with the TypeSc
 
 The SDK is the shared protocol layer. CLI and Gateway both depend on this package; this package does not depend on either tool.
 
+Typical usage split:
+
+```text
+Provider app with direct SDK integration
+  -> use bankofai-x402 server helpers
+
+Existing provider API without code changes
+  -> use x402-gateway with provider.yml
+
+Human or agent client
+  -> use x402-cli or the SDK client wrappers
+```
+
 ## Compatibility Notes
 
 - The EVM `exact` flow is being aligned to the Coinbase x402 v2 payload shape.
