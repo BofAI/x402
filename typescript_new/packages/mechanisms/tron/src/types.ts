@@ -59,6 +59,85 @@ export type ExactPermit2Payload = {
   };
 };
 
+// --- Upto Permit2 types ---
+
+/**
+ * Upto Permit2 witness data structure for TRON.
+ * Matches the Witness struct in x402UptoPermit2Proxy contract.
+ * Unlike the exact witness, it binds a `facilitator` address: only that address
+ * may call `settle`, and it may settle for any amount up to `permitted.amount`.
+ */
+export type UptoPermit2Witness = {
+  to: `0x${string}`;
+  facilitator: `0x${string}`;
+  validAfter: string;
+};
+
+/**
+ * Upto Permit2 authorization parameters for TRON.
+ * `permitted.amount` is the maximum authorized amount; the facilitator settles
+ * for an actual amount less than or equal to it.
+ */
+export type UptoPermit2Authorization = {
+  permitted: {
+    token: `0x${string}`;
+    amount: string;
+  };
+  spender: `0x${string}`;
+  nonce: string;
+  deadline: string;
+  witness: UptoPermit2Witness;
+};
+
+/**
+ * Payload for the `upto` scheme using Permit2 + x402UptoPermit2Proxy on TRON.
+ */
+export type UptoPermit2Payload = {
+  signature: `0x${string}`;
+  permit2Authorization: UptoPermit2Authorization & {
+    from: `0x${string}`;
+  };
+};
+
+/**
+ * Type guard to check if a payload is an upto Permit2 payload.
+ * Validates structural presence of all required fields, including the
+ * `facilitator` witness field that distinguishes upto from exact.
+ *
+ * @param payload - The payload to check.
+ * @returns True if the payload is an UptoPermit2Payload.
+ */
+export function isUptoPermit2Payload(
+  payload: Record<string, unknown>,
+): payload is UptoPermit2Payload {
+  if (typeof payload.signature !== "string") return false;
+  if (!("permit2Authorization" in payload)) return false;
+
+  const auth = payload.permit2Authorization;
+  if (typeof auth !== "object" || auth === null) return false;
+
+  const a = auth as Record<string, unknown>;
+  if (typeof a.from !== "string") return false;
+  if (typeof a.spender !== "string") return false;
+  if (typeof a.nonce !== "string") return false;
+  if (typeof a.deadline !== "string") return false;
+
+  const permitted = a.permitted;
+  if (typeof permitted !== "object" || permitted === null) return false;
+  const p = permitted as Record<string, unknown>;
+  if (typeof p.token !== "string") return false;
+  if (typeof p.amount !== "string") return false;
+
+  const witness = a.witness;
+  if (typeof witness !== "object" || witness === null) return false;
+  const w = witness as Record<string, unknown>;
+  return (
+    typeof w.facilitator === "string" &&
+    typeof w.to === "string" &&
+    typeof w.validAfter === "string"
+  );
+}
+
 // --- GasFree types ---
 
 /**

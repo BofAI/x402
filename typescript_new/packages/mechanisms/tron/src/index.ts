@@ -8,6 +8,12 @@ export {
   type Permit2AllowanceParams,
 } from "./exact/client/permit2Helpers";
 
+// Upto client
+export { UptoTronScheme } from "./upto/client/scheme";
+export { registerUptoTronScheme } from "./upto/client/register";
+export type { UptoTronClientConfig } from "./upto/client/register";
+export { createUptoPermit2Payload } from "./upto/client/permit2";
+
 // Signers
 export {
   toClientTronSigner,
@@ -33,8 +39,11 @@ export type {
   ExactTronPayload,
   GasFreeMessage,
   ExactGasFreePayload,
+  UptoPermit2Witness,
+  UptoPermit2Authorization,
+  UptoPermit2Payload,
 } from "./types";
-export { isPermit2Payload, isEIP3009Payload } from "./types";
+export { isPermit2Payload, isEIP3009Payload, isUptoPermit2Payload } from "./types";
 
 // Constants
 export {
@@ -45,7 +54,9 @@ export {
   authorizationTypes,
   transferWithAuthorizationABI,
   permit2WitnessTypes,
+  uptoPermit2WitnessTypes,
   x402ExactPermit2ProxyABI,
+  x402UptoPermit2ProxyABI,
   erc20AllowanceAbi,
   erc20ApproveAbi,
 } from "./constants";

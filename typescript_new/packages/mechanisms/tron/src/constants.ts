@@ -72,6 +72,32 @@ export const permit2WitnessTypes = {
 } as const;
 
 /**
+ * TIP-712 type definitions for the Upto Permit2 PermitWitnessTransferFrom on TRON.
+ * Identical to `permit2WitnessTypes` except the Witness binds a `facilitator`
+ * address: only that address may call `settle` on the upto proxy, and the
+ * settlement amount may be any value up to `permitted.amount`.
+ * Types must be in alphabetical order after the primary type.
+ */
+export const uptoPermit2WitnessTypes = {
+  PermitWitnessTransferFrom: [
+    { name: "permitted", type: "TokenPermissions" },
+    { name: "spender", type: "address" },
+    { name: "nonce", type: "uint256" },
+    { name: "deadline", type: "uint256" },
+    { name: "witness", type: "Witness" },
+  ],
+  TokenPermissions: [
+    { name: "token", type: "address" },
+    { name: "amount", type: "uint256" },
+  ],
+  Witness: [
+    { name: "to", type: "address" },
+    { name: "facilitator", type: "address" },
+    { name: "validAfter", type: "uint256" },
+  ],
+} as const;
+
+/**
  * Permit2 contract addresses per TRON network.
  */
 export const PERMIT2_ADDRESSES: Record<string, string> = {
@@ -127,6 +153,51 @@ export const x402ExactPermit2ProxyABI = [
         type: "tuple",
         components: [
           { name: "to", type: "address" },
+          { name: "validAfter", type: "uint256" },
+        ],
+      },
+      { name: "signature", type: "bytes" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+] as const;
+
+/**
+ * ABI for x402UptoPermit2Proxy settle function on TRON.
+ * Differs from the exact proxy by an extra `amount` parameter (the actual
+ * settlement amount, which must be ≤ `permit.permitted.amount`) and a 3-field
+ * witness that binds the authorized facilitator (`msg.sender == witness.facilitator`).
+ */
+export const x402UptoPermit2ProxyABI = [
+  {
+    type: "function",
+    name: "settle",
+    inputs: [
+      {
+        name: "permit",
+        type: "tuple",
+        components: [
+          {
+            name: "permitted",
+            type: "tuple",
+            components: [
+              { name: "token", type: "address" },
+              { name: "amount", type: "uint256" },
+            ],
+          },
+          { name: "nonce", type: "uint256" },
+          { name: "deadline", type: "uint256" },
+        ],
+      },
+      { name: "amount", type: "uint256" },
+      { name: "owner", type: "address" },
+      {
+        name: "witness",
+        type: "tuple",
+        components: [
+          { name: "to", type: "address" },
+          { name: "facilitator", type: "address" },
           { name: "validAfter", type: "uint256" },
         ],
       },

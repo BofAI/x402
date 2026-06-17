@@ -13,7 +13,11 @@ import {
   createFacilitatorTronSigner,
   type ClientTronSigner,
 } from "../../src/signer";
-import { PERMIT2_ADDRESSES, erc20AllowanceAbi, transferWithAuthorizationABI } from "../../src/constants";
+import {
+  PERMIT2_ADDRESSES,
+  erc20AllowanceAbi,
+  transferWithAuthorizationABI,
+} from "../../src/constants";
 import {
   loadNileEnv,
   nileTronWeb,
@@ -70,10 +74,16 @@ describe.skipIf(!env)("Nile e2e — policy & token selection", () => {
   beforeAll(async () => {
     const payerTw = nileTronWeb(e.payerPk, e.apiKey);
     const facTw = nileTronWeb(e.facilitatorPk, e.apiKey);
-    clientSigner = await createClientTronSigner(payerTw, toClientAgentWallet(tronAgentWallet(e.payerPk)));
+    clientSigner = await createClientTronSigner(
+      payerTw,
+      toClientAgentWallet(tronAgentWallet(e.payerPk)),
+    );
     server = new ExactServer();
     facilitator = new ExactFacilitator(
-      createFacilitatorTronSigner(facTw, await toFacilitatorAgentWallet(tronAgentWallet(e.facilitatorPk))),
+      createFacilitatorTronSigner(
+        facTw,
+        await toFacilitatorAgentWallet(tronAgentWallet(e.facilitatorPk)),
+      ),
     );
   });
 
