@@ -18,15 +18,21 @@ export default [
       ecmaVersion: 2020,
       globals: {
         process: "readonly",
+        __dirname: "readonly",
+        module: "readonly",
+        require: "readonly",
         Buffer: "readonly",
-        console: "readonly",
+        exports: "readonly",
         setTimeout: "readonly",
+        clearTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
       },
     },
     plugins: {
       "@typescript-eslint": ts,
-      prettier,
-      jsdoc,
+      prettier: prettier,
+      jsdoc: jsdoc,
       import: importPlugin,
     },
     rules: {
@@ -73,7 +79,7 @@ export default [
     },
     plugins: {
       "@typescript-eslint": ts,
-      prettier,
+      prettier: prettier,
     },
     rules: {
       "prettier/prettier": "error",

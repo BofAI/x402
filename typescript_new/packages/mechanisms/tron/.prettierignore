@@ -1,2 +1,7 @@
-dist
-node_modules
+docs/
+dist/
+node_modules/
+coverage/
+.github/
+**/**/*.json
+*.md

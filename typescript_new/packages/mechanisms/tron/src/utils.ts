@@ -1,160 +1,110 @@
-import type { Network } from "@x402/core/types";
-import { TronWeb, Trx } from "tronweb";
-import { SUPPORTED_TRON_NETWORKS, TRC20_TRANSFER_SELECTOR } from "./constants";
-import type { ExactTronPayloadV2, InspectedTronTransaction, SignedTronTransaction } from "./types";
+import { TronWeb } from "tronweb";
+import { TRON_CHAIN_IDS } from "./constants";
 
 /**
- * Returns true when the network is supported by this mechanism.
+ * Get the numeric chain ID for a TRON network identifier.
  *
- * @param network - Network identifier
- * @returns True when supported
+ * @param network - The network identifier in CAIP-2 format (e.g., "tron:nile")
+ * @returns The numeric chain ID
+ * @throws Error if the network is not a recognized TRON network
  */
-export function isSupportedTronNetwork(
-  network: string,
-): network is (typeof SUPPORTED_TRON_NETWORKS)[number] {
-  return SUPPORTED_TRON_NETWORKS.includes(network as (typeof SUPPORTED_TRON_NETWORKS)[number]);
+export function getTronChainId(network: string): number {
+  if (!network.startsWith("tron:")) {
+    throw new Error(`Unsupported network format: ${network} (expected tron:*)`);
+  }
+
+  const chainId = TRON_CHAIN_IDS[network];
+  if (chainId === undefined) {
+    throw new Error(`Unknown TRON network: ${network}`);
+  }
+
+  return chainId;
 }
 
 /**
- * Assert that a network is supported by this mechanism.
+ * Get the crypto object from the global scope.
  *
- * @param network - Network identifier
+ * @returns The Crypto object.
  */
-export function assertSupportedTronNetwork(network: string): asserts network is Network {
-  if (!isSupportedTronNetwork(network)) {
-    throw new Error(`Unsupported TRON network: ${network}`);
+function getCrypto(): Crypto {
+  const cryptoObj = globalThis.crypto as Crypto | undefined;
+  if (!cryptoObj) {
+    throw new Error("Crypto API not available");
   }
+  return cryptoObj;
 }
 
 /**
- * Validate a TRON address.
+ * Create a random 32-byte nonce for TIP-712 authorization.
  *
- * @param address - Base58Check or hex TRON address
- * @returns True when valid
+ * @returns A 32-byte hex-encoded nonce.
  */
-export function isValidTronAddress(address: string): boolean {
-  return TronWeb.isAddress(address);
+export function createNonce(): `0x${string}` {
+  const bytes = getCrypto().getRandomValues(new Uint8Array(32));
+  return `0x${Array.from(bytes as Iterable<number>)
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("")}` as `0x${string}`;
 }
 
 /**
- * Convert a TRON address into canonical lowercase hex.
+ * Convert a TRON Base58Check address to EVM hex address (0x-prefixed).
+ * TRON addresses are Base58Check-encoded with a 0x41 prefix.
  *
- * @param address - Base58Check or hex TRON address
- * @returns Canonical hex address
+ * @param tronAddress - The TRON address in Base58Check format.
+ * @returns The EVM-compatible hex address.
  */
-export function normalizeTronAddress(address: string): string {
-  if (!isValidTronAddress(address)) {
-    throw new Error(`Invalid TRON address: ${address}`);
+export function tronAddressToEvm(tronAddress: string): `0x${string}` {
+  if (tronAddress.startsWith("0x")) {
+    return tronAddress.toLowerCase() as `0x${string}`;
   }
-  return TronWeb.address.toHex(address).toLowerCase();
+
+  // TRON hex format (41-prefixed, 42 chars)
+  if (tronAddress.startsWith("41") && tronAddress.length === 42) {
+    return `0x${tronAddress.slice(2).toLowerCase()}` as `0x${string}`;
+  }
+
+  return TronWeb.address.toHex(tronAddress).toLowerCase().replace(/^41/, "0x") as `0x${string}`;
 }
 
 /**
- * Extract a signed transaction from an exact payload.
+ * Convert an EVM hex address to TRON Base58Check address.
  *
- * @param payload - Exact TRON payload
- * @returns Signed transaction
+ * @param evmAddress - The hex address to convert.
+ * @returns The TRON Base58Check address.
  */
-export function extractTransactionFromPayload(payload: ExactTronPayloadV2): SignedTronTransaction {
-  if (!payload || !payload.transaction || typeof payload.transaction !== "object") {
-    throw new Error("invalid_exact_tron_payload_transaction");
-  }
-  return payload.transaction;
+export function evmAddressToTron(evmAddress: string): string {
+  const cleanAddr = evmAddress.startsWith("0x") ? evmAddress.slice(2) : evmAddress;
+  const tronHex = cleanAddr.startsWith("41")
+    ? cleanAddr.toLowerCase()
+    : `41${cleanAddr.toLowerCase()}`;
+  return TronWeb.address.fromHex(tronHex);
 }
 
 /**
- * Decode and validate the static structure of a signed TRC-20 transfer.
+ * Check if a string looks like a TRON Base58Check address.
  *
- * @param transaction - Signed TRON transaction
- * @returns Normalized transfer details
+ * @param address - The address to check.
+ * @returns True if it looks like a TRON address.
  */
-export function inspectTronTransaction(
-  transaction: SignedTronTransaction,
-): InspectedTronTransaction {
-  if (!transaction.txID || !/^[0-9a-fA-F]{64}$/.test(transaction.txID)) {
-    throw new Error("invalid_transaction_id");
-  }
-  if (!Array.isArray(transaction.signature) || transaction.signature.length !== 1) {
-    throw new Error("exactly_one_signature_required");
-  }
+export function isTronAddress(address: string): boolean {
+  return address.startsWith("T") && address.length === 34;
+}
 
-  const contracts = transaction.raw_data?.contract;
-  if (!Array.isArray(contracts) || contracts.length !== 1) {
-    throw new Error("exactly_one_contract_required");
+/**
+ * Normalize an address for signing: TRON Base58 → EVM hex, or pass through hex.
+ *
+ * @param address - The address to normalize.
+ * @returns The normalized hex address.
+ */
+export function normalizeAddressForSigning(address: string): `0x${string}` {
+  if (isTronAddress(address)) {
+    return tronAddressToEvm(address);
   }
-
-  const contract = contracts[0];
-  if (
-    contract.type !== "TriggerSmartContract" ||
-    !contract.parameter?.type_url?.endsWith(".TriggerSmartContract")
-  ) {
-    throw new Error("trc20_transfer_required");
+  if (address.startsWith("0x")) {
+    return address.toLowerCase() as `0x${string}`;
   }
-
-  const value = contract.parameter.value;
-  const ownerAddress = value.owner_address;
-  const contractAddress = value.contract_address;
-  const data = value.data;
-  if (
-    typeof ownerAddress !== "string" ||
-    typeof contractAddress !== "string" ||
-    typeof data !== "string"
-  ) {
-    throw new Error("invalid_trigger_smart_contract");
+  if (address.startsWith("41") && address.length === 42) {
+    return `0x${address.slice(2).toLowerCase()}` as `0x${string}`;
   }
-  if ((value.call_value ?? 0) !== 0 || (value.call_token_value ?? 0) !== 0) {
-    throw new Error("native_value_not_allowed");
-  }
-
-  const normalizedData = data.replace(/^0x/, "").toLowerCase();
-  if (!/^[0-9a-f]{136}$/.test(normalizedData)) {
-    throw new Error("invalid_trc20_transfer_data");
-  }
-  if (normalizedData.slice(0, 8) !== TRC20_TRANSFER_SELECTOR) {
-    throw new Error("trc20_transfer_required");
-  }
-
-  const recipientWord = normalizedData.slice(8, 72);
-  if (!recipientWord.startsWith("000000000000000000000000")) {
-    throw new Error("non_canonical_recipient_address");
-  }
-  const recipientHex = `41${recipientWord.slice(-40)}`;
-  const amountWord = normalizedData.slice(72, 136);
-  const amount = BigInt(`0x${amountWord}`);
-  if (amount <= 0n) {
-    throw new Error("amount_must_be_positive");
-  }
-
-  const recovered = Trx.ecRecover(transaction);
-  if (typeof recovered !== "string") {
-    throw new Error("multisig_not_supported");
-  }
-  if (normalizeTronAddress(recovered) !== normalizeTronAddress(ownerAddress)) {
-    throw new Error("signature_owner_mismatch");
-  }
-
-  const timestamp = transaction.raw_data.timestamp;
-  const expiration = transaction.raw_data.expiration;
-  const feeLimit = transaction.raw_data.fee_limit ?? 0;
-  if (
-    !Number.isSafeInteger(timestamp) ||
-    !Number.isSafeInteger(expiration) ||
-    !Number.isSafeInteger(feeLimit)
-  ) {
-    throw new Error("invalid_transaction_limits");
-  }
-  if (expiration <= timestamp) {
-    throw new Error("invalid_transaction_expiration");
-  }
-
-  return {
-    transactionId: transaction.txID,
-    payer: TronWeb.address.fromHex(normalizeTronAddress(ownerAddress)),
-    asset: TronWeb.address.fromHex(normalizeTronAddress(contractAddress)),
-    payTo: TronWeb.address.fromHex(recipientHex),
-    amount: amount.toString(),
-    timestamp,
-    expiration,
-    feeLimit,
-  };
+  throw new Error(`Unrecognized address format: ${address}`);
 }

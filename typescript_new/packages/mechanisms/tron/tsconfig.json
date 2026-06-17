@@ -1,9 +1,9 @@
 {
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "./dist",
-    "rootDir": "./src"
+    "lib": ["ES2020", "DOM", "dom.iterable", "esnext"],
+    "allowJs": false,
+    "checkJs": false
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "test"]
+  "include": ["src"]
 }

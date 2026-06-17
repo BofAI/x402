@@ -1,0 +1,321 @@
+import {
+  PaymentPayload,
+  PaymentRequirements,
+  SchemeNetworkFacilitator,
+  FacilitatorContext,
+  SettleResponse,
+  VerifyResponse,
+} from "@x402/core/types";
+import { FacilitatorTronSigner } from "../../signer";
+import { ExactGasFreePayload } from "../../types";
+import { normalizeAddressForSigning } from "../../utils";
+import { resolveBaseFee, isTokenAllowed, type ExactTronFeeConfig } from "../../shared/fee";
+import { GasFreeAPIClient } from "../../shared/gasfree/api";
+import { assembleGasFreeTransaction } from "../../shared/gasfree/assemble";
+import * as errors from "./errors";
+
+/**
+ * TRON facilitator for the `exact_gasfree` scheme.
+ *
+ * Verifies the GasFree permit (terms + TIP-712 signature) and settles it by
+ * submitting through the GasFree relayer API, which pays energy on-chain.
+ */
+export class ExactGasFreeScheme implements SchemeNetworkFacilitator {
+  readonly scheme = "exact_gasfree";
+  readonly caipFamily = "tron:*";
+
+  /**
+   * Create the GasFree facilitator scheme.
+   *
+   * @param signer - The TRON facilitator signer (verify + balance reads).
+   * @param apiClients - GasFree relayer clients keyed by CAIP-2 network.
+   * @param feeConfig - Optional fee policy (base fees, token allowlist, feeTo).
+   */
+  constructor(
+    private readonly signer: FacilitatorTronSigner,
+    private readonly apiClients: Record<string, GasFreeAPIClient>,
+    private readonly feeConfig: ExactTronFeeConfig = {},
+  ) {}
+
+  /**
+   * Advertise the fee configuration so the server can attach fee terms.
+   *
+   * @param _network - The network identifier (unused).
+   * @returns Extra data, or undefined when no fee is configured.
+   */
+  getExtra(_network: string): Record<string, unknown> | undefined {
+    void _network;
+    if (!this.feeConfig.baseFee) return undefined;
+    return {
+      feeConfig: {
+        feeTo: this.feeConfig.feeTo ?? this.signer.getAddresses()[0],
+        ...(this.feeConfig.caller ? { caller: this.feeConfig.caller } : {}),
+        baseFee: this.feeConfig.baseFee,
+        ...(this.feeConfig.allowedTokens ? { allowedTokens: this.feeConfig.allowedTokens } : {}),
+      },
+    };
+  }
+
+  /**
+   * Return facilitator signer addresses for the supported response.
+   *
+   * @param _network - The network identifier (unused).
+   * @returns Facilitator signer addresses.
+   */
+  getSigners(_network: string): string[] {
+    void _network;
+    return [...this.signer.getAddresses()];
+  }
+
+  /**
+   * Verify a GasFree payload against the requirements and fee policy.
+   *
+   * @param payload - The payment payload.
+   * @param requirements - The payment requirements.
+   * @param context - Optional facilitator context (unused).
+   * @returns The verification response.
+   */
+  async verify(
+    payload: PaymentPayload,
+    requirements: PaymentRequirements,
+    context?: FacilitatorContext,
+  ): Promise<VerifyResponse> {
+    void context;
+    const gf = payload.payload as ExactGasFreePayload;
+    if (!gf?.gasfree || !gf.signature) {
+      return { isValid: false, invalidReason: errors.MISSING_PAYLOAD };
+    }
+    const payer = gf.gasfree.user;
+
+    if (payload.accepted.scheme !== "exact_gasfree" || requirements.scheme !== "exact_gasfree") {
+      return { isValid: false, invalidReason: errors.INVALID_SCHEME, payer };
+    }
+    if (payload.accepted.network !== requirements.network) {
+      return { isValid: false, invalidReason: errors.NETWORK_MISMATCH, payer };
+    }
+
+    const termsError = await this.validateTerms(gf, requirements);
+    if (termsError) {
+      return { isValid: false, invalidReason: termsError, payer };
+    }
+
+    const validSig = await this.verifySignature(gf, requirements.network);
+    if (!validSig) {
+      return { isValid: false, invalidReason: errors.INVALID_SIGNATURE, payer };
+    }
+
+    return { isValid: true, payer };
+  }
+
+  /**
+   * Settle a GasFree payload by submitting it to the relayer.
+   *
+   * @param payload - The payment payload.
+   * @param requirements - The payment requirements.
+   * @param context - Optional facilitator context (unused).
+   * @returns The settlement response.
+   */
+  async settle(
+    payload: PaymentPayload,
+    requirements: PaymentRequirements,
+    context?: FacilitatorContext,
+  ): Promise<SettleResponse> {
+    void context;
+    const gf = payload.payload as ExactGasFreePayload;
+
+    const verifyResult = await this.verify(payload, requirements, context);
+    if (!verifyResult.isValid) {
+      return {
+        success: false,
+        errorReason: verifyResult.invalidReason ?? errors.INVALID_SCHEME,
+        transaction: "",
+        network: requirements.network,
+        payer: gf?.gasfree?.user,
+      };
+    }
+
+    const payer = gf.gasfree.user;
+    const api = this.getApiClient(requirements.network);
+
+    // Best-effort balance preflight against the GasFree wallet.
+    try {
+      const balance = await this.readBalance(requirements.asset, gf.gasfreeAddress);
+      const required = BigInt(requirements.amount) + BigInt(gf.gasfree.maxFee);
+      if (balance < required) {
+        return {
+          success: false,
+          errorReason: errors.INSUFFICIENT_FUNDS,
+          transaction: "",
+          network: requirements.network,
+          payer,
+        };
+      }
+    } catch {
+      // Submission can still fail with the relayer's exact reason.
+    }
+
+    try {
+      const traceId = await api.submit(gf.gasfree, gf.signature);
+      if (!traceId) {
+        return {
+          success: false,
+          errorReason: errors.API_NO_RESPONSE,
+          transaction: "",
+          network: requirements.network,
+          payer,
+        };
+      }
+
+      const result = await api.waitForSuccess(traceId);
+      if (!result.txnHash) {
+        return {
+          success: false,
+          errorReason: errors.MISSING_TRANSACTION_HASH,
+          transaction: "",
+          network: requirements.network,
+          payer,
+        };
+      }
+
+      return { success: true, transaction: result.txnHash, network: requirements.network, payer };
+    } catch (err) {
+      return {
+        success: false,
+        errorReason: err instanceof Error ? err.message : String(err),
+        transaction: "",
+        network: requirements.network,
+        payer,
+      };
+    }
+  }
+
+  /**
+   * Resolve the GasFree relayer client for a network.
+   *
+   * @param network - CAIP-2 network identifier.
+   * @returns The relayer API client.
+   */
+  private getApiClient(network: string): GasFreeAPIClient {
+    const client = this.apiClients[network];
+    if (!client) {
+      throw new Error(`GasFree is not configured for network: ${network}`);
+    }
+    return client;
+  }
+
+  /**
+   * Validate the GasFree permit terms against the requirements and fee policy.
+   *
+   * @param gf - The GasFree payload.
+   * @param requirements - The payment requirements.
+   * @returns An error reason string, or null when terms are valid.
+   */
+  private async validateTerms(
+    gf: ExactGasFreePayload,
+    requirements: PaymentRequirements,
+  ): Promise<string | null> {
+    const norm = (a: string) => normalizeAddressForSigning(a);
+    const m = gf.gasfree;
+
+    if (!isTokenAllowed(this.feeConfig, m.token)) {
+      return errors.TOKEN_NOT_ALLOWED;
+    }
+    if (norm(m.token) !== norm(requirements.asset)) {
+      return errors.TOKEN_MISMATCH;
+    }
+    if (BigInt(m.value) < BigInt(requirements.amount)) {
+      return errors.AMOUNT_MISMATCH;
+    }
+    if (norm(m.receiver) !== norm(requirements.payTo)) {
+      return errors.PAYTO_MISMATCH;
+    }
+
+    // Fee policy: feeTo must be an active provider, or match configured feeTo.
+    const feeToError = await this.validateFeeTo(m.serviceProvider, requirements.network);
+    if (feeToError) return feeToError;
+
+    const baseFee = resolveBaseFee(this.feeConfig, requirements.network, m.token);
+    if (baseFee !== null && BigInt(m.maxFee) < baseFee) {
+      return errors.FEE_AMOUNT_TOO_LOW;
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    if (BigInt(m.deadline) < BigInt(now)) {
+      return errors.EXPIRED;
+    }
+    return null;
+  }
+
+  /**
+   * Validate the fee collector: must be an active relayer provider, or match
+   * the configured feeTo when the provider list is unavailable.
+   *
+   * @param serviceProvider - The fee collector / provider address.
+   * @param network - CAIP-2 network identifier.
+   * @returns An error reason string, or null when valid.
+   */
+  private async validateFeeTo(serviceProvider: string, network: string): Promise<string | null> {
+    const norm = (a: string) => normalizeAddressForSigning(a);
+    try {
+      const providers = await this.getApiClient(network).getProviders();
+      if (providers.length > 0) {
+        const allowed = new Set(providers.map(p => norm(p.address)));
+        return allowed.has(norm(serviceProvider)) ? null : errors.FEE_TO_MISMATCH;
+      }
+    } catch {
+      // Fall back to configured feeTo when the provider list is unavailable.
+    }
+    if (this.feeConfig.feeTo && norm(serviceProvider) !== norm(this.feeConfig.feeTo)) {
+      return errors.FEE_TO_MISMATCH;
+    }
+    return null;
+  }
+
+  /**
+   * Verify the GasFree TIP-712 signature against the assembled permit.
+   *
+   * @param gf - The GasFree payload.
+   * @param network - CAIP-2 network identifier.
+   * @returns True when the signature is valid.
+   */
+  private async verifySignature(gf: ExactGasFreePayload, network: string): Promise<boolean> {
+    const assembled = assembleGasFreeTransaction(gf.gasfree, network);
+    try {
+      return await this.signer.verifyTypedData({
+        address: gf.gasfree.user,
+        domain: assembled.domain,
+        types: assembled.types as unknown as Record<string, Array<{ name: string; type: string }>>,
+        primaryType: assembled.primaryType,
+        message: assembled.message,
+        signature: gf.signature,
+      });
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Read a TRC-20 balance for the GasFree wallet address.
+   *
+   * @param asset - The TRC-20 contract address.
+   * @param gasfreeAddress - The GasFree wallet address to read.
+   * @returns The balance in smallest units.
+   */
+  private async readBalance(asset: string, gasfreeAddress: string): Promise<bigint> {
+    const balance = (await this.signer.readContract({
+      address: asset,
+      abi: [
+        {
+          type: "function",
+          name: "balanceOf",
+          inputs: [{ name: "account", type: "address" }],
+          outputs: [{ name: "", type: "uint256" }],
+          stateMutability: "view",
+        },
+      ] as unknown as readonly Record<string, unknown>[],
+      functionName: "balanceOf",
+      args: [gasfreeAddress],
+    })) as bigint;
+    return BigInt(balance);
+  }
+}

@@ -1,10 +1,11 @@
 {
   "name": "@x402/tron",
-  "version": "2.15.0",
+  "version": "2.14.0",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/cjs/index.d.ts",
   "scripts": {
+    "start": "tsx --env-file=.env index.ts",
     "build": "tsup",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
@@ -25,8 +26,9 @@
   "license": "Apache-2.0",
   "author": "x402 Foundation",
   "repository": "https://github.com/x402-foundation/x402",
-  "description": "x402 Payment Protocol TRON Implementation",
+  "description": "x402 payment mechanism for TRON (TRC-20 via TIP-712 TransferWithAuthorization and Permit2)",
   "devDependencies": {
+    "@bankofai/agent-wallet": "^2.3.0",
     "@eslint/js": "^9.24.0",
     "@types/node": "^22.13.4",
     "@typescript-eslint/eslint-plugin": "^8.29.1",
@@ -45,7 +47,7 @@
   },
   "dependencies": {
     "@x402/core": "workspace:~",
-    "tronweb": "^6.3.0"
+    "tronweb": "^6.1.0"
   },
   "exports": {
     ".": {
@@ -86,6 +88,46 @@
       "require": {
         "types": "./dist/cjs/exact/facilitator/index.d.ts",
         "default": "./dist/cjs/exact/facilitator/index.js"
+      }
+    },
+    "./gasfree": {
+      "import": {
+        "types": "./dist/esm/gasfree/index.d.mts",
+        "default": "./dist/esm/gasfree/index.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/gasfree/index.d.ts",
+        "default": "./dist/cjs/gasfree/index.js"
+      }
+    },
+    "./gasfree/client": {
+      "import": {
+        "types": "./dist/esm/gasfree/client/index.d.mts",
+        "default": "./dist/esm/gasfree/client/index.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/gasfree/client/index.d.ts",
+        "default": "./dist/cjs/gasfree/client/index.js"
+      }
+    },
+    "./gasfree/server": {
+      "import": {
+        "types": "./dist/esm/gasfree/server/index.d.mts",
+        "default": "./dist/esm/gasfree/server/index.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/gasfree/server/index.d.ts",
+        "default": "./dist/cjs/gasfree/server/index.js"
+      }
+    },
+    "./gasfree/facilitator": {
+      "import": {
+        "types": "./dist/esm/gasfree/facilitator/index.d.mts",
+        "default": "./dist/esm/gasfree/facilitator/index.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/gasfree/facilitator/index.d.ts",
+        "default": "./dist/cjs/gasfree/facilitator/index.js"
       }
     }
   },

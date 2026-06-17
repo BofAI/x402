@@ -1,0 +1,16 @@
+// GasFree facilitator error reasons.
+export const INVALID_SCHEME = "invalid_exact_gasfree_scheme";
+export const NETWORK_MISMATCH = "invalid_exact_gasfree_network_mismatch";
+export const MISSING_PAYLOAD = "missing_gasfree_payload";
+export const TOKEN_NOT_ALLOWED = "gasfree_token_not_allowed";
+export const TOKEN_MISMATCH = "gasfree_token_mismatch";
+export const AMOUNT_MISMATCH = "gasfree_amount_mismatch";
+export const PAYTO_MISMATCH = "gasfree_payto_mismatch";
+export const FEE_TO_MISMATCH = "gasfree_fee_to_mismatch";
+export const FEE_AMOUNT_TOO_LOW = "gasfree_fee_amount_too_low";
+export const UNSUPPORTED_TOKEN = "gasfree_unsupported_token";
+export const EXPIRED = "gasfree_expired";
+export const INVALID_SIGNATURE = "invalid_gasfree_signature";
+export const INSUFFICIENT_FUNDS = "insufficient_funds";
+export const API_NO_RESPONSE = "gasfree_api_no_response";
+export const MISSING_TRANSACTION_HASH = "gasfree_missing_transaction_hash";

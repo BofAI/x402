@@ -1,2 +1,3 @@
 export { ExactTronScheme } from "./scheme";
-export type { TronDefaultAssetConfig, TronServerConfig } from "./scheme";
+export { registerExactTronScheme } from "./register";
+export type { TronResourceServerConfig } from "./register";

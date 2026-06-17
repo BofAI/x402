@@ -1,235 +1,135 @@
-import type {
+import {
   PaymentPayload,
   PaymentRequirements,
   SchemeNetworkFacilitator,
+  FacilitatorContext,
   SettleResponse,
   VerifyResponse,
 } from "@x402/core/types";
-import { deepEqual } from "@x402/core/utils";
-import { DEFAULT_MAX_FEE_LIMIT_SUN, EXPIRATION_BUFFER_MS } from "../../constants";
-import type { FacilitatorTronClient } from "../../signer";
-import type { ExactTronPayloadV2, InspectedTronTransaction } from "../../types";
-import {
-  extractTransactionFromPayload,
-  inspectTronTransaction,
-  isSupportedTronNetwork,
-  normalizeTronAddress,
-} from "../../utils";
-
-/**
- * Facilitator options for exact TRON payments.
- */
-export type TronFacilitatorConfig = {
-  maxFeeLimit?: number;
-  now?: () => number;
-};
+import { FacilitatorTronSigner } from "../../signer";
+import { ExactEIP3009Payload, ExactTronPayload, isPermit2Payload } from "../../types";
+import { X402_PERMIT2_PROXY_ADDRESSES } from "../../constants";
+import { ExactTronFeeConfig } from "../../shared/fee";
+import { verifyEIP3009, settleEIP3009 } from "./eip3009";
+import { verifyPermit2, settlePermit2 } from "./permit2";
 
 /**
  * TRON facilitator implementation for the Exact payment scheme.
+ * Thin router that delegates to TIP-712 or Permit2 based on payload type.
  */
 export class ExactTronScheme implements SchemeNetworkFacilitator {
   readonly scheme = "exact";
   readonly caipFamily = "tron:*";
-  private readonly maxFeeLimit: number;
-  private readonly now: () => number;
 
   /**
-   * Creates an exact TRON facilitator scheme.
+   * Creates a new ExactTronScheme facilitator instance.
    *
-   * @param client - Facilitator network client
-   * @param config - Facilitator options
+   * @param signer - The TRON signer for facilitator operations
+   * @param feeConfig - Optional facilitator fee configuration. On the deployed
+   *   exact/permit2 proxy the fee is advisory only (the proxy transfers exactly
+   *   `amount` and does not split a fee); it is advertised so clients and other
+   *   schemes (e.g. GasFree) can observe and enforce it.
    */
   constructor(
-    private readonly client: FacilitatorTronClient,
-    config: TronFacilitatorConfig = {},
-  ) {
-    this.maxFeeLimit = config.maxFeeLimit ?? DEFAULT_MAX_FEE_LIMIT_SUN;
-    this.now = config.now ?? Date.now;
-  }
+    private readonly signer: FacilitatorTronSigner,
+    private readonly feeConfig: ExactTronFeeConfig = {},
+  ) {}
 
   /**
-   * Returns no extra metadata because the payer pays TRON fees.
+   * Gets extra configuration for the facilitator.
    *
-   * @param _ - Network identifier
-   * @returns Undefined
+   * @param network - The network identifier
+   * @returns The extra configuration object
    */
-  getExtra(_: string): undefined {
-    return undefined;
+  getExtra(network: string): Record<string, unknown> | undefined {
+    const supportedMethods: string[] = ["eip3009"];
+    const signers = this.signer.getAddresses();
+    if (X402_PERMIT2_PROXY_ADDRESSES[network]) {
+      supportedMethods.push("permit2");
+    }
+    return {
+      supportedAssetTransferMethods: supportedMethods,
+      // The 2-field `exact` witness does not bind a facilitator, so the client
+      // ignores this. Emitted for the upcoming `upto` path, whose 3-field witness
+      // requires the client to sign over the settling facilitator's address.
+      ...(signers.length > 0 && X402_PERMIT2_PROXY_ADDRESSES[network]
+        ? { permit2FacilitatorAddress: signers[0] }
+        : {}),
+      // Advertise the fee configuration so the server can attach per-asset fee
+      // terms to requirements (extra.fee) and clients/other schemes can observe
+      // it. Only emitted when a baseFee is configured.
+      ...(this.feeConfig.baseFee
+        ? {
+            feeConfig: {
+              feeTo: this.feeConfig.feeTo ?? signers[0],
+              ...(this.feeConfig.caller ? { caller: this.feeConfig.caller } : {}),
+              baseFee: this.feeConfig.baseFee,
+              ...(this.feeConfig.allowedTokens
+                ? { allowedTokens: this.feeConfig.allowedTokens }
+                : {}),
+            },
+          }
+        : {}),
+    };
   }
 
   /**
-   * Returns no facilitator signer addresses because the facilitator only broadcasts.
+   * Returns facilitator wallet addresses for the supported response.
    *
-   * @param _ - Network identifier
-   * @returns Empty signer list
+   * @param _ - The network identifier (unused, addresses are network-agnostic)
+   * @returns Array of facilitator wallet addresses
    */
   getSigners(_: string): string[] {
-    return [];
+    return [...this.signer.getAddresses()];
   }
 
   /**
-   * Verifies a signed TRC-20 payment.
+   * Verifies a payment payload. Routes to Permit2 or TIP-712 based on payload type.
    *
-   * @param payload - Payment payload
-   * @param requirements - Matched requirements
-   * @returns Verification response
+   * @param payload - The payment payload to verify
+   * @param requirements - The payment requirements
+   * @param context - Optional facilitator context for extension capabilities
+   * @returns Promise resolving to verification response
    */
   async verify(
     payload: PaymentPayload,
     requirements: PaymentRequirements,
+    context?: FacilitatorContext,
   ): Promise<VerifyResponse> {
-    const baseValidation = this.validateRequirements(payload, requirements);
-    if (baseValidation) {
-      return baseValidation;
+    // Mark unused parameters to satisfy linter
+    void context;
+
+    const rawPayload = payload.payload as ExactTronPayload;
+
+    if (isPermit2Payload(rawPayload)) {
+      return verifyPermit2(this.signer, payload, requirements, rawPayload);
     }
 
-    let inspected: InspectedTronTransaction;
-    try {
-      const exactPayload = payload.payload as ExactTronPayloadV2;
-      inspected = inspectTronTransaction(extractTransactionFromPayload(exactPayload));
-    } catch (error) {
-      return this.invalid(
-        `invalid_exact_tron_payload_transaction: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
-
-    try {
-      if (normalizeTronAddress(inspected.asset) !== normalizeTronAddress(requirements.asset)) {
-        return this.invalid("invalid_exact_tron_payload_asset_mismatch", inspected.payer);
-      }
-      if (normalizeTronAddress(inspected.payTo) !== normalizeTronAddress(requirements.payTo)) {
-        return this.invalid("invalid_exact_tron_payload_recipient_mismatch", inspected.payer);
-      }
-    } catch {
-      return this.invalid("invalid_address", inspected.payer);
-    }
-    if (inspected.amount !== requirements.amount) {
-      return this.invalid("invalid_exact_tron_payload_amount_mismatch", inspected.payer);
-    }
-
-    const now = this.now();
-    if (inspected.timestamp > now + EXPIRATION_BUFFER_MS) {
-      return this.invalid("invalid_exact_tron_payload_timestamp_in_future", inspected.payer);
-    }
-    if (inspected.expiration <= now + EXPIRATION_BUFFER_MS) {
-      return this.invalid("invalid_exact_tron_payload_transaction_expired", inspected.payer);
-    }
-    const latestAllowedExpiration = now + requirements.maxTimeoutSeconds * 1_000;
-    if (inspected.expiration > latestAllowedExpiration) {
-      return this.invalid("invalid_exact_tron_payload_expiration_too_far", inspected.payer);
-    }
-    if (inspected.feeLimit <= 0 || inspected.feeLimit > this.maxFeeLimit) {
-      return this.invalid("invalid_exact_tron_payload_fee_limit", inspected.payer);
-    }
-
-    if (this.client.preflightTransfer) {
-      try {
-        await this.client.preflightTransfer(inspected, requirements.network);
-      } catch (error) {
-        return {
-          isValid: false,
-          invalidReason: "invalid_exact_tron_payload_preflight_failed",
-          invalidMessage: error instanceof Error ? error.message : String(error),
-          payer: inspected.payer,
-        };
-      }
-    }
-
-    return { isValid: true, payer: inspected.payer };
+    return verifyEIP3009(this.signer, payload, requirements, rawPayload as ExactEIP3009Payload);
   }
 
   /**
-   * Broadcasts and confirms a verified TRC-20 payment.
+   * Settles a payment. Routes to Permit2 or TIP-712 based on payload type.
    *
-   * @param payload - Payment payload
-   * @param requirements - Matched requirements
-   * @returns Settlement response
+   * @param payload - The payment payload to settle
+   * @param requirements - The payment requirements
+   * @param context - Optional facilitator context for extension capabilities
+   * @returns Promise resolving to settlement response
    */
   async settle(
     payload: PaymentPayload,
     requirements: PaymentRequirements,
+    context?: FacilitatorContext,
   ): Promise<SettleResponse> {
-    const verification = await this.verify(payload, requirements);
-    if (!verification.isValid) {
-      return {
-        success: false,
-        network: requirements.network,
-        transaction: "",
-        errorReason: verification.invalidReason ?? "verification_failed",
-        errorMessage: verification.invalidMessage,
-        payer: verification.payer || "",
-      };
+    // Mark unused parameters to satisfy linter
+    void context;
+
+    const rawPayload = payload.payload as ExactTronPayload;
+
+    if (isPermit2Payload(rawPayload)) {
+      return settlePermit2(this.signer, payload, requirements, rawPayload);
     }
 
-    try {
-      const exactPayload = payload.payload as ExactTronPayloadV2;
-      const transaction = extractTransactionFromPayload(exactPayload);
-      const transactionId = await this.client.broadcastTransaction(
-        transaction,
-        requirements.network,
-      );
-      await this.client.waitForTransaction(transactionId, requirements.network);
-      return {
-        success: true,
-        network: requirements.network,
-        transaction: transactionId,
-        payer: verification.payer,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        network: requirements.network,
-        transaction: "",
-        errorReason: "transaction_failed",
-        errorMessage: error instanceof Error ? error.message : String(error),
-        payer: verification.payer || "",
-      };
-    }
-  }
-
-  /**
-   * Validates protocol and requirement parity.
-   *
-   * @param payload - Payment payload
-   * @param requirements - Matched requirements
-   * @returns Invalid response or null
-   */
-  private validateRequirements(
-    payload: PaymentPayload,
-    requirements: PaymentRequirements,
-  ): VerifyResponse | null {
-    if (payload.x402Version !== 2) {
-      return this.invalid("invalid_x402_version");
-    }
-    if (payload.accepted.scheme !== "exact" || requirements.scheme !== "exact") {
-      return this.invalid("unsupported_scheme");
-    }
-    if (payload.accepted.network !== requirements.network) {
-      return this.invalid("network_mismatch");
-    }
-    if (!isSupportedTronNetwork(requirements.network)) {
-      return this.invalid("invalid_network");
-    }
-    if (!deepEqual(payload.accepted, requirements)) {
-      return this.invalid("accepted_payment_requirements_mismatch");
-    }
-    if (!/^[1-9][0-9]*$/.test(requirements.amount)) {
-      return this.invalid("invalid_amount");
-    }
-    if (!Number.isFinite(requirements.maxTimeoutSeconds) || requirements.maxTimeoutSeconds <= 0) {
-      return this.invalid("invalid_timeout");
-    }
-    return null;
-  }
-
-  /**
-   * Creates an invalid verification response.
-   *
-   * @param reason - Invalid reason
-   * @param payer - Optional payer address
-   * @returns Invalid verification response
-   */
-  private invalid(reason: string, payer = ""): VerifyResponse {
-    return { isValid: false, invalidReason: reason, payer };
+    return settleEIP3009(this.signer, payload, requirements, rawPayload as ExactEIP3009Payload);
   }
 }

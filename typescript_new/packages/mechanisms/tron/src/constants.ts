@@ -1,48 +1,187 @@
-/**
- * Project network identifier for TRON Mainnet.
- */
-export const TRON_MAINNET_CAIP2 = "tron:mainnet";
+// --- TIP-712 (TransferWithAuthorization) constants ---
 
 /**
- * Project network identifier for the TRON Shasta testnet.
+ * TIP-712 type definitions for TransferWithAuthorization on TRON.
+ * Equivalent to EIP-3009 on EVM but using TRON's TIP-712 structured data signing.
  */
-export const TRON_SHASTA_CAIP2 = "tron:shasta";
+export const authorizationTypes = {
+  TransferWithAuthorization: [
+    { name: "from", type: "address" },
+    { name: "to", type: "address" },
+    { name: "value", type: "uint256" },
+    { name: "validAfter", type: "uint256" },
+    { name: "validBefore", type: "uint256" },
+    { name: "nonce", type: "bytes32" },
+  ],
+} as const;
 
 /**
- * Project network identifier for the TRON Nile testnet.
+ * ABI for TransferWithAuthorization on TRC-20 tokens.
+ * Includes both v/r/s and bytes signature overloads.
  */
-export const TRON_NILE_CAIP2 = "tron:nile";
+export const transferWithAuthorizationABI = [
+  {
+    type: "function",
+    name: "transferWithAuthorization",
+    inputs: [
+      { name: "from", type: "address" },
+      { name: "to", type: "address" },
+      { name: "value", type: "uint256" },
+      { name: "validAfter", type: "uint256" },
+      { name: "validBefore", type: "uint256" },
+      { name: "nonce", type: "bytes32" },
+      { name: "v", type: "uint8" },
+      { name: "r", type: "bytes32" },
+      { name: "s", type: "bytes32" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "balanceOf",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+  },
+] as const;
+
+// --- Permit2 constants ---
 
 /**
- * Supported TRON networks.
+ * TIP-712 type definitions for Permit2 PermitWitnessTransferFrom on TRON.
+ * Must match the exact format expected by the Permit2 contract.
+ * Types must be in alphabetical order after the primary type.
  */
-export const SUPPORTED_TRON_NETWORKS = [
-  TRON_MAINNET_CAIP2,
-  TRON_SHASTA_CAIP2,
-  TRON_NILE_CAIP2,
+export const permit2WitnessTypes = {
+  PermitWitnessTransferFrom: [
+    { name: "permitted", type: "TokenPermissions" },
+    { name: "spender", type: "address" },
+    { name: "nonce", type: "uint256" },
+    { name: "deadline", type: "uint256" },
+    { name: "witness", type: "Witness" },
+  ],
+  TokenPermissions: [
+    { name: "token", type: "address" },
+    { name: "amount", type: "uint256" },
+  ],
+  Witness: [
+    { name: "to", type: "address" },
+    { name: "validAfter", type: "uint256" },
+  ],
+} as const;
+
+/**
+ * Permit2 contract addresses per TRON network.
+ */
+export const PERMIT2_ADDRESSES: Record<string, string> = {
+  "tron:mainnet": "TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9",
+  "tron:nile": "TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h",
+};
+
+/**
+ * x402ExactPermit2Proxy contract addresses per TRON network.
+ * Enforces that Permit2 transfers can only go to the witness.to address.
+ */
+export const X402_PERMIT2_PROXY_ADDRESSES: Record<string, string> = {
+  "tron:mainnet": "TSm6MSWHHBeABh22uqX7SU7QUweav4Cyy6",
+  "tron:nile": "TFGoaq2KjizijgjtkVxT7yjffW1A5T1j6F",
+};
+
+/**
+ * x402UptoPermit2Proxy contract addresses per TRON network.
+ * Used by variable-amount settlement flows.
+ */
+export const X402_UPTO_PERMIT2_PROXY_ADDRESSES: Record<string, string> = {
+  "tron:mainnet": "TGHEYAovw8fZz1bgnVgRtgrdGLbagFZYq5",
+  "tron:nile": "TKvcqQ7S2bYyys5ZZNpjj9xGiPhiwzHq1K",
+};
+
+/**
+ * ABI for x402ExactPermit2Proxy settle function on TRON.
+ */
+export const x402ExactPermit2ProxyABI = [
+  {
+    type: "function",
+    name: "settle",
+    inputs: [
+      {
+        name: "permit",
+        type: "tuple",
+        components: [
+          {
+            name: "permitted",
+            type: "tuple",
+            components: [
+              { name: "token", type: "address" },
+              { name: "amount", type: "uint256" },
+            ],
+          },
+          { name: "nonce", type: "uint256" },
+          { name: "deadline", type: "uint256" },
+        ],
+      },
+      { name: "owner", type: "address" },
+      {
+        name: "witness",
+        type: "tuple",
+        components: [
+          { name: "to", type: "address" },
+          { name: "validAfter", type: "uint256" },
+        ],
+      },
+      { name: "signature", type: "bytes" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
 ] as const;
 
 /**
- * Mainnet USDT TRC-20 contract.
+ * ABI for TRC-20 allowance check.
  */
-export const TRON_MAINNET_USDT = "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj";
+export const erc20AllowanceAbi = [
+  {
+    type: "function",
+    name: "allowance",
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+  },
+] as const;
 
 /**
- * USDT decimal precision on TRON.
+ * ABI for TRC-20 approve used by Permit2 setup flows.
  */
-export const TRON_USDT_DECIMALS = 6;
+export const erc20ApproveAbi = [
+  {
+    type: "function",
+    name: "approve",
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "value", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+    stateMutability: "nonpayable",
+  },
+] as const;
+
+// --- Shared constants ---
 
 /**
- * TRC-20 transfer(address,uint256) function selector.
+ * TRON chain IDs for TIP-712 signing.
  */
-export const TRC20_TRANSFER_SELECTOR = "a9059cbb";
+export const TRON_CHAIN_IDS: Record<string, number> = {
+  "tron:mainnet": 728126428, // 0x2b6653dc
+  "tron:shasta": 2494104990, // 0x94a9059e
+  "tron:nile": 3448148188, // 0xcd8690dc
+};
 
 /**
- * Default maximum fee limit for a client-created TRC-20 transfer, in sun.
+ * Default fee limit for TRON contract calls in SUN (1 TRX = 1,000,000 SUN).
+ * 1000 TRX max fee.
  */
-export const DEFAULT_MAX_FEE_LIMIT_SUN = 100_000_000;
-
-/**
- * Buffer required before a transaction expires.
- */
-export const EXPIRATION_BUFFER_MS = 5_000;
+export const DEFAULT_FEE_LIMIT_SUN = 1_000_000_000;
