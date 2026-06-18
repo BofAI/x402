@@ -7,7 +7,7 @@
   "types": "./dist/cjs/index.d.ts",
   "scripts": {
     "start": "tsx --env-file=.env index.ts",
-    "build": "tsup",
+    "build": "NODE_OPTIONS=--max-old-space-size=8192 tsup",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:watch": "vitest",
@@ -219,6 +219,16 @@
       "require": {
         "types": "./dist/cjs/auth-capture/client/index.d.ts",
         "default": "./dist/cjs/auth-capture/client/index.js"
+      }
+    },
+    "./facilitator/agent-wallet": {
+      "import": {
+        "types": "./dist/esm/facilitator/agent-wallet.d.mts",
+        "default": "./dist/esm/facilitator/agent-wallet.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/facilitator/agent-wallet.d.ts",
+        "default": "./dist/cjs/facilitator/agent-wallet.js"
       }
     }
   },
