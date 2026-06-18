@@ -3,7 +3,7 @@ import {
   PaymentPayloadResult,
   PaymentPayloadContext,
   SchemeNetworkClient,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import { ClientTronSigner } from "../../signer";
 import { ExactGasFreePayload, GasFreeMessage } from "../../types";
 import { getDecimals } from "../../shared/tokens";

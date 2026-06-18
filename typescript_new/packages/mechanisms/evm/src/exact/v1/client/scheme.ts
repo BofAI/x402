@@ -3,8 +3,8 @@ import {
   PaymentPayload,
   PaymentRequirements,
   SchemeNetworkClient,
-} from "@x402/core/types";
-import { PaymentRequirementsV1 } from "@x402/core/types/v1";
+} from "@bankofai/x402-core/types";
+import { PaymentRequirementsV1 } from "@bankofai/x402-core/types/v1";
 import { getAddress } from "viem";
 import { authorizationTypes } from "../../../constants";
 import { ClientEvmSigner } from "../../../signer";

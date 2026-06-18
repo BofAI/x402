@@ -1,4 +1,4 @@
-import { SettleResponse, PaymentRequirements } from "@x402/core/types";
+import { SettleResponse, PaymentRequirements } from "@bankofai/x402-core/types";
 import { getAddress } from "viem";
 import { FacilitatorEvmSigner } from "../../signer";
 import type { AuthorizerSigner, BatchSettlementClaimPayload } from "../types";

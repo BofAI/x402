@@ -2,7 +2,7 @@ import esbuild from "esbuild";
 import { htmlPlugin } from "@craftamap/esbuild-plugin-html";
 import fs from "fs";
 import path from "path";
-import { DEFAULT_STABLECOINS } from "@x402/evm";
+import { DEFAULT_STABLECOINS } from "@bankofai/x402-evm";
 import { getBaseTemplate } from "../baseTemplate";
 import { formatTypeScript, toPythonStringLiteral } from "../genHelpers";
 
@@ -103,8 +103,8 @@ const EVMPaywallTemplate = ${JSON.stringify(html)}
       fs.writeFileSync(OUTPUT_TS, tsContent);
       console.log(`[EVM] Generated template.ts (${(html.length / 1024 / 1024).toFixed(2)} MB)`);
 
-      // Generate a runtime-dep-free decimals lookup sourced from @x402/evm's
-      // DEFAULT_STABLECOINS. Keeps @x402/evm as a devDependency only while
+      // Generate a runtime-dep-free decimals lookup sourced from @bankofai/x402-evm's
+      // DEFAULT_STABLECOINS. Keeps @bankofai/x402-evm as a devDependency only while
       // preserving a single source of truth for per-network decimals (CI drift
       // check in check_paywall_template.yml covers regen correctness).
       const paywallDefaultTokenDecimals = 6;
@@ -118,14 +118,14 @@ const EVMPaywallTemplate = ${JSON.stringify(html)}
         .map(([network, decimals]) => `  ${JSON.stringify(network)}: ${decimals},`)
         .join("\n");
       const decimalsContent = `// THIS FILE IS AUTO-GENERATED - DO NOT EDIT
-// Source: @x402/evm DEFAULT_STABLECOINS (decimals !== ${paywallDefaultTokenDecimals} only).
-// Regenerate via: pnpm --filter @x402/paywall run build:paywall
+// Source: @bankofai/x402-evm DEFAULT_STABLECOINS (decimals !== ${paywallDefaultTokenDecimals} only).
+// Regenerate via: pnpm --filter @bankofai/x402-paywall run build:paywall
 
 /**
  * Per-network default token decimals that differ from the paywall fallback (${paywallDefaultTokenDecimals}),
  * keyed by CAIP-2 network identifier. Chains whose default stablecoin uses ${paywallDefaultTokenDecimals}
  * decimals are omitted; \`getDefaultTokenDecimals\` treats a missing key as ${paywallDefaultTokenDecimals}.
- * Emitted at build time so the paywall's runtime module graph does not depend on \`@x402/evm\`.
+ * Emitted at build time so the paywall's runtime module graph does not depend on \`@bankofai/x402-evm\`.
  */
 export const NETWORK_DECIMALS: Record<string, number> = {
 ${decimalsEntries}

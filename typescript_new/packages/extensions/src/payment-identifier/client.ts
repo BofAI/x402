@@ -20,7 +20,7 @@ import { isPaymentIdentifierExtension } from "./validation";
  *
  * @example
  * ```typescript
- * import { appendPaymentIdentifierToExtensions } from '@x402/extensions/payment-identifier';
+ * import { appendPaymentIdentifierToExtensions } from '@bankofai/x402-extensions/payment-identifier';
  *
  * // Get extensions from server's PaymentRequired response
  * const extensions = paymentRequired.extensions ?? {};

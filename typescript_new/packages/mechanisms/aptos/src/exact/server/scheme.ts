@@ -6,8 +6,8 @@ import type {
   PaymentRequirements,
   Price,
   SchemeNetworkServer,
-} from "@x402/core/types";
-import { parseMoneyString } from "@x402/core/utils";
+} from "@bankofai/x402-core/types";
+import { parseMoneyString } from "@bankofai/x402-core/utils";
 import { APTOS_ADDRESS_REGEX, USDC_MAINNET_FA, USDC_TESTNET_FA } from "../../constants";
 
 /**

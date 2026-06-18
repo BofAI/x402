@@ -1,5 +1,5 @@
-import { x402Client } from "@x402/core/client";
-import { Network } from "@x402/core/types";
+import { x402Client } from "@bankofai/x402-core/client";
+import { Network } from "@bankofai/x402-core/types";
 import { ClientTronSigner } from "../../signer";
 import { GasFreeAPIClient, createGasFreeApiClients } from "../../shared/gasfree/api";
 import { GASFREE_API_BASE_URLS } from "../../shared/gasfree/config";

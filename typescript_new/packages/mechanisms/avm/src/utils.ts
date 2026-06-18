@@ -87,7 +87,7 @@ export function getSenderFromTransaction(txnBytes: Uint8Array, isSigned: boolean
 }
 
 // Re-export from core for backward compatibility
-export { convertToTokenAmount, numberToDecimalString } from "@x402/core/utils";
+export { convertToTokenAmount, numberToDecimalString } from "@bankofai/x402-core/utils";
 
 /**
  * Converts atomic units to decimal amount

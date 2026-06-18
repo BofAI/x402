@@ -6,7 +6,7 @@ export * from "./preflight";
 export * from "./utils";
 
 // Re-export the Hiero SDK primitives consumers need so that applications
-// resolve a single SDK instance through @x402/hedera. Importing
+// resolve a single SDK instance through @bankofai/x402-hedera. Importing
 // @hiero-ledger/sdk directly alongside this package in workspaces with
 // independent pnpm stores yields duplicate installs whose `instanceof` and
 // string-brand checks cross-fail at runtime ("t.startsWith is not a function").

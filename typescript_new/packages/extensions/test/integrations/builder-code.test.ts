@@ -3,9 +3,9 @@
  */
 
 import { beforeEach, describe, expect, it } from "vitest";
-import { x402Client } from "@x402/core/client";
-import { x402Facilitator } from "@x402/core/facilitator";
-import { x402ResourceServer } from "@x402/core/server";
+import { x402Client } from "@bankofai/x402-core/client";
+import { x402Facilitator } from "@bankofai/x402-core/facilitator";
+import { x402ResourceServer } from "@bankofai/x402-core/server";
 import {
   buildCashPaymentRequirements,
   CashFacilitatorClient,

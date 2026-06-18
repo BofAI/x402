@@ -1,11 +1,11 @@
-import { decodePaymentRequiredHeader, decodePaymentResponseHeader } from "@x402/core/http";
-import { x402Client, x402HTTPClient } from "@x402/core/client";
+import { decodePaymentRequiredHeader, decodePaymentResponseHeader } from "@bankofai/x402-core/http";
+import { x402Client, x402HTTPClient } from "@bankofai/x402-core/client";
 import type {
   PaymentPayload,
   PaymentRequired,
   PaymentRequirements,
   SettleResponse,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import { BATCH_SETTLEMENT_SCHEME } from "../constants";
 import * as Errors from "../errors";
 import type {

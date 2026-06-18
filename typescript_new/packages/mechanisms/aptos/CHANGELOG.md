@@ -1,4 +1,4 @@
-# @x402/aptos
+# @bankofai/x402-aptos
 
 ## 2.15.0
 
@@ -7,7 +7,7 @@
 - Updated dependencies [bfa580e](https://github.com/x402-foundation/x402/commit/bfa580e)
 - Updated dependencies [3a60816](https://github.com/x402-foundation/x402/commit/3a60816)
 - Updated dependencies [7539e93](https://github.com/x402-foundation/x402/commit/7539e93)
-  - @x402/core@2.15.0
+  - @bankofai/x402-core@2.15.0
 
 ## 2.14.0
 
@@ -16,7 +16,7 @@
 - 5bc2c72: Fixed a security vulnerability where an attacker could submit a sponsored transaction with an unbounded `gas_unit_price`, draining the facilitator's APT balance. Added a `MAX_GAS_UNIT_PRICE` ceiling (1,000 Octas, 10× the Aptos protocol minimum) checked in `verify()` before the fee-payer signature step.
 - Updated dependencies [be788e0]
 - Updated dependencies [0af31dd]
-  - @x402/core@2.14.0
+  - @bankofai/x402-core@2.14.0
 
 ## 2.13.0
 
@@ -26,7 +26,7 @@
 - Updated dependencies [5fca9f3]
 - Updated dependencies [95f2094]
 - Updated dependencies [49ea054]
-  - @x402/core@2.13.0
+  - @bankofai/x402-core@2.13.0
 
 ## 2.12.0
 
@@ -35,7 +35,7 @@
 - Updated dependencies [608034f]
 - Updated dependencies [d235050]
 - Updated dependencies [45d7d19]
-  - @x402/core@2.12.0
+  - @bankofai/x402-core@2.12.0
 
 ## 2.11.0
 
@@ -43,13 +43,13 @@
 
 - Updated dependencies [a051f48]
 - Updated dependencies [dc04108]
-  - @x402/core@2.11.0
+  - @bankofai/x402-core@2.11.0
 
 ## 2.10.0
 
 ### Minor Changes
 
-- @x402/core@2.10.0
+- @bankofai/x402-core@2.10.0
 
 ## 2.9.0
 
@@ -63,7 +63,7 @@
 - Updated dependencies [c0e3969]
 - Updated dependencies [2250cae]
 - Updated dependencies [d352574]
-  - @x402/core@2.9.0
+  - @bankofai/x402-core@2.9.0
 
 ## 2.8.0
 
@@ -72,14 +72,14 @@
 - Updated dependencies [067f297]
 - Updated dependencies [4c1e44f]
 - Updated dependencies [5135fab]
-  - @x402/core@2.8.0
+  - @bankofai/x402-core@2.8.0
 
 ## 2.7.0
 
 ### Minor Changes
 
 - Updated dependencies [8931cb3]
-  - @x402/core@2.7.0
+  - @bankofai/x402-core@2.7.0
 
 ## 2.6.0
 
@@ -90,7 +90,7 @@
 - Updated dependencies [2564781]
 - Updated dependencies [b341973]
 - Updated dependencies [29fe09a]
-  - @x402/core@2.6.0
+  - @bankofai/x402-core@2.6.0
 
 ## 2.5.0
 
@@ -99,7 +99,7 @@
 - Updated dependencies [96a9db0]
 - Updated dependencies [d0a2b11]
 - Updated dependencies
-  - @x402/core@2.5.0
+  - @bankofai/x402-core@2.5.0
 
 ## 2.4.0
 
@@ -107,7 +107,7 @@
 
 - 57a5488: Add Aptos blockchain support to x402 payment protocol
 
-  - Introduces new `@x402/aptos` package with full client, server, and facilitator scheme implementations
+  - Introduces new `@bankofai/x402-aptos` package with full client, server, and facilitator scheme implementations
   - Supports exact payment mechanism for Aptos using native APT and fungible assets
   - Includes sponsored transaction support where facilitator pays gas fees
   - Provides `registerExactAptosScheme` helpers for easy client and server integration
@@ -119,4 +119,4 @@
 - Updated dependencies [57a5488]
 - Updated dependencies [018181b]
 - Updated dependencies [3fb55d7]
-  - @x402/core@2.4.0
+  - @bankofai/x402-core@2.4.0

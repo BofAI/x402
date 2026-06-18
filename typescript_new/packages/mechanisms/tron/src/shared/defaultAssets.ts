@@ -1,4 +1,4 @@
-import type { Network } from "@x402/core/types";
+import type { Network } from "@bankofai/x402-core/types";
 import { getToken, DEFAULT_ASSET_SYMBOL, type TokenInfo } from "./tokens";
 
 /**

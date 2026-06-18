@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { UptoEvmScheme } from "../../../src/upto/server/scheme";
-import type { PaymentRequirements } from "@x402/core/types";
+import type { PaymentRequirements } from "@bankofai/x402-core/types";
 
 const FACILITATOR_ADDRESS = "0xFAC11174700123456789012345678901234aBCDe";
 

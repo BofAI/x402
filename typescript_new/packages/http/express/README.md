@@ -1,20 +1,20 @@
-# `@x402/express` [![npm version](https://img.shields.io/npm/v/%40x402%2Fexpress.svg)](https://www.npmjs.com/package/@x402/express)
+# `@bankofai/x402-express` [![npm version](https://img.shields.io/npm/v/%40bankofai%2Fx402-express.svg)](https://www.npmjs.com/package/@bankofai/x402-express)
 
 Express middleware integration for the x402 Payment Protocol. This package provides a simple middleware function for adding x402 payment requirements to your Express.js applications.
 
 ## Installation
 
 ```bash
-pnpm install @x402/express
+pnpm install @bankofai/x402-express
 ```
 
 ## Quick Start
 
 ```typescript
 import express from "express";
-import { paymentMiddleware, x402ResourceServer } from "@x402/express";
-import { ExactEvmScheme } from "@x402/evm/exact/server";
-import { HTTPFacilitatorClient } from "@x402/core/server";
+import { paymentMiddleware, x402ResourceServer } from "@bankofai/x402-express";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
+import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
 
 const app = express();
 
@@ -76,7 +76,7 @@ See the sections below for detailed configuration options.
 
 ### ExpressAdapter
 
-The `ExpressAdapter` class implements the `HTTPAdapter` interface from `@x402/core`, providing Express-specific request handling:
+The `ExpressAdapter` class implements the `HTTPAdapter` interface from `@bankofai/x402-core`, providing Express-specific request handling:
 
 ```typescript
 class ExpressAdapter implements HTTPAdapter {
@@ -137,10 +137,10 @@ The middleware automatically displays a paywall UI when browsers request protect
 
 **Option 1: Full Paywall UI (Recommended)**
 
-Install the optional `@x402/paywall` package for a complete wallet connection and payment UI:
+Install the optional `@bankofai/x402-paywall` package for a complete wallet connection and payment UI:
 
 ```bash
-pnpm add @x402/paywall
+pnpm add @bankofai/x402-paywall
 ```
 
 Then configure it:
@@ -165,7 +165,7 @@ The paywall includes:
 
 **Option 2: Basic Paywall (No Installation)**
 
-Without `@x402/paywall` installed, the middleware returns a basic HTML page with payment instructions. This works but doesn't include wallet connections.
+Without `@bankofai/x402-paywall` installed, the middleware returns a basic HTML page with payment instructions. This works but doesn't include wallet connections.
 
 **Option 3: Custom Paywall Provider**
 
@@ -177,7 +177,7 @@ app.use(paymentMiddleware(routes, resourceServer, paywallConfig, customPaywallPr
 
 This allows full customization of the paywall UI.
 
-**For advanced configuration** (builder pattern, network-specific bundles, custom handlers), see the [@x402/paywall README](../paywall/README.md).
+**For advanced configuration** (builder pattern, network-specific bundles, custom handlers), see the [@bankofai/x402-paywall README](../paywall/README.md).
 
 ## Advanced Usage
 
@@ -217,9 +217,9 @@ app.use(
 If you need to use a custom facilitator server, configure it when creating the x402ResourceServer:
 
 ```typescript
-import { HTTPFacilitatorClient } from "@x402/core/server";
-import { x402ResourceServer } from "@x402/express";
-import { ExactEvmScheme } from "@x402/evm/exact/server";
+import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
+import { x402ResourceServer } from "@bankofai/x402-express";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
 
 const customFacilitator = new HTTPFacilitatorClient({
   url: "https://your-facilitator.com",
@@ -239,7 +239,7 @@ app.use(paymentMiddleware(routes, resourceServer, paywallConfig));
 
 If you're migrating from the legacy `x402-express` package:
 
-1. **Update imports**: Change from `x402-express` to `@x402/express`
+1. **Update imports**: Change from `x402-express` to `@bankofai/x402-express`
 2. **New API**: Create an x402ResourceServer and register payment schemes
 3. **Parameter order**: Routes first, then resource server, then optional paywall config
 
@@ -258,12 +258,12 @@ app.use(
 );
 ```
 
-### After (@x402/express):
+### After (@bankofai/x402-express):
 
 ```typescript
-import { paymentMiddleware, x402ResourceServer } from "@x402/express";
-import { HTTPFacilitatorClient } from "@x402/core/server";
-import { ExactEvmScheme } from "@x402/evm/exact/server";
+import { paymentMiddleware, x402ResourceServer } from "@bankofai/x402-express";
+import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
 
 const facilitator = new HTTPFacilitatorClient({ url: facilitatorUrl });
 const resourceServer = new x402ResourceServer(facilitator)

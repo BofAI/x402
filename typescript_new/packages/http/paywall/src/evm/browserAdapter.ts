@@ -1,4 +1,4 @@
-import type { ClientEvmSigner } from "@x402/evm";
+import type { ClientEvmSigner } from "@bankofai/x402-evm";
 import type { Account, WalletClient } from "viem";
 
 /**

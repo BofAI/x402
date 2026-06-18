@@ -16,8 +16,8 @@ import type {
   PaymentPayload,
   VerifyResponse,
   SettleResponse,
-} from "@x402/core/types";
-import type { FacilitatorClient } from "@x402/core/server";
+} from "@bankofai/x402-core/types";
+import type { FacilitatorClient } from "@bankofai/x402-core/server";
 import { privateKeyToAccount } from "viem/accounts";
 import * as Errors from "../../../src/batch-settlement/errors";
 

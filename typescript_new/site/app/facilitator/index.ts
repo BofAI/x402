@@ -1,35 +1,35 @@
 import { Account, Ed25519PrivateKey, PrivateKey, PrivateKeyVariants } from "@aptos-labs/ts-sdk";
 import { base58 } from "@scure/base";
 import { createKeyPairSignerFromBytes } from "@solana/kit";
-import { toFacilitatorAptosSigner } from "@x402/aptos";
-import { ExactAptosScheme } from "@x402/aptos/exact/facilitator";
-import { x402Facilitator } from "@x402/core/facilitator";
-import { Network } from "@x402/core/types";
-import { type AuthorizerSigner, toFacilitatorEvmSigner } from "@x402/evm";
-import { BatchSettlementEvmScheme } from "@x402/evm/batch-settlement/facilitator";
-import { ExactEvmScheme } from "@x402/evm/exact/facilitator";
-import { ExactEvmSchemeV1 } from "@x402/evm/exact/v1/facilitator";
-import { UptoEvmScheme } from "@x402/evm/upto/facilitator";
+import { toFacilitatorAptosSigner } from "@bankofai/x402-aptos";
+import { ExactAptosScheme } from "@bankofai/x402-aptos/exact/facilitator";
+import { x402Facilitator } from "@bankofai/x402-core/facilitator";
+import { Network } from "@bankofai/x402-core/types";
+import { type AuthorizerSigner, toFacilitatorEvmSigner } from "@bankofai/x402-evm";
+import { BatchSettlementEvmScheme } from "@bankofai/x402-evm/batch-settlement/facilitator";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/facilitator";
+import { ExactEvmSchemeV1 } from "@bankofai/x402-evm/exact/v1/facilitator";
+import { UptoEvmScheme } from "@bankofai/x402-evm/upto/facilitator";
 import {
   EIP2612_GAS_SPONSORING,
   createErc20ApprovalGasSponsoringExtension,
-} from "@x402/extensions";
-import { BuilderCodeFacilitatorExtension } from "@x402/extensions/builder-code";
+} from "@bankofai/x402-extensions";
+import { BuilderCodeFacilitatorExtension } from "@bankofai/x402-extensions/builder-code";
 import {
   PrivateKey as HederaPrivateKey,
   createHederaClient,
   createHederaPreflightTransfer,
   createHederaSignAndSubmitTransaction,
   toFacilitatorHederaSigner,
-} from "@x402/hedera";
-import { ExactHederaScheme } from "@x402/hedera/exact/facilitator";
-import { createEd25519Signer } from "@x402/stellar";
-import { ExactStellarScheme } from "@x402/stellar/exact/facilitator";
-import { toFacilitatorSvmSigner } from "@x402/svm";
-import { ExactSvmScheme } from "@x402/svm/exact/facilitator";
-import { ExactSvmSchemeV1 } from "@x402/svm/exact/v1/facilitator";
-import { toFacilitatorAvmSigner } from "@x402/avm";
-import { ExactAvmScheme } from "@x402/avm/exact/facilitator";
+} from "@bankofai/x402-hedera";
+import { ExactHederaScheme } from "@bankofai/x402-hedera/exact/facilitator";
+import { createEd25519Signer } from "@bankofai/x402-stellar";
+import { ExactStellarScheme } from "@bankofai/x402-stellar/exact/facilitator";
+import { toFacilitatorSvmSigner } from "@bankofai/x402-svm";
+import { ExactSvmScheme } from "@bankofai/x402-svm/exact/facilitator";
+import { ExactSvmSchemeV1 } from "@bankofai/x402-svm/exact/v1/facilitator";
+import { toFacilitatorAvmSigner } from "@bankofai/x402-avm";
+import { ExactAvmScheme } from "@bankofai/x402-avm/exact/facilitator";
 import { createWalletClient, http, publicActions } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { baseSepolia } from "viem/chains";

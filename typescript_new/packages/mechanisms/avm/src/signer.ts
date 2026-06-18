@@ -7,14 +7,14 @@
  *
  * @example Client signer:
  * ```typescript
- * import { toClientAvmSigner } from "@x402/avm";
+ * import { toClientAvmSigner } from "@bankofai/x402-avm";
  *
  * const signer = toClientAvmSigner(process.env.AVM_PRIVATE_KEY!);
  * ```
  *
  * @example Facilitator signer:
  * ```typescript
- * import { toFacilitatorAvmSigner } from "@x402/avm";
+ * import { toFacilitatorAvmSigner } from "@bankofai/x402-avm";
  *
  * const signer = toFacilitatorAvmSigner(process.env.AVM_PRIVATE_KEY!);
  * ```
@@ -31,7 +31,7 @@ import type {
   AddressWithTransactionSigner,
 } from "@algorandfoundation/algokit-utils/transact";
 import { waitForConfirmation } from "@algorandfoundation/algokit-utils/transaction";
-import type { Network } from "@x402/core/types";
+import type { Network } from "@bankofai/x402-core/types";
 import { ALGORAND_TESTNET_CAIP2 } from "./constants";
 
 /**
@@ -93,7 +93,7 @@ export interface ClientAvmConfig {
  *
  * @example Using the helper function:
  * ```typescript
- * import { toFacilitatorAvmSigner } from "@x402/avm";
+ * import { toFacilitatorAvmSigner } from "@bankofai/x402-avm";
  *
  * const signer = toFacilitatorAvmSigner(process.env.AVM_PRIVATE_KEY!);
  * ```
@@ -225,8 +225,8 @@ function decodePrivateKey(privateKeyBase64: string) {
  *
  * @example
  * ```typescript
- * import { toClientAvmSigner } from "@x402/avm";
- * import { ExactAvmScheme } from "@x402/avm/exact/client";
+ * import { toClientAvmSigner } from "@bankofai/x402-avm";
+ * import { ExactAvmScheme } from "@bankofai/x402-avm/exact/client";
  *
  * const signer = toClientAvmSigner(process.env.AVM_PRIVATE_KEY!);
  * client.register("algorand:*", new ExactAvmScheme(signer));
@@ -309,8 +309,8 @@ function isTestnet(network: string): boolean {
  *
  * @example
  * ```typescript
- * import { toFacilitatorAvmSigner } from "@x402/avm";
- * import { ExactAvmScheme } from "@x402/avm/exact/facilitator";
+ * import { toFacilitatorAvmSigner } from "@bankofai/x402-avm";
+ * import { ExactAvmScheme } from "@bankofai/x402-avm/exact/facilitator";
  *
  * // Default (AlgoNode endpoints):
  * const signer = toFacilitatorAvmSigner(process.env.AVM_PRIVATE_KEY!);

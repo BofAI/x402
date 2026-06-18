@@ -4,8 +4,8 @@ import { ExactSvmScheme } from "../../src/exact/facilitator/scheme";
 import { ExactSvmSchemeV1 } from "../../src/exact/v1/facilitator/scheme";
 import { SettlementCache } from "../../src/settlement-cache";
 import type { FacilitatorSvmSigner } from "../../src/signer";
-import type { PaymentRequirements, PaymentPayload } from "@x402/core/types";
-import type { PaymentPayloadV1, PaymentRequirementsV1 } from "@x402/core/types/v1";
+import type { PaymentRequirements, PaymentPayload } from "@bankofai/x402-core/types";
+import type { PaymentPayloadV1, PaymentRequirementsV1 } from "@bankofai/x402-core/types/v1";
 import {
   USDC_DEVNET_ADDRESS,
   SOLANA_DEVNET_CAIP2,

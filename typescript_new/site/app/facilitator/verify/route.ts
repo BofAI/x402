@@ -1,4 +1,4 @@
-import { VerifyResponse, PaymentPayload, PaymentRequirements } from "@x402/core/types";
+import { VerifyResponse, PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
 import { getFacilitator } from "../index";
 
 /**

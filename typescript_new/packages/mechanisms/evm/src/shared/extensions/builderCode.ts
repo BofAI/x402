@@ -3,7 +3,7 @@ import type {
   FacilitatorExtension,
   PaymentPayload,
   PaymentRequirements,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import type { Hex } from "viem";
 
 export const BUILDER_CODE_KEY = "builder-code" as const;

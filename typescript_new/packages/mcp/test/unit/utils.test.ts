@@ -13,7 +13,7 @@ import {
   createToolResourceUrl,
 } from "../../src/utils/encoding";
 import { MCP_PAYMENT_META_KEY, MCP_PAYMENT_RESPONSE_META_KEY } from "../../src/types";
-import type { PaymentPayload, PaymentRequired, SettleResponse } from "@x402/core/types";
+import type { PaymentPayload, PaymentRequired, SettleResponse } from "@bankofai/x402-core/types";
 
 // ============================================================================
 // Test Fixtures

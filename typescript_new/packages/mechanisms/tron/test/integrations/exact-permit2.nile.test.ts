@@ -12,7 +12,7 @@ import {
   erc20AllowanceAbi,
   transferWithAuthorizationABI,
 } from "../../src/constants";
-import type { PaymentPayload, PaymentRequirements } from "@x402/core/types";
+import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
 import {
   loadNileEnv,
   nileTronWeb,

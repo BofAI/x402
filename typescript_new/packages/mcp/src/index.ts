@@ -1,4 +1,4 @@
-// @x402/mcp - MCP (Model Context Protocol) integration for x402 payment protocol
+// @bankofai/x402-mcp - MCP (Model Context Protocol) integration for x402 payment protocol
 //
 // This package provides MCP-native payment handling for AI agents and MCP servers.
 // It enables paid tool calls following the x402 protocol over MCP transport.
@@ -75,15 +75,15 @@ export {
 } from "./utils";
 
 // ============================================================================
-// Convenience Re-exports from @x402/core
+// Convenience Re-exports from @bankofai/x402-core
 // ============================================================================
 // These re-exports provide common types and classes that MCP users frequently need,
 // reducing the number of separate package imports required.
 
-export { x402Client } from "@x402/core/client";
-export type { x402ClientConfig, SelectPaymentRequirements, PaymentPolicy } from "@x402/core/client";
+export { x402Client } from "@bankofai/x402-core/client";
+export type { x402ClientConfig, SelectPaymentRequirements, PaymentPolicy } from "@bankofai/x402-core/client";
 
-export { x402ResourceServer } from "@x402/core/server";
+export { x402ResourceServer } from "@bankofai/x402-core/server";
 
 export type {
   PaymentPayload,
@@ -93,4 +93,4 @@ export type {
   Network,
   SchemeNetworkClient,
   SchemeNetworkServer,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";

@@ -13,7 +13,7 @@ import type {
   Eip2612GasSponsoringInfo,
   Eip2612GasSponsoringExtension,
 } from "../src/eip2612-gas-sponsoring/types";
-import type { PaymentPayload } from "@x402/core/types";
+import type { PaymentPayload } from "@bankofai/x402-core/types";
 
 describe("EIP-2612 Gas Sponsoring Extension", () => {
   describe("EIP2612_GAS_SPONSORING constant", () => {

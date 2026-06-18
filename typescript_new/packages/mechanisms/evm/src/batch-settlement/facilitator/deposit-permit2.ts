@@ -3,7 +3,7 @@ import {
   PaymentPayload,
   PaymentRequirements,
   VerifyResponse,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import { encodeFunctionData, getAddress, parseErc6492Signature } from "viem";
 import {
   extractEip2612GasSponsoringInfo,

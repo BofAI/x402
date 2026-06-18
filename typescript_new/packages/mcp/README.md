@@ -1,11 +1,11 @@
-# `@x402/mcp` • [![npm version](https://img.shields.io/npm/v/%40x402%2Fmcp.svg)](https://www.npmjs.com/package/@x402/mcp)
+# `@bankofai/x402-mcp` • [![npm version](https://img.shields.io/npm/v/%40bankofai%2Fx402-mcp.svg)](https://www.npmjs.com/package/@bankofai/x402-mcp)
 
 MCP (Model Context Protocol) integration for the x402 payment protocol. This package enables paid tool calls in MCP servers and automatic payment handling in MCP clients.
 
 ## Installation
 
 ```bash
-npm install @x402/mcp @x402/core @modelcontextprotocol/sdk
+npm install @bankofai/x402-mcp @bankofai/x402-core @modelcontextprotocol/sdk
 ```
 
 ## Quick Start (Recommended)
@@ -14,9 +14,9 @@ npm install @x402/mcp @x402/core @modelcontextprotocol/sdk
 
 ```typescript
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { createPaymentWrapper, x402ResourceServer } from "@x402/mcp";
-import { HTTPFacilitatorClient } from "@x402/core/server";
-import { ExactEvmScheme } from "@x402/evm/exact/server";
+import { createPaymentWrapper, x402ResourceServer } from "@bankofai/x402-mcp";
+import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
 import { z } from "zod";
 
 // Create standard MCP server
@@ -64,8 +64,8 @@ await mcpServer.connect(transport);
 ### Client - Using Factory Function
 
 ```typescript
-import { createX402MCPClient } from "@x402/mcp";
-import { ExactEvmScheme } from "@x402/evm/exact/client";
+import { createX402MCPClient } from "@bankofai/x402-mcp";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 
 // Create client with factory (simplest approach)
@@ -207,9 +207,9 @@ const paid = createPaymentWrapper(resourceServer, {
 
 ```typescript
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { wrapMCPClientWithPayment, wrapMCPClientWithPaymentFromConfig } from "@x402/mcp";
-import { x402Client } from "@x402/core/client";
-import { ExactEvmScheme } from "@x402/evm/exact/client";
+import { wrapMCPClientWithPayment, wrapMCPClientWithPaymentFromConfig } from "@bankofai/x402-mcp";
+import { x402Client } from "@bankofai/x402-core/client";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
 
 // Option 1: Wrap existing client with existing payment client
 const mcpClient = new Client({ name: "my-agent", version: "1.0.0" });

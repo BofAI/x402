@@ -10,8 +10,8 @@ import {
   checkIfBazaarNeeded,
   SETTLEMENT_OVERRIDES_HEADER,
   SettlementOverrides,
-} from "@x402/core/server";
-import { SchemeNetworkServer, Network } from "@x402/core/types";
+} from "@bankofai/x402-core/server";
+import { SchemeNetworkServer, Network } from "@bankofai/x402-core/types";
 import { NextRequest, NextResponse } from "next/server";
 import {
   prepareHttpServer,
@@ -61,7 +61,7 @@ export interface SchemeRegistration {
  *
  * @example
  * ```typescript
- * import { paymentProxyFromHTTPServer, x402ResourceServer, x402HTTPResourceServer } from "@x402/next";
+ * import { paymentProxyFromHTTPServer, x402ResourceServer, x402HTTPResourceServer } from "@bankofai/x402-next";
  *
  * const resourceServer = new x402ResourceServer(facilitatorClient)
  *   .register(NETWORK, new ExactEvmScheme());
@@ -83,14 +83,14 @@ export function paymentProxyFromHTTPServer(
   let bazaarPromise: Promise<void> | null = null;
   if (checkIfBazaarNeeded(httpServer.routes)) {
     if (!httpServer.server.hasExtension("bazaar")) {
-      bazaarPromise = import(/* webpackIgnore: true */ "@x402/extensions/bazaar").then(
+      bazaarPromise = import(/* webpackIgnore: true */ "@bankofai/x402-extensions/bazaar").then(
         ({ bazaarResourceServerExtension }) => {
           httpServer.server.registerExtension(bazaarResourceServerExtension);
         },
       );
     }
     bazaarPromise = (bazaarPromise ?? Promise.resolve())
-      .then(() => import(/* webpackIgnore: true */ "@x402/extensions/bazaar"))
+      .then(() => import(/* webpackIgnore: true */ "@bankofai/x402-extensions/bazaar"))
       .then(({ validateBazaarRouteExtensions }) => {
         validateBazaarRouteExtensions(httpServer.routes);
       })
@@ -178,7 +178,7 @@ export function paymentProxyFromHTTPServer(
  *
  * @example
  * ```typescript
- * import { paymentProxy } from "@x402/next";
+ * import { paymentProxy } from "@bankofai/x402-next";
  *
  * const server = new x402ResourceServer(myFacilitatorClient)
  *   .register(NETWORK, new ExactEvmScheme());
@@ -215,7 +215,7 @@ export function paymentProxy(
  *
  * @example
  * ```typescript
- * import { paymentProxyFromConfig } from "@x402/next";
+ * import { paymentProxyFromConfig } from "@bankofai/x402-next";
  *
  * export const proxy = paymentProxyFromConfig(
  *   routes,
@@ -261,7 +261,7 @@ export function paymentProxyFromConfig(
  * @example
  * ```typescript
  * import { NextRequest, NextResponse } from "next/server";
- * import { withX402FromHTTPServer, x402ResourceServer, x402HTTPResourceServer } from "@x402/next";
+ * import { withX402FromHTTPServer, x402ResourceServer, x402HTTPResourceServer } from "@bankofai/x402-next";
  *
  * const resourceServer = new x402ResourceServer(facilitatorClient)
  *   .register(NETWORK, new ExactEvmScheme());
@@ -288,14 +288,14 @@ export function withX402FromHTTPServer<T = unknown>(
   let bazaarPromise: Promise<void> | null = null;
   if (checkIfBazaarNeeded(httpServer.routes)) {
     if (!httpServer.server.hasExtension("bazaar")) {
-      bazaarPromise = import(/* webpackIgnore: true */ "@x402/extensions/bazaar").then(
+      bazaarPromise = import(/* webpackIgnore: true */ "@bankofai/x402-extensions/bazaar").then(
         ({ bazaarResourceServerExtension }) => {
           httpServer.server.registerExtension(bazaarResourceServerExtension);
         },
       );
     }
     bazaarPromise = (bazaarPromise ?? Promise.resolve())
-      .then(() => import(/* webpackIgnore: true */ "@x402/extensions/bazaar"))
+      .then(() => import(/* webpackIgnore: true */ "@bankofai/x402-extensions/bazaar"))
       .then(({ validateBazaarRouteExtensions }) => {
         validateBazaarRouteExtensions(httpServer.routes);
       })
@@ -372,7 +372,7 @@ export function withX402FromHTTPServer<T = unknown>(
  * @example
  * ```typescript
  * import { NextRequest, NextResponse } from "next/server";
- * import { withX402 } from "@x402/next";
+ * import { withX402 } from "@bankofai/x402-next";
  *
  * const server = new x402ResourceServer(myFacilitatorClient)
  *   .register(NETWORK, new ExactEvmScheme());
@@ -423,21 +423,21 @@ export type {
   PaymentPayload,
   Network,
   SchemeNetworkServer,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 
 export type {
   PaywallProvider,
   PaywallConfig,
   RouteConfig,
   SettlementOverrides,
-} from "@x402/core/server";
+} from "@bankofai/x402-core/server";
 
 export {
   x402ResourceServer,
   x402HTTPResourceServer,
   RouteConfigurationError,
-} from "@x402/core/server";
+} from "@bankofai/x402-core/server";
 
-export type { RouteValidationError } from "@x402/core/server";
+export type { RouteValidationError } from "@bankofai/x402-core/server";
 
 export { NextAdapter } from "./adapter";

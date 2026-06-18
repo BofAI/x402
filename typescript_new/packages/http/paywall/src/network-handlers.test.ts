@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_STABLECOINS } from "@x402/evm";
+import { DEFAULT_STABLECOINS } from "@bankofai/x402-evm";
 import { evmPaywall, getDefaultTokenDecimals } from "./evm";
 import { NETWORK_DECIMALS } from "./evm/gen/decimals";
 import { svmPaywall } from "./svm";
@@ -126,7 +126,7 @@ describe("Network Handlers", () => {
   });
 
   describe("getDefaultTokenDecimals", () => {
-    it("reads non-default decimals from the @x402/evm registry", () => {
+    it("reads non-default decimals from the @bankofai/x402-evm registry", () => {
       // Mezo Testnet mUSD is 18-decimal in DEFAULT_STABLECOINS
       const req: PaymentRequirements = {
         ...evmRequirement,
@@ -156,7 +156,7 @@ describe("Network Handlers", () => {
 
     it("NETWORK_DECIMALS overrides stay in sync with DEFAULT_STABLECOINS", () => {
       // The generated `src/evm/gen/decimals.ts` file is emitted by
-      // `src/evm/build.ts` from `@x402/evm`'s `DEFAULT_STABLECOINS`. Only
+      // `src/evm/build.ts` from `@bankofai/x402-evm`'s `DEFAULT_STABLECOINS`. Only
       // networks whose decimals !== 6 are listed; others rely on the fallback
       // in `getDefaultTokenDecimals`. This pins the drift invariant in-process
       // (complements the CI regen-diff guard in #2054).

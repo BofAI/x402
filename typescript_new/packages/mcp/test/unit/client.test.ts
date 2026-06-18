@@ -8,7 +8,7 @@ import {
   MCP_PAYMENT_META_KEY,
   JSONRPC_PAYMENT_REQUIRED_CODE,
 } from "../../src/types";
-import type { PaymentPayload, PaymentRequired, SettleResponse } from "@x402/core/types";
+import type { PaymentPayload, PaymentRequired, SettleResponse } from "@bankofai/x402-core/types";
 
 // ============================================================================
 // Mock Types

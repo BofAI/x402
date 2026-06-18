@@ -1,4 +1,4 @@
-# @x402/core Changelog
+# @bankofai/x402-core Changelog
 
 ## 2.15.0
 
@@ -25,13 +25,13 @@
 - 49ea054: Add extension hook adapters for client and HTTP flows
 - ad08a9a: Preserve %2F/%5C in normalizePath so encoded path separators can no longer hide segment boundaries from :param route regexes, closing a paywall bypass on requests like /api/report/a%2Fb.
 - 5fca9f3: Allow paymentPayload.accepted.extra to include additive client fields, while all server-declared fields still have to match
-- 95f2094: Replace the dynamic fallback paywall HTML (used when @x402/paywall is not installed) with a static template, eliminating reflected XSS surface from interpolated request URLs and config values.
+- 95f2094: Replace the dynamic fallback paywall HTML (used when @bankofai/x402-paywall is not installed) with a static template, eliminating reflected XSS surface from interpolated request URLs and config values.
 
 ## 2.12.0
 
 ### Minor Changes
 
-- 608034f: Added Bazaar service metadata fields (`serviceName`, `tags`, `iconUrl`) on `ResourceInfo`, plus `isValidServiceName` / `sanitizeTags` / `isValidIconUrl` / `sanitizeResourceServiceMetadata` helpers in `@x402/extensions/bazaar` that `extractDiscoveryInfo` now applies with soft-drop semantics. Fields are optional and additive — providers that omit them produce byte-identical 402 bodies.
+- 608034f: Added Bazaar service metadata fields (`serviceName`, `tags`, `iconUrl`) on `ResourceInfo`, plus `isValidServiceName` / `sanitizeTags` / `isValidIconUrl` / `sanitizeResourceServiceMetadata` helpers in `@bankofai/x402-extensions/bazaar` that `extractDiscoveryInfo` now applies with soft-drop semantics. Fields are optional and additive — providers that omit them produce byte-identical 402 bodies.
 - 45d7d19: - Extended scheme surface with optional schemeHooks
   - Added skip primitives to verify/route/settle for custom flows
   - Added VerifyResponse / SettleResponse extra
@@ -91,7 +91,7 @@
 
 ### Minor Changes
 
-- Bumped to align version with dependent packages (@x402/evm, @x402/extensions)
+- Bumped to align version with dependent packages (@bankofai/x402-evm, @bankofai/x402-extensions)
 
 ### Patch Changes
 
@@ -104,7 +104,7 @@
 
 - 57a5488: Add Aptos blockchain support to x402 payment protocol
 
-  - Introduces new `@x402/aptos` package with full client, server, and facilitator scheme implementations
+  - Introduces new `@bankofai/x402-aptos` package with full client, server, and facilitator scheme implementations
   - Supports exact payment mechanism for Aptos using native APT and fungible assets
   - Includes sponsored transaction support where facilitator pays gas fees
   - Provides `registerExactAptosScheme` helpers for easy client and server integration

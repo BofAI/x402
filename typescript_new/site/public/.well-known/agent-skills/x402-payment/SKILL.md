@@ -29,7 +29,7 @@ x402 is an open standard for internet-native payments. When an API endpoint requ
 ## Integration
 
 ```javascript
-import { paymentMiddleware } from "@x402/express";
+import { paymentMiddleware } from "@bankofai/x402-express";
 
 app.use(
   paymentMiddleware({

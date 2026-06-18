@@ -1,22 +1,22 @@
-# `@x402/tron`
+# `@bankofai/x402-tron`
 
 TRON (TVM) implementation of the x402 payment protocol — pay with TRC-20 tokens using the **Exact** scheme over TIP-712 signed authorizations.
 
 ## Installation
 
 ```bash
-npm install @x402/tron
+npm install @bankofai/x402-tron
 ```
 
 ## Overview
 
-This package provides the three x402 mechanism roles for TRON, mirroring `@x402/evm`:
+This package provides the three x402 mechanism roles for TRON, mirroring `@bankofai/x402-evm`:
 
 - **Client** — applications that hold a wallet and create signed payment payloads
 - **Facilitator** — processors that verify signatures and submit on-chain settlement
 - **Server** — resource servers that price requests and build `PaymentRequirements`
 
-It plugs into `@x402/core` via the `tron:*` CAIP family — no core changes are required.
+It plugs into `@bankofai/x402-core` via the `tron:*` CAIP family — no core changes are required.
 
 ## Two transfer paths (and why TRON is effectively Permit2)
 
@@ -43,10 +43,10 @@ The client TIP-712 type, the proxy `settle` ABI, and the on-chain `WITNESS_TYPEH
 
 | Subpath | Contents |
 | --- | --- |
-| `@x402/tron` | client `ExactTronScheme`, `registerExactTronScheme`, signers, types, constants, utils |
-| `@x402/tron/exact/client` | client scheme + register + Permit2 helpers |
-| `@x402/tron/exact/server` | server scheme + register |
-| `@x402/tron/exact/facilitator` | facilitator scheme + register |
+| `@bankofai/x402-tron` | client `ExactTronScheme`, `registerExactTronScheme`, signers, types, constants, utils |
+| `@bankofai/x402-tron/exact/client` | client scheme + register + Permit2 helpers |
+| `@bankofai/x402-tron/exact/server` | server scheme + register |
+| `@bankofai/x402-tron/exact/facilitator` | facilitator scheme + register |
 
 ## Usage
 
@@ -54,7 +54,7 @@ The client TIP-712 type, the proxy `settle` ABI, and the on-chain `WITNESS_TYPEH
 
 ```ts
 import { TronWeb } from "tronweb";
-import { createClientTronSigner, createFacilitatorTronSigner } from "@x402/tron";
+import { createClientTronSigner, createFacilitatorTronSigner } from "@bankofai/x402-tron";
 
 const tronWeb = new TronWeb({ fullHost: "https://nile.trongrid.io", privateKey: PK });
 
@@ -67,8 +67,8 @@ Both have `to*TronSigner` adapters if you already have a signing object.
 ### Client
 
 ```ts
-import { x402Client } from "@x402/core/client";
-import { registerExactTronScheme } from "@x402/tron/exact/client";
+import { x402Client } from "@bankofai/x402-core/client";
+import { registerExactTronScheme } from "@bankofai/x402-tron/exact/client";
 
 const client = new x402Client();
 registerExactTronScheme(client, { signer: clientSigner }); // registers on "tron:*"
@@ -77,8 +77,8 @@ registerExactTronScheme(client, { signer: clientSigner }); // registers on "tron
 ### Server
 
 ```ts
-import { x402ResourceServer } from "@x402/core/server";
-import { registerExactTronScheme } from "@x402/tron/exact/server";
+import { x402ResourceServer } from "@bankofai/x402-core/server";
+import { registerExactTronScheme } from "@bankofai/x402-tron/exact/server";
 
 registerExactTronScheme(server); // prices to the network's default stablecoin
 ```
@@ -86,8 +86,8 @@ registerExactTronScheme(server); // prices to the network's default stablecoin
 ### Facilitator
 
 ```ts
-import { x402Facilitator } from "@x402/core/facilitator";
-import { registerExactTronScheme } from "@x402/tron/exact/facilitator";
+import { x402Facilitator } from "@bankofai/x402-core/facilitator";
+import { registerExactTronScheme } from "@bankofai/x402-tron/exact/facilitator";
 
 registerExactTronScheme(facilitator, { signer: facilitatorSigner, networks: "tron:nile" });
 ```
@@ -109,7 +109,7 @@ The `permit2` path depends on three on-chain contracts. Addresses live in `src/c
 ### Unit (offline, no keys)
 
 ```bash
-pnpm --filter @x402/tron test
+pnpm --filter @bankofai/x402-tron test
 ```
 
 The suite is fully offline (no network, no keys):

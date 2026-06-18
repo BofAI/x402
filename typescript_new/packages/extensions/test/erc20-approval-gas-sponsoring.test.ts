@@ -13,7 +13,7 @@ import type {
   Erc20ApprovalGasSponsoringInfo,
   Erc20ApprovalGasSponsoringExtension,
 } from "../src/erc20-approval-gas-sponsoring/types";
-import type { PaymentPayload } from "@x402/core/types";
+import type { PaymentPayload } from "@bankofai/x402-core/types";
 
 describe("ERC-20 Approval Gas Sponsoring Extension", () => {
   describe("ERC20_APPROVAL_GAS_SPONSORING constant", () => {

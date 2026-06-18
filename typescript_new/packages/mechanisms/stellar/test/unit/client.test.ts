@@ -5,7 +5,7 @@ import { ExactStellarScheme } from "../../src/exact/client/scheme";
 import * as stellarUtils from "../../src/utils";
 import type { ClientStellarSigner } from "../../src/signer";
 import type { RpcConfig } from "../../src/utils";
-import type { PaymentRequirements } from "@x402/core/types";
+import type { PaymentRequirements } from "@bankofai/x402-core/types";
 
 const { mockAssembledTransactionBuild } = vi.hoisted(() => ({
   mockAssembledTransactionBuild: vi.fn(),

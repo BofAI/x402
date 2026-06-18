@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { PaymentRequirements } from "@x402/core/types";
+import type { PaymentRequirements } from "@bankofai/x402-core/types";
 import type { Address } from "@solana/kit";
 import {
   decompileTransactionMessage,

@@ -5,12 +5,12 @@ import type {
   x402HTTPResourceServer,
   PaywallProvider,
   FacilitatorClient,
-} from "@x402/core/server";
+} from "@bankofai/x402-core/server";
 import {
   x402ResourceServer,
   x402HTTPResourceServer as HTTPResourceServer,
-} from "@x402/core/server";
-import type { PaymentPayload, PaymentRequirements, SchemeNetworkServer } from "@x402/core/types";
+} from "@bankofai/x402-core/server";
+import type { PaymentPayload, PaymentRequirements, SchemeNetworkServer } from "@bankofai/x402-core/types";
 import { paymentMiddleware, paymentMiddlewareFromConfig, type SchemeRegistration } from "./index";
 
 // --- Test Fixtures ---
@@ -57,11 +57,11 @@ function createMockPaymentCancellationDispatcher(): PaymentVerifiedResult["cance
   } as unknown as PaymentVerifiedResult["cancellationDispatcher"];
 }
 
-vi.mock("@x402/core/server", () => ({
+vi.mock("@bankofai/x402-core/server", () => ({
   SETTLEMENT_OVERRIDES_HEADER: "Settlement-Overrides",
   FacilitatorResponseError: class FacilitatorResponseError extends Error {
     /**
-     * Mock error class matching @x402/core/server FacilitatorResponseError.
+     * Mock error class matching @bankofai/x402-core/server FacilitatorResponseError.
      *
      * @param message - Error message passed to the superclass.
      */

@@ -66,7 +66,7 @@ export const erc20ApprovalGasSponsoringSchema: Record<string, unknown> = {
  *
  * @example
  * ```typescript
- * import { declareErc20ApprovalGasSponsoringExtension } from '@x402/extensions';
+ * import { declareErc20ApprovalGasSponsoringExtension } from '@bankofai/x402-extensions';
  *
  * const routes = [
  *   {

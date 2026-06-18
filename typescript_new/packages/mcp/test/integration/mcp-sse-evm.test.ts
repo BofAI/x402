@@ -24,20 +24,20 @@ import { createWalletClient, createPublicClient, http } from "viem";
 import { baseSepolia } from "viem/chains";
 
 import { x402MCPClient, x402MCPServer } from "../../src";
-import { x402Client } from "@x402/core/client";
-import { x402ResourceServer, FacilitatorClient } from "@x402/core/server";
-import { x402Facilitator } from "@x402/core/facilitator";
+import { x402Client } from "@bankofai/x402-core/client";
+import { x402ResourceServer, FacilitatorClient } from "@bankofai/x402-core/server";
+import { x402Facilitator } from "@bankofai/x402-core/facilitator";
 import type {
   PaymentPayload,
   PaymentRequirements,
   VerifyResponse,
   SettleResponse,
   SupportedResponse,
-} from "@x402/core/types";
-import { toFacilitatorEvmSigner } from "@x402/evm";
-import { ExactEvmScheme as ExactEvmClientScheme } from "@x402/evm/exact/client";
-import { ExactEvmScheme as ExactEvmServerScheme } from "@x402/evm/exact/server";
-import { ExactEvmScheme as ExactEvmFacilitatorScheme } from "@x402/evm/exact/facilitator";
+} from "@bankofai/x402-core/types";
+import { toFacilitatorEvmSigner } from "@bankofai/x402-evm";
+import { ExactEvmScheme as ExactEvmClientScheme } from "@bankofai/x402-evm/exact/client";
+import { ExactEvmScheme as ExactEvmServerScheme } from "@bankofai/x402-evm/exact/server";
+import { ExactEvmScheme as ExactEvmFacilitatorScheme } from "@bankofai/x402-evm/exact/facilitator";
 
 // ============================================================================
 // Environment Setup

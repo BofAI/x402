@@ -5,7 +5,7 @@
  * payloads and validate it before calling settleWithPermit.
  */
 
-import type { PaymentPayload } from "@x402/core/types";
+import type { PaymentPayload } from "@bankofai/x402-core/types";
 import {
   EIP2612_GAS_SPONSORING,
   type Eip2612GasSponsoringInfo,

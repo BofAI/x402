@@ -5,7 +5,7 @@ import {
   Price,
   SchemeNetworkServer,
   MoneyParser,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import { ExactDefaultAssetInfo, getDefaultAsset } from "../../shared/defaultAssets";
 import { getDecimals, parsePrice as parseTokenPrice } from "../../shared/tokens";
 import { buildFeeInfo, type ExactTronFeeConfig } from "../../shared/fee";

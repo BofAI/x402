@@ -2,7 +2,7 @@ import { Horizon, rpc } from "@stellar/stellar-sdk";
 import {
   convertToTokenAmount as coreConvertToTokenAmount,
   numberToDecimalString,
-} from "@x402/core/utils";
+} from "@bankofai/x402-core/utils";
 import {
   DEFAULT_PUBNET_HORIZON_URL,
   DEFAULT_TESTNET_HORIZON_URL,
@@ -16,7 +16,7 @@ import {
   USDC_PUBNET_ADDRESS,
   USDC_TESTNET_ADDRESS,
 } from "./constants";
-import type { Network } from "@x402/core/types";
+import type { Network } from "@bankofai/x402-core/types";
 
 export const DEFAULT_ESTIMATED_LEDGER_SECONDS = 5;
 const HORIZON_LEDGERS_SAMPLE_SIZE = 20;

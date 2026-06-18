@@ -2,7 +2,7 @@ import type {
   PaymentRequirements,
   PaymentPayloadResult,
   PaymentPayloadContext,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import {
   EIP2612_GAS_SPONSORING_KEY,
   ERC20_APPROVAL_GAS_SPONSORING_KEY,

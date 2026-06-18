@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { avmPaywall, createPaywall, evmPaywall, PaywallBuilder, svmPaywall } from "./index";
 import type { PaywallNetworkHandler, PaymentRequired, PaymentRequirements } from "./index";
 
-describe("@x402/paywall entrypoint", () => {
+describe("@bankofai/x402-paywall entrypoint", () => {
   it("exports the paywall builder helpers", () => {
     expect(createPaywall()).toBeInstanceOf(PaywallBuilder);
     expect(typeof PaywallBuilder).toBe("function");

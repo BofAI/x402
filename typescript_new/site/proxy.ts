@@ -1,13 +1,13 @@
-import { paymentProxyFromConfig } from "@x402/next";
-import { HTTPFacilitatorClient } from "@x402/core/server";
-import { ExactEvmScheme } from "@x402/evm/exact/server";
-import { ExactSvmScheme } from "@x402/svm/exact/server";
-import { ExactAvmScheme } from "@x402/avm/exact/server";
+import { paymentProxyFromConfig } from "@bankofai/x402-next";
+import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
+import { ExactSvmScheme } from "@bankofai/x402-svm/exact/server";
+import { ExactAvmScheme } from "@bankofai/x402-avm/exact/server";
 import { NextRequest, NextResponse } from "next/server";
-import { createPaywall } from "@x402/paywall";
-import { evmPaywall } from "@x402/paywall/evm";
-import { svmPaywall } from "@x402/paywall/svm";
-import { avmPaywall } from "@x402/paywall/avm";
+import { createPaywall } from "@bankofai/x402-paywall";
+import { evmPaywall } from "@bankofai/x402-paywall/evm";
+import { svmPaywall } from "@bankofai/x402-paywall/svm";
+import { avmPaywall } from "@bankofai/x402-paywall/avm";
 
 const evmPayeeAddress = process.env.RESOURCE_EVM_ADDRESS as `0x${string}`;
 const svmPayeeAddress = process.env.RESOURCE_SVM_ADDRESS as string;

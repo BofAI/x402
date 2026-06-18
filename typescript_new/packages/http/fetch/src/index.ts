@@ -1,5 +1,5 @@
-import { x402Client, x402ClientConfig, x402HTTPClient } from "@x402/core/client";
-import { type PaymentRequired } from "@x402/core/types";
+import { x402Client, x402ClientConfig, x402HTTPClient } from "@bankofai/x402-core/client";
+import { type PaymentRequired } from "@bankofai/x402-core/types";
 
 /**
  * Enables the payment of APIs using the x402 payment protocol v2.
@@ -17,9 +17,9 @@ import { type PaymentRequired } from "@x402/core/types";
  *
  * @example
  * ```typescript
- * import { wrapFetchWithPayment, x402Client } from '@x402/fetch';
- * import { ExactEvmScheme } from '@x402/evm';
- * import { ExactSvmScheme } from '@x402/svm';
+ * import { wrapFetchWithPayment, x402Client } from '@bankofai/x402-fetch';
+ * import { ExactEvmScheme } from '@bankofai/x402-evm';
+ * import { ExactSvmScheme } from '@bankofai/x402-svm';
  *
  * const client = new x402Client()
  *   .register('eip155:8453', new ExactEvmScheme(evmSigner))
@@ -170,19 +170,19 @@ export function wrapFetchWithPaymentFromConfig(
 }
 
 // Re-export types and utilities for convenience
-export { x402Client, x402HTTPClient } from "@x402/core/client";
-export type { HTTPResourceResponse } from "@x402/core/client";
+export { x402Client, x402HTTPClient } from "@bankofai/x402-core/client";
+export type { HTTPResourceResponse } from "@bankofai/x402-core/client";
 export type {
   PaymentPolicy,
   SchemeRegistration,
   SelectPaymentRequirements,
   x402ClientConfig,
-} from "@x402/core/client";
-export { decodePaymentResponseHeader } from "@x402/core/http";
+} from "@bankofai/x402-core/client";
+export { decodePaymentResponseHeader } from "@bankofai/x402-core/http";
 export type {
   Network,
   PaymentPayload,
   PaymentRequired,
   PaymentRequirements,
   SchemeNetworkClient,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";

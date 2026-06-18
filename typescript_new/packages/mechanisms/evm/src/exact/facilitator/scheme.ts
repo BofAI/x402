@@ -5,7 +5,7 @@ import {
   FacilitatorContext,
   SettleResponse,
   VerifyResponse,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import { FacilitatorEvmSigner } from "../../signer";
 import { ExactEvmPayloadV2, ExactEIP3009Payload, isPermit2Payload } from "../../types";
 import { verifyEIP3009, settleEIP3009 } from "./eip3009";

@@ -1,11 +1,11 @@
-# `@x402/evm` [![npm version](https://img.shields.io/npm/v/%40x402%2Fevm.svg)](https://www.npmjs.com/package/@x402/evm)
+# `@bankofai/x402-evm` [![npm version](https://img.shields.io/npm/v/%40bankofai%2Fx402-evm.svg)](https://www.npmjs.com/package/@bankofai/x402-evm)
 
 EVM (Ethereum Virtual Machine) implementation of the x402 payment protocol using the **Exact** payment scheme with EIP-3009 TransferWithAuthorization.
 
 ## Installation
 
 ```bash
-npm install @x402/evm
+npm install @bankofai/x402-evm
 ```
 
 ## Overview
@@ -18,7 +18,7 @@ This package provides three main components for handling x402 payments on EVM-co
 
 ## Package Exports
 
-### Main Package (`@x402/evm`)
+### Main Package (`@bankofai/x402-evm`)
 
 **V2 Protocol Support** - Modern x402 protocol with CAIP-2 network identifiers
 
@@ -35,7 +35,7 @@ This package provides three main components for handling x402 payments on EVM-co
 **Service:**
 - `ExactEvmServer` - V2 service for building payment requirements
 
-### V1 Package (`@x402/evm/v1`)
+### V1 Package (`@bankofai/x402-evm/v1`)
 
 **V1 Protocol Support** - Legacy x402 protocol with simple network names
 
@@ -78,9 +78,9 @@ This package provides three main components for handling x402 payments on EVM-co
 ### 1. Direct Registration (Full Control)
 
 ```typescript
-import { x402Client } from "@x402/core/client";
-import { ExactEvmClient } from "@x402/evm";
-import { ExactEvmClientV1 } from "@x402/evm/v1";
+import { x402Client } from "@bankofai/x402-core/client";
+import { ExactEvmClient } from "@bankofai/x402-evm";
+import { ExactEvmClientV1 } from "@bankofai/x402-evm/v1";
 
 const client = new x402Client()
   .register("eip155:*", new ExactEvmClient(signer))
@@ -115,8 +115,8 @@ const wildcardClient = new x402Client().register(
 ### 2. Using Config (Flexible)
 
 ```typescript
-import { x402Client } from "@x402/core/client";
-import { ExactEvmClient } from "@x402/evm";
+import { x402Client } from "@bankofai/x402-core/client";
+import { ExactEvmClient } from "@bankofai/x402-evm";
 
 const client = x402Client.fromConfig({
   schemes: [
@@ -137,7 +137,7 @@ const client = x402Client.fromConfig({
 - Any `eip155:<chainId>` network
 
 **V1 Networks** (simple names):
-See `NETWORKS` constant in `@x402/evm/v1`
+See `NETWORKS` constant in `@bankofai/x402-evm/v1`
 
 ## Asset Support
 
@@ -166,7 +166,7 @@ npm run format
 
 ## Related Packages
 
-- `@x402/core` - Core protocol types and client
-- `@x402/fetch` - HTTP wrapper with automatic payment handling
-- `@x402/svm` - Solana/SVM implementation
-- `@x402/stellar` - Stellar implementation
+- `@bankofai/x402-core` - Core protocol types and client
+- `@bankofai/x402-fetch` - HTTP wrapper with automatic payment handling
+- `@bankofai/x402-svm` - Solana/SVM implementation
+- `@bankofai/x402-stellar` - Stellar implementation

@@ -33,7 +33,7 @@ import {
   type EVMSigner,
   type EVMMessageVerifier,
 } from "../src/sign-in-with-x/index";
-import { safeBase64Encode } from "@x402/core/utils";
+import { safeBase64Encode } from "@bankofai/x402-core/utils";
 import { privateKeyToAccount, generatePrivateKey } from "viem/accounts";
 import nacl from "tweetnacl";
 import { randomBytes } from "crypto";

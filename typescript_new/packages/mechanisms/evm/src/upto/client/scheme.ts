@@ -3,7 +3,7 @@ import {
   PaymentRequirements,
   PaymentPayloadResult,
   PaymentPayloadContext,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import { ClientEvmSigner } from "../../signer";
 import { createUptoPermit2Payload } from "./permit2";
 import {

@@ -1,4 +1,4 @@
-import { PaymentRequirements, PaymentPayloadResult } from "@x402/core/types";
+import { PaymentRequirements, PaymentPayloadResult } from "@bankofai/x402-core/types";
 import { ClientTronSigner } from "../../signer";
 import { createNonce, getTronChainId, normalizeAddressForSigning } from "../../utils";
 import {

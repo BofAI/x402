@@ -5,7 +5,7 @@ import {
   FacilitatorContext,
   SettleResponse,
   VerifyResponse,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import { FacilitatorEvmSigner } from "../../signer";
 import { BATCH_SETTLEMENT_SCHEME } from "../constants";
 import {

@@ -1,5 +1,5 @@
 import { AccountAddress, Aptos, AptosConfig, SimpleTransaction } from "@aptos-labs/ts-sdk";
-import type { PaymentPayload, PaymentRequirements, SchemeNetworkClient } from "@x402/core/types";
+import type { PaymentPayload, PaymentRequirements, SchemeNetworkClient } from "@bankofai/x402-core/types";
 import { APTOS_ADDRESS_REGEX, getAptosNetwork, getAptosRpcUrl } from "../../constants";
 import type { ClientAptosSigner, ClientAptosConfig } from "../../signer";
 import type { ExactAptosPayload } from "../../types";

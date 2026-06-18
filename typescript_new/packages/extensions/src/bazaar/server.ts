@@ -1,5 +1,5 @@
-import type { ResourceServerExtension } from "@x402/core/types";
-import type { HTTPRequestContext } from "@x402/core/http";
+import type { ResourceServerExtension } from "@bankofai/x402-core/types";
+import type { HTTPRequestContext } from "@bankofai/x402-core/http";
 import { BAZAAR } from "./types";
 
 // Non-global: safe for test/split (no stateful lastIndex side-effects).

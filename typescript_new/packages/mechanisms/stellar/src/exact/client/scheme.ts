@@ -11,7 +11,7 @@ import {
   validateStellarDestinationAddress,
 } from "../../utils";
 import type { ClientStellarSigner } from "../../signer";
-import type { PaymentPayload, PaymentRequirements, SchemeNetworkClient } from "@x402/core/types";
+import type { PaymentPayload, PaymentRequirements, SchemeNetworkClient } from "@bankofai/x402-core/types";
 
 /**
  * Stellar client implementation for the Exact payment scheme.

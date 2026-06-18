@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { ExactSvmSchemeV1 } from "../../../src/v1";
 
-describe("@x402/svm/v1", () => {
+describe("@bankofai/x402-svm/v1", () => {
   it("should export ExactSvmSchemeV1", () => {
     expect(ExactSvmSchemeV1).toBeDefined();
     expect(typeof ExactSvmSchemeV1).toBe("function");

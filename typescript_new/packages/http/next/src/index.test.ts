@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
-import type { HTTPProcessResult, PaywallProvider, FacilitatorClient } from "@x402/core/server";
-import { x402ResourceServer, x402HTTPResourceServer } from "@x402/core/server";
-import type { PaymentPayload, PaymentRequirements, SchemeNetworkServer } from "@x402/core/types";
+import type { HTTPProcessResult, PaywallProvider, FacilitatorClient } from "@bankofai/x402-core/server";
+import { x402ResourceServer, x402HTTPResourceServer } from "@bankofai/x402-core/server";
+import type { PaymentPayload, PaymentRequirements, SchemeNetworkServer } from "@bankofai/x402-core/types";
 import { paymentProxy, paymentProxyFromConfig, withX402, type SchemeRegistration } from "./index";
 
 import { createHttpServer } from "./utils";
@@ -23,8 +23,8 @@ const mockFunctions = {
   requiresPayment: vi.fn().mockReturnValue(true),
 };
 
-// Mock @x402/core/server
-vi.mock("@x402/core/server", () => ({
+// Mock @bankofai/x402-core/server
+vi.mock("@bankofai/x402-core/server", () => ({
   FacilitatorResponseError: class FacilitatorResponseError extends Error {
     /**
      * Creates a mock facilitator response error.

@@ -1,5 +1,5 @@
-import { x402Facilitator } from "@x402/core/facilitator";
-import { Network } from "@x402/core/types";
+import { x402Facilitator } from "@bankofai/x402-core/facilitator";
+import { Network } from "@bankofai/x402-core/types";
 import { FacilitatorTronSigner } from "../../signer";
 import { ExactTronFeeConfig } from "../../shared/fee";
 import { GasFreeAPIClient, createGasFreeApiClients } from "../../shared/gasfree/api";

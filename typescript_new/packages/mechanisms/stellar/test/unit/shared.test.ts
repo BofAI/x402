@@ -12,7 +12,7 @@ import { ExactStellarScheme } from "../../src/exact/client/scheme";
 import { gatherAuthEntrySignatureStatus, handleSimulationResult } from "../../src/shared";
 import { createEd25519Signer } from "../../src/signer";
 import * as stellarUtils from "../../src/utils";
-import type { PaymentRequirements } from "@x402/core/types";
+import type { PaymentRequirements } from "@bankofai/x402-core/types";
 
 vi.mock("../../src/utils", async () => {
   const actual = await vi.importActual<typeof stellarUtils>("../../src/utils");

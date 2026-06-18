@@ -1,6 +1,6 @@
 # Sign-In-With-X (SIWx) extension
 
-Part of [`@x402/extensions`](../README.md). Import from `@x402/extensions/sign-in-with-x`.
+Part of [`@bankofai/x402-extensions`](../README.md). Import from `@bankofai/x402-extensions/sign-in-with-x`.
 
 The Sign-In-With-X extension implements [CAIP-122](https://chainagnostic.org/CAIPs/caip-122) for chain-agnostic wallet authentication. It allows clients to prove control of a wallet that previously paid for a resource, enabling access without repurchase.
 
@@ -20,7 +20,7 @@ import {
   declareSIWxExtension,
   createSIWxResourceServerExtension,
   InMemorySIWxStorage,
-} from '@x402/extensions/sign-in-with-x';
+} from '@bankofai/x402-extensions/sign-in-with-x';
 
 // Storage for tracking paid addresses
 const storage = new InMemorySIWxStorage();
@@ -71,7 +71,7 @@ import {
   parseSIWxHeader,
   validateSIWxMessage,
   verifySIWxSignature,
-} from '@x402/extensions/sign-in-with-x';
+} from '@bankofai/x402-extensions/sign-in-with-x';
 
 // 1. Declare in PaymentRequired response
 const extensions = declareSIWxExtension({
@@ -116,8 +116,8 @@ async function handleRequest(request: Request) {
 ### Recommended: Client Extension
 
 ```typescript
-import { createSIWxClientExtension } from '@x402/extensions/sign-in-with-x';
-import { x402HTTPClient } from '@x402/fetch';
+import { createSIWxClientExtension } from '@bankofai/x402-extensions/sign-in-with-x';
+import { x402HTTPClient } from '@bankofai/x402-fetch';
 
 client.registerExtension(createSIWxClientExtension({ signers: [signer] }));
 const httpClient = new x402HTTPClient(client);
@@ -138,7 +138,7 @@ The client extension automatically:
 import {
   createSIWxPayload,
   encodeSIWxHeader,
-} from '@x402/extensions/sign-in-with-x';
+} from '@bankofai/x402-extensions/sign-in-with-x';
 
 // 1. Get extension and network from 402 response
 const paymentRequired = await response.json();

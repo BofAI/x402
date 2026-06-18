@@ -3,7 +3,7 @@ import express from "express";
 import type { Server } from "node:http";
 import http from "node:http";
 import type { AddressInfo } from "node:net";
-import { x402ResourceServer } from "@x402/core/server";
+import { x402ResourceServer } from "@bankofai/x402-core/server";
 import { paymentMiddleware } from "./index";
 
 /**
@@ -100,10 +100,10 @@ describe("express end-to-end: fallback paywall HTML does not reflect attacker in
     expect(body).not.toContain("data-requirements");
   });
 
-  it("still tells the developer to install @x402/paywall", async () => {
+  it("still tells the developer to install @bankofai/x402-paywall", async () => {
     const body = await fetchHtml(port, "/api/protected");
 
-    expect(body).toContain("@x402/paywall");
+    expect(body).toContain("@bankofai/x402-paywall");
     expect(body).toMatch(/Payment Required/);
   });
 });

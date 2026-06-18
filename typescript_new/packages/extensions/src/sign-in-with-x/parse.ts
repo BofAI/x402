@@ -5,7 +5,7 @@
  * Requires base64-encoded JSON per x402 v2 spec.
  */
 
-import { Base64EncodedRegex, safeBase64Decode } from "@x402/core/utils";
+import { Base64EncodedRegex, safeBase64Decode } from "@bankofai/x402-core/utils";
 import { SIWxPayloadSchema, type SIWxPayload } from "./types";
 
 /**

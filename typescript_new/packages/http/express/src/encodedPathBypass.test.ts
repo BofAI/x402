@@ -3,7 +3,7 @@ import express from "express";
 import type { Server } from "node:http";
 import http from "node:http";
 import type { AddressInfo } from "node:net";
-import { x402ResourceServer } from "@x402/core/server";
+import { x402ResourceServer } from "@bankofai/x402-core/server";
 import { paymentMiddleware } from "./index";
 
 /**

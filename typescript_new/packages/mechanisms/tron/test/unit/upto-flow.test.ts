@@ -14,7 +14,7 @@ import { privateKeyTronWallet } from "./helpers";
 import { uptoPermit2WitnessTypes, X402_UPTO_PERMIT2_PROXY_ADDRESSES } from "../../src/constants";
 import { normalizeAddressForSigning } from "../../src/utils";
 import type { UptoPermit2Payload } from "../../src/types";
-import type { PaymentPayload, PaymentRequirements } from "@x402/core/types";
+import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
 
 /**
  * In-process integration tests for the TRON `upto` scheme (no HTTP).

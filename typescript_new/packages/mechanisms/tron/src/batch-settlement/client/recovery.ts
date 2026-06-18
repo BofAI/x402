@@ -1,4 +1,4 @@
-import type { PaymentRequired, PaymentRequirements } from "@x402/core/types";
+import type { PaymentRequired, PaymentRequirements } from "@bankofai/x402-core/types";
 import { normalizeAddressForSigning } from "../../utils";
 import { BATCH_SETTLEMENT_SCHEME, voucherTypes } from "../../shared/batch-settlement/constants";
 import {

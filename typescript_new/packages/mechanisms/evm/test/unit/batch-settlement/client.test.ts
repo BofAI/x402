@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { privateKeyToAccount } from "viem/accounts";
 import { getAddress } from "viem";
-import { x402HTTPClient } from "@x402/core/client";
+import { x402HTTPClient } from "@bankofai/x402-core/client";
 import { BatchSettlementEvmScheme } from "../../../src/batch-settlement/client/scheme";
 import {
   type BatchSettlementClientDeps,
@@ -28,7 +28,7 @@ import type {
   PaymentRequirements,
   SettleResponse,
   PaymentRequired,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import * as Errors from "../../../src/batch-settlement/errors";
 
 const PAYER_PRIVATE_KEY = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
@@ -943,7 +943,7 @@ describe("BatchSettlementEvmScheme — refund()", () => {
   }
 
   async function probe402Response(): Promise<Response> {
-    const { encodePaymentRequiredHeader } = await import("@x402/core/http");
+    const { encodePaymentRequiredHeader } = await import("@bankofai/x402-core/http");
     const reqs = buildRefundRequirements();
     const header = encodePaymentRequiredHeader({
       x402Version: 2,
@@ -956,7 +956,7 @@ describe("BatchSettlementEvmScheme — refund()", () => {
     extra: Record<string, unknown>,
     amount?: string,
   ): Promise<Response> {
-    const { encodePaymentResponseHeader } = await import("@x402/core/http");
+    const { encodePaymentResponseHeader } = await import("@bankofai/x402-core/http");
     const settle: SettleResponse = {
       success: true,
       transaction: "0xtx",
@@ -1014,7 +1014,7 @@ describe("BatchSettlementEvmScheme — refund()", () => {
     });
     expect(processSpy).toHaveBeenCalledTimes(1);
     expect(capturedSig).toBeTruthy();
-    const { decodePaymentSignatureHeader } = await import("@x402/core/http");
+    const { decodePaymentSignatureHeader } = await import("@bankofai/x402-core/http");
     const sentPayload = decodePaymentSignatureHeader(capturedSig!);
     expect(sentPayload.payload.type).toBe("refund");
     expect(sentPayload.accepted).toEqual(buildRefundRequirements());
@@ -1080,7 +1080,7 @@ describe("BatchSettlementEvmScheme — refund()", () => {
     const config = buildChannelConfig(makeDeps({ signer }), buildRefundRequirements());
     const channelId = computeChannelId(config);
 
-    const { encodePaymentRequiredHeader } = await import("@x402/core/http");
+    const { encodePaymentRequiredHeader } = await import("@bankofai/x402-core/http");
     const correctiveHeader = encodePaymentRequiredHeader({
       x402Version: 2,
       error: Errors.ErrCumulativeAmountBelowClaimed,
@@ -1125,7 +1125,7 @@ describe("BatchSettlementEvmScheme — refund()", () => {
       totalClaimed: "0",
     });
 
-    const { encodePaymentResponseHeader } = await import("@x402/core/http");
+    const { encodePaymentResponseHeader } = await import("@bankofai/x402-core/http");
     const failureSettle: SettleResponse = {
       success: false,
       transaction: "",
@@ -1160,7 +1160,7 @@ describe("BatchSettlementEvmScheme — refund()", () => {
       totalClaimed: "0",
     });
 
-    const { encodePaymentRequiredHeader } = await import("@x402/core/http");
+    const { encodePaymentRequiredHeader } = await import("@bankofai/x402-core/http");
     const requiredHeader = encodePaymentRequiredHeader({
       x402Version: 2,
       error: Errors.ErrRefundNoBalance,
@@ -1206,7 +1206,7 @@ describe("BatchSettlementEvmScheme — refund()", () => {
     const signer = buildSigner(PAYER_PRIVATE_KEY);
     const client = new BatchSettlementEvmScheme(signer);
 
-    const { encodePaymentRequiredHeader } = await import("@x402/core/http");
+    const { encodePaymentRequiredHeader } = await import("@bankofai/x402-core/http");
     const reqs = makeRequirements({ extra: { name: "USDC", version: "2", withdrawDelay: 900 } });
     const header = encodePaymentRequiredHeader({
       x402Version: 2,

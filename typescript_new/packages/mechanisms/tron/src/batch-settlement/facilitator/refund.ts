@@ -1,4 +1,4 @@
-import { SettleResponse, PaymentRequirements } from "@x402/core/types";
+import { SettleResponse, PaymentRequirements } from "@bankofai/x402-core/types";
 import { FacilitatorTronSigner } from "../../signer";
 import { normalizeAddressForSigning } from "../../utils";
 import type {

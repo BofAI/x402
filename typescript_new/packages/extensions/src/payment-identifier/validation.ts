@@ -3,7 +3,7 @@
  */
 
 import Ajv from "ajv/dist/2020.js";
-import type { PaymentPayload } from "@x402/core/types";
+import type { PaymentPayload } from "@bankofai/x402-core/types";
 import type { PaymentIdentifierExtension, PaymentIdentifierInfo } from "./types";
 import { PAYMENT_IDENTIFIER } from "./types";
 import { paymentIdentifierSchema } from "./schema";

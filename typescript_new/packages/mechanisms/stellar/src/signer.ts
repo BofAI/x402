@@ -2,7 +2,7 @@ import { Keypair } from "@stellar/stellar-sdk";
 import { basicNodeSigner, SignAuthEntry, SignTransaction } from "@stellar/stellar-sdk/contract";
 import { STELLAR_TESTNET_CAIP2 } from "./constants";
 import { getNetworkPassphrase } from "./utils";
-import type { Network } from "@x402/core/types";
+import type { Network } from "@bankofai/x402-core/types";
 
 /**
  * Ed25519 signer for Stellar transactions and auth entries.

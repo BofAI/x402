@@ -93,7 +93,7 @@ export default function RootLayout({
         var info = {
           overview: "x402 is an open standard for internet-native payments using HTTP 402. It enables agents and services to pay for API access instantly with stablecoins. Zero fees, zero friction, zero centralization.",
           "how-it-works": "1. Client sends HTTP request. 2. Server responds with 402 Payment Required including price and payment details. 3. Client pays with stablecoins. 4. Client retries with payment proof. 5. Server verifies and grants access.",
-          integration: "Install @x402/express or @x402/next, add paymentMiddleware to your server with endpoint pricing config. Supports Base, Ethereum, Arbitrum, and Solana networks with USDC.",
+          integration: "Install @bankofai/x402-express or @bankofai/x402-next, add paymentMiddleware to your server with endpoint pricing config. Supports Base, Ethereum, Arbitrum, and Solana networks with USDC.",
           ecosystem: "x402 has 250+ ecosystem partners including facilitators, wallets, and API providers. Visit x402.org/ecosystem to explore."
         };
         return Promise.resolve({ result: info[inputs.topic] || info.overview });

@@ -20,7 +20,7 @@ import type {
   SchemeNetworkFacilitator,
   SettleResponse,
   VerifyResponse,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import type { FacilitatorAvmSigner } from "../../signer";
 import type { ExactAvmPayloadV2 } from "../../types";
 import { isExactAvmPayload } from "../../types";

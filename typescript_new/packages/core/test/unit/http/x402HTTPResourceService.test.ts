@@ -1272,10 +1272,10 @@ describe("x402HTTPResourceServer", () => {
       expect(html).not.toContain("data-requirements");
     });
 
-    it("still tells the developer to install @x402/paywall", async () => {
+    it("still tells the developer to install @bankofai/x402-paywall", async () => {
       const html = await renderFallbackPaywallFor("");
 
-      expect(html).toContain("@x402/paywall");
+      expect(html).toContain("@bankofai/x402-paywall");
       expect(html).toMatch(/Payment Required/);
     });
   });

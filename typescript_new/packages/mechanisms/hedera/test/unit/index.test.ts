@@ -10,7 +10,7 @@ import { ExactHederaScheme as ExactHederaClient } from "../../src/exact/client/s
 import { ExactHederaScheme as ExactHederaServer } from "../../src/exact/server/scheme";
 import { ExactHederaScheme as ExactHederaFacilitator } from "../../src/exact/facilitator/scheme";
 
-describe("@x402/hedera", () => {
+describe("@bankofai/x402-hedera", () => {
   it("exports expected constants", () => {
     expect(HEDERA_MAINNET_CAIP2).toBe("hedera:mainnet");
     expect(HEDERA_TESTNET_CAIP2).toBe("hedera:testnet");

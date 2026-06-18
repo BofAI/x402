@@ -1,4 +1,4 @@
-import { PaymentRequirements, VerifyResponse } from "@x402/core/types";
+import { PaymentRequirements, VerifyResponse } from "@bankofai/x402-core/types";
 import { getAddress, parseErc6492Signature } from "viem";
 import { FacilitatorEvmSigner } from "../../signer";
 import { BatchSettlementDepositPayload } from "../types";

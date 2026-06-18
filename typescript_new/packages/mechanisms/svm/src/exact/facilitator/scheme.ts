@@ -23,7 +23,7 @@ import type {
   SchemeNetworkFacilitator,
   SettleResponse,
   VerifyResponse,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import {
   LIGHTHOUSE_PROGRAM_ADDRESS,
   MAX_COMPUTE_UNIT_PRICE_MICROLAMPORTS,

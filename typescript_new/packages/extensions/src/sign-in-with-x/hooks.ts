@@ -7,8 +7,8 @@
 import type { SIWxStorage } from "./storage";
 import type { SIWxExtension, SIWxVerifyOptions, SignatureType } from "./types";
 import type { SIWxSigner } from "./sign";
-import type { ClientExtension } from "@x402/core/client";
-import type { PaymentRequiredContext } from "@x402/core/http";
+import type { ClientExtension } from "@bankofai/x402-core/client";
+import type { PaymentRequiredContext } from "@bankofai/x402-core/http";
 import { SIGN_IN_WITH_X } from "./types";
 import { parseSIWxHeader } from "./parse";
 import { validateSIWxMessage } from "./validate";

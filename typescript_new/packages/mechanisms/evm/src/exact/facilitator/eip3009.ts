@@ -4,7 +4,7 @@ import {
   FacilitatorContext,
   SettleResponse,
   VerifyResponse,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import { getAddress, Hex, isAddressEqual, parseErc6492Signature } from "viem";
 import { authorizationTypes } from "../../constants";
 import { FacilitatorEvmSigner } from "../../signer";

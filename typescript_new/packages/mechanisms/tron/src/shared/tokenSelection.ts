@@ -1,5 +1,5 @@
-import type { PaymentRequirements } from "@x402/core/types";
-import type { SelectPaymentRequirements } from "@x402/core/client";
+import type { PaymentRequirements } from "@bankofai/x402-core/types";
+import type { SelectPaymentRequirements } from "@bankofai/x402-core/client";
 import { getDecimals } from "./tokens";
 
 /**
@@ -7,7 +7,7 @@ import { getDecimals } from "./tokens";
  *
  * All supported tokens are stablecoins, so selection normalizes raw amounts by
  * token decimals to compare real value (lower is cheaper for the payer). This
- * lives in `@x402/tron` (not core) because decimals come from the TRON token
+ * lives in `@bankofai/x402-tron` (not core) because decimals come from the TRON token
  * registry — core stays chain-agnostic.
  */
 export interface TokenSelectionStrategy {

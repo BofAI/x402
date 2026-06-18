@@ -1,4 +1,4 @@
-import type { PaymentRequired, PaymentRequirements } from "@x402/core/types";
+import type { PaymentRequired, PaymentRequirements } from "@bankofai/x402-core/types";
 import { getAddress, recoverTypedDataAddress } from "viem";
 import { BATCH_SETTLEMENT_SCHEME, voucherTypes } from "../constants";
 import type { BatchSettlementClientContext } from "./storage";

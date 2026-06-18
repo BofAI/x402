@@ -14,7 +14,7 @@
  * ### For Services (Resource Servers)
  *
  * ```typescript
- * import { declareBuilderCodeExtension, BUILDER_CODE } from '@x402/extensions/builder-code';
+ * import { declareBuilderCodeExtension, BUILDER_CODE } from '@bankofai/x402-extensions/builder-code';
  *
  * extensions: {
  *   [BUILDER_CODE]: declareBuilderCodeExtension("bc_my_service"),
@@ -24,7 +24,7 @@
  * ### For Clients
  *
  * ```typescript
- * import { BuilderCodeClientExtension } from '@x402/extensions/builder-code';
+ * import { BuilderCodeClientExtension } from '@bankofai/x402-extensions/builder-code';
  *
  * client.registerExtension(new BuilderCodeClientExtension("bc_my_client"));
  * ```
@@ -32,7 +32,7 @@
  * ### For Facilitators
  *
  * ```typescript
- * import { BuilderCodeFacilitatorExtension } from '@x402/extensions/builder-code';
+ * import { BuilderCodeFacilitatorExtension } from '@bankofai/x402-extensions/builder-code';
  *
  * facilitator.registerExtension(new BuilderCodeFacilitatorExtension({
  *   builderCode: "bc_my_facilitator", // optional

@@ -1,4 +1,4 @@
-import { PaymentRequirements, VerifyResponse } from "@x402/core/types";
+import { PaymentRequirements, VerifyResponse } from "@bankofai/x402-core/types";
 import { FacilitatorTronSigner } from "../../signer";
 import { PERMIT2_ADDRESSES, erc20AllowanceAbi } from "../../constants";
 import { getTronChainId, normalizeAddressForSigning } from "../../utils";

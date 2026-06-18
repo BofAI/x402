@@ -1,4 +1,4 @@
-import type { Network } from "@x402/core/types";
+import type { Network } from "@bankofai/x402-core/types";
 import { findByAddress } from "./tokens";
 
 /**

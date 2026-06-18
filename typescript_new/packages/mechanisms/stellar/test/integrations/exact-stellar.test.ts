@@ -1,12 +1,12 @@
-import { x402Client, x402HTTPClient } from "@x402/core/client";
-import { x402Facilitator } from "@x402/core/facilitator";
+import { x402Client, x402HTTPClient } from "@bankofai/x402-core/client";
+import { x402Facilitator } from "@bankofai/x402-core/facilitator";
 import {
   HTTPAdapter,
   HTTPResponseInstructions,
   x402HTTPResourceServer,
   x402ResourceServer,
   FacilitatorClient,
-} from "@x402/core/server";
+} from "@bankofai/x402-core/server";
 import {
   AssetAmount,
   Network,
@@ -15,7 +15,7 @@ import {
   VerifyResponse,
   SettleResponse,
   SupportedResponse,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createEd25519Signer, Ed25519Signer, STELLAR_TESTNET_CAIP2 } from "../../src";
 import { ExactStellarScheme as ExactStellarClient } from "../../src/exact/client";

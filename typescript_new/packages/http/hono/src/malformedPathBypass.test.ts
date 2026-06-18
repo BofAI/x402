@@ -5,7 +5,7 @@ import {
   x402HTTPResourceServer,
   x402ResourceServer,
   type HTTPRequestContext,
-} from "@x402/core/server";
+} from "@bankofai/x402-core/server";
 
 /**
  * Creates a mock Hono context for testing

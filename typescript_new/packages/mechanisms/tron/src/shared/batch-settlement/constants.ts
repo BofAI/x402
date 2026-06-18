@@ -5,7 +5,7 @@
  * contract: its EIP-712 domain (`name = "x402 Batch Settlement"`, `version = "1"`)
  * and `CHANNEL_CONFIG_TYPEHASH` were verified on-chain to match the EVM constants
  * exactly. Only the per-network `verifyingContract` address and `chainId` differ,
- * so the typed-data structures below are copied verbatim from `@x402/evm`.
+ * so the typed-data structures below are copied verbatim from `@bankofai/x402-evm`.
  */
 
 /** Scheme identifier for the batch-settlement payment scheme. */

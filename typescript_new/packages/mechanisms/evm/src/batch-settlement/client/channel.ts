@@ -1,5 +1,5 @@
-import { decodePaymentResponseHeader } from "@x402/core/http";
-import type { PaymentRequirements, SettleResponse } from "@x402/core/types";
+import { decodePaymentResponseHeader } from "@bankofai/x402-core/http";
+import type { PaymentRequirements, SettleResponse } from "@bankofai/x402-core/types";
 import { getAddress } from "viem";
 import type { ClientEvmSigner } from "../../signer";
 import { batchSettlementABI } from "../abi";

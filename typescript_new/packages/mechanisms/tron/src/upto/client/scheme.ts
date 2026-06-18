@@ -3,7 +3,7 @@ import {
   SchemeNetworkClient,
   PaymentPayloadResult,
   PaymentPayloadContext,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import { ClientTronSigner } from "../../signer";
 import { transferWithAuthorizationABI } from "../../constants";
 import { createUptoPermit2Payload } from "./permit2";

@@ -1,11 +1,11 @@
-# @x402/hedera
+# @bankofai/x402-hedera
 
 Hedera implementation of the x402 `exact` payment scheme (v2).
 
 ## Installation
 
 ```bash
-pnpm add @x402/hedera
+pnpm add @bankofai/x402-hedera
 ```
 
 ## Features
@@ -21,9 +21,9 @@ pnpm add @x402/hedera
 ### Client
 
 ```ts
-import { x402Client } from "@x402/core/client";
-import { createClientHederaSigner } from "@x402/hedera";
-import { ExactHederaScheme } from "@x402/hedera/exact/client";
+import { x402Client } from "@bankofai/x402-core/client";
+import { createClientHederaSigner } from "@bankofai/x402-hedera";
+import { ExactHederaScheme } from "@bankofai/x402-hedera/exact/client";
 import { PrivateKey } from "@hiero-ledger/sdk";
 
 const signer = createClientHederaSigner(
@@ -40,8 +40,8 @@ const client = new x402Client().register("hedera:*", new ExactHederaScheme(signe
 ### Server
 
 ```ts
-import { x402ResourceServer } from "@x402/core/server";
-import { ExactHederaScheme } from "@x402/hedera/exact/server";
+import { x402ResourceServer } from "@bankofai/x402-core/server";
+import { ExactHederaScheme } from "@bankofai/x402-hedera/exact/server";
 
 const server = new x402ResourceServer(facilitatorClient);
 server.register(
@@ -58,8 +58,8 @@ server.register(
 ### Facilitator
 
 ```ts
-import { x402Facilitator } from "@x402/core/facilitator";
-import { ExactHederaScheme } from "@x402/hedera/exact/facilitator";
+import { x402Facilitator } from "@bankofai/x402-core/facilitator";
+import { ExactHederaScheme } from "@bankofai/x402-hedera/exact/facilitator";
 
 const facilitatorSigner = {
   getAddresses: () => ["0.0.5001"],
@@ -90,16 +90,16 @@ This package re-exports a curated subset of `@hiero-ledger/sdk` primitives
 (`AccountBalanceQuery`, `AccountId`, `AccountInfoQuery`, `Client`, `Hbar`,
 `PrivateKey`, `TokenAssociateTransaction`, `TokenId`, `Transaction`,
 `TransactionId`, `TransferTransaction`) so that a consuming application
-always resolves a single SDK instance through `@x402/hedera`, even when it
-lives in a sibling workspace from the one where `@x402/hedera` itself was
-installed. Importing `@hiero-ledger/sdk` directly alongside `@x402/hedera`
+always resolves a single SDK instance through `@bankofai/x402-hedera`, even when it
+lives in a sibling workspace from the one where `@bankofai/x402-hedera` itself was
+installed. Importing `@hiero-ledger/sdk` directly alongside `@bankofai/x402-hedera`
 in such setups yields duplicate on-disk installs — the SDK's internal
 string-brand / `instanceof` checks then throw `t.startsWith is not a
 function` at runtime.
 
 The re-exports are pinned to the `@hiero-ledger/sdk` version declared in
 this package's `dependencies`. Consuming the re-exported symbols couples
-your application to that version until `@x402/hedera` bumps its pin; a
+your application to that version until `@bankofai/x402-hedera` bumps its pin; a
 major SDK bump is treated as a breaking change in this package.
 
 ## Testnet Faucet
@@ -126,7 +126,7 @@ The Hedera portal does not expose token association, so use the Hiero SDK
 directly:
 
 ```ts
-import { AccountId, Client, PrivateKey, TokenAssociateTransaction, TokenId } from "@x402/hedera";
+import { AccountId, Client, PrivateKey, TokenAssociateTransaction, TokenId } from "@bankofai/x402-hedera";
 
 const client = Client.forTestnet().setOperator(
   AccountId.fromString(accountId),

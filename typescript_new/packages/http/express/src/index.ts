@@ -11,8 +11,8 @@ import {
   SETTLEMENT_OVERRIDES_HEADER,
   SettlementOverrides,
   checkIfBazaarNeeded,
-} from "@x402/core/server";
-import { SchemeNetworkServer, Network } from "@x402/core/types";
+} from "@bankofai/x402-core/server";
+import { SchemeNetworkServer, Network } from "@bankofai/x402-core/types";
 import { NextFunction, Request, Response } from "express";
 import { ExpressAdapter } from "./adapter";
 
@@ -65,7 +65,7 @@ function sendFacilitatorError(res: Response, error: FacilitatorResponseError): v
  *
  * @example
  * ```typescript
- * import { paymentMiddlewareFromHTTPServer, x402ResourceServer, x402HTTPResourceServer } from "@x402/express";
+ * import { paymentMiddlewareFromHTTPServer, x402ResourceServer, x402HTTPResourceServer } from "@bankofai/x402-express";
  *
  * const resourceServer = new x402ResourceServer(facilitatorClient)
  *   .register(NETWORK, new ExactEvmScheme())
@@ -116,14 +116,14 @@ export function paymentMiddlewareFromHTTPServer(
   let bazaarPromise: Promise<void> | null = null;
   if (checkIfBazaarNeeded(httpServer.routes)) {
     if (!httpServer.server.hasExtension("bazaar")) {
-      bazaarPromise = import("@x402/extensions/bazaar").then(
+      bazaarPromise = import("@bankofai/x402-extensions/bazaar").then(
         ({ bazaarResourceServerExtension }) => {
           httpServer.server.registerExtension(bazaarResourceServerExtension);
         },
       );
     }
     bazaarPromise = (bazaarPromise ?? Promise.resolve())
-      .then(() => import("@x402/extensions/bazaar"))
+      .then(() => import("@bankofai/x402-extensions/bazaar"))
       .then(({ validateBazaarRouteExtensions }) => {
         validateBazaarRouteExtensions(httpServer.routes);
       })
@@ -392,7 +392,7 @@ export function paymentMiddlewareFromHTTPServer(
  *
  * @example
  * ```typescript
- * import { paymentMiddleware } from "@x402/express";
+ * import { paymentMiddleware } from "@bankofai/x402-express";
  *
  * const server = new x402ResourceServer(myFacilitatorClient)
  *   .register(NETWORK, new ExactEvmScheme());
@@ -434,7 +434,7 @@ export function paymentMiddleware(
  *
  * @example
  * ```typescript
- * import { paymentMiddlewareFromConfig } from "@x402/express";
+ * import { paymentMiddlewareFromConfig } from "@bankofai/x402-express";
  *
  * app.use(paymentMiddlewareFromConfig(
  *   routes,
@@ -465,7 +465,7 @@ export function paymentMiddlewareFromConfig(
   return paymentMiddleware(routes, ResourceServer, paywallConfig, paywall, syncFacilitatorOnStart);
 }
 
-export { x402ResourceServer, x402HTTPResourceServer } from "@x402/core/server";
+export { x402ResourceServer, x402HTTPResourceServer } from "@bankofai/x402-core/server";
 
 export type {
   PaymentRequired,
@@ -473,12 +473,12 @@ export type {
   PaymentPayload,
   Network,
   SchemeNetworkServer,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 
-export type { PaywallProvider, PaywallConfig, SettlementOverrides } from "@x402/core/server";
+export type { PaywallProvider, PaywallConfig, SettlementOverrides } from "@bankofai/x402-core/server";
 
-export { RouteConfigurationError, SETTLEMENT_OVERRIDES_HEADER } from "@x402/core/server";
+export { RouteConfigurationError, SETTLEMENT_OVERRIDES_HEADER } from "@bankofai/x402-core/server";
 
-export type { RouteValidationError } from "@x402/core/server";
+export type { RouteValidationError } from "@bankofai/x402-core/server";
 
 export { ExpressAdapter } from "./adapter";

@@ -6,7 +6,7 @@
  * the client payment payload extensions.
  */
 
-import type { FacilitatorExtension } from "@x402/core/types";
+import type { FacilitatorExtension } from "@bankofai/x402-core/types";
 import type { Hex } from "viem";
 import { encodeBuilderCodeSuffix } from "./cbor";
 import {
@@ -50,7 +50,7 @@ function resolveServiceCodes(raw: unknown): string[] {
  *
  * @example
  * ```typescript
- * import { BuilderCodeFacilitatorExtension } from '@x402/extensions/builder-code';
+ * import { BuilderCodeFacilitatorExtension } from '@bankofai/x402-extensions/builder-code';
  *
  * const facilitator = new x402Facilitator();
  * facilitator.registerExtension(new BuilderCodeFacilitatorExtension({

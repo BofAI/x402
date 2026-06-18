@@ -5,8 +5,8 @@ import type {
   Price,
   SchemeNetworkServer,
   MoneyParser,
-} from "@x402/core/types";
-import { parseMoneyString } from "@x402/core/utils";
+} from "@bankofai/x402-core/types";
+import { parseMoneyString } from "@bankofai/x402-core/utils";
 import { convertToTokenAmount, getUsdcAddress, numberToDecimalString } from "../../utils";
 
 /**

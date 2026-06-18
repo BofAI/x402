@@ -1,4 +1,4 @@
-import type { AssetAmount, Network } from "@x402/core/types";
+import type { AssetAmount, Network } from "@bankofai/x402-core/types";
 
 /**
  * Token registry for TRON networks.

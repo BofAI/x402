@@ -5,8 +5,8 @@ import {
   Price,
   SchemeNetworkServer,
   MoneyParser,
-} from "@x402/core/types";
-import { convertToTokenAmount, numberToDecimalString, parseMoneyString } from "@x402/core/utils";
+} from "@bankofai/x402-core/types";
+import { convertToTokenAmount, numberToDecimalString, parseMoneyString } from "@bankofai/x402-core/utils";
 import { getAddress } from "viem";
 import { getDefaultAsset } from "../../shared/defaultAssets";
 

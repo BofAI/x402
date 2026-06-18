@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { COMPUTE_BUDGET_PROGRAM_ADDRESS } from "@solana-program/compute-budget";
 import { ExactSvmSchemeV1 } from "../../../src/exact/v1/facilitator/scheme";
 import type { FacilitatorSvmSigner } from "../../../src/signer";
-import type { PaymentRequirementsV1 } from "@x402/core/types/v1";
-import type { PaymentPayloadV1 } from "@x402/core/types/v1";
+import type { PaymentRequirementsV1 } from "@bankofai/x402-core/types/v1";
+import type { PaymentPayloadV1 } from "@bankofai/x402-core/types/v1";
 import { USDC_DEVNET_ADDRESS, MAX_COMPUTE_UNIT_PRICE_MICROLAMPORTS } from "../../../src/constants";
 import * as svmUtils from "../../../src/utils";
 

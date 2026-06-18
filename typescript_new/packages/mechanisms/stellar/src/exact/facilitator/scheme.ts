@@ -27,7 +27,7 @@ import type {
   SchemeNetworkFacilitator,
   SettleResponse,
   VerifyResponse,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 
 const DEFAULT_TIMEOUT_SECONDS = 60;
 const SUPPORTED_X402_VERSION = 2;

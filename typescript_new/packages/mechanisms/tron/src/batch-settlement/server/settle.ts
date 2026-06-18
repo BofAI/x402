@@ -1,5 +1,5 @@
-import type { SettleResponse } from "@x402/core/types";
-import type { SettleContext, SettleFailureContext, SettleResultContext } from "@x402/core/server";
+import type { SettleResponse } from "@bankofai/x402-core/types";
+import type { SettleContext, SettleFailureContext, SettleResultContext } from "@bankofai/x402-core/server";
 import { signClaimBatch, signRefund } from "../../shared/batch-settlement/authorizerSigner";
 import {
   isBatchSettlementDepositPayload,

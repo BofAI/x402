@@ -190,7 +190,7 @@ export default function X402V2LaunchPage() {
               </p>
               <p className="text-base leading-relaxed text-gray-70 font-medium">Key upgrades:</p>
               <ul className="list-disc pl-5 space-y-2 text-base leading-relaxed text-gray-70">
-                <li><strong>Modular Paywall Package</strong>: The paywall has been completely overhauled and extracted into a dedicated, modular package: <code className="bg-green-100 px-1 rounded">@x402/paywall</code>. This allows developers to easily contribute new payment backends and create custom paywall variations (with built-in support for EVM and Solana).</li>
+                <li><strong>Modular Paywall Package</strong>: The paywall has been completely overhauled and extracted into a dedicated, modular package: <code className="bg-green-100 px-1 rounded">@bankofai/x402-paywall</code>. This allows developers to easily contribute new payment backends and create custom paywall variations (with built-in support for EVM and Solana).</li>
                 <li><strong>Foundation for Reusable Access</strong>: The V2 protocol now includes the logic to support wallet-controlled sessions or other forms of identity, allowing clients to <strong>skip the full payment flow</strong> and the need for <strong>onchain interactions for repeated access</strong> if the resource was previously purchased.</li>
                 <li><strong>Enables Subscription and Session Patterns</strong>: This architecture makes subscription-like or session-based access patterns possible for both human users and autonomous agents.</li>
               </ul>

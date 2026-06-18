@@ -1,7 +1,7 @@
 /**
  * @file Payload and state types for the TRON batch-settlement scheme.
  *
- * Ported from `@x402/evm`; address fields are widened to `string` so callers may
+ * Ported from `@bankofai/x402-evm`; address fields are widened to `string` so callers may
  * pass TRON Base58Check or EVM hex. Hashing/signing normalizes to hex internally.
  */
 

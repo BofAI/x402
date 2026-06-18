@@ -1,4 +1,4 @@
-import type { PaymentPayload } from "@x402/core/types";
+import type { PaymentPayload } from "@bankofai/x402-core/types";
 import type { FacilitatorEvmSigner } from "../signer";
 
 export const EIP2612_GAS_SPONSORING_KEY = "eip2612GasSponsoring" as const;

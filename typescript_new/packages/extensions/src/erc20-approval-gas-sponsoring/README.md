@@ -1,6 +1,6 @@
 # ERC-20 approval gas sponsoring extension
 
-Part of [`@x402/extensions`](../README.md). **Import from the package root:** `import { ... } from "@x402/extensions"` (this module is not a separate npm export subpath).
+Part of [`@bankofai/x402-extensions`](../README.md). **Import from the package root:** `import { ... } from "@bankofai/x402-extensions"` (this module is not a separate npm export subpath).
 
 For **Permit2** payments on tokens that **do not** implement [EIP-2612](https://eips.ethereum.org/EIPS/eip-2612), the payer can sign a raw **`approve(Permit2, …)`** transaction off-chain. The facilitator broadcasts that approval, then settles the Permit2 payment (payer pays no gas for the approval).
 
@@ -10,12 +10,12 @@ If the token supports EIP-2612, prefer [EIP-2612 gas sponsoring](../eip2612-gas-
 
 1. **Resource server** advertises `erc20ApprovalGasSponsoring` in `PaymentRequired.extensions` (with `assetTransferMethod: "permit2"`). Omitting EIP-2612 `name` / `version` from token `extra` steers clients away from the EIP-2612 path when both extensions exist (see [Extension priority](../../../mechanisms/evm/src/exact/README.md#extension-priority)).
 2. **Client** builds the normal Permit2 payload. If EIP-2612 is not used and allowance is insufficient, **`ExactEvmScheme`** / **`UptoEvmScheme`** attach `paymentPayload.extensions.erc20ApprovalGasSponsoring` with a **serialized signed approve tx** when the server advertised the extension and the signer supports **`readContract`**, **`signTransaction`**, and **`getTransactionCount`** (see [`extensions.ts`](../../../mechanisms/evm/src/shared/extensions.ts)).
-3. **Facilitator** uses `@x402/evm` facilitators plus **`createErc20ApprovalGasSponsoringExtension(signer)`**: the extension supplies a signer with **`sendTransactions`** to broadcast the client’s raw tx before **`settle()`**.
+3. **Facilitator** uses `@bankofai/x402-evm` facilitators plus **`createErc20ApprovalGasSponsoringExtension(signer)`**: the extension supplies a signer with **`sendTransactions`** to broadcast the client’s raw tx before **`settle()`**.
 
 ## Resource server
 
 ```typescript
-import { declareErc20ApprovalGasSponsoringExtension } from "@x402/extensions";
+import { declareErc20ApprovalGasSponsoringExtension } from "@bankofai/x402-extensions";
 
 // Permit2 route — typically structured price + extra.assetTransferMethod
 extensions: {
@@ -29,11 +29,11 @@ See [Exact EVM README — ERC-20 approval gas sponsoring](../../../mechanisms/ev
 
 **You do not manually add this extension** when using **`ExactEvmScheme`** / **`UptoEvmScheme`**: the scheme appends `extensions.erc20ApprovalGasSponsoring.info` (including `signedTransaction`) when the server advertised the extension, EIP-2612 signing was skipped or unavailable, allowance is low, and the signer exposes the transaction-signing hooks listed above.
 
-Custom clients must reproduce the same payload shape if not using `@x402/evm`.
+Custom clients must reproduce the same payload shape if not using `@bankofai/x402-evm`.
 
 ## Facilitator
 
-### Typical stack (`@x402/core` + `@x402/evm`)
+### Typical stack (`@bankofai/x402-core` + `@bankofai/x402-evm`)
 
 The exact/upto **Permit2 facilitator** already reads `erc20ApprovalGasSponsoring` from the payment payload and broadcasts the approval when registered with a capable extension—see [`permit2.ts`](../../../mechanisms/evm/src/exact/facilitator/permit2.ts).
 
@@ -42,9 +42,9 @@ Register **`createErc20ApprovalGasSponsoringExtension`** with a facilitator EVM 
 - [examples/typescript/facilitator/advanced/gas_extensions.ts](../../../../../examples/typescript/facilitator/advanced/gas_extensions.ts)
 
 ```typescript
-import { x402Facilitator } from "@x402/core/facilitator";
-import { ExactEvmScheme } from "@x402/evm/exact/facilitator";
-import { createErc20ApprovalGasSponsoringExtension } from "@x402/extensions";
+import { x402Facilitator } from "@bankofai/x402-core/facilitator";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/facilitator";
+import { createErc20ApprovalGasSponsoringExtension } from "@bankofai/x402-extensions";
 
 const erc20ApprovalSigner = {
   ...evmSigner,
@@ -62,7 +62,7 @@ Gas for the approval broadcast and for settlement is paid from the facilitator�
 
 ### Custom facilitator code
 
-If you implement settlement yourself, use **`extractErc20ApprovalGasSponsoringInfo`** and **`validateErc20ApprovalGasSponsoringInfo`** from `@x402/extensions` to parse and validate the client payload before you broadcast `signedTransaction` and invoke your Permit2 settle path.
+If you implement settlement yourself, use **`extractErc20ApprovalGasSponsoringInfo`** and **`validateErc20ApprovalGasSponsoringInfo`** from `@bankofai/x402-extensions` to parse and validate the client payload before you broadcast `signedTransaction` and invoke your Permit2 settle path.
 
 ## Related exports
 

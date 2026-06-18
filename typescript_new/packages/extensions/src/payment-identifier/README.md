@@ -1,6 +1,6 @@
 # Payment-Identifier extension
 
-Part of [`@x402/extensions`](../README.md). Import from `@x402/extensions/payment-identifier`.
+Part of [`@bankofai/x402-extensions`](../README.md). Import from `@bankofai/x402-extensions/payment-identifier`.
 
 For x402 v2, this extension lets clients attach an idempotency key (`id`) on `PaymentPayload.extensions` so resource servers and facilitators can deduplicate payment attempts.
 
@@ -10,7 +10,7 @@ For x402 v2, this extension lets clients attach an idempotency key (`id`) on `Pa
 import {
   declarePaymentIdentifierExtension,
   PAYMENT_IDENTIFIER,
-} from "@x402/extensions/payment-identifier";
+} from "@bankofai/x402-extensions/payment-identifier";
 
 // Advertise support in PaymentRequired response (optional identifier)
 const paymentRequired = {
@@ -36,7 +36,7 @@ const paymentRequiredStrict = {
 ## For clients
 
 ```typescript
-import { appendPaymentIdentifierToExtensions } from "@x402/extensions/payment-identifier";
+import { appendPaymentIdentifierToExtensions } from "@bankofai/x402-extensions/payment-identifier";
 
 // Get extensions from server's PaymentRequired response
 const extensions = { ...paymentRequired.extensions };
@@ -57,7 +57,7 @@ const paymentPayload = {
 ## For idempotency implementation
 
 ```typescript
-import { extractPaymentIdentifier } from "@x402/extensions/payment-identifier";
+import { extractPaymentIdentifier } from "@bankofai/x402-extensions/payment-identifier";
 
 // In your settle handler
 const id = extractPaymentIdentifier(paymentPayload);

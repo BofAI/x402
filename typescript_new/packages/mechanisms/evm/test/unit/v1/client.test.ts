@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ExactEvmSchemeV1 } from "../../../src/exact/v1";
 import type { ClientEvmSigner } from "../../../src/signer";
-import type { PaymentRequirementsV1 } from "@x402/core/types/v1";
+import type { PaymentRequirementsV1 } from "@bankofai/x402-core/types/v1";
 
 describe("ExactEvmSchemeV1", () => {
   let mockSigner: ClientEvmSigner;

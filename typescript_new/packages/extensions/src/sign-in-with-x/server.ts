@@ -6,7 +6,7 @@
  * that declare the sign-in-with-x extension.
  */
 
-import type { ResourceServerExtension, PaymentRequiredContext } from "@x402/core/types";
+import type { ResourceServerExtension, PaymentRequiredContext } from "@bankofai/x402-core/types";
 import type { SIWxExtension, SIWxExtensionInfo, SupportedChain, DeclareSIWxOptions } from "./types";
 import { SIGN_IN_WITH_X } from "./types";
 import { getSignatureType, type SIWxDeclaration } from "./declare";

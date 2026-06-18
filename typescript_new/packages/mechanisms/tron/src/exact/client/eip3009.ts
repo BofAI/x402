@@ -1,4 +1,4 @@
-import { PaymentRequirements, PaymentPayloadResult } from "@x402/core/types";
+import { PaymentRequirements, PaymentPayloadResult } from "@bankofai/x402-core/types";
 import { authorizationTypes } from "../../constants";
 import { ClientTronSigner } from "../../signer";
 import { ExactEIP3009Payload } from "../../types";

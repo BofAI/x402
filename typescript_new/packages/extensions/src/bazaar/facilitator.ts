@@ -14,7 +14,7 @@ import type {
   PaymentRequirements,
   PaymentRequirementsV1,
   ResourceInfo,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import type { DiscoveryExtension, DiscoveryInfo } from "./types";
 import type { McpDiscoveryInfo } from "./mcp/types";
 import type { DiscoveredHTTPResource } from "./http/types";

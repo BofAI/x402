@@ -23,7 +23,7 @@ import {
 import { createEd25519Signer } from "../../src/signer";
 import * as stellarUtils from "../../src/utils";
 import type { FacilitatorStellarSigner } from "../../src/signer";
-import type { PaymentPayload, PaymentRequirements } from "@x402/core/types";
+import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
 
 /**
  * Creates a mock transfer event for testing event validation.

@@ -1,4 +1,4 @@
-import { PaymentRequirements, PaymentPayloadResult } from "@x402/core/types";
+import { PaymentRequirements, PaymentPayloadResult } from "@bankofai/x402-core/types";
 import { getAddress } from "viem";
 import { authorizationTypes } from "../../constants";
 import { ClientEvmSigner } from "../../signer";

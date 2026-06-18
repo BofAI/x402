@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ExactEvmSchemeV1 } from "../../../src/exact/v1/facilitator/scheme";
 import type { FacilitatorEvmSigner } from "../../../src/signer";
-import type { PaymentRequirementsV1 } from "@x402/core/types/v1";
-import type { PaymentPayloadV1 } from "@x402/core/types/v1";
+import type { PaymentRequirementsV1 } from "@bankofai/x402-core/types/v1";
+import type { PaymentPayloadV1 } from "@bankofai/x402-core/types/v1";
 import * as Errors from "../../../src/exact/facilitator/errors";
 
 describe("ExactEvmSchemeV1", () => {

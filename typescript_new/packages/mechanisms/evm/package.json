@@ -1,6 +1,7 @@
 {
-  "name": "@x402/evm",
-  "version": "2.15.0",
+  "name": "@bankofai/x402-evm",
+  "publishConfig": { "access": "public" },
+  "version": "1.0.0-beta.0",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/cjs/index.d.ts",
@@ -45,7 +46,7 @@
     "vitest": "^3.0.5"
   },
   "dependencies": {
-    "@x402/core": "workspace:~",
+    "@bankofai/x402-core": "workspace:~",
     "viem": "^2.48.11",
     "zod": "^3.24.2"
   },

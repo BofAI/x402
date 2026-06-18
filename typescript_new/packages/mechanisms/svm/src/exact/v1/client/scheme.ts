@@ -25,8 +25,8 @@ import type {
   PaymentPayload,
   PaymentRequirements,
   SchemeNetworkClient,
-} from "@x402/core/types";
-import type { PaymentRequirementsV1 } from "@x402/core/types/v1";
+} from "@bankofai/x402-core/types";
+import type { PaymentRequirementsV1 } from "@bankofai/x402-core/types/v1";
 import {
   DEFAULT_COMPUTE_UNIT_LIMIT,
   DEFAULT_COMPUTE_UNIT_PRICE_MICROLAMPORTS,

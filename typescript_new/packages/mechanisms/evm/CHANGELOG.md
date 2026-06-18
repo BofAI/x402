@@ -1,4 +1,4 @@
-# @x402/evm Changelog
+# @bankofai/x402-evm Changelog
 
 ## 2.15.0
 
@@ -10,7 +10,7 @@
 - Updated dependencies [bfa580e](https://github.com/x402-foundation/x402/commit/bfa580e)
 - Updated dependencies [3a60816](https://github.com/x402-foundation/x402/commit/3a60816)
 - Updated dependencies [7539e93](https://github.com/x402-foundation/x402/commit/7539e93)
-  - @x402/core@2.15.0
+  - @bankofai/x402-core@2.15.0
 
 ### Patch Changes
 
@@ -26,7 +26,7 @@
 - d4bdfa7: Clarify exact EVM channel asset semantics and align voucher asset selection with the transfer method.
 - Updated dependencies [be788e0]
 - Updated dependencies [0af31dd]
-  - @x402/core@2.14.0
+  - @bankofai/x402-core@2.14.0
 
 ## 2.13.0
 
@@ -41,7 +41,7 @@
 - Updated dependencies [5fca9f3]
 - Updated dependencies [95f2094]
 - Updated dependencies [49ea054]
-  - @x402/core@2.13.0
+  - @bankofai/x402-core@2.13.0
 
 ## 2.12.0
 
@@ -51,12 +51,12 @@
 - e7150b3: Add Radius Network (chain ID 723487) and Radius Testnet (chain ID 72344) support with SBC as the default stablecoin
 - ee7c156: chore: tighten viem dependency floor to ^2.48.11
 
-  Raises the viem floor in every `@x402/*` package.json that lists viem as a direct dep so future `pnpm install` re-resolutions cannot regress below this version. Fixes the incomplete tightening from #2013.
+  Raises the viem floor in every `@bankofai/x402-*` package.json that lists viem as a direct dep so future `pnpm install` re-resolutions cannot regress below this version. Fixes the incomplete tightening from #2013.
 
 - Updated dependencies [608034f]
 - Updated dependencies [d235050]
 - Updated dependencies [45d7d19]
-  - @x402/core@2.12.0
+  - @bankofai/x402-core@2.12.0
 
 ## 2.11.0
 
@@ -66,17 +66,17 @@
 
   The EVM paywall no longer assumes all tokens have 6 decimal places. Server-side amount conversion in `evmPaywall.generateHtml`:
 
-  - Resolves the token's decimal precision via a new `getDefaultTokenDecimals` helper that looks up the network in `@x402/evm`'s `DEFAULT_STABLECOINS` registry — the same source the scheme `getAssetDecimals` methods read from and the inline scheme dispatch in `@x402/core`'s `x402ResourceServer` uses. Falls back to 6 (USDC default) when the network is unknown.
+  - Resolves the token's decimal precision via a new `getDefaultTokenDecimals` helper that looks up the network in `@bankofai/x402-evm`'s `DEFAULT_STABLECOINS` registry — the same source the scheme `getAssetDecimals` methods read from and the inline scheme dispatch in `@bankofai/x402-core`'s `x402ResourceServer` uses. Falls back to 6 (USDC default) when the network is unknown.
   - Replaces the lossy `parseFloat(amount) / 10**decimals` math with `Number(formatUnits(BigInt(amount), decimals))`, preserving precision through the atomic-to-display conversion.
 
-  `@x402/evm` now publicly re-exports `DEFAULT_STABLECOINS` from `./shared/defaultAssets` so consumers can read the canonical default-asset registry directly.
+  `@bankofai/x402-evm` now publicly re-exports `DEFAULT_STABLECOINS` from `./shared/defaultAssets` so consumers can read the canonical default-asset registry directly.
 
 ### Patch Changes
 
 - dc04108: Fixed a bug affecting USD prices with 7+ decimal places of precision (e.g. `$0.0000001` or smaller).
 - Updated dependencies [a051f48]
 - Updated dependencies [dc04108]
-  - @x402/core@2.11.0
+  - @bankofai/x402-core@2.11.0
 
 ## 2.10.0
 
@@ -86,7 +86,7 @@
 
   Updates the resolved viem version across all direct dependencies, adding chain definitions for Mezo Testnet, MegaETH, Stable, and Stable Testnet that were missing from previously locked versions.
 
-  - @x402/core@2.10.0
+  - @bankofai/x402-core@2.10.0
 
 ## 2.9.0
 
@@ -107,7 +107,7 @@
 - Updated dependencies [c0e3969]
 - Updated dependencies [2250cae]
 - Updated dependencies [d352574]
-  - @x402/core@2.9.0
+  - @bankofai/x402-core@2.9.0
 
 ## 2.8.0
 
@@ -116,7 +116,7 @@
 - Updated dependencies [067f297]
 - Updated dependencies [4c1e44f]
 - Updated dependencies [5135fab]
-  - @x402/core@2.8.0
+  - @bankofai/x402-core@2.8.0
 
 ## 2.7.0
 
@@ -129,7 +129,7 @@
 - d8e9f3f: Added simulation to permit2 verify and (optional) settle
 - 1a6e08b: Simulate transaction in verify and (optional) settle; Added multicall utility for efficient rpc calls; Fixed undeployed smart wallet handling to prevent facilitator grieving and account for implementation dependent verifyTypedData
 - Updated dependencies [8931cb3]
-  - @x402/core@2.7.0
+  - @bankofai/x402-core@2.7.0
 
 ## 2.6.0
 
@@ -141,7 +141,7 @@
 - Updated dependencies [2564781]
 - Updated dependencies [b341973]
 - Updated dependencies [29fe09a]
-  - @x402/core@2.6.0
+  - @bankofai/x402-core@2.6.0
 
 ## 2.5.0
 
@@ -158,8 +158,8 @@
 - Updated dependencies [1ab1c86]
 - Updated dependencies [d0a2b11]
 - Updated dependencies
-  - @x402/core@2.5.0
-  - @x402/extensions@2.5.0
+  - @bankofai/x402-core@2.5.0
+  - @bankofai/x402-extensions@2.5.0
 
 ## 2.4.0
 
@@ -174,8 +174,8 @@
 - Updated dependencies [57a5488]
 - Updated dependencies [018181b]
 - Updated dependencies [3fb55d7]
-  - @x402/core@2.4.0
-  - @x402/extensions@2.4.0
+  - @bankofai/x402-core@2.4.0
+  - @bankofai/x402-extensions@2.4.0
 
 ## 2.3.1
 
@@ -183,13 +183,13 @@
 
 - 0c6064d: Add MegaETH mainnet (chain ID 4326) support with USDM as the default stablecoin
 - Updated dependencies [9ec9f15]
-  - @x402/core@2.3.1
+  - @bankofai/x402-core@2.3.1
 
 ## 2.3.0
 
 ### Minor Changes
 
-- 51b8445: Bumped @x402/core dependency to 2.3.0
+- 51b8445: Bumped @bankofai/x402-core dependency to 2.3.0
 - 51b8445: Upgraded exact evm to support permit2 payments
 
 ### Patch Changes
@@ -197,7 +197,7 @@
 - adb1b55: Improved error messages for insufficient funds. The `invalidMessage` field now includes the required amount, available balance, asset denomination, and actionable guidance when payment fails due to insufficient funds.
 - Updated dependencies [51b8445]
 - Updated dependencies [51b8445]
-  - @x402/core@2.3.0
+  - @bankofai/x402-core@2.3.0
 
 ## 2.0.0
 

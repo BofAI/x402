@@ -1,5 +1,5 @@
-import { x402Facilitator } from "@x402/core/facilitator";
-import { Network } from "@x402/core/types";
+import { x402Facilitator } from "@bankofai/x402-core/facilitator";
+import { Network } from "@bankofai/x402-core/types";
 import { SettlementCache } from "../../settlement-cache";
 import { FacilitatorSvmSigner } from "../../signer";
 import { ExactSvmScheme } from "./scheme";

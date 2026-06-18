@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { PaymentPayload, PaymentRequirements } from "@x402/core/types";
+import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
 import {
   AccountId,
   Client,

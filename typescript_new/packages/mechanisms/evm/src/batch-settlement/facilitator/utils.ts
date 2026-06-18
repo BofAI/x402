@@ -1,5 +1,5 @@
 import { getAddress, verifyTypedData as viemVerifyTypedData } from "viem";
-import type { PaymentRequirements } from "@x402/core/types";
+import type { PaymentRequirements } from "@bankofai/x402-core/types";
 import { FacilitatorEvmSigner } from "../../signer";
 import { multicall } from "../../multicall";
 import {

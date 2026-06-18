@@ -3,7 +3,7 @@ import {
   PaymentRequirements,
   VerifyResponse,
   SettleResponse,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import { FacilitatorTronSigner } from "../../signer";
 import { normalizeAddressForSigning } from "../../utils";
 import { batchSettlementABI, erc20BalanceOfABI } from "../../shared/batch-settlement/abi";

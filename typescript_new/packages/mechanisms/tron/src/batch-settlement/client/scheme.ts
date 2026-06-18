@@ -6,7 +6,7 @@ import {
   PaymentPayloadResult,
   PaymentPayloadContext,
   SettleResponse,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import { ClientTronSigner } from "../../signer";
 import { normalizeAddressForSigning } from "../../utils";
 import { BATCH_SETTLEMENT_SCHEME } from "../../shared/batch-settlement/constants";

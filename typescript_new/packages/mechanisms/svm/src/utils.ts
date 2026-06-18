@@ -17,7 +17,7 @@ import {
 } from "@solana/kit";
 import { TOKEN_PROGRAM_ADDRESS } from "@solana-program/token";
 import { TOKEN_2022_PROGRAM_ADDRESS } from "@solana-program/token-2022";
-import type { Network } from "@x402/core/types";
+import type { Network } from "@bankofai/x402-core/types";
 import {
   SVM_ADDRESS_REGEX,
   DEVNET_RPC_URL,
@@ -189,4 +189,4 @@ export function getUsdcAddress(network: Network): string {
 }
 
 // Re-export from core for backward compatibility
-export { convertToTokenAmount, numberToDecimalString } from "@x402/core/utils";
+export { convertToTokenAmount, numberToDecimalString } from "@bankofai/x402-core/utils";

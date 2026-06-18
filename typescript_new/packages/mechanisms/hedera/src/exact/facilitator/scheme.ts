@@ -4,7 +4,7 @@ import type {
   SchemeNetworkFacilitator,
   SettleResponse,
   VerifyResponse,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import type { FacilitatorHederaSigner } from "../../signer";
 import type {
   ExactHederaPayloadV2,

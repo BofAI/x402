@@ -1,5 +1,5 @@
-import { x402Client, SelectPaymentRequirements, PaymentPolicy } from "@x402/core/client";
-import { Network } from "@x402/core/types";
+import { x402Client, SelectPaymentRequirements, PaymentPolicy } from "@bankofai/x402-core/client";
+import { Network } from "@bankofai/x402-core/types";
 import { ClientEvmSigner } from "../../signer";
 import { ExactEvmScheme } from "./scheme";
 import { ExactEvmSchemeOptions } from "./rpc";
@@ -53,8 +53,8 @@ export interface EvmClientConfig {
  *
  * @example
  * ```typescript
- * import { registerExactEvmScheme } from "@x402/evm/exact/client/register";
- * import { x402Client } from "@x402/core/client";
+ * import { registerExactEvmScheme } from "@bankofai/x402-evm/exact/client/register";
+ * import { x402Client } from "@bankofai/x402-core/client";
  * import { privateKeyToAccount } from "viem/accounts";
  *
  * const account = privateKeyToAccount("0x...");

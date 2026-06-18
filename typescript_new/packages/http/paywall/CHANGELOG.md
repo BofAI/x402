@@ -1,4 +1,4 @@
-# @x402/paywall Changelog
+# @bankofai/x402-paywall Changelog
 
 ## 2.15.0
 
@@ -7,7 +7,7 @@
 - Updated dependencies [bfa580e](https://github.com/x402-foundation/x402/commit/bfa580e)
 - Updated dependencies [3a60816](https://github.com/x402-foundation/x402/commit/3a60816)
 - Updated dependencies [7539e93](https://github.com/x402-foundation/x402/commit/7539e93)
-  - @x402/core@2.15.0
+  - @bankofai/x402-core@2.15.0
 
 ## 2.14.0
 
@@ -15,19 +15,19 @@
 
 - Updated dependencies [be788e0]
 - Updated dependencies [0af31dd]
-  - @x402/core@2.14.0
+  - @bankofai/x402-core@2.14.0
 
 ## 2.13.0
 
 ### Minor Changes
 
-- e35becf: Add `faucetUrls?: Record<network, string>` to `PaywallConfig` plus a curated testnet faucet map in `@x402/paywall`. Server overrides win over the curated map; unmapped chains render "No faucet configured." rather than a fallback link.
+- e35becf: Add `faucetUrls?: Record<network, string>` to `PaywallConfig` plus a curated testnet faucet map in `@bankofai/x402-paywall`. Server overrides win over the curated map; unmapped chains render "No faucet configured." rather than a fallback link.
 - f3deb60: decimals.ts now only lists EVM networks whose default stablecoin is not 6 decimals, so new 6-decimal chains in DEFAULT_STABLECOINS no longer need a paywall regen for amount display
 - Updated dependencies [ad08a9a]
 - Updated dependencies [5fca9f3]
 - Updated dependencies [95f2094]
 - Updated dependencies [49ea054]
-  - @x402/core@2.13.0
+  - @bankofai/x402-core@2.13.0
 
 ## 2.12.0
 
@@ -35,12 +35,12 @@
 
 - ee7c156: chore: tighten viem dependency floor to ^2.48.11
 
-  Raises the viem floor in every `@x402/*` package.json that lists viem as a direct dep so future `pnpm install` re-resolutions cannot regress below this version. Fixes the incomplete tightening from #2013.
+  Raises the viem floor in every `@bankofai/x402-*` package.json that lists viem as a direct dep so future `pnpm install` re-resolutions cannot regress below this version. Fixes the incomplete tightening from #2013.
 
 - Updated dependencies [608034f]
 - Updated dependencies [d235050]
 - Updated dependencies [45d7d19]
-  - @x402/core@2.12.0
+  - @bankofai/x402-core@2.12.0
 
 ## 2.11.0
 
@@ -50,16 +50,16 @@
 
   The EVM paywall no longer assumes all tokens have 6 decimal places. Server-side amount conversion in `evmPaywall.generateHtml`:
 
-  - Resolves the token's decimal precision via a new `getDefaultTokenDecimals` helper that looks up the network in `@x402/evm`'s `DEFAULT_STABLECOINS` registry — the same source the scheme `getAssetDecimals` methods read from and the inline scheme dispatch in `@x402/core`'s `x402ResourceServer` uses. Falls back to 6 (USDC default) when the network is unknown.
+  - Resolves the token's decimal precision via a new `getDefaultTokenDecimals` helper that looks up the network in `@bankofai/x402-evm`'s `DEFAULT_STABLECOINS` registry — the same source the scheme `getAssetDecimals` methods read from and the inline scheme dispatch in `@bankofai/x402-core`'s `x402ResourceServer` uses. Falls back to 6 (USDC default) when the network is unknown.
   - Replaces the lossy `parseFloat(amount) / 10**decimals` math with `Number(formatUnits(BigInt(amount), decimals))`, preserving precision through the atomic-to-display conversion.
 
-  `@x402/evm` now publicly re-exports `DEFAULT_STABLECOINS` from `./shared/defaultAssets` so consumers can read the canonical default-asset registry directly.
+  `@bankofai/x402-evm` now publicly re-exports `DEFAULT_STABLECOINS` from `./shared/defaultAssets` so consumers can read the canonical default-asset registry directly.
 
 ### Patch Changes
 
 - 484030b: chore(paywall): regenerate EVM/SVM/AVM bundles for viem 2.47.12
 
-  The bundled paywall templates were last regenerated against a viem version that predates chain definitions for Mezo (`eip155:31612`), Mezo Testnet (`eip155:31611`), MegaETH (`eip155:4326`), MegaETH Testnet (`eip155:6343`), Stable (`eip155:988`), Stable Testnet (`eip155:2201`), Radius (`eip155:723487`), Radius Testnet (`eip155:72344`), and 33 other chains. The lockfile moved to viem 2.47.12 in PR #2013 but the bundle was not regenerated, so @x402/paywall hard-threw `Unsupported chain ID` at component init for payments on those chains.
+  The bundled paywall templates were last regenerated against a viem version that predates chain definitions for Mezo (`eip155:31612`), Mezo Testnet (`eip155:31611`), MegaETH (`eip155:4326`), MegaETH Testnet (`eip155:6343`), Stable (`eip155:988`), Stable Testnet (`eip155:2201`), Radius (`eip155:723487`), Radius Testnet (`eip155:72344`), and 33 other chains. The lockfile moved to viem 2.47.12 in PR #2013 but the bundle was not regenerated, so @bankofai/x402-paywall hard-threw `Unsupported chain ID` at component init for payments on those chains.
 
   This commit regenerates all nine generated files (TypeScript, Python, and Go templates for EVM/SVM/AVM) against the current lockfile. Total unique chain IDs in the EVM bundle goes from 635 to 676.
 
@@ -67,7 +67,7 @@
 
 - Updated dependencies [a051f48]
 - Updated dependencies [dc04108]
-  - @x402/core@2.11.0
+  - @bankofai/x402-core@2.11.0
 
 ## 2.10.0
 
@@ -83,7 +83,7 @@
 
   The EVM paywall now reads the token name from `extra.name` in payment requirements and uses it for all display text. Falls back to "Token" (generic) when `extra.name` is absent. This fixes mislabeled token names for non-USDC chains (MegaUSD, USDT0, Mezo USD, etc.).
 
-  - @x402/core@2.10.0
+  - @bankofai/x402-core@2.10.0
 
 ## 2.9.0
 
@@ -97,7 +97,7 @@
 - Updated dependencies [c0e3969]
 - Updated dependencies [2250cae]
 - Updated dependencies [d352574]
-  - @x402/core@2.9.0
+  - @bankofai/x402-core@2.9.0
 
 ## 2.8.0
 
@@ -106,7 +106,7 @@
 - Updated dependencies [067f297]
 - Updated dependencies [4c1e44f]
 - Updated dependencies [5135fab]
-  - @x402/core@2.8.0
+  - @bankofai/x402-core@2.8.0
 
 ## 2.7.0
 
@@ -114,7 +114,7 @@
 
 - 34d2442: Fixed encoding of characters outside of the Latin1 range
 - Updated dependencies [8931cb3]
-  - @x402/core@2.7.0
+  - @bankofai/x402-core@2.7.0
 
 ## 2.6.0
 
@@ -126,7 +126,7 @@
 - Updated dependencies [2564781]
 - Updated dependencies [b341973]
 - Updated dependencies [29fe09a]
-  - @x402/core@2.6.0
+  - @bankofai/x402-core@2.6.0
 
 ## 2.5.0
 
@@ -135,7 +135,7 @@
 - Updated dependencies [96a9db0]
 - Updated dependencies [d0a2b11]
 - Updated dependencies
-  - @x402/core@2.5.0
+  - @bankofai/x402-core@2.5.0
 
 ## 2.4.0
 
@@ -144,19 +144,19 @@
 - Updated dependencies [57a5488]
 - Updated dependencies [018181b]
 - Updated dependencies [3fb55d7]
-  - @x402/core@2.4.0
+  - @bankofai/x402-core@2.4.0
 
 ## 2.3.0
 
 ### Minor Changes
 
-- 51b8445: Bumped @x402/core dependency to 2.3.0
+- 51b8445: Bumped @bankofai/x402-core dependency to 2.3.0
 
 ### Patch Changes
 
 - Updated dependencies [51b8445]
 - Updated dependencies [51b8445]
-  - @x402/core@2.3.0
+  - @bankofai/x402-core@2.3.0
 
 ## 2.0.0
 

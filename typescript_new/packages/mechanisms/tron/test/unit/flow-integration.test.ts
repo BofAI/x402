@@ -15,7 +15,7 @@ import {
 } from "../../src/signer";
 import { privateKeyTronWallet } from "./helpers";
 import type { ExactGasFreePayload, ExactPermit2Payload } from "../../src/types";
-import type { PaymentPayload, PaymentRequirements } from "@x402/core/types";
+import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
 
 /**
  * In-process integration tests for the TRON mechanism (no HTTP).

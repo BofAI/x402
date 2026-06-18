@@ -1,5 +1,5 @@
-import { x402ResourceServer } from "@x402/core/server";
-import { Network } from "@x402/core/types";
+import { x402ResourceServer } from "@bankofai/x402-core/server";
+import { Network } from "@bankofai/x402-core/types";
 import { ExactEvmScheme } from "./scheme";
 
 /**
@@ -25,8 +25,8 @@ export interface EvmResourceServerConfig {
  *
  * @example
  * ```typescript
- * import { registerExactEvmScheme } from "@x402/evm/exact/server/register";
- * import { x402ResourceServer } from "@x402/core/server";
+ * import { registerExactEvmScheme } from "@bankofai/x402-evm/exact/server/register";
+ * import { x402ResourceServer } from "@bankofai/x402-core/server";
  *
  * const server = new x402ResourceServer(facilitatorClient);
  * registerExactEvmScheme(server, {});

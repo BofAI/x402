@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { formatUnits } from "viem";
 import type { WalletAccount } from "@wallet-standard/base";
-import type { PaymentRequired } from "@x402/core/types";
+import type { PaymentRequired } from "@bankofai/x402-core/types";
 import { getAlgodClient } from "./rpc";
 
 type Params = {

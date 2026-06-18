@@ -13,9 +13,9 @@ import {
   getAptosRpcUrl,
   getAptosChainId,
 } from "../../src/index";
-import type { PaymentRequirements } from "@x402/core/types";
+import type { PaymentRequirements } from "@bankofai/x402-core/types";
 
-describe("@x402/aptos", () => {
+describe("@bankofai/x402-aptos", () => {
   describe("exports", () => {
     it("should export main scheme classes", () => {
       expect(ExactAptosClient).toBeDefined();

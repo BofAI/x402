@@ -341,12 +341,12 @@ export class RouteConfigurationError extends Error {
   }
 }
 
-// Static fallback paywall served when @x402/paywall is not installed.
+// Static fallback paywall served when @bankofai/x402-paywall is not installed.
 // Intentionally contains zero request- or config-derived interpolation:
 // the protocol-level payment requirements still ship in response headers
 // and the JSON 402 body for non-browser clients, so any agent or SDK can
 // read them without us reflecting attacker-controlled bytes into HTML.
-// Browser-end-user payment requires installing @x402/paywall.
+// Browser-end-user payment requires installing @bankofai/x402-paywall.
 const FALLBACK_PAYWALL_HTML = `<!DOCTYPE html>
 <html>
   <head>
@@ -359,7 +359,7 @@ const FALLBACK_PAYWALL_HTML = `<!DOCTYPE html>
       <h1>Payment Required</h1>
       <p>This resource is protected by the x402 payment protocol.</p>
       <p style="margin-top: 2rem; padding: 1rem; background: #fef3c7; border-radius: 0.5rem;">
-        <strong>Note to developers:</strong> install <code>@x402/paywall</code> to enable
+        <strong>Note to developers:</strong> install <code>@bankofai/x402-paywall</code> to enable
         the in-browser wallet connection and payment UI. Programmatic clients should read
         the payment requirements from the 402 response headers and JSON body.
       </p>
@@ -1200,10 +1200,10 @@ export class x402HTTPResourceServer {
       return this.paywallProvider.generateHtml(paymentRequired, paywallConfig);
     }
 
-    // Try to use @x402/paywall if available (optional dependency)
+    // Try to use @bankofai/x402-paywall if available (optional dependency)
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const paywall = require("@x402/paywall");
+      const paywall = require("@bankofai/x402-paywall");
       const displayAmount = this.getDisplayAmount(paymentRequired);
       const resource = paymentRequired.resource;
 
@@ -1217,7 +1217,7 @@ export class x402HTTPResourceServer {
         sessionTokenEndpoint: paywallConfig?.sessionTokenEndpoint,
       });
     } catch {
-      // @x402/paywall not installed, fall back to basic HTML
+      // @bankofai/x402-paywall not installed, fall back to basic HTML
     }
 
     return FALLBACK_PAYWALL_HTML;

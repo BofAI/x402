@@ -1,4 +1,4 @@
-# Exact EVM Scheme (`@x402/evm/exact`)
+# Exact EVM Scheme (`@bankofai/x402-evm/exact`)
 
 The **exact** scheme is the default x402 payment scheme for EVM networks. The client pays the exact advertised price — no more, no less. It supports two on-chain transfer methods: **EIP-3009** (`transferWithAuthorization`) and **Permit2** (Uniswap's signature-based approval).
 
@@ -6,19 +6,19 @@ The **exact** scheme is the default x402 payment scheme for EVM networks. The cl
 
 | Role | Import |
 |------|--------|
-| Client | `@x402/evm/exact/client` |
-| Server | `@x402/evm/exact/server` |
-| Facilitator | `@x402/evm/exact/facilitator` |
-| Client (V1 legacy) | `@x402/evm/exact/v1/client` |
-| Facilitator (V1 legacy) | `@x402/evm/exact/v1/facilitator` |
+| Client | `@bankofai/x402-evm/exact/client` |
+| Server | `@bankofai/x402-evm/exact/server` |
+| Facilitator | `@bankofai/x402-evm/exact/facilitator` |
+| Client (V1 legacy) | `@bankofai/x402-evm/exact/v1/client` |
+| Facilitator (V1 legacy) | `@bankofai/x402-evm/exact/v1/facilitator` |
 
 ## Client Usage
 
 Register `ExactEvmScheme` with an `x402Client` to automatically handle payments for EVM-network services that use the `exact` scheme.
 
 ```typescript
-import { x402Client } from "@x402/core/client";
-import { ExactEvmScheme } from "@x402/evm/exact/client";
+import { x402Client } from "@bankofai/x402-core/client";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 
 const signer = privateKeyToAccount(process.env.EVM_PRIVATE_KEY as `0x${string}`);
@@ -34,7 +34,7 @@ The client selects between EIP-3009 and Permit2 based on `paymentRequirements.ex
 If the service requires Permit2, the client may need to approve the Permit2 contract first:
 
 ```typescript
-import { createPermit2ApprovalTx, getPermit2AllowanceReadParams } from "@x402/evm/exact/client";
+import { createPermit2ApprovalTx, getPermit2AllowanceReadParams } from "@bankofai/x402-evm/exact/client";
 ```
 
 ## Server Usage
@@ -42,8 +42,8 @@ import { createPermit2ApprovalTx, getPermit2AllowanceReadParams } from "@x402/ev
 Register `ExactEvmScheme` with an `x402ResourceServer` to protect routes with fixed-price payments.
 
 ```typescript
-import { x402ResourceServer } from "@x402/core/server";
-import { ExactEvmScheme } from "@x402/evm/exact/server";
+import { x402ResourceServer } from "@bankofai/x402-core/server";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
 
 const server = new x402ResourceServer(facilitatorClient);
 server.register("eip155:*", new ExactEvmScheme());
@@ -69,7 +69,7 @@ In your route config, set `scheme: "exact"` and `price` to the fixed amount:
 For custom facilitator implementations:
 
 ```typescript
-import { ExactEvmScheme } from "@x402/evm/exact/facilitator";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/facilitator";
 
 const scheme = new ExactEvmScheme({ signers: [wallet] });
 ```
@@ -103,7 +103,7 @@ The preferred path. If the payment token supports [EIP-2612](https://eips.ethere
 **Server:** Declare the extension in your route config and ensure the token's `name` and `version` are included in `extra` (the default for EIP-2612-compatible tokens):
 
 ```typescript
-import { declareEip2612GasSponsoringExtension } from "@x402/extensions";
+import { declareEip2612GasSponsoringExtension } from "@bankofai/x402-extensions";
 
 {
   "GET /weather": {
@@ -125,7 +125,7 @@ import { declareEip2612GasSponsoringExtension } from "@x402/extensions";
 **Facilitator:** Register the extension:
 
 ```typescript
-import { EIP2612_GAS_SPONSORING } from "@x402/extensions";
+import { EIP2612_GAS_SPONSORING } from "@bankofai/x402-extensions";
 
 facilitator.registerExtension(EIP2612_GAS_SPONSORING);
 ```
@@ -137,7 +137,7 @@ Fallback for tokens that **do not** support EIP-2612. The client signs a raw ERC
 **Server:** Declare the extension and omit `name`/`version` from the token config to signal clients to skip EIP-2612:
 
 ```typescript
-import { declareErc20ApprovalGasSponsoringExtension } from "@x402/extensions";
+import { declareErc20ApprovalGasSponsoringExtension } from "@bankofai/x402-extensions";
 
 {
   "GET /weather": {
@@ -154,7 +154,7 @@ import { declareErc20ApprovalGasSponsoringExtension } from "@x402/extensions";
 **Facilitator:** Register with a signer that can broadcast transactions:
 
 ```typescript
-import { createErc20ApprovalGasSponsoringExtension } from "@x402/extensions";
+import { createErc20ApprovalGasSponsoringExtension } from "@bankofai/x402-extensions";
 
 facilitator.registerExtension(createErc20ApprovalGasSponsoringExtension(erc20ApprovalSigner));
 ```

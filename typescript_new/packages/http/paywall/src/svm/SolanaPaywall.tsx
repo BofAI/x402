@@ -2,10 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { WalletAccount } from "@wallet-standard/base";
 import type { WalletWithSolanaFeatures } from "@solana/wallet-standard-features";
 
-import { ExactSvmScheme } from "@x402/svm/exact/client";
-import { x402Client } from "@x402/core/client";
-import { encodePaymentSignatureHeader } from "@x402/core/http";
-import type { PaymentRequired } from "@x402/core/types";
+import { ExactSvmScheme } from "@bankofai/x402-svm/exact/client";
+import { x402Client } from "@bankofai/x402-core/client";
+import { encodePaymentSignatureHeader } from "@bankofai/x402-core/http";
+import type { PaymentRequired } from "@bankofai/x402-core/types";
 
 import { Spinner } from "./Spinner";
 import { getNetworkDisplayName, isTestnetNetwork, SOLANA_NETWORK_REFS } from "../paywallUtils";

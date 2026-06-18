@@ -1,4 +1,4 @@
-import type { PaymentRequirements } from "@x402/core/types";
+import type { PaymentRequirements } from "@bankofai/x402-core/types";
 import * as allChains from "viem/chains";
 
 // Chain configuration constants

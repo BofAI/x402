@@ -2,8 +2,8 @@
  * Client extensions for querying Bazaar discovery resources
  */
 
-import { HTTPFacilitatorClient } from "@x402/core/http";
-import type { PaymentRequirements } from "@x402/core/types";
+import { HTTPFacilitatorClient } from "@bankofai/x402-core/http";
+import type { PaymentRequirements } from "@bankofai/x402-core/types";
 import { WithExtensions } from "../types";
 
 /**

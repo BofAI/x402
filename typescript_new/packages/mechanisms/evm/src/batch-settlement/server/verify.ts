@@ -3,9 +3,9 @@ import type {
   VerifyContext,
   VerifyFailureContext,
   VerifyResultContext,
-} from "@x402/core/server";
-import type { VerifyResponse } from "@x402/core/types";
-import type { SchemePaymentRequiredContext } from "@x402/core/types";
+} from "@bankofai/x402-core/server";
+import type { VerifyResponse } from "@bankofai/x402-core/types";
+import type { SchemePaymentRequiredContext } from "@bankofai/x402-core/types";
 import { getAddress, verifyTypedData } from "viem";
 import {
   type BatchSettlementDepositPayload,

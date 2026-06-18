@@ -18,7 +18,7 @@ import type {
   PaymentRequirements,
   SettleResponse,
   VerifyResponse,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import * as Errors from "../../../src/batch-settlement/errors";
 
 /**

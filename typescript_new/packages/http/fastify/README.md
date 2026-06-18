@@ -1,20 +1,20 @@
-# `@x402/fastify` [![npm version](https://img.shields.io/npm/v/%40x402%2Ffastify.svg)](https://www.npmjs.com/package/@x402/fastify)
+# `@bankofai/x402-fastify` [![npm version](https://img.shields.io/npm/v/%40bankofai%2Fx402-fastify.svg)](https://www.npmjs.com/package/@bankofai/x402-fastify)
 
 Fastify middleware integration for the x402 Payment Protocol. This package provides payment middleware for adding x402 payment requirements to your Fastify applications.
 
 ## Installation
 
 ```bash
-pnpm install @x402/fastify
+pnpm install @bankofai/x402-fastify
 ```
 
 ## Quick Start
 
 ```typescript
 import Fastify from "fastify";
-import { paymentMiddleware, x402ResourceServer } from "@x402/fastify";
-import { ExactEvmScheme } from "@x402/evm/exact/server";
-import { HTTPFacilitatorClient } from "@x402/core/server";
+import { paymentMiddleware, x402ResourceServer } from "@bankofai/x402-fastify";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
+import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
 
 const app = Fastify();
 
@@ -75,7 +75,7 @@ paymentMiddleware(
 
 ### FastifyAdapter
 
-The `FastifyAdapter` class implements the `HTTPAdapter` interface from `@x402/core`, providing Fastify-specific request handling:
+The `FastifyAdapter` class implements the `HTTPAdapter` interface from `@bankofai/x402-core`, providing Fastify-specific request handling:
 
 ```typescript
 class FastifyAdapter implements HTTPAdapter {
@@ -137,10 +137,10 @@ The middleware automatically displays a paywall UI when browsers request protect
 
 **Option 1: Full Paywall UI (Recommended)**
 
-Install the optional `@x402/paywall` package for a complete wallet connection and payment UI:
+Install the optional `@bankofai/x402-paywall` package for a complete wallet connection and payment UI:
 
 ```bash
-pnpm add @x402/paywall
+pnpm add @bankofai/x402-paywall
 ```
 
 Then configure it:
@@ -157,7 +157,7 @@ paymentMiddleware(app, routes, resourceServer, paywallConfig);
 
 **Option 2: Basic Paywall (No Installation)**
 
-Without `@x402/paywall` installed, the middleware returns a basic HTML page with payment instructions.
+Without `@bankofai/x402-paywall` installed, the middleware returns a basic HTML page with payment instructions.
 
 **Option 3: Custom Paywall Provider**
 
@@ -235,9 +235,9 @@ paymentMiddleware(
 If you need to use a custom facilitator server, configure it when creating the x402ResourceServer:
 
 ```typescript
-import { HTTPFacilitatorClient } from "@x402/core/server";
-import { x402ResourceServer } from "@x402/fastify";
-import { ExactEvmScheme } from "@x402/evm/exact/server";
+import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
+import { x402ResourceServer } from "@bankofai/x402-fastify";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
 
 const customFacilitator = new HTTPFacilitatorClient({
   url: "https://your-facilitator.com",

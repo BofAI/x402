@@ -2,7 +2,7 @@
  * HTTP-specific type definitions for the Bazaar Discovery Extension
  */
 
-import type { BodyMethods, QueryParamMethods } from "@x402/core/http";
+import type { BodyMethods, QueryParamMethods } from "@bankofai/x402-core/http";
 import type { DiscoveryInfo } from "../types";
 
 /** Shared schema definition for an object-typed parameter map (queryParams, pathParams, etc.) */

@@ -8,8 +8,8 @@ These are **separate from the unit suite**:
 
 | Suite | Command | Network | Keys |
 |---|---|---|---|
-| Unit (offline) | `pnpm --filter @x402/tron test` | none | none |
-| Integration (Nile) | `pnpm --filter @x402/tron test:integration` | Nile | required |
+| Unit (offline) | `pnpm --filter @bankofai/x402-tron test` | none | none |
+| Integration (Nile) | `pnpm --filter @bankofai/x402-tron test:integration` | Nile | required |
 
 `vitest.config.ts` excludes `test/integrations/**`; `vitest.integration.config.ts`
 includes only it and runs with `fileParallelism: false` (avoids tx-nonce races).
@@ -52,7 +52,7 @@ re-serialization), so `exact`/permit2 on-chain settlement works through it.
 
 3. Run:
    ```bash
-   pnpm --filter @x402/tron test:integration
+   pnpm --filter @bankofai/x402-tron test:integration
    ```
 
 ## What the tests assert

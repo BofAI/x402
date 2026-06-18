@@ -3,7 +3,7 @@ import {
   PaymentRequirements,
   PaymentPayloadResult,
   PaymentPayloadContext,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import { ClientEvmSigner } from "../../signer";
 import { AssetTransferMethod } from "../../types";
 import { createEIP3009Payload } from "./eip3009";

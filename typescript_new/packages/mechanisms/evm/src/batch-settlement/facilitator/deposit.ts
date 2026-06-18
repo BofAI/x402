@@ -4,7 +4,7 @@ import {
   PaymentRequirements,
   VerifyResponse,
   SettleResponse,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import { getAddress } from "viem";
 import { FacilitatorEvmSigner } from "../../signer";
 import type { TransactionRequest } from "../../exact/extensions";

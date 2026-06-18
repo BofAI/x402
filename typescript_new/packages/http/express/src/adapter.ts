@@ -1,4 +1,4 @@
-import { HTTPAdapter } from "@x402/core/server";
+import { HTTPAdapter } from "@bankofai/x402-core/server";
 import { Request } from "express";
 
 /**

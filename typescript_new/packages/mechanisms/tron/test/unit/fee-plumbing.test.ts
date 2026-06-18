@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ExactTronScheme as FacilitatorScheme } from "../../src/exact/facilitator/scheme";
 import { ExactTronScheme as ServerScheme } from "../../src/exact/server/scheme";
 import type { FacilitatorTronSigner } from "../../src/signer";
-import type { PaymentRequirements } from "@x402/core/types";
+import type { PaymentRequirements } from "@bankofai/x402-core/types";
 
 /**
  * Proves the fee plumbing: facilitator getExtra advertises feeConfig, and the

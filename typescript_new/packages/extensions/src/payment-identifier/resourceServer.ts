@@ -2,7 +2,7 @@
  * Resource Server utilities for the Payment-Identifier Extension
  */
 
-import type { ResourceServerExtension } from "@x402/core/types";
+import type { ResourceServerExtension } from "@bankofai/x402-core/types";
 import type { PaymentIdentifierExtension } from "./types";
 import { PAYMENT_IDENTIFIER } from "./types";
 import { paymentIdentifierSchema } from "./schema";
@@ -19,7 +19,7 @@ import { paymentIdentifierSchema } from "./schema";
  *
  * @example
  * ```typescript
- * import { declarePaymentIdentifierExtension, PAYMENT_IDENTIFIER } from '@x402/extensions/payment-identifier';
+ * import { declarePaymentIdentifierExtension, PAYMENT_IDENTIFIER } from '@bankofai/x402-extensions/payment-identifier';
  *
  * // Include in PaymentRequired response (optional identifier)
  * const paymentRequired = {
@@ -60,7 +60,7 @@ export function declarePaymentIdentifierExtension(
  *
  * @example
  * ```typescript
- * import { paymentIdentifierResourceServerExtension } from '@x402/extensions/payment-identifier';
+ * import { paymentIdentifierResourceServerExtension } from '@bankofai/x402-extensions/payment-identifier';
  *
  * resourceServer.registerExtension(paymentIdentifierResourceServerExtension);
  * ```

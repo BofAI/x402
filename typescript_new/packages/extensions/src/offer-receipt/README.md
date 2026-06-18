@@ -53,7 +53,7 @@ Signed offers:
 ## Installation
 
 ```bash
-npm install @x402/extensions
+npm install @bankofai/x402-extensions
 ```
 
 ## Server Usage
@@ -61,12 +61,12 @@ npm install @x402/extensions
 To enable offer/receipt signing on your resource server:
 
 ```typescript
-import { x402ResourceServer } from "@x402/core/server";
+import { x402ResourceServer } from "@bankofai/x402-core/server";
 import { 
   createOfferReceiptExtension,
   createJWSOfferReceiptIssuer,
   declareOfferReceipt,
-} from "@x402/extensions/offer-receipt";
+} from "@bankofai/x402-extensions/offer-receipt";
 
 // Create an issuer (JWS or EIP-712)
 const issuer = createJWSOfferReceiptIssuer("did:web:api.example.com#key-1", jwsSigner);
@@ -100,9 +100,9 @@ Two formats are supported:
 The `wrapFetchWithPayment` wrapper can be used with offers and receipts by capturing offers in the `onPaymentRequired` hook and extracting the receipt from the response. Note that this approach does not control which `accepts[]` entry is selected - the client's selector/policies determine that independently.
 
 ```typescript
-import { wrapFetchWithPayment, x402Client, x402HTTPClient } from "@x402/fetch";
-import { registerExactEvmScheme } from "@x402/evm/exact/client";
-import { registerExactSvmScheme } from "@x402/svm/exact/client";
+import { wrapFetchWithPayment, x402Client, x402HTTPClient } from "@bankofai/x402-fetch";
+import { registerExactEvmScheme } from "@bankofai/x402-evm/exact/client";
+import { registerExactSvmScheme } from "@bankofai/x402-svm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 import { createKeyPairSignerFromBytes } from "@solana/kit";
 import { base58 } from "@scure/base";
@@ -111,7 +111,7 @@ import {
   decodeSignedOffers,
   extractReceiptFromResponse,
   type DecodedOffer,
-} from "@x402/extensions/offer-receipt";
+} from "@bankofai/x402-extensions/offer-receipt";
 
 // Set up signers
 const evmSigner = privateKeyToAccount(evmPrivateKey);

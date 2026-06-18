@@ -5,11 +5,11 @@
  * at server startup without duplicating the iteration and warning logic.
  */
 
-import type { RoutesConfig } from "@x402/core/server";
+import type { RoutesConfig } from "@bankofai/x402-core/server";
 import type { DiscoveryExtension } from "./types";
 import { validateDiscoveryExtension, validateDiscoveryExtensionSpec } from "./facilitator";
 
-export { checkIfBazaarNeeded } from "@x402/core/server";
+export { checkIfBazaarNeeded } from "@bankofai/x402-core/server";
 
 const HTTP_VERB_RE = /^(GET|POST|PUT|PATCH|DELETE|HEAD)\b/i;
 

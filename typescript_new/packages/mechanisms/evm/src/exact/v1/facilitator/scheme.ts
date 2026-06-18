@@ -6,9 +6,9 @@ import {
   FacilitatorContext,
   SettleResponse,
   VerifyResponse,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import { resolveDataSuffix } from "../../../shared/extensions";
-import { PaymentRequirementsV1 } from "@x402/core/types/v1";
+import { PaymentRequirementsV1 } from "@bankofai/x402-core/types/v1";
 import { getAddress, Hex, isAddressEqual, parseErc6492Signature } from "viem";
 import { authorizationTypes } from "../../../constants";
 import { FacilitatorEvmSigner } from "../../../signer";

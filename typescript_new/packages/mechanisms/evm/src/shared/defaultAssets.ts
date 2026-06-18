@@ -1,4 +1,4 @@
-import type { Network } from "@x402/core/types";
+import type { Network } from "@bankofai/x402-core/types";
 
 /**
  * Base stablecoin asset configuration shared across all EVM payment schemes.

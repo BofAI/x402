@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { PaymentPayload } from "@x402/core";
+import type { PaymentPayload } from "@bankofai/x402-core";
 import {
   PAYMENT_IDENTIFIER,
   PAYMENT_ID_MIN_LENGTH,

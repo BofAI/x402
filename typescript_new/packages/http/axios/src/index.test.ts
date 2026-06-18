@@ -7,11 +7,11 @@ import {
 } from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { wrapAxiosWithPayment, wrapAxiosWithPaymentFromConfig } from "./index";
-import type { x402Client, x402ClientConfig } from "@x402/core/client";
-import type { PaymentPayload, PaymentRequired, PaymentRequirements } from "@x402/core/types";
+import type { x402Client, x402ClientConfig } from "@bankofai/x402-core/client";
+import type { PaymentPayload, PaymentRequired, PaymentRequirements } from "@bankofai/x402-core/types";
 
-// Mock the @x402/core/client module
-vi.mock("@x402/core/client", () => {
+// Mock the @bankofai/x402-core/client module
+vi.mock("@bankofai/x402-core/client", () => {
   const MockX402HTTPClient = vi.fn();
   MockX402HTTPClient.prototype.getPaymentRequiredResponse = vi.fn();
   MockX402HTTPClient.prototype.encodePaymentSignatureHeader = vi.fn();
@@ -119,7 +119,7 @@ describe("wrapAxiosWithPayment()", () => {
 
     // Create mock client
     const { x402Client: MockX402Client, x402HTTPClient: MockX402HTTPClient } = await import(
-      "@x402/core/client"
+      "@bankofai/x402-core/client"
     );
 
     mockClient = new MockX402Client() as unknown as x402Client;
@@ -177,7 +177,7 @@ describe("wrapAxiosWithPayment()", () => {
   });
 
   it("should handle 402 errors and retry with payment header", async () => {
-    const { x402HTTPClient: MockX402HTTPClient } = await import("@x402/core/client");
+    const { x402HTTPClient: MockX402HTTPClient } = await import("@bankofai/x402-core/client");
     const successResponse = { data: "success" } as AxiosResponse;
 
     (mockAxiosClient.request as ReturnType<typeof vi.fn>).mockResolvedValue(successResponse);
@@ -222,7 +222,7 @@ describe("wrapAxiosWithPayment()", () => {
   });
 
   it("should reject with descriptive error if payment requirements parsing fails", async () => {
-    const { x402HTTPClient: MockX402HTTPClient } = await import("@x402/core/client");
+    const { x402HTTPClient: MockX402HTTPClient } = await import("@bankofai/x402-core/client");
     (
       MockX402HTTPClient.prototype.getPaymentRequiredResponse as ReturnType<typeof vi.fn>
     ).mockImplementation(() => {
@@ -246,7 +246,7 @@ describe("wrapAxiosWithPayment()", () => {
   });
 
   it("should reject with generic error message for unknown parsing errors", async () => {
-    const { x402HTTPClient: MockX402HTTPClient } = await import("@x402/core/client");
+    const { x402HTTPClient: MockX402HTTPClient } = await import("@bankofai/x402-core/client");
     (
       MockX402HTTPClient.prototype.getPaymentRequiredResponse as ReturnType<typeof vi.fn>
     ).mockImplementation(() => {
@@ -269,7 +269,7 @@ describe("wrapAxiosWithPayment()", () => {
   });
 
   it("should handle v1 payment responses from body", async () => {
-    const { x402HTTPClient: MockX402HTTPClient } = await import("@x402/core/client");
+    const { x402HTTPClient: MockX402HTTPClient } = await import("@bankofai/x402-core/client");
     const successResponse = { data: "success" } as AxiosResponse;
 
     const v1PaymentRequired: PaymentRequired = {
@@ -380,7 +380,7 @@ describe("wrapAxiosWithPayment()", () => {
   });
 
   it("should recover from a corrective 402 paid retry with one fresh payload retry", async () => {
-    const { x402HTTPClient: MockX402HTTPClient } = await import("@x402/core/client");
+    const { x402HTTPClient: MockX402HTTPClient } = await import("@bankofai/x402-core/client");
     const correctiveResponse = createAxiosResponse(402, validPaymentRequired, {
       "PAYMENT-REQUIRED": "corrective-payment-required",
     });
@@ -428,7 +428,7 @@ describe("wrapAxiosWithPayment()", () => {
   });
 
   it("should return a corrective 402 paid retry when recovery does not run", async () => {
-    const { x402HTTPClient: MockX402HTTPClient } = await import("@x402/core/client");
+    const { x402HTTPClient: MockX402HTTPClient } = await import("@bankofai/x402-core/client");
     const correctiveResponse = createAxiosResponse(402, validPaymentRequired, {
       "PAYMENT-REQUIRED": "corrective-payment-required",
     });
@@ -466,7 +466,7 @@ describe("wrapAxiosWithPayment()", () => {
   });
 
   it("should fall through to paid retry when hook retry returns 402", async () => {
-    const { x402HTTPClient: MockX402HTTPClient } = await import("@x402/core/client");
+    const { x402HTTPClient: MockX402HTTPClient } = await import("@bankofai/x402-core/client");
     const hookResponse = createAxiosResponse(402, validPaymentRequired, {
       "PAYMENT-REQUIRED": "hook-payment-required",
     });
@@ -508,12 +508,12 @@ describe("wrapAxiosWithPaymentFromConfig()", () => {
       request: vi.fn(),
     } as unknown as AxiosInstance;
 
-    const { x402Client: MockX402Client } = await import("@x402/core/client");
+    const { x402Client: MockX402Client } = await import("@bankofai/x402-core/client");
     (MockX402Client.fromConfig as ReturnType<typeof vi.fn>).mockReturnValue(new MockX402Client());
   });
 
   it("should create client from config and wrap axios", async () => {
-    const { x402Client: MockX402Client } = await import("@x402/core/client");
+    const { x402Client: MockX402Client } = await import("@bankofai/x402-core/client");
 
     const config: x402ClientConfig = {
       schemes: [],

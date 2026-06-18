@@ -30,7 +30,7 @@ import type {
   BatchSettlementEnrichedRefundPayload,
 } from "../../../src/batch-settlement/types";
 import type { FacilitatorEvmSigner } from "../../../src/signer";
-import type { PaymentPayload, PaymentRequirements } from "@x402/core/types";
+import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
 
 const mockedMulticall = multicall as unknown as MockedFunction<typeof multicall>;
 

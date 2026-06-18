@@ -12,7 +12,7 @@
  * import {
  *   declarePaymentIdentifierExtension,
  *   PAYMENT_IDENTIFIER
- * } from '@x402/extensions/payment-identifier';
+ * } from '@bankofai/x402-extensions/payment-identifier';
  *
  * // Advertise support in PaymentRequired response (optional identifier)
  * const paymentRequired = {
@@ -38,7 +38,7 @@
  * ### For Clients
  *
  * ```typescript
- * import { appendPaymentIdentifierToExtensions } from '@x402/extensions/payment-identifier';
+ * import { appendPaymentIdentifierToExtensions } from '@bankofai/x402-extensions/payment-identifier';
  *
  * // Get extensions from server's PaymentRequired response
  * const extensions = { ...paymentRequired.extensions };
@@ -59,7 +59,7 @@
  * ### For Idempotency Implementation
  *
  * ```typescript
- * import { extractPaymentIdentifier } from '@x402/extensions/payment-identifier';
+ * import { extractPaymentIdentifier } from '@bankofai/x402-extensions/payment-identifier';
  *
  * // In your settle handler
  * const id = extractPaymentIdentifier(paymentPayload);

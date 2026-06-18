@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { WalletAccount } from "@wallet-standard/base";
-import type { ClientAvmSigner } from "@x402/avm";
+import type { ClientAvmSigner } from "@bankofai/x402-avm";
 
 import { getAlgorandSignTransactionFeature } from "./features";
 import type { WalletWithAvmFeatures } from "./types";

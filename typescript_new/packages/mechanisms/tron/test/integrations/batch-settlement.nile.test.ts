@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { TronWeb } from "tronweb";
-import type { PaymentPayload, PaymentRequirements } from "@x402/core/types";
-import type { FacilitatorClient } from "@x402/core/server";
+import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
+import type { FacilitatorClient } from "@bankofai/x402-core/server";
 import { BatchSettlementServerScheme } from "../../src/batch-settlement/server/scheme";
 import { BatchSettlementChannelManager } from "../../src/batch-settlement/server/channelManager";
 import { BatchSettlementTronScheme as BatchSettlementFacilitator } from "../../src/batch-settlement/facilitator/scheme";

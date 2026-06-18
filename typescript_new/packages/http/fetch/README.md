@@ -1,18 +1,18 @@
-# `@x402/fetch` [![npm version](https://img.shields.io/npm/v/%40x402%2Ffetch.svg)](https://www.npmjs.com/package/@x402/fetch)
+# `@bankofai/x402-fetch` [![npm version](https://img.shields.io/npm/v/%40bankofai%2Fx402-fetch.svg)](https://www.npmjs.com/package/@bankofai/x402-fetch)
 
 A utility package that extends the native `fetch` API to automatically handle 402 Payment Required responses using the x402 payment protocol v2. This package enables seamless integration of payment functionality into your applications when making HTTP requests.
 
 ## Installation
 
 ```bash
-pnpm install @x402/fetch
+pnpm install @bankofai/x402-fetch
 ```
 
 ## Quick Start
 
 ```typescript
-import { wrapFetchWithPaymentFromConfig } from "@x402/fetch";
-import { ExactEvmScheme } from "@x402/evm";
+import { wrapFetchWithPaymentFromConfig } from "@bankofai/x402-fetch";
+import { ExactEvmScheme } from "@bankofai/x402-evm";
 import { privateKeyToAccount } from "viem/accounts";
 
 // Create an account
@@ -75,9 +75,9 @@ A wrapped fetch function that automatically handles 402 responses by:
 
 ```typescript
 import { config } from "dotenv";
-import { wrapFetchWithPaymentFromConfig, decodePaymentResponseHeader } from "@x402/fetch";
+import { wrapFetchWithPaymentFromConfig, decodePaymentResponseHeader } from "@bankofai/x402-fetch";
 import { privateKeyToAccount } from "viem/accounts";
-import { ExactEvmScheme } from "@x402/evm";
+import { ExactEvmScheme } from "@bankofai/x402-evm";
 
 config();
 
@@ -120,9 +120,9 @@ fetchWithPayment(API_URL, {
 For more control, you can use the builder pattern to register multiple schemes:
 
 ```typescript
-import { wrapFetchWithPayment, x402Client } from "@x402/fetch";
-import { ExactEvmScheme } from "@x402/evm/exact/client";
-import { ExactSvmScheme } from "@x402/svm/exact/client";
+import { wrapFetchWithPayment, x402Client } from "@bankofai/x402-fetch";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
+import { ExactSvmScheme } from "@bankofai/x402-svm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 import { createKeyPairSignerFromBytes } from "@solana/kit";
 import { base58 } from "@scure/base";
@@ -143,9 +143,9 @@ const fetchWithPayment = wrapFetchWithPayment(fetch, client);
 ### Multi-Chain Support
 
 ```typescript
-import { wrapFetchWithPaymentFromConfig } from "@x402/fetch";
-import { ExactEvmScheme } from "@x402/evm";
-import { ExactSvmScheme } from "@x402/svm";
+import { wrapFetchWithPaymentFromConfig } from "@bankofai/x402-fetch";
+import { ExactEvmScheme } from "@bankofai/x402-evm";
+import { ExactSvmScheme } from "@bankofai/x402-svm";
 
 const fetchWithPayment = wrapFetchWithPaymentFromConfig(fetch, {
   schemes: [
@@ -166,8 +166,8 @@ const fetchWithPayment = wrapFetchWithPaymentFromConfig(fetch, {
 ### Custom Payment Requirements Selector
 
 ```typescript
-import { wrapFetchWithPaymentFromConfig, type SelectPaymentRequirements } from "@x402/fetch";
-import { ExactEvmScheme } from "@x402/evm";
+import { wrapFetchWithPaymentFromConfig, type SelectPaymentRequirements } from "@bankofai/x402-fetch";
+import { ExactEvmScheme } from "@bankofai/x402-evm";
 
 // Custom selector that prefers the cheapest option
 const selectCheapestOption: SelectPaymentRequirements = (version, accepts) => {

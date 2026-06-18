@@ -1,6 +1,7 @@
 {
-  "name": "@x402/express",
-  "version": "2.15.0",
+  "name": "@bankofai/x402-express",
+  "publishConfig": { "access": "public" },
+  "version": "1.0.0-beta.0",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/index.d.ts",
@@ -40,15 +41,15 @@
     "vitest": "^3.0.5"
   },
   "dependencies": {
-    "@x402/core": "workspace:~",
-    "@x402/extensions": "workspace:~"
+    "@bankofai/x402-core": "workspace:~",
+    "@bankofai/x402-extensions": "workspace:~"
   },
   "peerDependencies": {
-    "@x402/paywall": "workspace:^",
+    "@bankofai/x402-paywall": "workspace:^",
     "express": "^4.0.0 || ^5.0.0"
   },
   "peerDependenciesMeta": {
-    "@x402/paywall": {
+    "@bankofai/x402-paywall": {
       "optional": true
     }
   },

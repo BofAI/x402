@@ -1,5 +1,5 @@
 /**
- * @module @x402/evm - x402 Payment Protocol EVM Implementation
+ * @module @bankofai/x402-evm - x402 Payment Protocol EVM Implementation
  *
  * This module provides the EVM-specific implementation of the x402 payment protocol.
  */

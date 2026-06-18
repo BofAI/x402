@@ -1,18 +1,18 @@
 /**
- * @module @x402/avm - x402 Payment Protocol AVM (Algorand) Implementation
+ * @module @bankofai/x402-avm - x402 Payment Protocol AVM (Algorand) Implementation
  *
  * This module provides the Algorand-specific implementation of the x402 payment protocol.
  *
  * @example Client signer:
  * ```typescript
- * import { toClientAvmSigner } from "@x402/avm";
+ * import { toClientAvmSigner } from "@bankofai/x402-avm";
  *
  * const signer = toClientAvmSigner(process.env.AVM_PRIVATE_KEY!);
  * ```
  *
  * @example Facilitator signer:
  * ```typescript
- * import { toFacilitatorAvmSigner } from "@x402/avm";
+ * import { toFacilitatorAvmSigner } from "@bankofai/x402-avm";
  *
  * const signer = toFacilitatorAvmSigner(process.env.AVM_PRIVATE_KEY!);
  * ```

@@ -1,6 +1,7 @@
 {
-  "name": "@x402/tron",
-  "version": "2.14.0",
+  "name": "@bankofai/x402-tron",
+  "publishConfig": { "access": "public" },
+  "version": "1.0.0-beta.0",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/cjs/index.d.ts",
@@ -46,7 +47,7 @@
     "vitest": "^3.0.5"
   },
   "dependencies": {
-    "@x402/core": "workspace:~",
+    "@bankofai/x402-core": "workspace:~",
     "tronweb": "^6.1.0"
   },
   "exports": {

@@ -2,7 +2,7 @@
  * Resource Server utilities for the Builder Code Extension.
  */
 
-import type { ResourceServerExtension } from "@x402/core/types";
+import type { ResourceServerExtension } from "@bankofai/x402-core/types";
 import { BUILDER_CODE, BUILDER_CODE_PATTERN, type BuilderCodeExtensionData } from "./types";
 
 export const BUILDER_CODE_SCHEMA = {

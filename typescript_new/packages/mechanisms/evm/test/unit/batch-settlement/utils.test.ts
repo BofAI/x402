@@ -17,7 +17,7 @@ import {
 } from "../../../src/batch-settlement/errors";
 import { MIN_WITHDRAW_DELAY, MAX_WITHDRAW_DELAY } from "../../../src/batch-settlement/constants";
 import type { ChannelConfig } from "../../../src/batch-settlement/types";
-import type { PaymentRequirements } from "@x402/core/types";
+import type { PaymentRequirements } from "@bankofai/x402-core/types";
 
 const BASE_CONFIG: ChannelConfig = {
   payer: "0x1234567890123456789012345678901234567890",

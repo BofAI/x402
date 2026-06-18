@@ -6,7 +6,7 @@
  * and re-exports all protocol-specific types for backwards compatibility.
  */
 
-import type { FacilitatorExtension } from "@x402/core/types";
+import type { FacilitatorExtension } from "@bankofai/x402-core/types";
 
 // --- Shared union types ---
 

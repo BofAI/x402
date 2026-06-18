@@ -4,8 +4,8 @@
  * Attaches the client's service code (`s`) to the payment payload.
  */
 
-import type { ClientExtension } from "@x402/core/client";
-import type { PaymentPayload, PaymentRequired } from "@x402/core/types";
+import type { ClientExtension } from "@bankofai/x402-core/client";
+import type { PaymentPayload, PaymentRequired } from "@bankofai/x402-core/types";
 import { BUILDER_CODE, BUILDER_CODE_PATTERN } from "./types";
 
 /**
@@ -13,7 +13,7 @@ import { BUILDER_CODE, BUILDER_CODE_PATTERN } from "./types";
  *
  * @example
  * ```typescript
- * import { BuilderCodeClientExtension } from '@x402/extensions/builder-code';
+ * import { BuilderCodeClientExtension } from '@bankofai/x402-extensions/builder-code';
  *
  * const client = new x402Client();
  * client.registerExtension(new BuilderCodeClientExtension("bc_my_client"));

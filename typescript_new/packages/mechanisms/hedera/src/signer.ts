@@ -1,4 +1,4 @@
-import type { PaymentRequirements } from "@x402/core/types";
+import type { PaymentRequirements } from "@bankofai/x402-core/types";
 import {
   AccountId,
   Client,

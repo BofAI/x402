@@ -1,4 +1,4 @@
-# @x402/hono Changelog
+# @bankofai/x402-hono Changelog
 
 ## 2.15.0
 
@@ -9,9 +9,9 @@
 - Updated dependencies [6acb8fc](https://github.com/x402-foundation/x402/commit/6acb8fc)
 - Updated dependencies [3a60816](https://github.com/x402-foundation/x402/commit/3a60816)
 - Updated dependencies [7539e93](https://github.com/x402-foundation/x402/commit/7539e93)
-  - @x402/extensions@2.15.0
-  - @x402/core@2.15.0
-  - @x402/paywall@2.15.0
+  - @bankofai/x402-extensions@2.15.0
+  - @bankofai/x402-core@2.15.0
+  - @bankofai/x402-paywall@2.15.0
 
 ### Patch Changes
 
@@ -24,9 +24,9 @@
 - 0af31dd: Added startup-time JSON-schema validation for bazaar discovery extensions in middleware packages; Removed shallow bazaar validation from core in favor of full schema validation using the extensions package validator
 - Updated dependencies [be788e0]
 - Updated dependencies [0af31dd]
-  - @x402/extensions@2.14.0
-  - @x402/core@2.14.0
-  - @x402/paywall@2.14.0
+  - @bankofai/x402-extensions@2.14.0
+  - @bankofai/x402-core@2.14.0
+  - @bankofai/x402-paywall@2.14.0
 
 ## 2.13.0
 
@@ -39,9 +39,9 @@
 - Updated dependencies [5fca9f3]
 - Updated dependencies [95f2094]
 - Updated dependencies [49ea054]
-  - @x402/extensions@2.13.0
-  - @x402/paywall@2.13.0
-  - @x402/core@2.13.0
+  - @bankofai/x402-extensions@2.13.0
+  - @bankofai/x402-paywall@2.13.0
+  - @bankofai/x402-core@2.13.0
 
 ## 2.12.0
 
@@ -52,9 +52,9 @@
 - Updated dependencies [d235050]
 - Updated dependencies [45d7d19]
 - Updated dependencies [ee7c156]
-  - @x402/core@2.12.0
-  - @x402/extensions@2.12.0
-  - @x402/paywall@2.12.0
+  - @bankofai/x402-core@2.12.0
+  - @bankofai/x402-extensions@2.12.0
+  - @bankofai/x402-paywall@2.12.0
 
 ## 2.11.0
 
@@ -64,9 +64,9 @@
 - Updated dependencies [032295b]
 - Updated dependencies [dc04108]
 - Updated dependencies [484030b]
-  - @x402/core@2.11.0
-  - @x402/paywall@2.11.0
-  - @x402/extensions@2.11.0
+  - @bankofai/x402-core@2.11.0
+  - @bankofai/x402-paywall@2.11.0
+  - @bankofai/x402-extensions@2.11.0
 
 ## 2.10.0
 
@@ -76,9 +76,9 @@
 - Updated dependencies [9424291]
 - Updated dependencies [37b8347]
 - Updated dependencies [a4e4911]
-  - @x402/paywall@2.10.0
-  - @x402/extensions@2.10.0
-  - @x402/core@2.10.0
+  - @bankofai/x402-paywall@2.10.0
+  - @bankofai/x402-extensions@2.10.0
+  - @bankofai/x402-core@2.10.0
 
 ## 2.9.0
 
@@ -93,9 +93,9 @@
 - Updated dependencies [c0e3969]
 - Updated dependencies [2250cae]
 - Updated dependencies [d352574]
-  - @x402/core@2.9.0
-  - @x402/paywall@2.9.0
-  - @x402/extensions@2.9.0
+  - @bankofai/x402-core@2.9.0
+  - @bankofai/x402-paywall@2.9.0
+  - @bankofai/x402-extensions@2.9.0
 
 ## 2.8.0
 
@@ -107,9 +107,9 @@
 - Updated dependencies [067f297]
 - Updated dependencies [4c1e44f]
 - Updated dependencies [5135fab]
-  - @x402/extensions@2.8.0
-  - @x402/core@2.8.0
-  - @x402/paywall@2.8.0
+  - @bankofai/x402-extensions@2.8.0
+  - @bankofai/x402-core@2.8.0
+  - @bankofai/x402-paywall@2.8.0
 
 ## 2.7.0
 
@@ -120,9 +120,9 @@
 - Updated dependencies [f2bbb5c]
 - Updated dependencies [8931cb3]
 - Updated dependencies [34d2442]
-  - @x402/extensions@2.7.0
-  - @x402/core@2.7.0
-  - @x402/paywall@2.7.0
+  - @bankofai/x402-extensions@2.7.0
+  - @bankofai/x402-core@2.7.0
+  - @bankofai/x402-paywall@2.7.0
 
 ## 2.6.0
 
@@ -135,8 +135,8 @@
 - Updated dependencies [2564781]
 - Updated dependencies [b341973]
 - Updated dependencies [29fe09a]
-  - @x402/core@2.6.0
-  - @x402/paywall@2.6.0
+  - @bankofai/x402-core@2.6.0
+  - @bankofai/x402-paywall@2.6.0
 
 ## 2.5.0
 
@@ -147,9 +147,9 @@
 - Updated dependencies [1ab1c86]
 - Updated dependencies [d0a2b11]
 - Updated dependencies
-  - @x402/core@2.5.0
-  - @x402/extensions@2.5.0
-  - @x402/paywall@2.4.1
+  - @bankofai/x402-core@2.5.0
+  - @bankofai/x402-extensions@2.5.0
+  - @bankofai/x402-paywall@2.4.1
 
 ## 2.4.0
 
@@ -158,15 +158,15 @@
 - Updated dependencies [57a5488]
 - Updated dependencies [018181b]
 - Updated dependencies [3fb55d7]
-  - @x402/core@2.4.0
-  - @x402/extensions@2.4.0
-  - @x402/paywall@2.4.0
+  - @bankofai/x402-core@2.4.0
+  - @bankofai/x402-extensions@2.4.0
+  - @bankofai/x402-paywall@2.4.0
 
 ## 2.3.0
 
 ### Minor Changes
 
-- 51b8445: Bumped @x402/core dependency to 2.3.0
+- 51b8445: Bumped @bankofai/x402-core dependency to 2.3.0
 
 ### Patch Changes
 
@@ -175,9 +175,9 @@
 - Updated dependencies [51b8445]
 - Updated dependencies [fe42994]
 - Updated dependencies [51b8445]
-  - @x402/core@2.3.0
-  - @x402/paywall@2.3.0
-  - @x402/extensions@2.3.0
+  - @bankofai/x402-core@2.3.0
+  - @bankofai/x402-paywall@2.3.0
+  - @bankofai/x402-extensions@2.3.0
 
 ## 2.0.0
 

@@ -1,4 +1,4 @@
-import type { PaymentRequired } from "@x402/core/types";
+import type { PaymentRequired } from "@bankofai/x402-core/types";
 
 declare global {
   interface Window {

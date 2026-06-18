@@ -4,7 +4,7 @@ import { ExactEvmScheme as ClientExactEvmScheme } from "../../src/exact/client/s
 import { ExactEvmScheme as ServerExactEvmScheme } from "../../src/exact/server/scheme";
 import { ExactEvmScheme as FacilitatorExactEvmScheme } from "../../src/exact/facilitator/scheme";
 
-describe("@x402/evm", () => {
+describe("@bankofai/x402-evm", () => {
   it("should export ExactEvmScheme", () => {
     expect(ExactEvmScheme).toBeDefined();
     expect(typeof ExactEvmScheme).toBe("function");

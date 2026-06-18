@@ -6,8 +6,8 @@ import type {
   PaymentRequirements,
   Price,
   SchemeNetworkServer,
-} from "@x402/core/types";
-import { convertToTokenAmount, parseMoneyString } from "@x402/core/utils";
+} from "@bankofai/x402-core/types";
+import { convertToTokenAmount, parseMoneyString } from "@bankofai/x402-core/utils";
 import { assertSupportedHederaNetwork, isValidHederaAsset } from "../../utils";
 import {
   HEDERA_MAINNET_CAIP2,

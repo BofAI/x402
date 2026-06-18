@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import type { PaymentRequired } from "@x402/core/types";
+import type { PaymentRequired } from "@bankofai/x402-core/types";
 import { isEvmNetwork, isSvmNetwork, isAvmNetwork } from "./paywallUtils";
 import { EvmPaywall } from "./evm/EvmPaywall";
 import { SolanaPaywall } from "./svm/SolanaPaywall";

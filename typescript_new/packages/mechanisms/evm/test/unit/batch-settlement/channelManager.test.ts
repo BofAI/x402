@@ -11,14 +11,14 @@ import { BatchSettlementEvmScheme } from "../../../src/batch-settlement/server/s
 import { InMemoryChannelStorage, type Channel } from "../../../src/batch-settlement/server/storage";
 import { computeChannelId as computeChannelIdForNetwork } from "../../../src/batch-settlement/utils";
 import type { ChannelConfig, AuthorizerSigner } from "../../../src/batch-settlement/types";
-import type { FacilitatorClient } from "@x402/core/server";
+import type { FacilitatorClient } from "@bankofai/x402-core/server";
 import type {
   PaymentPayload,
   PaymentRequirements,
   SettleResponse,
   VerifyResponse,
   SupportedResponse,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 
 const RECEIVER = "0x9876543210987654321098765432109876543210" as `0x${string}`;
 const PAYER = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8" as `0x${string}`;

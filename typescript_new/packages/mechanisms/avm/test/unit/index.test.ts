@@ -12,7 +12,7 @@ import {
   isExactAvmPayload,
 } from "../../src";
 
-describe("@x402/avm", () => {
+describe("@bankofai/x402-avm", () => {
   describe("constants", () => {
     it("should export correct CAIP-2 network identifiers", () => {
       expect(ALGORAND_MAINNET_CAIP2).toBe("algorand:wGHE2Pwdvd7S12BL5FaOP20EGYesN73ktiC1qzkkit8=");

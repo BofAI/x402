@@ -23,8 +23,8 @@ import type {
   SchemeNetworkFacilitator,
   SettleResponse,
   VerifyResponse,
-} from "@x402/core/types";
-import type { PaymentPayloadV1, PaymentRequirementsV1 } from "@x402/core/types/v1";
+} from "@bankofai/x402-core/types";
+import type { PaymentPayloadV1, PaymentRequirementsV1 } from "@bankofai/x402-core/types/v1";
 import {
   LIGHTHOUSE_PROGRAM_ADDRESS,
   MAX_COMPUTE_UNIT_PRICE_MICROLAMPORTS,

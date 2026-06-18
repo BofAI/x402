@@ -5,7 +5,7 @@ import type {
   SchemeNetworkFacilitator,
   SettleResponse,
   VerifyResponse,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import type { FacilitatorAptosSigner } from "../../signer";
 import type { ExactAptosPayload } from "../../types";
 import { createAptosClient, deserializeAptosPayment } from "../../utils";

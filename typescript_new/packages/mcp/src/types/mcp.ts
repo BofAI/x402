@@ -5,7 +5,7 @@ import type {
   PaymentRequirements,
   Price,
   SettleResponse,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import { isObject } from "../utils/encoding";
 
 /**

@@ -1,5 +1,5 @@
-import { x402Client } from "@x402/core/client";
-import { Network } from "@x402/core/types";
+import { x402Client } from "@bankofai/x402-core/client";
+import { Network } from "@bankofai/x402-core/types";
 import { ClientTronSigner } from "../../signer";
 import { BatchSettlementTronScheme } from "./scheme";
 import type { BatchSettlementTronSchemeOptions } from "./config";

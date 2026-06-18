@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { x402Client } from "@x402/core/client";
-import type { PaymentPayload, PaymentRequired, PaymentRequirements } from "@x402/core/types";
+import { x402Client } from "@bankofai/x402-core/client";
+import type { PaymentPayload, PaymentRequired, PaymentRequirements } from "@bankofai/x402-core/types";
 import { ExactTronScheme as ExactServer } from "../../src/exact/server/scheme";
 import { ExactTronScheme as ExactFacilitator } from "../../src/exact/facilitator/scheme";
 import { ExactTronScheme as ExactClient } from "../../src/exact/client/scheme";

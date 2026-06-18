@@ -6,7 +6,7 @@ import {
 } from "../../../src/upto/client/permit2";
 import { createUptoPermit2Payload } from "../../../src/upto/client/permit2";
 import type { ClientEvmSigner } from "../../../src/signer";
-import { PaymentRequirements } from "@x402/core/types";
+import { PaymentRequirements } from "@bankofai/x402-core/types";
 import { PERMIT2_ADDRESS, x402UptoPermit2ProxyAddress } from "../../../src/constants";
 import { isUptoPermit2Payload } from "../../../src/types";
 

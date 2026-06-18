@@ -17,7 +17,7 @@ import {
   type Address,
   type Transaction,
 } from "@solana/kit";
-import type { PaymentRequirements, VerifyResponse } from "@x402/core/types";
+import type { PaymentRequirements, VerifyResponse } from "@bankofai/x402-core/types";
 import { MEMO_PROGRAM_ADDRESS } from "../../constants";
 import type { FacilitatorSvmSigner, SvmInnerInstructionsResult } from "../../signer";
 import { decodeTransactionFromPayload } from "../../utils";

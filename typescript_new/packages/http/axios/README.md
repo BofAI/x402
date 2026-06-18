@@ -1,19 +1,19 @@
-# `@x402/axios` [![npm version](https://img.shields.io/npm/v/%40x402%2Faxios.svg)](https://www.npmjs.com/package/@x402/axios)
+# `@bankofai/x402-axios` [![npm version](https://img.shields.io/npm/v/%40bankofai%2Fx402-axios.svg)](https://www.npmjs.com/package/@bankofai/x402-axios)
 
 A utility package that extends Axios to automatically handle 402 Payment Required responses using the x402 payment protocol v2. This package enables seamless integration of payment functionality into your applications when making HTTP requests.
 
 ## Installation
 
 ```bash
-pnpm install @x402/axios
+pnpm install @bankofai/x402-axios
 ```
 
 ## Quick Start
 
 ```typescript
 import axios from "axios";
-import { wrapAxiosWithPaymentFromConfig } from "@x402/axios";
-import { ExactEvmScheme } from "@x402/evm";
+import { wrapAxiosWithPaymentFromConfig } from "@bankofai/x402-axios";
+import { ExactEvmScheme } from "@bankofai/x402-evm";
 import { privateKeyToAccount } from "viem/accounts";
 
 // Create an account
@@ -75,9 +75,9 @@ A wrapped Axios instance that automatically handles 402 responses by:
 ```typescript
 import { config } from "dotenv";
 import axios from "axios";
-import { wrapAxiosWithPaymentFromConfig, decodePaymentResponseHeader } from "@x402/axios";
+import { wrapAxiosWithPaymentFromConfig, decodePaymentResponseHeader } from "@bankofai/x402-axios";
 import { privateKeyToAccount } from "viem/accounts";
-import { ExactEvmScheme } from "@x402/evm";
+import { ExactEvmScheme } from "@bankofai/x402-evm";
 
 config();
 
@@ -119,9 +119,9 @@ For more control, you can use the builder pattern to register multiple schemes:
 
 ```typescript
 import axios from "axios";
-import { wrapAxiosWithPayment, x402Client } from "@x402/axios";
-import { ExactEvmScheme } from "@x402/evm/exact/client";
-import { ExactSvmScheme } from "@x402/svm/exact/client";
+import { wrapAxiosWithPayment, x402Client } from "@bankofai/x402-axios";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
+import { ExactSvmScheme } from "@bankofai/x402-svm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 import { createKeyPairSignerFromBytes } from "@solana/kit";
 import { base58 } from "@scure/base";
@@ -143,9 +143,9 @@ const api = wrapAxiosWithPayment(axios.create(), client);
 
 ```typescript
 import axios from "axios";
-import { wrapAxiosWithPaymentFromConfig } from "@x402/axios";
-import { ExactEvmScheme } from "@x402/evm";
-import { ExactSvmScheme } from "@x402/svm";
+import { wrapAxiosWithPaymentFromConfig } from "@bankofai/x402-axios";
+import { ExactEvmScheme } from "@bankofai/x402-evm";
+import { ExactSvmScheme } from "@bankofai/x402-svm";
 
 const api = wrapAxiosWithPaymentFromConfig(axios.create(), {
   schemes: [
@@ -167,8 +167,8 @@ const api = wrapAxiosWithPaymentFromConfig(axios.create(), {
 
 ```typescript
 import axios from "axios";
-import { wrapAxiosWithPaymentFromConfig, type SelectPaymentRequirements } from "@x402/axios";
-import { ExactEvmScheme } from "@x402/evm";
+import { wrapAxiosWithPaymentFromConfig, type SelectPaymentRequirements } from "@bankofai/x402-axios";
+import { ExactEvmScheme } from "@bankofai/x402-evm";
 
 // Custom selector that prefers the cheapest option
 const selectCheapestOption: SelectPaymentRequirements = (version, accepts) => {

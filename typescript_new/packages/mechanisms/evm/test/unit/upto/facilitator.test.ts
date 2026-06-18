@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { UptoEvmScheme } from "../../../src/upto/facilitator/scheme";
 import { verifyUptoPermit2, settleUptoPermit2 } from "../../../src/upto/facilitator/permit2";
 import type { FacilitatorEvmSigner } from "../../../src/signer";
-import { PaymentPayload, PaymentRequirements } from "@x402/core/types";
+import { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
 import { x402UptoPermit2ProxyAddress } from "../../../src/constants";
 import {
   ErrPermit2AmountMismatch,

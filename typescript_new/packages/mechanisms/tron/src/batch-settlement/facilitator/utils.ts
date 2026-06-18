@@ -2,7 +2,7 @@
  * @file Facilitator-side helpers for the TRON batch-settlement scheme:
  * channel config normalization/validation, voucher verification, and onchain reads.
  */
-import type { PaymentRequirements } from "@x402/core/types";
+import type { PaymentRequirements } from "@bankofai/x402-core/types";
 import { FacilitatorTronSigner } from "../../signer";
 import { normalizeAddressForSigning } from "../../utils";
 import { batchSettlementABI } from "../../shared/batch-settlement/abi";

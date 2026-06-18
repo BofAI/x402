@@ -5,7 +5,7 @@ import {
   getPermit2AllowanceReadParams,
 } from "../../../src/exact/client/permit2";
 import type { ClientEvmSigner } from "../../../src/signer";
-import { PaymentRequirements } from "@x402/core/types";
+import { PaymentRequirements } from "@bankofai/x402-core/types";
 import { PERMIT2_ADDRESS, x402ExactPermit2ProxyAddress } from "../../../src/constants";
 import { isPermit2Payload, isEIP3009Payload } from "../../../src/types";
 

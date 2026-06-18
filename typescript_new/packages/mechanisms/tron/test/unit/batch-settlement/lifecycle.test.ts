@@ -10,7 +10,7 @@ import type {
   BatchSettlementDepositPayload,
   BatchSettlementVoucherPayload,
 } from "../../../src/batch-settlement/types";
-import type { PaymentRequirements } from "@x402/core/types";
+import type { PaymentRequirements } from "@bankofai/x402-core/types";
 
 /**
  * Offline coverage of the batch-settlement client decision logic that drives the

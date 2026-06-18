@@ -3,7 +3,7 @@ import type {
   PaymentPayloadResult,
   PaymentRequirements,
   SchemeNetworkClient,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import type { ClientHederaSigner } from "../../signer";
 import type { ExactHederaPayloadV2 } from "../../types";
 import { assertSupportedHederaNetwork } from "../../utils";

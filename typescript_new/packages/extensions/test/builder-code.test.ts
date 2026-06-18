@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import type { PaymentPayload, PaymentRequired } from "@x402/core/types";
+import type { PaymentPayload, PaymentRequired } from "@bankofai/x402-core/types";
 import {
   BUILDER_CODE,
   declareBuilderCodeExtension,

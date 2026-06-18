@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { ExactEvmScheme } from "../../src/exact/server/scheme";
-import { MoneyParser } from "@x402/core/types";
+import { MoneyParser } from "@bankofai/x402-core/types";
 
 // Base mainnet USDC address
 const BASE_MAINNET_USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";

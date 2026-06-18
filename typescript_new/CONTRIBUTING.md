@@ -18,18 +18,18 @@ The TypeScript SDK is a pnpm workspace managed with Turborepo.
 ```
 typescript/
 ├── packages/
-│   ├── core/              # @x402/core - Protocol implementation
+│   ├── core/              # @bankofai/x402-core - Protocol implementation
 │   ├── mechanisms/
-│   │   ├── evm/           # @x402/evm - Ethereum/EVM chains
-│   │   └── svm/           # @x402/svm - Solana
+│   │   ├── evm/           # @bankofai/x402-evm - Ethereum/EVM chains
+│   │   └── svm/           # @bankofai/x402-svm - Solana
 │   ├── http/
-│   │   ├── axios/         # @x402/axios - Axios interceptor
-│   │   ├── express/       # @x402/express - Express middleware
-│   │   ├── fetch/         # @x402/fetch - Fetch wrapper
-│   │   ├── hono/          # @x402/hono - Hono middleware
-│   │   ├── next/          # @x402/next - Next.js integration
-│   │   └── paywall/       # @x402/paywall - Browser paywall UI
-│   ├── extensions/        # @x402/extensions - Bazaar, Sign-in-with-x
+│   │   ├── axios/         # @bankofai/x402-axios - Axios interceptor
+│   │   ├── express/       # @bankofai/x402-express - Express middleware
+│   │   ├── fetch/         # @bankofai/x402-fetch - Fetch wrapper
+│   │   ├── hono/          # @bankofai/x402-hono - Hono middleware
+│   │   ├── next/          # @bankofai/x402-next - Next.js integration
+│   │   └── paywall/       # @bankofai/x402-paywall - Browser paywall UI
+│   ├── extensions/        # @bankofai/x402-extensions - Bazaar, Sign-in-with-x
 │   └── legacy/            # Legacy v1 packages (deprecated)
 ├── site/                  # x402.org marketing site
 ├── turbo.json
@@ -39,11 +39,11 @@ typescript/
 ### Package Dependencies
 
 ```
-@x402/core
+@bankofai/x402-core
     ↑
-@x402/evm, @x402/svm
+@bankofai/x402-evm, @bankofai/x402-svm
     ↑
-@x402/express, @x402/hono, @x402/next, @x402/axios, @x402/fetch
+@bankofai/x402-express, @bankofai/x402-hono, @bankofai/x402-next, @bankofai/x402-axios, @bankofai/x402-fetch
 ```
 
 The core package provides transport-agnostic primitives. Mechanism packages (`evm`, `svm`) implement chain-specific logic. HTTP packages provide framework integrations.
@@ -69,7 +69,7 @@ pnpm install
 pnpm build
 
 # Build a specific package
-pnpm --filter @x402/core build
+pnpm --filter @bankofai/x402-core build
 ```
 
 ## Development Workflow
@@ -123,7 +123,7 @@ cd packages/http/your-framework
 
 ```json
 {
-  "name": "@x402/your-framework",
+  "name": "@bankofai/x402-your-framework",
   "version": "0.1.0",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -138,7 +138,7 @@ cd packages/http/your-framework
     "format:check": "prettier -c .prettierrc --check \"**/*.{ts,js,cjs,json,md}\""
   },
   "dependencies": {
-    "@x402/core": "workspace:*"
+    "@bankofai/x402-core": "workspace:*"
   }
 }
 ```
@@ -159,7 +159,7 @@ To add support for a new blockchain in TypeScript:
 mkdir -p packages/mechanisms/your-chain
 ```
 
-2. Implement the required interfaces from `@x402/core`:
+2. Implement the required interfaces from `@bankofai/x402-core`:
    - `SchemeNetworkClient` - Signs payment payloads
    - `SchemeNetworkServer` - Validates payment requirements
    - `SchemeNetworkFacilitator` - Verifies and settles payments
@@ -178,7 +178,7 @@ export function registerExactYourChainScheme(
 }
 ```
 
-4. Follow the existing `@x402/evm` or `@x402/svm` package structure.
+4. Follow the existing `@bankofai/x402-evm` or `@bankofai/x402-svm` package structure.
 
 ### Adding Extensions
 
@@ -197,7 +197,7 @@ Extensions go in `packages/extensions/`. Each extension should:
 pnpm test
 
 # Single package
-pnpm --filter @x402/evm test
+pnpm --filter @bankofai/x402-evm test
 
 # Watch mode
 cd packages/mechanisms/evm
@@ -215,20 +215,20 @@ Create a `.env` at the repository root (or in the specific package you're
 testing) with the variables the target suites read. A starting template:
 
 ```bash
-# --- EVM mechanism (@x402/evm) ---
+# --- EVM mechanism (@bankofai/x402-evm) ---
 EVM_CLIENT_PRIVATE_KEY=
 EVM_FACILITATOR_PRIVATE_KEY=
 EVM_RESOURCE_SERVER_ADDRESS=
 # Optional: override the RPC endpoint (defaults to Base Sepolia)
 # EVM_RPC_URL=https://sepolia.base.org
 
-# --- SVM mechanism (@x402/svm) + Stellar ---
+# --- SVM mechanism (@bankofai/x402-svm) + Stellar ---
 CLIENT_PRIVATE_KEY=
 FACILITATOR_PRIVATE_KEY=
 FACILITATOR_ADDRESS=
 RESOURCE_SERVER_ADDRESS=
 
-# --- Aptos mechanism (@x402/aptos) ---
+# --- Aptos mechanism (@bankofai/x402-aptos) ---
 APTOS_CLIENT_PRIVATE_KEY=
 APTOS_FACILITATOR_PRIVATE_KEY=
 ```
@@ -244,7 +244,7 @@ Run everything or scope to a single package:
 pnpm test:integration
 
 # Single package
-pnpm --filter @x402/evm test:integration
+pnpm --filter @bankofai/x402-evm test:integration
 ```
 
 ### Test File Organization

@@ -1,5 +1,5 @@
-import { x402ResourceServer } from "@x402/core/server";
-import { Network } from "@x402/core/types";
+import { x402ResourceServer } from "@bankofai/x402-core/server";
+import { Network } from "@bankofai/x402-core/types";
 import { UptoTronScheme } from "./scheme";
 
 /**

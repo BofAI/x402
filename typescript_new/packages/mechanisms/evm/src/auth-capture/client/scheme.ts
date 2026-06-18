@@ -11,7 +11,7 @@ import type {
   PaymentPayloadResult,
   PaymentRequirements,
   SchemeNetworkClient,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import type { ClientEvmSigner } from "../../signer";
 import { hexToBigInt } from "viem";
 import {

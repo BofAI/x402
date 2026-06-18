@@ -5,7 +5,7 @@ import {
   FacilitatorContext,
   SettleResponse,
   VerifyResponse,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import { FacilitatorTronSigner } from "../../signer";
 import { UptoPermit2Payload, isUptoPermit2Payload } from "../../types";
 import { X402_UPTO_PERMIT2_PROXY_ADDRESSES } from "../../constants";

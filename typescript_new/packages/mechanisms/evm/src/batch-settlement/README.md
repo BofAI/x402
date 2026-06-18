@@ -1,4 +1,4 @@
-# Batch-Settlement EVM Scheme (`@x402/evm/batch-settlement`)
+# Batch-Settlement EVM Scheme (`@bankofai/x402-evm/batch-settlement`)
 
 The **batch-settlement** scheme enables high-throughput, low-cost EVM payments via **stateless unidirectional payment channels**. Clients deposit funds into an onchain escrow once, then sign off-chain **cumulative vouchers** per request. Servers verify vouchers with a fast signature check and claim them onchain in batches.
 
@@ -10,18 +10,18 @@ See the [scheme specification](https://github.com/x402-foundation/x402/blob/main
 
 | Role | Import |
 |------|--------|
-| Client | `@x402/evm/batch-settlement/client` |
-| Server | `@x402/evm/batch-settlement/server` |
-| Facilitator | `@x402/evm/batch-settlement/facilitator` |
+| Client | `@bankofai/x402-evm/batch-settlement/client` |
+| Server | `@bankofai/x402-evm/batch-settlement/server` |
+| Facilitator | `@bankofai/x402-evm/batch-settlement/facilitator` |
 
 ## Client Usage
 
 Register `BatchSettlementEvmScheme` with an `x402Client`. The client handles deposits, voucher signing, channel-state recovery, and corrective 402 resync.
 
 ```typescript
-import { x402Client } from "@x402/core/client";
-import { toClientEvmSigner } from "@x402/evm";
-import { BatchSettlementEvmScheme } from "@x402/evm/batch-settlement/client";
+import { x402Client } from "@bankofai/x402-core/client";
+import { toClientEvmSigner } from "@bankofai/x402-evm";
+import { BatchSettlementEvmScheme } from "@bankofai/x402-evm/batch-settlement/client";
 import { privateKeyToAccount } from "viem/accounts";
 import { createPublicClient, http } from "viem";
 import { baseSepolia } from "viem/chains";
@@ -92,7 +92,7 @@ The server claims any outstanding vouchers and then executes `refundWithSignatur
 By default, channel state is stored in memory. For long-lived clients, use `FileClientChannelStorage`:
 
 ```typescript
-import { FileClientChannelStorage } from "@x402/evm/batch-settlement/client/file-storage";
+import { FileClientChannelStorage } from "@bankofai/x402-evm/batch-settlement/client/file-storage";
 
 const scheme = new BatchSettlementEvmScheme(signer, {
   storage: new FileClientChannelStorage({ directory: "./channels" }),
@@ -106,10 +106,10 @@ If state is lost, the client recovers from onchain `channels(channelId)` plus co
 Register the scheme with an `x402ResourceServer` and pair it with a `ChannelManager` to handle batched claims, settlements, and refunds.
 
 ```typescript
-import { x402ResourceServer } from "@x402/core/server";
-import { BatchSettlementEvmScheme } from "@x402/evm/batch-settlement/server";
-import { FileChannelStorage } from "@x402/evm/batch-settlement/server/file-storage";
-import { RedisChannelStorage } from "@x402/evm/batch-settlement/server/redis-storage";
+import { x402ResourceServer } from "@bankofai/x402-core/server";
+import { BatchSettlementEvmScheme } from "@bankofai/x402-evm/batch-settlement/server";
+import { FileChannelStorage } from "@bankofai/x402-evm/batch-settlement/server/file-storage";
+import { RedisChannelStorage } from "@bankofai/x402-evm/batch-settlement/server/redis-storage";
 
 const scheme = new BatchSettlementEvmScheme(receiverAddress, {
   receiverAuthorizerSigner,        // optional: self-managed authorizer (recommended)
@@ -162,7 +162,7 @@ The `receiverAuthorizer` signs `ClaimBatch` and `Refund` EIP-712 messages and is
 Set the route `price` to the per-request maximum. To bill less than the max, override at handler time:
 
 ```typescript
-import { setSettlementOverrides } from "@x402/express";
+import { setSettlementOverrides } from "@bankofai/x402-express";
 
 app.get("/api/generate", (req, res) => {
   const actualUsage = computeCost();
@@ -176,8 +176,8 @@ app.get("/api/generate", (req, res) => {
 ## Facilitator Usage
 
 ```typescript
-import { x402Facilitator } from "@x402/core/facilitator";
-import { BatchSettlementEvmScheme } from "@x402/evm/batch-settlement/facilitator";
+import { x402Facilitator } from "@bankofai/x402-core/facilitator";
+import { BatchSettlementEvmScheme } from "@bankofai/x402-evm/batch-settlement/facilitator";
 
 const facilitator = new x402Facilitator().register(
   "eip155:84532",

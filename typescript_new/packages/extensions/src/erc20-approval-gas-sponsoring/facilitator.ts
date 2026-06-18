@@ -7,7 +7,7 @@
  */
 
 import Ajv from "ajv/dist/2020.js";
-import type { PaymentPayload } from "@x402/core/types";
+import type { PaymentPayload } from "@bankofai/x402-core/types";
 import {
   ERC20_APPROVAL_GAS_SPONSORING,
   type Erc20ApprovalGasSponsoringInfo,

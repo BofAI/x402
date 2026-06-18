@@ -1,4 +1,4 @@
-# Upto EVM Scheme (`@x402/evm/upto`)
+# Upto EVM Scheme (`@bankofai/x402-evm/upto`)
 
 The **upto** scheme enables usage-based billing on EVM networks. The client authorizes a **maximum** payment amount, but the server settles **only what was actually used**. This is ideal for variable-cost endpoints like LLM token generation, compute time, or bandwidth metering.
 
@@ -8,18 +8,18 @@ Uses **Permit2** exclusively (no EIP-3009 path). The on-chain proxy contract acc
 
 | Role | Import |
 |------|--------|
-| Client | `@x402/evm/upto/client` |
-| Server | `@x402/evm/upto/server` |
-| Facilitator | `@x402/evm/upto/facilitator` |
+| Client | `@bankofai/x402-evm/upto/client` |
+| Server | `@bankofai/x402-evm/upto/server` |
+| Facilitator | `@bankofai/x402-evm/upto/facilitator` |
 
 ## Client Usage
 
 Register `UptoEvmScheme` with an `x402Client` to handle payments for services that use the `upto` scheme. From the buyer's perspective, usage is transparent — the SDK signs a max-authorization and the server charges only what was consumed.
 
 ```typescript
-import { x402Client } from "@x402/core/client";
-import { ExactEvmScheme } from "@x402/evm/exact/client";
-import { UptoEvmScheme } from "@x402/evm/upto/client";
+import { x402Client } from "@bankofai/x402-core/client";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
+import { UptoEvmScheme } from "@bankofai/x402-evm/upto/client";
 import { privateKeyToAccount } from "viem/accounts";
 
 const signer = privateKeyToAccount(process.env.EVM_PRIVATE_KEY as `0x${string}`);
@@ -38,8 +38,8 @@ The upto client requires `paymentRequirements.extra.facilitatorAddress` (provide
 Register `UptoEvmScheme` with an `x402ResourceServer` and use `setSettlementOverrides` in your handler to specify the actual charge.
 
 ```typescript
-import { paymentMiddleware, setSettlementOverrides, x402ResourceServer } from "@x402/express";
-import { UptoEvmScheme } from "@x402/evm/upto/server";
+import { paymentMiddleware, setSettlementOverrides, x402ResourceServer } from "@bankofai/x402-express";
+import { UptoEvmScheme } from "@bankofai/x402-evm/upto/server";
 
 const server = new x402ResourceServer(facilitatorClient)
   .register("eip155:84532", new UptoEvmScheme());
@@ -82,7 +82,7 @@ Setting `amount` to `"0"` skips on-chain settlement entirely — the client is n
 For custom facilitator implementations:
 
 ```typescript
-import { UptoEvmScheme } from "@x402/evm/upto/facilitator";
+import { UptoEvmScheme } from "@bankofai/x402-evm/upto/facilitator";
 
 const scheme = new UptoEvmScheme({ signers: [wallet] });
 ```
@@ -118,7 +118,7 @@ The preferred path. If the payment token supports [EIP-2612](https://eips.ethere
 **Server:** Declare the extension in your route config:
 
 ```typescript
-import { declareEip2612GasSponsoringExtension } from "@x402/extensions";
+import { declareEip2612GasSponsoringExtension } from "@bankofai/x402-extensions";
 
 {
   "GET /api/generate": {
@@ -140,7 +140,7 @@ import { declareEip2612GasSponsoringExtension } from "@x402/extensions";
 **Facilitator:** Register the extension:
 
 ```typescript
-import { EIP2612_GAS_SPONSORING } from "@x402/extensions";
+import { EIP2612_GAS_SPONSORING } from "@bankofai/x402-extensions";
 
 facilitator.registerExtension(EIP2612_GAS_SPONSORING);
 ```
@@ -152,7 +152,7 @@ Fallback for tokens that do not support EIP-2612. The client signs a raw `approv
 **Server:** Declare the extension (omit `name`/`version` from token config to signal non-EIP-2612 tokens):
 
 ```typescript
-import { declareErc20ApprovalGasSponsoringExtension } from "@x402/extensions";
+import { declareErc20ApprovalGasSponsoringExtension } from "@bankofai/x402-extensions";
 
 {
   "GET /api/generate": {
@@ -169,7 +169,7 @@ import { declareErc20ApprovalGasSponsoringExtension } from "@x402/extensions";
 **Facilitator:** Register with a signer that can broadcast transactions:
 
 ```typescript
-import { createErc20ApprovalGasSponsoringExtension } from "@x402/extensions";
+import { createErc20ApprovalGasSponsoringExtension } from "@bankofai/x402-extensions";
 
 facilitator.registerExtension(createErc20ApprovalGasSponsoringExtension(erc20ApprovalSigner));
 ```

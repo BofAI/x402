@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { x402Client, x402HTTPClient } from "@x402/core/client";
-import { x402Facilitator } from "@x402/core/facilitator";
+import { x402Client, x402HTTPClient } from "@bankofai/x402-core/client";
+import { x402Facilitator } from "@bankofai/x402-core/facilitator";
 import {
   HTTPAdapter,
   HTTPResponseInstructions,
   x402HTTPResourceServer,
   x402ResourceServer,
   FacilitatorClient,
-} from "@x402/core/server";
+} from "@bankofai/x402-core/server";
 import {
   Network,
   PaymentPayload,
@@ -15,7 +15,7 @@ import {
   VerifyResponse,
   SettleResponse,
   SupportedResponse,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import { ExactSvmScheme as ExactSvmClient, toFacilitatorSvmSigner } from "../../src";
 import { ExactSvmScheme as ExactSvmServer } from "../../src/exact/server/scheme";
 import { ExactSvmScheme as ExactSvmFacilitator } from "../../src/exact/facilitator/scheme";

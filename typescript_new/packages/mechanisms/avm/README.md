@@ -1,11 +1,11 @@
-# @x402/avm [![npm version](https://img.shields.io/npm/v/%40x402%2Favm.svg)](https://www.npmjs.com/package/@x402/avm)
+# @bankofai/x402-avm [![npm version](https://img.shields.io/npm/v/%40bankofai%2Fx402-avm.svg)](https://www.npmjs.com/package/@bankofai/x402-avm)
 
 AVM (Algorand Virtual Machine) implementation of the x402 payment protocol using the **Exact** payment scheme with ASA (Algorand Standard Asset) transfers.
 
 ## Installation
 
 ```bash
-npm install @x402/avm
+npm install @bankofai/x402-avm
 ```
 
 ## Overview
@@ -18,7 +18,7 @@ This package provides three main components for handling x402 payments on Algora
 
 ## Package Exports
 
-### Main Package (`@x402/avm`)
+### Main Package (`@bankofai/x402-avm`)
 
 **V2 Protocol Support** - Modern x402 protocol with CAIP-2 network identifiers
 
@@ -36,8 +36,8 @@ This package provides three main components for handling x402 payments on Algora
 ## Usage
 
 ```typescript
-import { x402Client } from "@x402/core/client";
-import { ExactAvmClient } from "@x402/avm";
+import { x402Client } from "@bankofai/x402-core/client";
+import { ExactAvmClient } from "@bankofai/x402-avm";
 
 const client = new x402Client()
   .register("algorand:*", new ExactAvmClient(signer));
@@ -57,7 +57,7 @@ Use the built-in helper functions to create signers from a Base64-encoded privat
 ### Client Signer
 
 ```typescript
-import { toClientAvmSigner } from "@x402/avm";
+import { toClientAvmSigner } from "@bankofai/x402-avm";
 
 const signer = toClientAvmSigner(process.env.AVM_PRIVATE_KEY!);
 // signer.address — the Algorand address
@@ -67,7 +67,7 @@ const signer = toClientAvmSigner(process.env.AVM_PRIVATE_KEY!);
 ### Facilitator Signer
 
 ```typescript
-import { toFacilitatorAvmSigner } from "@x402/avm";
+import { toFacilitatorAvmSigner } from "@bankofai/x402-avm";
 
 // Default (uses AlgorandClient.testNet() / .mainNet() from algokit-utils):
 const signer = toFacilitatorAvmSigner(process.env.AVM_PRIVATE_KEY!);
@@ -116,7 +116,7 @@ The `AVM_PRIVATE_KEY` is a Base64-encoded string containing a 64-byte Algorand p
 To derive the Algorand address from the private key:
 
 ```typescript
-import { toClientAvmSigner } from "@x402/avm";
+import { toClientAvmSigner } from "@bankofai/x402-avm";
 const signer = toClientAvmSigner(process.env.AVM_PRIVATE_KEY!);
 console.log(signer.address); // Algorand address
 ```
@@ -224,8 +224,8 @@ pnpm format
 
 ## Related Packages
 
-- `@x402/core` - Core protocol types and client
-- `@x402/fetch` - HTTP wrapper with automatic payment handling
-- `@x402/evm` - EVM/Ethereum implementation
-- `@x402/svm` - Solana/SVM implementation
+- `@bankofai/x402-core` - Core protocol types and client
+- `@bankofai/x402-fetch` - HTTP wrapper with automatic payment handling
+- `@bankofai/x402-evm` - EVM/Ethereum implementation
+- `@bankofai/x402-svm` - Solana/SVM implementation
 - `@algorandfoundation/algokit-utils` - Algorand utility library (dependency)

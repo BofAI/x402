@@ -1,4 +1,4 @@
-# `@x402/paywall` [![npm version](https://img.shields.io/npm/v/%40x402%2Fpaywall.svg)](https://www.npmjs.com/package/@x402/paywall)
+# `@bankofai/x402-paywall` [![npm version](https://img.shields.io/npm/v/%40bankofai%2Fx402-paywall.svg)](https://www.npmjs.com/package/@bankofai/x402-paywall)
 
 Modular paywall UI for the x402 payment protocol with support for EVM and Solana networks.
 
@@ -14,7 +14,7 @@ Modular paywall UI for the x402 payment protocol with support for EVM and Solana
 ## Installation
 
 ```bash
-pnpm add @x402/paywall
+pnpm add @bankofai/x402-paywall
 ```
 
 ## Bundle Sizes
@@ -23,17 +23,17 @@ Choose the import that matches your needs:
 
 | Import | Size | Networks | Use Case |
 |--------|------|----------|----------|
-| `@x402/paywall` | 3.5MB | EVM + Solana | Multi-network apps |
-| `@x402/paywall/evm` | 3.4MB | EVM only | Base, Ethereum, Polygon, etc. |
-| `@x402/paywall/svm` | 1.0MB | Solana only | Solana apps |
+| `@bankofai/x402-paywall` | 3.5MB | EVM + Solana | Multi-network apps |
+| `@bankofai/x402-paywall/evm` | 3.4MB | EVM only | Base, Ethereum, Polygon, etc. |
+| `@bankofai/x402-paywall/svm` | 1.0MB | Solana only | Solana apps |
 
 ## Usage
 
 ### Option 1: EVM Only
 
 ```typescript
-import { createPaywall } from '@x402/paywall';
-import { evmPaywall } from '@x402/paywall/evm';
+import { createPaywall } from '@bankofai/x402-paywall';
+import { evmPaywall } from '@bankofai/x402-paywall/evm';
 
 const paywall = createPaywall()
   .withNetwork(evmPaywall)
@@ -50,8 +50,8 @@ app.use(paymentMiddleware(routes, facilitators, schemes, undefined, paywall));
 ### Option 2: Solana Only
 
 ```typescript
-import { createPaywall } from '@x402/paywall';
-import { svmPaywall } from '@x402/paywall/svm';
+import { createPaywall } from '@bankofai/x402-paywall';
+import { svmPaywall } from '@bankofai/x402-paywall/svm';
 
 const paywall = createPaywall()
   .withNetwork(svmPaywall)
@@ -65,9 +65,9 @@ const paywall = createPaywall()
 ### Option 3: Multi-Network
 
 ```typescript
-import { createPaywall } from '@x402/paywall';
-import { evmPaywall } from '@x402/paywall/evm';
-import { svmPaywall } from '@x402/paywall/svm';
+import { createPaywall } from '@bankofai/x402-paywall';
+import { evmPaywall } from '@bankofai/x402-paywall/evm';
+import { svmPaywall } from '@bankofai/x402-paywall/svm';
 
 const paywall = createPaywall()
   .withNetwork(evmPaywall)   // First-match priority
@@ -133,9 +133,9 @@ const paywall = createPaywall()
 
 ```typescript
 import express from 'express';
-import { paymentMiddleware } from '@x402/express';
-import { createPaywall } from '@x402/paywall';
-import { evmPaywall } from '@x402/paywall/evm';
+import { paymentMiddleware } from '@bankofai/x402-express';
+import { createPaywall } from '@bankofai/x402-paywall';
+import { evmPaywall } from '@bankofai/x402-paywall/evm';
 
 const app = express();
 
@@ -155,12 +155,12 @@ app.use(paymentMiddleware(
 
 ### Automatic Detection
 
-If you provide `paywallConfig` without a custom paywall, `@x402/core` automatically:
-1. Tries to load `@x402/paywall` if installed
+If you provide `paywallConfig` without a custom paywall, `@bankofai/x402-core` automatically:
+1. Tries to load `@bankofai/x402-paywall` if installed
 2. Falls back to basic HTML if not installed
 
 ```typescript
-// Simple usage - auto-detects @x402/paywall
+// Simple usage - auto-detects @bankofai/x402-paywall
 app.use(paymentMiddleware(routes, facilitators, schemes, {
   appName: 'My App',
   testnet: true
@@ -172,7 +172,7 @@ app.use(paymentMiddleware(routes, facilitators, schemes, {
 You can create custom handlers for new networks:
 
 ```typescript
-import { createPaywall, type PaywallNetworkHandler } from '@x402/paywall';
+import { createPaywall, type PaywallNetworkHandler } from '@bankofai/x402-paywall';
 
 const suiPaywall: PaywallNetworkHandler = {
   supports: (req) => req.network.startsWith('sui:'),

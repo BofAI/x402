@@ -1,11 +1,11 @@
-# `@x402/core` • [![npm version](https://img.shields.io/npm/v/%40x402%2Fcore.svg)](https://www.npmjs.com/package/@x402/core)
+# `@bankofai/x402-core` • [![npm version](https://img.shields.io/npm/v/%40bankofai%2Fx402-core.svg)](https://www.npmjs.com/package/@bankofai/x402-core)
 
 Core implementation of the x402 payment protocol for TypeScript/JavaScript applications. Provides transport-agnostic client, server and facilitator components.
 
 ## Installation
 
 ```bash
-pnpm install @x402/core
+pnpm install @bankofai/x402-core
 ```
 
 ## Quick Start
@@ -13,9 +13,9 @@ pnpm install @x402/core
 ### Client Usage
 
 ```typescript
-import { x402Client } from '@x402/core/client';
-import { x402HTTPClient } from '@x402/core/http';
-import { ExactEvmScheme } from '@x402/evm/exact/client';
+import { x402Client } from '@bankofai/x402-core/client';
+import { x402HTTPClient } from '@bankofai/x402-core/http';
+import { ExactEvmScheme } from '@bankofai/x402-evm/exact/client';
 
 // Create core client and register payment schemes
 const coreClient = new x402Client()
@@ -52,9 +52,9 @@ if (response.status === 402) {
 ### Server Usage
 
 ```typescript
-import { x402ResourceServer, HTTPFacilitatorClient } from '@x402/core/server';
-import { x402HTTPResourceServer } from '@x402/core/http';
-import { ExactEvmScheme } from '@x402/evm/exact/server';
+import { x402ResourceServer, HTTPFacilitatorClient } from '@bankofai/x402-core/server';
+import { x402HTTPResourceServer } from '@bankofai/x402-core/http';
+import { ExactEvmScheme } from '@bankofai/x402-evm/exact/server';
 
 // Connect to facilitator
 const facilitatorClient = new HTTPFacilitatorClient({
@@ -89,8 +89,8 @@ const httpServer = new x402HTTPResourceServer(resourceServer, routes);
 ### Facilitator Usage
 
 ```typescript
-import { x402Facilitator } from '@x402/core/facilitator';
-import { registerExactEvmScheme } from '@x402/evm/exact/facilitator';
+import { x402Facilitator } from '@bankofai/x402-core/facilitator';
+import { registerExactEvmScheme } from '@bankofai/x402-evm/exact/facilitator';
 
 const facilitator = new x402Facilitator();
 
@@ -271,19 +271,19 @@ type PaymentRequired = {
 
 For framework-specific middleware, use:
 
-- `@x402/express` - Express.js middleware
-- `@x402/hono` - Hono middleware  
-- `@x402/next` - Next.js integration
-- `@x402/axios` - Axios interceptor
-- `@x402/fetch` - Fetch wrapper
+- `@bankofai/x402-express` - Express.js middleware
+- `@bankofai/x402-hono` - Hono middleware  
+- `@bankofai/x402-next` - Next.js integration
+- `@bankofai/x402-axios` - Axios interceptor
+- `@bankofai/x402-fetch` - Fetch wrapper
 
 ## Implementation Packages
 
 For blockchain-specific implementations:
 
-- `@x402/evm` - Ethereum and EVM-compatible chains
-- `@x402/svm` - Solana blockchain
-- `@x402/avm` - Algorand blockchain
+- `@bankofai/x402-evm` - Ethereum and EVM-compatible chains
+- `@bankofai/x402-svm` - Solana blockchain
+- `@bankofai/x402-avm` - Algorand blockchain
 
 ## Examples
 

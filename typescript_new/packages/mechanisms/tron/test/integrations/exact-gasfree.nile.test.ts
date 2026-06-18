@@ -10,7 +10,7 @@ import {
 import { createGasFreeApiClients, type GasFreeAPIClient } from "../../src/shared/gasfree/api";
 import { GASFREE_API_BASE_URLS } from "../../src/shared/gasfree/config";
 import { transferWithAuthorizationABI } from "../../src/constants";
-import type { PaymentPayload, PaymentRequirements } from "@x402/core/types";
+import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
 import {
   loadNileEnv,
   nileTronWeb,

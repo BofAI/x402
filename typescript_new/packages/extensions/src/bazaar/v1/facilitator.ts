@@ -7,8 +7,8 @@
  * This module transforms v1 data into v2 DiscoveryInfo format.
  */
 
-import type { PaymentRequirementsV1 } from "@x402/core/types";
-import type { BodyMethods, QueryParamMethods } from "@x402/core/http";
+import type { PaymentRequirementsV1 } from "@bankofai/x402-core/types";
+import type { BodyMethods, QueryParamMethods } from "@bankofai/x402-core/http";
 import type {
   DiscoveryExtension,
   DiscoveryInfo,

@@ -1,5 +1,5 @@
-import type { PaymentResponseContext } from "@x402/core/client";
-import type { SchemeClientHooks } from "@x402/core/types";
+import type { PaymentResponseContext } from "@bankofai/x402-core/client";
+import type { SchemeClientHooks } from "@bankofai/x402-core/types";
 import { isBatchSettlementRefundPayload } from "../types";
 import type { BatchSettlementClientDeps } from "./channel";
 import { processSettleResponse, updateChannelAfterRefund } from "./channel";

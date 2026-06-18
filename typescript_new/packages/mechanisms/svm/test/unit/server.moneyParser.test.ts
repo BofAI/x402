@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { ExactSvmScheme } from "../../src/exact/server/scheme";
-import { MoneyParser } from "@x402/core/types";
+import { MoneyParser } from "@bankofai/x402-core/types";
 
 describe("ExactSvmScheme - registerMoneyParser", () => {
   describe("Single custom parser", () => {

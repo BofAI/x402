@@ -9,7 +9,7 @@
  * ## For Resource Servers
  *
  * ```typescript
- * import { declareErc20ApprovalGasSponsoringExtension } from '@x402/extensions';
+ * import { declareErc20ApprovalGasSponsoringExtension } from '@bankofai/x402-extensions';
  *
  * const routes = [
  *   {
@@ -28,7 +28,7 @@
  * import {
  *   extractErc20ApprovalGasSponsoringInfo,
  *   validateErc20ApprovalGasSponsoringInfo,
- * } from '@x402/extensions';
+ * } from '@bankofai/x402-extensions';
  *
  * const info = extractErc20ApprovalGasSponsoringInfo(paymentPayload);
  * if (info && validateErc20ApprovalGasSponsoringInfo(info)) {

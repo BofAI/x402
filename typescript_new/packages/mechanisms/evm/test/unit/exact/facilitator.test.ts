@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { ExactEvmScheme } from "../../../src/exact/facilitator/scheme";
 import { ExactEvmScheme as ClientExactEvmScheme } from "../../../src/exact/client/scheme";
 import type { ClientEvmSigner, FacilitatorEvmSigner } from "../../../src/signer";
-import { PaymentRequirements, PaymentPayload } from "@x402/core/types";
+import { PaymentRequirements, PaymentPayload } from "@bankofai/x402-core/types";
 import { x402ExactPermit2ProxyAddress, PERMIT2_ADDRESS } from "../../../src/constants";
 import { ERC20_APPROVAL_GAS_SPONSORING_KEY } from "../../../src/exact/extensions";
 import { MULTICALL3_ADDRESS } from "../../../src/multicall";

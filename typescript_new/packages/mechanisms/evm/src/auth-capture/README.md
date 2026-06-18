@@ -10,15 +10,15 @@ See the [scheme specification](https://github.com/x402-foundation/x402/blob/main
 
 | Role   | Import                          |
 | ------ | ------------------------------- |
-| Client | `@x402/evm/auth-capture/client` |
+| Client | `@bankofai/x402-evm/auth-capture/client` |
 
 ## Usage
 
 Register `AuthCaptureEvmScheme` with an `x402Client`. The client validates the requirement's `extra` fields, reconstructs the PaymentInfo struct, computes the payer-agnostic hash, and emits an ERC-3009 (default) or Permit2 payload.
 
 ```typescript
-import { x402Client } from "@x402/core/client";
-import { AuthCaptureEvmScheme } from "@x402/evm/auth-capture/client";
+import { x402Client } from "@bankofai/x402-core/client";
+import { AuthCaptureEvmScheme } from "@bankofai/x402-evm/auth-capture/client";
 import { privateKeyToAccount } from "viem/accounts";
 
 const account = privateKeyToAccount(process.env.EVM_PRIVATE_KEY as `0x${string}`);

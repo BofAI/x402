@@ -7,7 +7,7 @@
  * it atomically before settling the Permit2 payment.
  */
 
-import type { FacilitatorExtension } from "@x402/core/types";
+import type { FacilitatorExtension } from "@bankofai/x402-core/types";
 
 /**
  * A single transaction to be executed by the signer.
@@ -21,13 +21,13 @@ export type TransactionRequest =
 /**
  * Signer capability carried by the ERC-20 approval extension when registered in a facilitator.
  *
- * Mirrors FacilitatorEvmSigner (from @x402/evm) plus `sendTransactions`.
+ * Mirrors FacilitatorEvmSigner (from @bankofai/x402-evm) plus `sendTransactions`.
  * The signer owns execution of multiple transactions, enabling production implementations
  * to bundle them atomically (e.g., Flashbots, multicall, smart account batching)
  * while simpler implementations can execute them sequentially.
  *
  * The method signatures are duplicated here (rather than extending FacilitatorEvmSigner)
- * to avoid a circular dependency between @x402/extensions and @x402/evm.
+ * to avoid a circular dependency between @bankofai/x402-extensions and @bankofai/x402-evm.
  */
 export interface Erc20ApprovalGasSponsoringSigner {
   getAddresses(): readonly `0x${string}`[];
@@ -75,7 +75,7 @@ export const ERC20_APPROVAL_GAS_SPONSORING_VERSION = "1";
  *
  * @example
  * ```typescript
- * import { createErc20ApprovalGasSponsoringExtension } from '@x402/extensions';
+ * import { createErc20ApprovalGasSponsoringExtension } from '@bankofai/x402-extensions';
  *
  * facilitator.registerExtension(
  *   createErc20ApprovalGasSponsoringExtension(signer),
@@ -92,7 +92,7 @@ export interface Erc20ApprovalGasSponsoringFacilitatorExtension extends Facilita
 
 /**
  * Base signer shape without `sendTransactions`.
- * Matches the FacilitatorEvmSigner shape from @x402/evm (duplicated to avoid circular dep).
+ * Matches the FacilitatorEvmSigner shape from @bankofai/x402-evm (duplicated to avoid circular dep).
  */
 export type Erc20ApprovalGasSponsoringBaseSigner = Omit<
   Erc20ApprovalGasSponsoringSigner,

@@ -5,7 +5,7 @@
  * ERC-8021 Schema 2 builder codes to settlement transaction calldata.
  */
 
-import type { PaymentPayload, PaymentRequirements } from "@x402/core/types";
+import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
 
 /**
  * Extension identifier constant

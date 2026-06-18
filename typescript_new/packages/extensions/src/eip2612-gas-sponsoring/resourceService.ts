@@ -71,7 +71,7 @@ const eip2612GasSponsoringSchema: Record<string, unknown> = {
  *
  * @example
  * ```typescript
- * import { declareEip2612GasSponsoringExtension } from '@x402/extensions';
+ * import { declareEip2612GasSponsoringExtension } from '@bankofai/x402-extensions';
  *
  * const routes = [
  *   {

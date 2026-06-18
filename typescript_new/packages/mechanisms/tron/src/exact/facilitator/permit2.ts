@@ -3,7 +3,7 @@ import {
   PaymentRequirements,
   SettleResponse,
   VerifyResponse,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import {
   permit2WitnessTypes,
   PERMIT2_ADDRESSES,

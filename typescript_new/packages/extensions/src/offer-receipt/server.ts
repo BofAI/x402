@@ -12,9 +12,9 @@ import type {
   ResourceServerExtension,
   PaymentRequiredContext,
   SettleResultContext,
-} from "@x402/core/types";
-import type { PaymentRequirements } from "@x402/core/types";
-import type { HTTPTransportContext } from "@x402/core/http";
+} from "@bankofai/x402-core/types";
+import type { PaymentRequirements } from "@bankofai/x402-core/types";
+import type { HTTPTransportContext } from "@bankofai/x402-core/http";
 import {
   OFFER_RECEIPT,
   type OfferReceiptIssuer,

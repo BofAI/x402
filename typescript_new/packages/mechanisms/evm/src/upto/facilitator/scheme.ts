@@ -5,7 +5,7 @@ import {
   FacilitatorContext,
   SettleResponse,
   VerifyResponse,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import { FacilitatorEvmSigner } from "../../signer";
 import { UptoPermit2Payload, isUptoPermit2Payload } from "../../types";
 import { verifyUptoPermit2, settleUptoPermit2 } from "./permit2";

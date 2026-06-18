@@ -7,11 +7,11 @@ import {
   SchemeNetworkServer,
   SchemeServerHooks,
   MoneyParser,
-} from "@x402/core/types";
-import type { DeepReadonly } from "@x402/core/types";
-import type { SettleContext, SettleResultContext } from "@x402/core/server";
-import { convertToTokenAmount, numberToDecimalString, parseMoneyString } from "@x402/core/utils";
-import type { FacilitatorClient } from "@x402/core/server";
+} from "@bankofai/x402-core/types";
+import type { DeepReadonly } from "@bankofai/x402-core/types";
+import type { SettleContext, SettleResultContext } from "@bankofai/x402-core/server";
+import { convertToTokenAmount, numberToDecimalString, parseMoneyString } from "@bankofai/x402-core/utils";
+import type { FacilitatorClient } from "@bankofai/x402-core/server";
 import { normalizeAddressForSigning } from "../../utils";
 import { getDefaultAsset } from "../../shared/defaultAssets";
 import type { TronAuthorizerSigner } from "../types";

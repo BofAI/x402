@@ -588,13 +588,13 @@ const facilitator = new x402Facilitator()
 
 **Why**: Currently, contributors must navigate nested directories, modify core switching logic in `client/createPaymentHeader.ts` and `facilitator/facilitator.ts`, and understand internal coupling to add support for new blockchains or payment schemes. This refactor eliminates these barriers by providing a single interface to implement and explicit registration.
 
-**Implementation Packaging**: The EVM and SVM implementations to be extracted into separate packages (`@x402/evm` and `@x402/svm`) to serve as reference implementations. For developer experience, they will be imported by default in the core `@x402/core` package, but their separation allows them to demonstrate the implementation pattern for future schemes and networks.
+**Implementation Packaging**: The EVM and SVM implementations to be extracted into separate packages (`@bankofai/x402-evm` and `@bankofai/x402-svm`) to serve as reference implementations. For developer experience, they will be imported by default in the core `@bankofai/x402-core` package, but their separation allows them to demonstrate the implementation pattern for future schemes and networks.
 
 **Extensibility**: After this refactor, adding support for new networks, schemes, or implementations will not require a PR to the core repository. Developers can create their own packages implementing the `SchemeNetworkClient`, `SchemeNetworkServer` and `SchemeNetworkFacilitator` interfaces and use them immediately. We will continue to welcome PRs to add new implementations as official packages, but unofficial packages will be fully compatible with plug-and-play functionality.
 
 ### Client Configuration
 
-The sdk will export a client type contructed via a builder pattern, that is leveraged for reference client packages such as `@x402/axios` and `@x402/fetch`
+The sdk will export a client type contructed via a builder pattern, that is leveraged for reference client packages such as `@bankofai/x402-axios` and `@bankofai/x402-fetch`
 
 #### Composable Client Architecture
 

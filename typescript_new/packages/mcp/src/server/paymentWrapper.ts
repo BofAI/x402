@@ -5,8 +5,8 @@
  * Use createPaymentWrapper to wrap tool handlers with payment verification and settlement.
  */
 
-import type { PaymentPayload, PaymentRequirements, ResourceInfo } from "@x402/core/types";
-import { x402ResourceServer } from "@x402/core/server";
+import type { PaymentPayload, PaymentRequirements, ResourceInfo } from "@bankofai/x402-core/types";
+import { x402ResourceServer } from "@bankofai/x402-core/server";
 
 import type {
   MCPToolContext,
@@ -71,7 +71,7 @@ export interface PaymentWrapperConfig {
    *
    * @example
    * ```typescript
-   * import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
+   * import { declareDiscoveryExtension } from "@bankofai/x402-extensions/bazaar";
    *
    * resource: { url: "mcp://tool/get_weather" },
    * extensions: declareDiscoveryExtension({

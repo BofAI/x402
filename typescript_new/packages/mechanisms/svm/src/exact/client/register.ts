@@ -1,5 +1,5 @@
-import { x402Client, SelectPaymentRequirements, PaymentPolicy } from "@x402/core/client";
-import { Network } from "@x402/core/types";
+import { x402Client, SelectPaymentRequirements, PaymentPolicy } from "@bankofai/x402-core/client";
+import { Network } from "@bankofai/x402-core/types";
 import { ClientSvmSigner } from "../../signer";
 import { ExactSvmScheme } from "./scheme";
 import { ExactSvmSchemeV1 } from "../v1/client/scheme";

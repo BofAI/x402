@@ -5,7 +5,7 @@
  * SIWX authentication when a 402 response includes SIWX extension info.
  */
 
-import { decodePaymentRequiredHeader } from "@x402/core/http";
+import { decodePaymentRequiredHeader } from "@bankofai/x402-core/http";
 import type { SIWxSigner } from "./sign";
 import type { SIWxExtension } from "./types";
 import { SIGN_IN_WITH_X } from "./types";
@@ -29,7 +29,7 @@ import { encodeSIWxHeader } from "./encode";
  *
  * @example
  * ```typescript
- * import { wrapFetchWithSIWx } from '@x402/extensions/sign-in-with-x';
+ * import { wrapFetchWithSIWx } from '@bankofai/x402-extensions/sign-in-with-x';
  * import { privateKeyToAccount } from 'viem/accounts';
  *
  * const signer = privateKeyToAccount(privateKey);

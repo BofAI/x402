@@ -18,7 +18,7 @@ import type {
   PaymentRequirements,
   SchemeNetworkClient,
   PaymentPayloadResult,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 import type { ClientAvmSigner, ClientAvmConfig } from "../../signer";
 import type { ExactAvmPayloadV2 } from "../../types";
 import { encodeTransaction } from "../../utils";

@@ -1,4 +1,4 @@
-import { convertToTokenAmount, numberToDecimalString, parseMoneyString } from "@x402/core/utils";
+import { convertToTokenAmount, numberToDecimalString, parseMoneyString } from "@bankofai/x402-core/utils";
 import { DEFAULT_TOKEN_DECIMALS } from "../../constants";
 import { getUsdcAddress } from "../../utils";
 import type {
@@ -8,7 +8,7 @@ import type {
   Price,
   SchemeNetworkServer,
   MoneyParser,
-} from "@x402/core/types";
+} from "@bankofai/x402-core/types";
 
 /**
  * Stellar server implementation for the Exact payment scheme.

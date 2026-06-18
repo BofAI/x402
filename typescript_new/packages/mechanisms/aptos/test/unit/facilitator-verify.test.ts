@@ -22,7 +22,7 @@ import {
   USDC_TESTNET_FA,
   APTOS_TESTNET_CAIP2,
 } from "../../src/constants";
-import type { PaymentPayload, PaymentRequirements } from "@x402/core/types";
+import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
 import type { ExactAptosPayload } from "../../src/types";
 
 const TESTNET_CHAIN_ID = 2;

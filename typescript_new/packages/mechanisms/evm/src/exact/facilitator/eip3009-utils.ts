@@ -1,4 +1,4 @@
-import { PaymentRequirements, VerifyResponse } from "@x402/core/types";
+import { PaymentRequirements, VerifyResponse } from "@bankofai/x402-core/types";
 import { encodeFunctionData, getAddress, Hex, parseErc6492Signature, parseSignature } from "viem";
 import { eip3009ABI } from "../../constants";
 import { multicall, ContractCall, RawContractCall } from "../../multicall";
