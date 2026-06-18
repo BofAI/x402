@@ -54,15 +54,47 @@ The client TIP-712 type, the proxy `settle` ABI, and the on-chain `WITNESS_TYPEH
 
 ```ts
 import { TronWeb } from "tronweb";
-import { createClientTronSigner, createFacilitatorTronSigner } from "@bankofai/x402-tron";
+import {
+  createClientTronSigner,
+  createFacilitatorTronSigner,
+  type AgentWallet,
+  type FacilitatorAgentWallet,
+} from "@bankofai/x402-tron";
 
-const tronWeb = new TronWeb({ fullHost: "https://nile.trongrid.io", privateKey: PK });
+const privateKey = process.env.TRON_PRIVATE_KEY!.replace(/^0x/, "");
+const tronWeb = new TronWeb({ fullHost: "https://nile.trongrid.io" });
+const address = TronWeb.address.fromPrivateKey(privateKey) as string;
 
-const clientSigner = createClientTronSigner(tronWeb, PK); // signTypedData + readContract
-const facilitatorSigner = createFacilitatorTronSigner(tronWeb, PK); // verify + write + receipt
+// Client: signs TIP-712 typed data. The private key stays in your wallet —
+// the SDK only sees the AgentWallet interface, never the raw key.
+const clientWallet: AgentWallet = {
+  getAddress: () => address,
+  async signTypedData(args) {
+    const sig = await tronWeb.trx._signTypedData(
+      args.domain,
+      args.types,
+      args.message,
+      privateKey,
+    );
+    return (sig.startsWith("0x") ? sig : `0x${sig}`) as `0x${string}`;
+  },
+};
+const clientSigner = await createClientTronSigner(tronWeb, clientWallet);
+
+// Facilitator: signs built settlement transactions for on-chain broadcast.
+const facilitatorWallet: FacilitatorAgentWallet = {
+  address,
+  async signTransaction(transaction) {
+    return tronWeb.trx.sign(transaction, privateKey);
+  },
+};
+const facilitatorSigner = createFacilitatorTronSigner(tronWeb, facilitatorWallet);
 ```
 
-Both have `to*TronSigner` adapters if you already have a signing object.
+`createClientTronSigner` is async (it resolves the wallet address);
+`createFacilitatorTronSigner` is synchronous. Both also expose
+`toClientTronSigner` / `toFacilitatorTronSigner` adapters if you already have a
+signing object that matches the full signer shape.
 
 ### Client
 
