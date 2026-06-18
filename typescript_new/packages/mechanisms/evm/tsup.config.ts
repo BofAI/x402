@@ -20,6 +20,7 @@ const baseConfig = {
     "batch-settlement/facilitator/index": "src/batch-settlement/facilitator/index.ts",
     "auth-capture/client/index": "src/auth-capture/client/index.ts",
     "facilitator/agent-wallet": "src/facilitator/agent-wallet.ts",
+    "client/agent-wallet": "src/client/agent-wallet.ts",
   },
   dts: {
     resolve: true,

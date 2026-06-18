@@ -230,6 +230,16 @@
         "types": "./dist/cjs/facilitator/agent-wallet.d.ts",
         "default": "./dist/cjs/facilitator/agent-wallet.js"
       }
+    },
+    "./client/agent-wallet": {
+      "import": {
+        "types": "./dist/esm/client/agent-wallet.d.mts",
+        "default": "./dist/esm/client/agent-wallet.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/client/agent-wallet.d.ts",
+        "default": "./dist/cjs/client/agent-wallet.js"
+      }
     }
   },
   "files": [
