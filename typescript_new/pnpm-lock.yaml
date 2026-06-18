@@ -1606,6 +1606,9 @@ importers:
       '@bankofai/x402-extensions':
         specifier: workspace:*
         version: link:../packages/extensions
+      '@bankofai/x402-hedera':
+        specifier: workspace:*
+        version: link:../packages/mechanisms/hedera
       '@bankofai/x402-next':
         specifier: workspace:*
         version: link:../packages/http/next
