@@ -1,0 +1,15 @@
+{
+  "name": "x402-examples-new",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Runnable TypeScript examples for @bankofai/x402-* — EVM + TRON only.",
+  "scripts": {
+    "dev:facilitator": "pnpm --filter @bankofai/x402-example-facilitator-basic dev",
+    "dev:server": "pnpm --filter @bankofai/x402-example-server-express dev",
+    "dev:client": "pnpm --filter @bankofai/x402-example-client-fetch dev"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
