@@ -16,6 +16,10 @@ eggs/
 .eggs/
 lib/
 lib64/
+
+# The Python `lib/` rule above also matches the x402 TS site source dir; keep it tracked.
+!typescript_new/site/lib/
+!typescript_new/site/lib/**
 parts/
 sdist/
 var/
