@@ -19,11 +19,11 @@ import { type PaymentRequired } from "@bankofai/x402-core/types";
  * ```typescript
  * import { wrapFetchWithPayment, x402Client } from '@bankofai/x402-fetch';
  * import { ExactEvmScheme } from '@bankofai/x402-evm';
- * import { ExactSvmScheme } from '@bankofai/x402-svm';
+ * import { ExactTronScheme } from '@bankofai/x402-tron';
  *
  * const client = new x402Client()
  *   .register('eip155:8453', new ExactEvmScheme(evmSigner))
- *   .register('solana:mainnet', new ExactSvmScheme(svmSigner))
+ *   .register('tron:mainnet', new ExactTronScheme(tronSigner))
  *   .register('eip155:1', new ExactEvmScheme(evmSigner), 1); // v1 protocol
  *
  * const fetchWithPay = wrapFetchWithPayment(fetch, client);

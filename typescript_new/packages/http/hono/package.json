@@ -44,13 +44,7 @@
     "@bankofai/x402-extensions": "workspace:~"
   },
   "peerDependencies": {
-    "hono": "^4.0.0",
-    "@bankofai/x402-paywall": "workspace:^"
-  },
-  "peerDependenciesMeta": {
-    "@bankofai/x402-paywall": {
-      "optional": true
-    }
+    "hono": "^4.0.0"
   },
   "exports": {
     ".": {

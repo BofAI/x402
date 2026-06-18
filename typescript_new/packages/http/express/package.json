@@ -45,13 +45,7 @@
     "@bankofai/x402-extensions": "workspace:~"
   },
   "peerDependencies": {
-    "@bankofai/x402-paywall": "workspace:^",
     "express": "^4.0.0 || ^5.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@bankofai/x402-paywall": {
-      "optional": true
-    }
   },
   "exports": {
     ".": {

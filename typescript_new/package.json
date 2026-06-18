@@ -11,13 +11,12 @@
   "main": "index.js",
   "scripts": {
     "build": "turbo run build",
-    "build:paywall-deps": "turbo run build --filter='@bankofai/x402-paywall^...'",
     "lint": "turbo run lint",
     "format": "turbo run format",
     "lint:check": "turbo run lint:check",
     "format:check": "turbo run format:check",
     "test": "turbo run test",
-    "test:integration": "pnpm --filter @bankofai/x402-core --filter @bankofai/x402-evm --filter @bankofai/x402-svm --filter @bankofai/x402-avm --filter @bankofai/x402-aptos --filter @bankofai/x402-hedera --filter @bankofai/x402-stellar test:integration",
+    "test:integration": "pnpm --filter @bankofai/x402-core --filter @bankofai/x402-evm --filter @bankofai/x402-tron test:integration",
     "test:all": "pnpm test && pnpm test:integration"
   },
   "keywords": [],

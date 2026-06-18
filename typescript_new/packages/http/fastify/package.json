@@ -44,13 +44,7 @@
     "@bankofai/x402-extensions": "workspace:~"
   },
   "peerDependencies": {
-    "fastify": "^5.0.0",
-    "@bankofai/x402-paywall": "workspace:^"
-  },
-  "peerDependenciesMeta": {
-    "@bankofai/x402-paywall": {
-      "optional": true
-    }
+    "fastify": "^5.0.0"
   },
   "exports": {
     ".": {
