@@ -17,14 +17,25 @@ export type SignerWallet = Wallet & {
 };
 
 /**
- * Resolves the agent-wallet for a network, or `null` when none is configured.
+ * `@bankofai/agent-wallet` expects a **CAIP-2** network id (must start with
+ * `eip155:` or `tron:`). Map the short family name to a representative id — key
+ * derivation is chain-id-independent within a family, so any id of the right
+ * family resolves the same address.
+ */
+const CAIP2_BY_FAMILY: Record<"evm" | "tron", string> = {
+  evm: "eip155:97",
+  tron: "tron:nile",
+};
+
+/**
+ * Resolves the agent-wallet for a chain family, or `null` when none is configured.
  *
- * @param network - `"evm"` or `"tron"`.
+ * @param family - `"evm"` or `"tron"`.
  * @returns The wallet, or `null` to skip that chain.
  */
-export async function tryResolveWallet(network: "evm" | "tron"): Promise<SignerWallet | null> {
+export async function tryResolveWallet(family: "evm" | "tron"): Promise<SignerWallet | null> {
   try {
-    return (await resolveWallet({ network })) as SignerWallet;
+    return (await resolveWallet({ network: CAIP2_BY_FAMILY[family] })) as SignerWallet;
   } catch {
     return null;
   }
