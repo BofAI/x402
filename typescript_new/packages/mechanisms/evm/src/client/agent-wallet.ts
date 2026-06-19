@@ -70,7 +70,10 @@ export async function createClientEvmSigner(
 ): Promise<ClientEvmSigner> {
   const address = (await wallet.getAddress()) as `0x${string}`;
 
-  const signTransaction = wallet.signTransaction;
+  // Bind to the wallet: agent-wallet's `LocalSigner.signTransaction` reads
+  // `this._impl`, so calling a detached reference throws. (`signTypedData` below
+  // is invoked as `wallet.signTypedData(...)`, so it stays bound.)
+  const signTransaction = wallet.signTransaction?.bind(wallet);
 
   return toClientEvmSigner(
     {
