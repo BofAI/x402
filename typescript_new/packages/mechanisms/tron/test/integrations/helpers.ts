@@ -96,6 +96,8 @@ export function toClientAgentWallet(wallet: Wallet): AgentWallet {
       const sig = await wallet.signTypedData(data);
       return (sig.startsWith("0x") ? sig : `0x${sig}`) as `0x${string}`;
     },
+    // Enables the client signer to auto-broadcast the one-time Permit2 approve.
+    signTransaction: transaction => wallet.signTransaction(transaction),
   };
 }
 
