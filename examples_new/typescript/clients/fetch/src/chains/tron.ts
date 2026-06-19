@@ -56,7 +56,31 @@ export async function registerTron(client: x402Client): Promise<boolean> {
   };
 
   const signer = await createClientTronSigner(tronWeb, agentWallet);
-  client.register("tron:*", new ExactTronScheme(signer));
+  const scheme = new ExactTronScheme(signer);
+  client.register("tron:*", scheme);
+
+  // Balance guard — parity with the demo's `SufficientBalancePolicy`: don't
+  // attempt a payment the payer can't cover (amount + fee), surfacing a clear
+  // error instead of a confusing on-chain settle failure. The new SDK's payment
+  // selection is synchronous, so balance (an async on-chain read) runs here as a
+  // `beforePaymentCreation` hook. Note: this guards the *chosen* requirement
+  // (the single-token main line), it does not re-select among alternatives the
+  // way the demo's list-filtering policy did.
+  client.onBeforePaymentCreation(async ({ selectedRequirements: req }) => {
+    if (!req.network.startsWith("tron:")) {
+      return;
+    }
+    const fee = BigInt((req.extra?.fee as { feeAmount?: string } | undefined)?.feeAmount ?? "0");
+    const needed = BigInt(req.amount) + fee;
+    const balance = await scheme.checkBalance(req.asset, req.network);
+    if (balance < needed) {
+      return {
+        abort: true,
+        reason: `insufficient balance for ${req.asset} on ${req.network}: have ${balance}, need ${needed}`,
+      };
+    }
+  });
+
   console.info(`[tron] client registered tron:* (${signer.address})`);
   return true;
 }

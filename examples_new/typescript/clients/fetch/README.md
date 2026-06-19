@@ -17,6 +17,15 @@ Both chains sign via `@bankofai/agent-wallet` (`resolveWallet({ network })`):
 A chain registers only if its wallet resolves, so you can pay from EVM-only,
 TRON-only, or both.
 
+## Balance guard (TRON)
+
+`chains/tron.ts` registers a `beforePaymentCreation` hook that checks the payer
+can cover `amount + fee` before signing, aborting with a clear error otherwise —
+the new-SDK equivalent of the demo's `SufficientBalancePolicy`. Because core's
+payment selection is synchronous, the (async) on-chain balance read runs as this
+hook; it guards the chosen requirement rather than re-selecting among
+alternatives. EVM has no client-side `checkBalance` yet, so it isn't guarded.
+
 ## Run
 
 ```bash
