@@ -42,7 +42,11 @@ describe("exact Permit2 TIP-712 digest (2-field witness)", () => {
 
   beforeAll(async () => {
     const tronWeb = new TronWeb({ fullHost: "https://nile.trongrid.io", privateKey: PAYER_PK });
-    signer = await createClientTronSigner(tronWeb, privateKeyTronWallet(tronWeb, PAYER_PK));
+    // allowanceMode "skip": this is an offline signing-digest test; skip the
+    // on-chain Permit2 allowance read/approve (covered by client-allowance).
+    signer = await createClientTronSigner(tronWeb, privateKeyTronWallet(tronWeb, PAYER_PK), {
+      allowanceMode: "skip",
+    });
     payerHex = tronAddressToEvm(signer.address);
 
     const requirements = {

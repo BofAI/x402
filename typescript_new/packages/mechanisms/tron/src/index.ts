@@ -27,6 +27,8 @@ export type {
   AgentWallet,
   FacilitatorAgentWallet,
   FacilitatorTronSignerOptions,
+  CreateClientTronSignerOptions,
+  AllowanceMode,
 } from "./signer";
 
 // Types

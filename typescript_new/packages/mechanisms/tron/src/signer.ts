@@ -1,6 +1,24 @@
 import { TronWeb, utils as tronUtils } from "tronweb";
-import { DEFAULT_FEE_LIMIT_SUN } from "./constants";
+import {
+  DEFAULT_FEE_LIMIT_SUN,
+  PERMIT2_ADDRESSES,
+  erc20AllowanceAbi,
+  erc20ApproveAbi,
+} from "./constants";
 import { tronAddressToEvm } from "./utils";
+
+/** Allowance-ensuring strategy for {@link ClientTronSigner.ensureAllowance}. */
+export type AllowanceMode = "auto" | "skip" | "interactive";
+
+/** Unlimited approval amount (`type(uint256).max`), the canonical Permit2 grant. */
+const MAX_UINT256 = (1n << 256n) - 1n;
+
+/**
+ * Fee-limit cap (in SUN) for the one-time Permit2 `approve`. Mirrors the Python
+ * client's 100 TRX cap — an ERC-20 approve costs far less, so this only bounds
+ * the worst-case TRX burn.
+ */
+const APPROVE_FEE_LIMIT_SUN = 100_000_000;
 
 /**
  * Signer interface for TRON client operations.
@@ -36,6 +54,24 @@ export interface ClientTronSigner {
     functionName: string;
     args: readonly unknown[];
   }): Promise<unknown>;
+
+  /**
+   * Ensure the token's Permit2 allowance covers `amount`, broadcasting a
+   * one-time `approve(Permit2, MAX_UINT256)` if it does not (mirrors the Python
+   * client's `ensure_allowance`). The user's wallet pays the approve's TRX.
+   *
+   * Present only when the backing wallet can sign transactions
+   * ({@link AgentWallet.signTransaction}). The permit2 client flow calls this
+   * before signing; eip3009 payments never invoke it. `mode` defaults to the
+   * signer's configured mode (`"auto"`): `"skip"` returns immediately,
+   * `"interactive"` is not implemented.
+   */
+  ensureAllowance?(args: {
+    token: string;
+    amount: bigint;
+    network: string;
+    mode?: AllowanceMode;
+  }): Promise<boolean>;
 }
 
 /**
@@ -63,6 +99,14 @@ export interface AgentWallet {
     primaryType: string;
     message: Record<string, unknown>;
   }): Promise<`0x${string}`>;
+
+  /**
+   * Optionally sign a built TRON transaction for broadcast (e.g. the one-time
+   * Permit2 `approve`). Same shape as {@link FacilitatorAgentWallet.signTransaction}.
+   * When absent, the client signer stays sign-only and
+   * {@link ClientTronSigner.ensureAllowance} is not exposed.
+   */
+  signTransaction?(transaction: Record<string, unknown>): Promise<string | Record<string, unknown>>;
 }
 
 /**
@@ -195,28 +239,63 @@ export function toFacilitatorTronSigner(
   };
 }
 
+/** Options for {@link createClientTronSigner}. */
+export interface CreateClientTronSignerOptions {
+  /**
+   * Default mode for {@link ClientTronSigner.ensureAllowance} (default `"auto"`).
+   * Set `"skip"` for apps that manage the Permit2 approval themselves.
+   */
+  allowanceMode?: AllowanceMode;
+}
+
 /**
  * Creates a ClientTronSigner from an {@link AgentWallet}.
  *
  * Wallet-only: the private key never enters the SDK. To sign with a raw key
  * (dev/test), wrap it in an AgentWallet first. `tronWeb` supplies contract reads.
  *
- * @param tronWeb - The TronWeb instance used for contract reads.
- * @param wallet - The wallet that signs typed data.
+ * If the wallet also exposes {@link AgentWallet.signTransaction}, the returned
+ * signer gains {@link ClientTronSigner.ensureAllowance}, which the permit2 flow
+ * uses to broadcast the one-time `approve(Permit2)` (mirrors the Python client).
+ * Without it, the signer stays sign-only.
+ *
+ * @param tronWeb - The TronWeb instance used for contract reads and approve broadcast.
+ * @param wallet - The wallet that signs typed data (and optionally transactions).
+ * @param options - Optional default allowance mode.
  * @returns A ClientTronSigner backed by the wallet.
  */
 export async function createClientTronSigner(
   tronWeb: TronWeb,
   wallet: AgentWallet,
+  options: CreateClientTronSignerOptions = {},
 ): Promise<ClientTronSigner> {
   const address = await wallet.getAddress();
-  return toClientTronSigner(
+  const base = toClientTronSigner(
     {
       address,
       signTypedData: args => wallet.signTypedData(args),
     },
     tronWeb,
   );
+
+  // Give the TronWeb instance a default issuer for builds/reads (no key needed).
+  (tronWeb as unknown as WriteCapableTronWeb).setAddress(address);
+
+  // ensureAllowance is always exposed: it reads the Permit2 allowance and, when
+  // an approve is needed, broadcasts it via the wallet's signTransaction (the
+  // permit2 path uses this; eip3009 never calls it). If the wallet can't sign
+  // transactions, it throws a clear error only when an approve is actually
+  // required — pre-approved sign-only wallets still work.
+  const signTransaction = wallet.signTransaction?.bind(wallet);
+
+  return {
+    ...base,
+    ensureAllowance: allowanceArgs =>
+      ensurePermit2Allowance(
+        { tronWeb, ownerAddress: address, signTransaction, readContract: base.readContract },
+        { ...allowanceArgs, mode: allowanceArgs.mode ?? options.allowanceMode },
+      ),
+  };
 }
 
 /**
@@ -351,6 +430,170 @@ function toSignedTransaction(
   return { ...unsigned, signature: [trimmed.replace(/^0x/, "")] };
 }
 
+/** Wallet hook that signs a built TRON transaction for broadcast. */
+type SignTransactionFn = (
+  transaction: Record<string, unknown>,
+) => Promise<string | Record<string, unknown>>;
+
+/**
+ * Build a contract-write tx, hand it to the wallet to sign (the key never
+ * enters the SDK), then broadcast it. Shared by the facilitator settlement path
+ * and the client one-time Permit2 approve.
+ *
+ * @param tronWeb - The TronWeb instance used to build and broadcast.
+ * @param issuerAddress - The transaction owner/issuer (pays the on-chain fee).
+ * @param signTransaction - Wallet hook that signs the built transaction.
+ * @param args - The contract address, ABI, function name, and positional args.
+ * @param options - Fee limit (SUN) and optional multi-sig permission id.
+ * @returns The broadcast transaction id.
+ */
+async function buildSignAndBroadcast(
+  tronWeb: TronWeb,
+  issuerAddress: string,
+  signTransaction: SignTransactionFn,
+  args: {
+    address: string;
+    abi: readonly Record<string, unknown>[];
+    functionName: string;
+    args: readonly unknown[];
+  },
+  options: { feeLimit: number; permissionId?: number },
+): Promise<string> {
+  const tw = tronWeb as unknown as WriteCapableTronWeb;
+  const fn = findAbiFunction(args.abi, args.functionName);
+  const selector = buildFunctionSelector(fn);
+  const parameters = encodeTriggerParameters(fn, args.args);
+  const built = await tw.transactionBuilder.triggerSmartContract(
+    args.address,
+    selector,
+    {
+      feeLimit: options.feeLimit,
+      callValue: 0,
+      ...(options.permissionId != null ? { permissionId: options.permissionId } : {}),
+    },
+    parameters,
+    issuerAddress,
+  );
+  if (!built.result?.result) {
+    throw new Error(`triggerSmartContract failed: ${JSON.stringify(built)}`);
+  }
+  const signed = toSignedTransaction(await signTransaction(built.transaction), built.transaction);
+  const broadcast = await tw.trx.sendRawTransaction(signed);
+  if (!broadcast.result) {
+    throw new Error(`sendRawTransaction failed: ${JSON.stringify(broadcast)}`);
+  }
+  return broadcast.txid ?? "";
+}
+
+/**
+ * Poll TRON for a transaction receipt on a deadline.
+ *
+ * `getTransactionInfo` returns an empty object until the tx is packed into a
+ * block; `blockNumber` is the canonical "mined" signal. Tolerates transient
+ * read errors, since public nodes can take well over 30s to propagate —
+ * especially without an API key.
+ *
+ * @param tronWeb - The TronWeb instance used to read transaction info.
+ * @param hash - The transaction id to wait for.
+ * @returns `success` / `reverted` once mined, or `pending` on timeout.
+ */
+async function pollTransactionReceipt(tronWeb: TronWeb, hash: string): Promise<{ status: string }> {
+  const timeoutMs = 120_000;
+  const delayMs = 3_000;
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    try {
+      const info = (await tronWeb.trx.getTransactionInfo(hash)) as TronTxInfo | null;
+      if (info && info.blockNumber) {
+        return { status: info.receipt?.result === "SUCCESS" ? "success" : "reverted" };
+      }
+    } catch {
+      // Not yet propagated / transient node or rate-limit error — keep polling.
+    }
+    await new Promise(resolve => setTimeout(resolve, delayMs));
+  }
+
+  return { status: "pending" };
+}
+
+/**
+ * Ensure the token's Permit2 allowance covers `amount`, broadcasting a one-time
+ * `approve(Permit2, MAX_UINT256)` if it does not. Mirrors the Python client's
+ * `ensure_allowance`, with two deliberate differences: the spender is the
+ * canonical Permit2 (not Python's PaymentPermit), and an allowance-read error is
+ * surfaced rather than swallowed (so we never approve on bad/zeroed data).
+ *
+ * @param deps - TronWeb, the owner address, the wallet sign hook, and a reader.
+ * @param args - Token, required amount (payment + fee), network, and mode.
+ * @returns `true` once the allowance is sufficient.
+ */
+async function ensurePermit2Allowance(
+  deps: {
+    tronWeb: TronWeb;
+    ownerAddress: string;
+    signTransaction?: SignTransactionFn;
+    readContract: ClientTronSigner["readContract"];
+  },
+  args: { token: string; amount: bigint; network: string; mode?: AllowanceMode },
+): Promise<boolean> {
+  const mode = args.mode ?? "auto";
+  if (mode === "skip") {
+    return true;
+  }
+  if (mode === "interactive") {
+    throw new Error("ensureAllowance: interactive approval mode is not implemented");
+  }
+
+  const permit2Address = PERMIT2_ADDRESSES[args.network];
+  if (!permit2Address) {
+    throw new Error(`No Permit2 contract address configured for network ${args.network}`);
+  }
+
+  // Read the ERC-20 allowance the token grants Permit2. Do NOT swallow errors:
+  // approving on a failed/zeroed read would burn TRX needlessly.
+  const current = (await deps.readContract({
+    address: args.token,
+    abi: erc20AllowanceAbi as unknown as readonly Record<string, unknown>[],
+    functionName: "allowance",
+    args: [deps.ownerAddress, permit2Address],
+  })) as bigint;
+
+  if (current >= args.amount) {
+    return true;
+  }
+
+  // An approve is required but this wallet only signs typed data — surface a
+  // clear error early rather than failing later at facilitator settlement.
+  if (!deps.signTransaction) {
+    throw new Error(
+      "ensureAllowance: a one-time Permit2 approve is required but the wallet " +
+        "cannot sign transactions (no signTransaction). Approve Permit2 out-of-band " +
+        "or use a wallet that supports signTransaction.",
+    );
+  }
+
+  // One-time approve(Permit2, MAX_UINT256); the user's wallet pays the TRX.
+  const txid = await buildSignAndBroadcast(
+    deps.tronWeb,
+    deps.ownerAddress,
+    deps.signTransaction,
+    {
+      address: args.token,
+      abi: erc20ApproveAbi as unknown as readonly Record<string, unknown>[],
+      functionName: "approve",
+      args: [permit2Address, MAX_UINT256],
+    },
+    { feeLimit: APPROVE_FEE_LIMIT_SUN },
+  );
+
+  const receipt = await pollTransactionReceipt(deps.tronWeb, txid);
+  if (receipt.status !== "success") {
+    throw new Error(`Permit2 approval did not succeed (status=${receipt.status}, tx=${txid})`);
+  }
+  return true;
+}
+
 /**
  * Creates a FacilitatorTronSigner from a TronWeb instance and a
  * {@link FacilitatorAgentWallet}.
@@ -402,57 +645,13 @@ export function createFacilitatorTronSigner(
     async writeContract(args) {
       // Build the tx, let the wallet sign it (the key never enters the SDK),
       // then broadcast. Mirrors bankofai TronFacilitatorSigner.writeContract.
-      const tw = tronWeb as unknown as WriteCapableTronWeb;
-      const fn = findAbiFunction(args.abi, args.functionName);
-      const selector = buildFunctionSelector(fn);
-      const parameters = encodeTriggerParameters(fn, args.args);
-      const built = await tw.transactionBuilder.triggerSmartContract(
-        args.address,
-        selector,
-        {
-          feeLimit,
-          callValue: 0,
-          ...(options.permissionId != null ? { permissionId: options.permissionId } : {}),
-        },
-        parameters,
-        address,
-      );
-      if (!built.result?.result) {
-        throw new Error(`triggerSmartContract failed: ${JSON.stringify(built)}`);
-      }
-      const signed = toSignedTransaction(
-        await wallet.signTransaction(built.transaction),
-        built.transaction,
-      );
-      const broadcast = await tw.trx.sendRawTransaction(signed);
-      if (!broadcast.result) {
-        throw new Error(`sendRawTransaction failed: ${JSON.stringify(broadcast)}`);
-      }
-      return broadcast.txid ?? "";
+      return buildSignAndBroadcast(tronWeb, address, tx => wallet.signTransaction(tx), args, {
+        feeLimit,
+        ...(options.permissionId != null ? { permissionId: options.permissionId } : {}),
+      });
     },
     async waitForTransactionReceipt(args) {
-      // TRON's getTransactionInfo returns an empty object until the tx is packed
-      // into a block; `blockNumber` is the canonical "mined" signal. Poll on a
-      // deadline (not a fixed attempt count) and tolerate transient read errors,
-      // since public nodes can take well over 30s to propagate — especially
-      // without an API key.
-      const timeoutMs = 120_000;
-      const delayMs = 3_000;
-      const deadline = Date.now() + timeoutMs;
-
-      while (Date.now() < deadline) {
-        try {
-          const info = (await tronWeb.trx.getTransactionInfo(args.hash)) as TronTxInfo | null;
-          if (info && info.blockNumber) {
-            return { status: info.receipt?.result === "SUCCESS" ? "success" : "reverted" };
-          }
-        } catch {
-          // Not yet propagated / transient node or rate-limit error — keep polling.
-        }
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-      }
-
-      return { status: "pending" };
+      return pollTransactionReceipt(tronWeb, args.hash);
     },
   });
 }

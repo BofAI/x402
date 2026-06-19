@@ -58,7 +58,11 @@ function readStub(chain: Chain) {
 
 async function clientSigner(chain: Chain): Promise<ClientTronSigner> {
   const tw = tron(PAYER_PK);
-  const base = await createClientTronSigner(tw, privateKeyTronWallet(tw, PAYER_PK));
+  // allowanceMode "skip": these flow tests exercise the facilitator's allowance
+  // gatekeeping, so the client must not auto-approve (covered by client-allowance).
+  const base = await createClientTronSigner(tw, privateKeyTronWallet(tw, PAYER_PK), {
+    allowanceMode: "skip",
+  });
   return { ...base, readContract: readStub(chain) };
 }
 
