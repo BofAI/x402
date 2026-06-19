@@ -117,6 +117,26 @@ export interface FacilitatorEvmSignerOptions {
 }
 
 /**
+ * One transaction for {@link GasSponsoringFacilitatorEvmSigner.sendTransactions}:
+ * either a pre-signed serialized tx (broadcast as-is) or an unsigned call intent
+ * (signed by the facilitator wallet, then broadcast). Mirrors the
+ * `@bankofai/x402-extensions` `TransactionRequest` shape without importing it,
+ * so this overlay stays dependency-free.
+ */
+export type EvmTransactionRequest =
+  | `0x${string}`
+  | { to: `0x${string}`; data: `0x${string}`; gas?: bigint };
+
+/**
+ * {@link FacilitatorEvmSigner} plus `sendTransactions` — the shape the ERC-20
+ * approval gas-sponsoring extension expects (it broadcasts the client's
+ * pre-signed `approve` bundled with `settle`).
+ */
+export type GasSponsoringFacilitatorEvmSigner = FacilitatorEvmSigner & {
+  sendTransactions(transactions: readonly EvmTransactionRequest[]): Promise<`0x${string}`[]>;
+};
+
+/**
  * Appends an extension data suffix (e.g. a builder code) to encoded calldata.
  *
  * @param data - The encoded function calldata.
@@ -153,7 +173,7 @@ export function createFacilitatorEvmSigner(
   publicClient: FacilitatorEvmPublicClient,
   wallet: FacilitatorEvmWallet,
   options: FacilitatorEvmSignerOptions = {},
-): FacilitatorEvmSigner {
+): GasSponsoringFacilitatorEvmSigner {
   // Narrow once: viem's strict generic methods → the loose shape we forward to
   // upstream's FacilitatorEvmSigner. Keeps the cast inside the SDK (issue #5).
   const client = publicClient as unknown as LooseEvmPublicClient;
@@ -193,7 +213,7 @@ export function createFacilitatorEvmSigner(
     return client.sendRawTransaction({ serializedTransaction });
   }
 
-  return toFacilitatorEvmSigner({
+  const base = toFacilitatorEvmSigner({
     address: wallet.address,
     readContract: args => client.readContract(args),
     verifyTypedData: args => client.verifyTypedData(args),
@@ -212,4 +232,24 @@ export function createFacilitatorEvmSigner(
     },
     sendTransaction: args => buildSignBroadcast(args.to, args.data),
   });
+
+  // Batch broadcast for the ERC-20 approval gas-sponsoring extension: the
+  // client's pre-signed `approve` (a serialized tx) is broadcast as-is; the
+  // `settle` call intent is signed by the facilitator wallet and broadcast.
+  // Executed sequentially; hashes returned in order (settle is last).
+  return {
+    ...base,
+    async sendTransactions(transactions) {
+      const hashes: `0x${string}`[] = [];
+      for (const tx of transactions) {
+        if (typeof tx === "string") {
+          const serializedTransaction = `0x${tx.replace(/^0x/, "")}` as `0x${string}`;
+          hashes.push(await client.sendRawTransaction({ serializedTransaction }));
+        } else {
+          hashes.push(await buildSignBroadcast(tx.to, tx.data, tx.gas));
+        }
+      }
+      return hashes;
+    },
+  };
 }

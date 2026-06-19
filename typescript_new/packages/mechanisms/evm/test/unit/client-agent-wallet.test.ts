@@ -1,9 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 
-import {
-  createClientEvmSigner,
-  type ClientEvmWallet,
-} from "../../src/client/agent-wallet";
+import { createClientEvmSigner, type ClientEvmWallet } from "../../src/client/agent-wallet";
 
 const ADDRESS = `0x${"11".repeat(20)}` as `0x${string}`;
 const TYPED_DATA = {
@@ -55,5 +52,28 @@ describe("createClientEvmSigner", () => {
   it("omits readContract when no public client is given", async () => {
     const signer = await createClientEvmSigner(makeWallet("0xabcd"));
     expect(signer.readContract).toBeUndefined();
+  });
+
+  // Enables the ERC-20 approval gas-sponsoring extension (sign approve offline).
+  it("wires signTransaction from the wallet and re-adds the 0x prefix", async () => {
+    const wallet = { ...makeWallet("0xsig"), signTransaction: vi.fn(async () => "beef") };
+    const signer = await createClientEvmSigner(wallet);
+    expect(signer.signTransaction).toBeDefined();
+    const out = await signer.signTransaction?.({
+      to: ADDRESS,
+      data: "0x",
+      nonce: 0,
+      gas: 1n,
+      maxFeePerGas: 1n,
+      maxPriorityFeePerGas: 1n,
+      chainId: 97,
+    });
+    expect(out).toBe("0xbeef");
+    expect(wallet.signTransaction).toHaveBeenCalled();
+  });
+
+  it("omits signTransaction when the wallet lacks it", async () => {
+    const signer = await createClientEvmSigner(makeWallet("0xabcd"));
+    expect(signer.signTransaction).toBeUndefined();
   });
 });

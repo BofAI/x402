@@ -28,6 +28,14 @@ export interface ClientEvmWallet {
     primaryType: string;
     message: Record<string, unknown>;
   }): Promise<string>;
+  /**
+   * Optionally sign a fully-specified EIP-1559 transaction (e.g. the one-time
+   * `approve(Permit2)` for the ERC-20 approval gas-sponsoring extension).
+   * agent-wallet's `EvmSigner` satisfies this; the returned hex may omit the
+   * `0x` prefix (agent-wallet strips it). When absent, the signer can't produce
+   * the gas-sponsored approval and that flow is simply skipped.
+   */
+  signTransaction?(tx: Record<string, unknown>): Promise<string>;
 }
 
 /** Minimal read surface for permit2 allowance enrichment (a viem client satisfies it). */
@@ -62,6 +70,8 @@ export async function createClientEvmSigner(
 ): Promise<ClientEvmSigner> {
   const address = (await wallet.getAddress()) as `0x${string}`;
 
+  const signTransaction = wallet.signTransaction;
+
   return toClientEvmSigner(
     {
       address,
@@ -71,6 +81,19 @@ export async function createClientEvmSigner(
         const sig = await wallet.signTypedData(msg);
         return `0x${sig.replace(/^0x/, "")}` as `0x${string}`;
       },
+      // Enables the ERC-20 approval gas-sponsoring extension: the client signs
+      // the `approve(Permit2, MaxUint256)` tx offline (facilitator broadcasts it).
+      // agent-wallet's EvmSigner.signTransaction takes the viem EIP-1559 fields
+      // as-is and strips the `0x`; re-add it. getTransactionCount/estimateFeesPerGas
+      // come from `publicClient` via toClientEvmSigner.
+      ...(signTransaction
+        ? {
+            signTransaction: async (args: Record<string, unknown>) => {
+              const signed = await signTransaction(args);
+              return `0x${signed.replace(/^0x/, "")}` as `0x${string}`;
+            },
+          }
+        : {}),
     },
     publicClient,
   );

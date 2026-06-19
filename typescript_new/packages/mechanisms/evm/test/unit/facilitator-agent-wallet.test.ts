@@ -187,4 +187,28 @@ describe("createFacilitatorEvmSigner", () => {
       expect.objectContaining({ data: `${base}c0ffee` }),
     );
   });
+
+  // ERC-20 approval gas-sponsoring: broadcast the client's pre-signed approve
+  // as-is, then facilitator-sign + broadcast the settle call intent.
+  it("sendTransactions: broadcasts a pre-signed tx as-is and signs a call intent", async () => {
+    const hashes = [`0x${"a1".repeat(32)}`, `0x${"b2".repeat(32)}`] as `0x${string}`[];
+    let i = 0;
+    const pc = makePublicClient({ sendRawTransaction: vi.fn(async () => hashes[i++]) });
+    const wallet = makeWallet(async () => "abcd");
+    const signer = createFacilitatorEvmSigner(pc, wallet);
+
+    const PRESIGNED = `0x${"ff".repeat(40)}` as `0x${string}`;
+    const result = await signer.sendTransactions([
+      PRESIGNED,
+      { to: RECIPIENT, data: "0x1234", gas: 300_000n },
+    ]);
+
+    expect(result).toEqual(hashes);
+    expect(pc.sendRawTransaction).toHaveBeenNthCalledWith(1, { serializedTransaction: PRESIGNED });
+    expect(wallet.signTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({ to: RECIPIENT, data: "0x1234", gas: 300_000n }),
+    );
+    expect(pc.sendRawTransaction).toHaveBeenNthCalledWith(2, { serializedTransaction: "0xabcd" });
+    expect(pc.estimateGas).not.toHaveBeenCalled(); // gas override supplied
+  });
 });
