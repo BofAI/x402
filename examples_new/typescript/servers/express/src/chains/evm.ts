@@ -16,6 +16,7 @@
  */
 import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
 import { declareErc20ApprovalGasSponsoringExtension } from "@bankofai/x402-extensions";
+import type { Network } from "@bankofai/x402-core/types";
 import type { x402ResourceServer } from "@bankofai/x402-express";
 
 type EvmToken = { asset: string; amount: string; extra: Record<string, unknown> };
@@ -59,7 +60,7 @@ export function hasEvm(): boolean {
  * @param resourceServer - The resource server to register on.
  */
 export function registerEvm(resourceServer: x402ResourceServer): void {
-  for (const network of Object.keys(EVM_TOKENS)) {
+  for (const network of Object.keys(EVM_TOKENS) as Network[]) {
     resourceServer.register(network, new ExactEvmScheme());
   }
 }
@@ -72,7 +73,7 @@ export function registerEvm(resourceServer: x402ResourceServer): void {
  */
 export function evmAccepts() {
   const payTo = process.env.EVM_ADDRESS as string;
-  return Object.entries(EVM_TOKENS).flatMap(([network, tokens]) =>
+  return (Object.entries(EVM_TOKENS) as [Network, EvmToken[]][]).flatMap(([network, tokens]) =>
     tokens.map(token => ({
       scheme: "exact",
       network,

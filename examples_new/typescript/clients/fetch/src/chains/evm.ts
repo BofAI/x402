@@ -42,7 +42,7 @@ export async function registerEvm(client: x402Client): Promise<boolean> {
     return false;
   }
 
-  for (const [network, chain] of Object.entries(EVM_NETWORKS)) {
+  for (const [network, chain] of Object.entries(EVM_NETWORKS) as [`${string}:${string}`, Chain][]) {
     const publicClient = createPublicClient({ chain, transport: http() });
     const signer = await createClientEvmSigner(wallet, publicClient);
     client.register(network, new ExactEvmScheme(signer));

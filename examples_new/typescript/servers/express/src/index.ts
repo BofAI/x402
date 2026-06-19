@@ -5,7 +5,7 @@
  * advertises `accepts` for each enabled chain and delegates verify/settle to a
  * facilitator over HTTP. Per-chain setup lives in `src/chains/`.
  */
-import express from "express";
+import express, { type RequestHandler } from "express";
 import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
 import {
   x402ResourceServer,
@@ -55,7 +55,9 @@ const routes = {
 const httpServer = new x402HTTPResourceServer(resourceServer, routes);
 
 const app = express();
-app.use(paymentMiddlewareFromHTTPServer(httpServer));
+// The middleware is async (returns a Promise); cast to express's RequestHandler,
+// which some @types/express versions type as returning void only.
+app.use(paymentMiddlewareFromHTTPServer(httpServer) as unknown as RequestHandler);
 
 app.get("/weather", (_req, res) => {
   res.json({ report: { weather: "sunny", temperature: 70 } });

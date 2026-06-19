@@ -26,6 +26,7 @@ import {
   type Erc20ApprovalGasSponsoringSigner,
 } from "@bankofai/x402-extensions";
 import type { x402Facilitator } from "@bankofai/x402-core/facilitator";
+import type { Network } from "@bankofai/x402-core/types";
 
 import { tryResolveWallet } from "../env.js";
 
@@ -60,7 +61,7 @@ export async function registerEvm(facilitator: x402Facilitator): Promise<boolean
   };
 
   const signers: Record<string, GasSponsoringFacilitatorEvmSigner> = {};
-  for (const [network, chain] of Object.entries(EVM_NETWORKS)) {
+  for (const [network, chain] of Object.entries(EVM_NETWORKS) as [Network, Chain][]) {
     const publicClient = createPublicClient({ chain, transport: http() });
     const signer = createFacilitatorEvmSigner(publicClient, facWallet);
     facilitator.register(network, new ExactEvmScheme(signer));

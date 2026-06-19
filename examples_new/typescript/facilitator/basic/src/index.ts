@@ -21,8 +21,8 @@ import { registerTron } from "./chains/tron.js";
 const PORT = parseInt(process.env.PORT || "4022", 10);
 
 const facilitator = new x402Facilitator()
-  .onBeforeSettle(async ctx => console.log("[settle] before", ctx.paymentRequirements?.network))
-  .onAfterSettle(async ctx => console.log("[settle] after", ctx.paymentRequirements?.network))
+  .onBeforeSettle(async ctx => console.log("[settle] before", ctx.requirements.network))
+  .onAfterSettle(async ctx => console.log("[settle] after", ctx.requirements.network))
   .onSettleFailure(async ctx => console.log("[settle] failure", ctx));
 
 // Register each chain only if its wallet resolves. Run EVM-only, TRON-only, or both.

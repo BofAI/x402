@@ -13,7 +13,7 @@ import type { x402ResourceServer } from "@bankofai/x402-express";
 // Switch to "tron:mainnet" for production (REAL FUNDS). USDT/USDD are registered
 // for mainnet too (both permit2), so `tronAccepts()` works unchanged — only the
 // client/facilitator TronWeb `fullHost` must point at a mainnet node.
-export const TRON_NETWORK = "tron:nile";
+export const TRON_NETWORK: `${string}:${string}` = "tron:nile";
 
 /** TRON is enabled when a payout address is configured. */
 export function hasTron(): boolean {
