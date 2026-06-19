@@ -21,7 +21,7 @@ function fakeTronWeb(opts: {
   allowance?: bigint;
   trigger?: ReturnType<typeof vi.fn>;
   broadcast?: ReturnType<typeof vi.fn>;
-  txInfo?: ReturnType<typeof vi.fn>;
+  txGet?: ReturnType<typeof vi.fn>;
   allowanceSpy?: ReturnType<typeof vi.fn>;
 }) {
   const allowanceMethod =
@@ -32,7 +32,7 @@ function fakeTronWeb(opts: {
     transactionBuilder: { triggerSmartContract: opts.trigger ?? vi.fn() },
     trx: {
       sendRawTransaction: opts.broadcast ?? vi.fn(),
-      getTransactionInfo: opts.txInfo ?? vi.fn(),
+      getTransaction: opts.txGet ?? vi.fn(),
     },
   } as never;
 }
@@ -66,7 +66,7 @@ describe("ClientTronSigner.ensureAllowance", () => {
   it("broadcasts approve(Permit2, MAX_UINT256) when the allowance is insufficient", async () => {
     const trigger = vi.fn(async () => ({ result: { result: true }, transaction: { raw_data: 1 } }));
     const broadcast = vi.fn(async () => ({ result: true, txid: "0xapprove" }));
-    const txInfo = vi.fn(async () => ({ blockNumber: 9, receipt: { result: "SUCCESS" } }));
+    const txGet = vi.fn(async () => ({ ret: [{ contractRet: "SUCCESS" }] }));
     const signTransaction = vi.fn(async (tx: Record<string, unknown>) => ({
       ...tx,
       signature: ["ab"],
@@ -74,7 +74,7 @@ describe("ClientTronSigner.ensureAllowance", () => {
     const wallet = typedWallet({ signTransaction });
 
     const signer = await createClientTronSigner(
-      fakeTronWeb({ allowance: 0n, trigger, broadcast, txInfo }),
+      fakeTronWeb({ allowance: 0n, trigger, broadcast, txGet }),
       wallet,
     );
 
@@ -144,11 +144,11 @@ describe("ClientTronSigner.ensureAllowance", () => {
   it("throws when the approve transaction does not reach SUCCESS", async () => {
     const trigger = vi.fn(async () => ({ result: { result: true }, transaction: { raw_data: 1 } }));
     const broadcast = vi.fn(async () => ({ result: true, txid: "0xbad" }));
-    const txInfo = vi.fn(async () => ({ blockNumber: 9, receipt: { result: "REVERT" } }));
+    const txGet = vi.fn(async () => ({ ret: [{ contractRet: "REVERT" }] }));
     const wallet = typedWallet({ signTransaction: async tx => ({ ...tx, signature: ["ab"] }) });
 
     const signer = await createClientTronSigner(
-      fakeTronWeb({ allowance: 0n, trigger, broadcast, txInfo }),
+      fakeTronWeb({ allowance: 0n, trigger, broadcast, txGet }),
       wallet,
     );
 

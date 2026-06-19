@@ -517,6 +517,42 @@ async function pollTransactionReceipt(tronWeb: TronWeb, hash: string): Promise<{
   return { status: "pending" };
 }
 
+type TronTxResult = { ret?: ReadonlyArray<{ contractRet?: string }> };
+
+/**
+ * Poll TRON for a transaction's *packed* result via `getTransaction`.
+ *
+ * Unlike `getTransactionInfo` (which only populates after the block solidifies,
+ * ~19 confirmations / ~60s on Nile), `getTransaction` returns the execution
+ * result (`ret[0].contractRet`) as soon as the tx is packed into a block (~3s).
+ * For a one-time approve this is sufficient: the ERC-20 allowance is live the
+ * moment the tx is packed, well before solidification.
+ *
+ * @param tronWeb - The TronWeb instance used to read the transaction.
+ * @param hash - The transaction id to wait for.
+ * @returns `success` / `reverted` once packed, or `pending` on timeout.
+ */
+async function pollTransactionPacked(tronWeb: TronWeb, hash: string): Promise<{ status: string }> {
+  const timeoutMs = 60_000;
+  const delayMs = 1_500;
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    try {
+      const tx = (await tronWeb.trx.getTransaction(hash)) as TronTxResult | null;
+      const contractRet = tx?.ret?.[0]?.contractRet;
+      if (contractRet) {
+        return { status: contractRet === "SUCCESS" ? "success" : "reverted" };
+      }
+    } catch {
+      // Not yet packed / transient node or rate-limit error — keep polling.
+    }
+    await new Promise(resolve => setTimeout(resolve, delayMs));
+  }
+
+  return { status: "pending" };
+}
+
 /**
  * Ensure the token's Permit2 allowance covers `amount`, broadcasting a one-time
  * `approve(Permit2, MAX_UINT256)` if it does not. Mirrors the Python client's
@@ -587,7 +623,9 @@ async function ensurePermit2Allowance(
     { feeLimit: APPROVE_FEE_LIMIT_SUN },
   );
 
-  const receipt = await pollTransactionReceipt(deps.tronWeb, txid);
+  // Confirm at packed speed (~3s), not solidification (~60s): the allowance is
+  // live once the approve is packed, which is all the following payment needs.
+  const receipt = await pollTransactionPacked(deps.tronWeb, txid);
   if (receipt.status !== "success") {
     throw new Error(`Permit2 approval did not succeed (status=${receipt.status}, tx=${txid})`);
   }
