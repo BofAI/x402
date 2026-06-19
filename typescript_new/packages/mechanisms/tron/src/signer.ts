@@ -169,12 +169,6 @@ type TronContractMethod = (...args: readonly unknown[]) => {
 type TronContract = {
   methods: Record<string, TronContractMethod | undefined>;
 };
-type TronTxInfo = {
-  blockNumber?: number;
-  receipt?: {
-    result?: string;
-  };
-};
 
 /**
  * Composes a ClientTronSigner from a signer-like object and an optional TronWeb instance.
@@ -485,38 +479,6 @@ async function buildSignAndBroadcast(
   return broadcast.txid ?? "";
 }
 
-/**
- * Poll TRON for a transaction receipt on a deadline.
- *
- * `getTransactionInfo` returns an empty object until the tx is packed into a
- * block; `blockNumber` is the canonical "mined" signal. Tolerates transient
- * read errors, since public nodes can take well over 30s to propagate —
- * especially without an API key.
- *
- * @param tronWeb - The TronWeb instance used to read transaction info.
- * @param hash - The transaction id to wait for.
- * @returns `success` / `reverted` once mined, or `pending` on timeout.
- */
-async function pollTransactionReceipt(tronWeb: TronWeb, hash: string): Promise<{ status: string }> {
-  const timeoutMs = 120_000;
-  const delayMs = 3_000;
-  const deadline = Date.now() + timeoutMs;
-
-  while (Date.now() < deadline) {
-    try {
-      const info = (await tronWeb.trx.getTransactionInfo(hash)) as TronTxInfo | null;
-      if (info && info.blockNumber) {
-        return { status: info.receipt?.result === "SUCCESS" ? "success" : "reverted" };
-      }
-    } catch {
-      // Not yet propagated / transient node or rate-limit error — keep polling.
-    }
-    await new Promise(resolve => setTimeout(resolve, delayMs));
-  }
-
-  return { status: "pending" };
-}
-
 type TronTxResult = { ret?: ReadonlyArray<{ contractRet?: string }> };
 
 /**
@@ -689,7 +651,10 @@ export function createFacilitatorTronSigner(
       });
     },
     async waitForTransactionReceipt(args) {
-      return pollTransactionReceipt(tronWeb, args.hash);
+      // Confirm at packed speed (~3s) rather than solidification (~57s on Nile).
+      // `getTransaction.ret[0].contractRet` carries the execution result as soon
+      // as the settle tx is packed; TRON does not reorg packed blocks in practice.
+      return pollTransactionPacked(tronWeb, args.hash);
     },
   });
 }
