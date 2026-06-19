@@ -36,4 +36,4 @@ pnpm dev                # or: pnpm --filter @bankofai/x402-example-client-fetch 
 ```
 
 Set `RESOURCE_URL` to the protected endpoint. Configure the wallet via
-agent-wallet (`AGENT_WALLET_PRIVATE_KEY` for EVM, `TRON_PRIVATE_KEY` for TRON).
+agent-wallet — a single `AGENT_WALLET_PRIVATE_KEY` serves both chains.

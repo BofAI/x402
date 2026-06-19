@@ -99,15 +99,15 @@ chain reads and broadcast.
 
 ```bash
 pnpm install           # links the in-repo SDK packages (see pnpm-workspace.yaml)
+cp .env-local.example .env-local   # one shared env; all three apps load it
 
-# Each app reads its own .env-local — configure the wallet/addresses first.
 pnpm dev:facilitator   # terminal 1  (:4022)
 pnpm dev:server        # terminal 2  (:4021)
 pnpm dev:client        # terminal 3
 ```
 
-Configure wallets via agent-wallet (`AGENT_WALLET_PRIVATE_KEY` for EVM,
-`TRON_PRIVATE_KEY` for TRON) and set the server's payout addresses
+Configure the wallet via agent-wallet — a single `AGENT_WALLET_PRIVATE_KEY`
+serves both chains — and set the server's payout addresses
 (`EVM_ADDRESS` / `TRON_ADDRESS`). See `.env-local.example`.
 
 ## Relationship to `tests/integrations`

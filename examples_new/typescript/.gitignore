@@ -1,0 +1,7 @@
+# Local env — all three apps load this shared file (../../.env-local).
+# Copy .env-local.example to .env-local and fill it in; never commit it.
+.env-local
+.env
+
+node_modules/
+dist/

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx --env-file=.env-local src/index.ts",
+    "dev": "tsx --env-file=../../.env-local src/index.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

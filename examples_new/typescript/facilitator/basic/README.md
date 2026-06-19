@@ -22,14 +22,14 @@ TRON-only, or both.
 ## Run
 
 ```bash
-cp .env-local ./.env-local   # already present; fill in the wallet you want
-pnpm install                 # from examples_new/typescript
-pnpm dev                     # or: pnpm --filter @bankofai/x402-example-facilitator-basic dev
+# From examples_new/typescript: cp .env-local.example .env-local and fill the wallet.
+pnpm install
+pnpm dev   # or: pnpm --filter @bankofai/x402-example-facilitator-basic dev
 ```
 
-Configure the wallet via agent-wallet (e.g. `AGENT_WALLET_PRIVATE_KEY` for EVM,
-`TRON_PRIVATE_KEY` for TRON, or a keystore dir). See agent-wallet's docs for the
-full provider matrix.
+Configure the wallet via agent-wallet — a single `AGENT_WALLET_PRIVATE_KEY`
+serves both chains (or a keystore dir). See agent-wallet's docs for the full
+provider matrix.
 
 ## Networks
 
