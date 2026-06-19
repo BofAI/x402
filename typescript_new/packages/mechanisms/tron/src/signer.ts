@@ -482,34 +482,54 @@ async function buildSignAndBroadcast(
 type TronTxResult = { ret?: ReadonlyArray<{ contractRet?: string }> };
 
 /**
- * Poll TRON for a transaction's *packed* result via `getTransaction`.
+ * Poll TRON for a transaction's execution result via `getTransaction`.
  *
- * Unlike `getTransactionInfo` (which only populates after the block solidifies,
- * ~19 confirmations / ~60s on Nile), `getTransaction` returns the execution
- * result (`ret[0].contractRet`) as soon as the tx is packed into a block (~3s).
- * For a one-time approve this is sufficient: the ERC-20 allowance is live the
- * moment the tx is packed, well before solidification.
+ * `getTransactionInfo` only populates the receipt after the block solidifies
+ * (~19 confirmations / ~60s on Nile), too slow to confirm a settle/approve.
+ * `getTransaction.ret[0].contractRet` carries the result much sooner (~3-4s,
+ * once the tx is packed) — BUT in the sub-second window right after broadcast
+ * the node returns a *preconfirm* (local pre-execution) `ret` that can read
+ * REVERT even for a tx that ultimately succeeds. Trusting that produced false
+ * settle failures. So we (a) delay before the first read to skip the preconfirm
+ * window, and (b) require two consecutive identical reads before reporting.
  *
  * @param tronWeb - The TronWeb instance used to read the transaction.
  * @param hash - The transaction id to wait for.
- * @returns `success` / `reverted` once packed, or `pending` on timeout.
+ * @returns `success` / `reverted` once the result is stable, or `pending` on timeout.
  */
 async function pollTransactionPacked(tronWeb: TronWeb, hash: string): Promise<{ status: string }> {
-  const timeoutMs = 60_000;
+  const timeoutMs = 90_000;
   const delayMs = 1_500;
   const deadline = Date.now() + timeoutMs;
 
+  let last = "";
+  let streak = 0;
   while (Date.now() < deadline) {
+    // Delay first: skips the sub-second preconfirm window, whose local-execution
+    // `ret` can read REVERT for a tx that ultimately succeeds.
+    await new Promise(resolve => setTimeout(resolve, delayMs));
+    let contractRet = "";
     try {
       const tx = (await tronWeb.trx.getTransaction(hash)) as TronTxResult | null;
-      const contractRet = tx?.ret?.[0]?.contractRet;
-      if (contractRet) {
+      contractRet = tx?.ret?.[0]?.contractRet ?? "";
+    } catch {
+      // Not yet propagated / transient node or rate-limit error — keep polling.
+    }
+    if (!contractRet) {
+      last = "";
+      streak = 0;
+      continue;
+    }
+    // Require two consecutive identical reads before trusting the packed result.
+    if (contractRet === last) {
+      streak += 1;
+      if (streak >= 2) {
         return { status: contractRet === "SUCCESS" ? "success" : "reverted" };
       }
-    } catch {
-      // Not yet packed / transient node or rate-limit error — keep polling.
+    } else {
+      last = contractRet;
+      streak = 1;
     }
-    await new Promise(resolve => setTimeout(resolve, delayMs));
   }
 
   return { status: "pending" };
