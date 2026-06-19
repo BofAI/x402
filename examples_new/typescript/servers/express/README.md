@@ -26,7 +26,11 @@ Then pay it with the fetch client (`../../clients/fetch`).
 
 ## Networks
 
-| Chain | Network | payTo env |
-|---|---|---|
-| EVM | `eip155:84532` (Base Sepolia) | `EVM_ADDRESS` |
-| TRON | `tron:nile` | `TRON_ADDRESS` |
+| Chain | Network | Tokens advertised | payTo env |
+|---|---|---|---|
+| EVM | `eip155:97` (BSC testnet) | DHLU (eip3009), USDC (permit2) | `EVM_ADDRESS` |
+| TRON | `tron:nile` | USDT, USDD (permit2) | `TRON_ADDRESS` |
+
+Tokens are configured per network in `src/chains/evm.ts` (`EVM_TOKENS`) and
+`src/chains/tron.ts`. BSC USDC needs a one-time Permit2 approve, advertised via
+the gas-sponsoring extension; DHLU (ERC-3009) needs none.

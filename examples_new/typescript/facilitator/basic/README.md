@@ -35,5 +35,9 @@ full provider matrix.
 
 | Chain | Network | Scheme |
 |---|---|---|
-| EVM | `eip155:84532` (Base Sepolia) | `exact` |
-| TRON | `tron:nile` | `exact` |
+| EVM | `eip155:97` (BSC testnet) | `exact` — DHLU via eip3009, USDC via permit2 + gas-sponsored approve |
+| TRON | `tron:nile` | `exact` — USDT/USDD via permit2 (auto-approve) |
+
+Add another EVM network (e.g. Base Sepolia) by adding one entry to the
+`EVM_NETWORKS` table in `src/chains/evm.ts`. The ERC-20 approval gas-sponsoring
+extension is registered once with a per-network signer resolver.

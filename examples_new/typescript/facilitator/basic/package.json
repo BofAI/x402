@@ -10,6 +10,7 @@
   "dependencies": {
     "@bankofai/x402-core": "workspace:*",
     "@bankofai/x402-evm": "workspace:*",
+    "@bankofai/x402-extensions": "workspace:*",
     "@bankofai/x402-tron": "workspace:*",
     "@bankofai/agent-wallet": "^2.3.0",
     "express": "^4.21.2",

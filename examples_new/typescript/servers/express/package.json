@@ -11,6 +11,7 @@
     "@bankofai/x402-core": "workspace:*",
     "@bankofai/x402-express": "workspace:*",
     "@bankofai/x402-evm": "workspace:*",
+    "@bankofai/x402-extensions": "workspace:*",
     "@bankofai/x402-tron": "workspace:*",
     "express": "^4.21.2"
   },

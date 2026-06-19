@@ -13,8 +13,8 @@ import {
   paymentMiddlewareFromHTTPServer,
 } from "@bankofai/x402-express";
 
-import { hasEvm, registerEvm, evmAccept } from "./chains/evm.js";
-import { hasTron, registerTron, tronAccept } from "./chains/tron.js";
+import { hasEvm, registerEvm, evmAccepts, evmExtensions } from "./chains/evm.js";
+import { hasTron, registerTron, tronAccepts } from "./chains/tron.js";
 
 const PORT = parseInt(process.env.PORT || "4021", 10);
 const FACILITATOR_URL = process.env.FACILITATOR_URL || "http://localhost:4022";
@@ -22,15 +22,21 @@ const FACILITATOR_URL = process.env.FACILITATOR_URL || "http://localhost:4022";
 const facilitatorClient = new HTTPFacilitatorClient({ url: FACILITATOR_URL });
 const resourceServer = new x402ResourceServer(facilitatorClient);
 
-// Register each chain (and advertise it) only when its payout address is set.
-const accepts: ReturnType<typeof evmAccept>[] = [];
+// Register each chain (and advertise its tokens) only when its payout is set.
+// Each chain may advertise multiple tokens, so accepts is flattened. EVM prices
+// are explicit asset objects; TRON prices are "<amount> <symbol>" strings.
+type Accept = ReturnType<typeof evmAccepts>[number] | ReturnType<typeof tronAccepts>[number];
+const accepts: Accept[] = [];
+let extensions: Record<string, unknown> = {};
 if (hasEvm()) {
   registerEvm(resourceServer);
-  accepts.push(evmAccept());
+  accepts.push(...evmAccepts());
+  // USDC (permit2) needs the gas-sponsored Permit2 approve; advertise it.
+  extensions = { ...extensions, ...evmExtensions() };
 }
 if (hasTron()) {
   registerTron(resourceServer);
-  accepts.push(tronAccept());
+  accepts.push(...tronAccepts());
 }
 if (accepts.length === 0) {
   console.error("❌ No payout address configured (set EVM_ADDRESS and/or TRON_ADDRESS).");
@@ -40,6 +46,7 @@ if (accepts.length === 0) {
 const routes = {
   "GET /weather": {
     accepts,
+    extensions,
     description: "Current weather (paid)",
     mimeType: "application/json",
   },
