@@ -27,13 +27,17 @@ export const GASFREE_BEACON_ADDRESSES: Record<string, string> = {
 /**
  * Default GasFree relayer API base URLs per network.
  *
- * These are sensible defaults; callers should override via the GasFree API
- * client / registration config when pointing at a different relayer.
+ * Points at the BankofAI-operated GasFree proxy (network segment included in the
+ * path; the proxy handles relayer auth), mirroring the Python SDK's
+ * `GASFREE_API_BASE_URLS` so the flow works out of the box. To target the
+ * official GasFree open API (e.g. `https://open-test.gasfree.io/nile`, which
+ * requires ApiKey/Secret auth) or your own relayer, override via the GasFree API
+ * client / registration config.
  */
 export const GASFREE_API_BASE_URLS: Record<string, string> = {
-  "tron:mainnet": "https://open.gasfree.io/tron",
-  "tron:nile": "https://open-test.gasfree.io/nile",
-  "tron:shasta": "https://open-test.gasfree.io/shasta",
+  "tron:mainnet": "https://facilitator.bankofai.io/mainnet",
+  "tron:shasta": "https://facilitator.bankofai.io/shasta",
+  "tron:nile": "https://facilitator.bankofai.io/nile",
 };
 
 /**
