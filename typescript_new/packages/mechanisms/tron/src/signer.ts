@@ -476,7 +476,12 @@ async function buildSignAndBroadcast(
   if (!broadcast.result) {
     throw new Error(`sendRawTransaction failed: ${JSON.stringify(broadcast)}`);
   }
-  return broadcast.txid ?? "";
+  if (!broadcast.txid) {
+    // Broadcast reported success but returned no txid; the caller would then
+    // poll an empty hash and stall until timeout. Fail fast instead.
+    throw new Error(`sendRawTransaction returned no txid: ${JSON.stringify(broadcast)}`);
+  }
+  return broadcast.txid;
 }
 
 type TronTxResult = { ret?: ReadonlyArray<{ contractRet?: string }> };
@@ -570,12 +575,16 @@ async function ensurePermit2Allowance(
 
   // Read the ERC-20 allowance the token grants Permit2. Do NOT swallow errors:
   // approving on a failed/zeroed read would burn TRX needlessly.
-  const current = (await deps.readContract({
+  const currentRaw = (await deps.readContract({
     address: args.token,
     abi: erc20AllowanceAbi as unknown as readonly Record<string, unknown>[],
     functionName: "allowance",
     args: [deps.ownerAddress, permit2Address],
-  })) as bigint;
+  })) as bigint | string | number;
+  // Normalize: tronweb contract reads can surface a string/number rather than a
+  // bigint; comparing a non-bigint against `args.amount` (bigint) misbehaves or
+  // throws. Mirror readGasFreeBalance's BigInt() coercion.
+  const current = BigInt(currentRaw);
 
   if (current >= args.amount) {
     return true;
