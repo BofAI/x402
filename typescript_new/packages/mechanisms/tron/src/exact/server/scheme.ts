@@ -6,6 +6,7 @@ import {
   SchemeNetworkServer,
   MoneyParser,
 } from "@bankofai/x402-core/types";
+import { parseMoneyString } from "@bankofai/x402-core/utils";
 import { ExactDefaultAssetInfo, getDefaultAsset } from "../../shared/defaultAssets";
 import { getDecimals, parsePrice as parseTokenPrice } from "../../shared/tokens";
 import { buildFeeInfo, type ExactTronFeeConfig } from "../../shared/fee";
@@ -180,16 +181,9 @@ export class ExactTronScheme implements SchemeNetworkServer {
     if (typeof money === "number") {
       return money;
     }
-
-    // Remove $ sign and whitespace, then parse
-    const cleanMoney = money.replace(/^\$/, "").trim();
-    const amount = parseFloat(cleanMoney);
-
-    if (isNaN(amount)) {
-      throw new Error(`Invalid money format: ${money}`);
-    }
-
-    return amount;
+    // Delegate to core's strict parser (rejects trailing garbage and scientific
+    // notation) — mirrors the EVM exact server scheme.
+    return parseMoneyString(money);
   }
 
   /**

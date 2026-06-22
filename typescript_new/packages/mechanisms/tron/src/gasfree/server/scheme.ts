@@ -5,6 +5,7 @@ import {
   Price,
   SchemeNetworkServer,
 } from "@bankofai/x402-core/types";
+import { parseMoneyString } from "@bankofai/x402-core/utils";
 import {
   getDecimals,
   getDefaultAssetSymbol,
@@ -117,11 +118,8 @@ export class ExactGasFreeScheme implements SchemeNetworkServer {
     if (typeof money === "number") {
       return String(money);
     }
-    const clean = money.replace(/^\$/, "").trim();
-    const amount = parseFloat(clean);
-    if (isNaN(amount)) {
-      throw new Error(`Invalid money format: ${money}`);
-    }
-    return clean;
+    // Delegate to core's strict parser (rejects trailing garbage and scientific
+    // notation); return the canonical decimal for the "<amount> <symbol>" form.
+    return String(parseMoneyString(money));
   }
 }
