@@ -89,7 +89,7 @@ function requirements(extra: Record<string, unknown> = {}) {
 describe("GasFree client createPaymentPayload", () => {
   it("uses fee.feeTo as provider and fee.feeAmount as maxFee floor", async () => {
     const a = api(account());
-    const client = new ClientScheme(clientSigner(), { [NETWORK]: a as never });
+    const client = new ClientScheme(clientSigner(), { apiClients: { [NETWORK]: a as never } });
     const result = await client.createPaymentPayload(
       2,
       requirements({ fee: { feeTo: PROVIDER, feeAmount: "20000" } }),
@@ -104,7 +104,7 @@ describe("GasFree client createPaymentPayload", () => {
 
   it("falls back to a relayer provider when no fee is present", async () => {
     const a = api(account({ assets: [] }));
-    const client = new ClientScheme(clientSigner(), { [NETWORK]: a as never });
+    const client = new ClientScheme(clientSigner(), { apiClients: { [NETWORK]: a as never } });
     const result = await client.createPaymentPayload(2, requirements(), {
       extensions: { skipBalanceCheck: true },
     });
@@ -130,7 +130,7 @@ describe("GasFree client createPaymentPayload", () => {
         },
       ],
     });
-    const client = new ClientScheme(clientSigner(), { [NETWORK]: api(acct) as never });
+    const client = new ClientScheme(clientSigner(), { apiClients: { [NETWORK]: api(acct) as never } });
     const result = await client.createPaymentPayload(
       2,
       requirements({ fee: { feeTo: PROVIDER, feeAmount: "10000" } }),
@@ -142,7 +142,7 @@ describe("GasFree client createPaymentPayload", () => {
 
   it("throws when the account is not activated and cannot submit", async () => {
     const acct = account({ active: false, allowSubmit: false });
-    const client = new ClientScheme(clientSigner(), { [NETWORK]: api(acct) as never });
+    const client = new ClientScheme(clientSigner(), { apiClients: { [NETWORK]: api(acct) as never } });
     await expect(
       client.createPaymentPayload(
         2,
@@ -152,7 +152,7 @@ describe("GasFree client createPaymentPayload", () => {
   });
 
   it("throws on insufficient GasFree wallet balance", async () => {
-    const client = new ClientScheme(clientSigner(500n), { [NETWORK]: api(account()) as never });
+    const client = new ClientScheme(clientSigner(500n), { apiClients: { [NETWORK]: api(account()) as never } });
     await expect(
       client.createPaymentPayload(
         2,
@@ -162,7 +162,7 @@ describe("GasFree client createPaymentPayload", () => {
   });
 
   it("uses the maximum window deadline when none is requested", async () => {
-    const client = new ClientScheme(clientSigner(), { [NETWORK]: api(account()) as never });
+    const client = new ClientScheme(clientSigner(), { apiClients: { [NETWORK]: api(account()) as never } });
     const before = Math.floor(Date.now() / 1000);
     const result = await client.createPaymentPayload(2, requirements(), {
       extensions: { skipBalanceCheck: true },
@@ -175,7 +175,7 @@ describe("GasFree client createPaymentPayload", () => {
   });
 
   it("honors a caller-requested deadline within the allowed window", async () => {
-    const client = new ClientScheme(clientSigner(), { [NETWORK]: api(account()) as never });
+    const client = new ClientScheme(clientSigner(), { apiClients: { [NETWORK]: api(account()) as never } });
     const requested = Math.floor(Date.now() / 1000) + 1000;
     const result = await client.createPaymentPayload(2, requirements(), {
       extensions: {
@@ -189,7 +189,7 @@ describe("GasFree client createPaymentPayload", () => {
 
   it("clamps and warns when the requested deadline exceeds the window", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const client = new ClientScheme(clientSigner(), { [NETWORK]: api(account()) as never });
+    const client = new ClientScheme(clientSigner(), { apiClients: { [NETWORK]: api(account()) as never } });
     const before = Math.floor(Date.now() / 1000);
     const requested = before + 99999; // well past nile max (3595)
     const result = await client.createPaymentPayload(2, requirements(), {
@@ -205,7 +205,7 @@ describe("GasFree client createPaymentPayload", () => {
   });
 
   it("rejects a caller-requested deadline that is too soon", async () => {
-    const client = new ClientScheme(clientSigner(), { [NETWORK]: api(account()) as never });
+    const client = new ClientScheme(clientSigner(), { apiClients: { [NETWORK]: api(account()) as never } });
     const requested = Math.floor(Date.now() / 1000) + 10; // below min (55)
     await expect(
       client.createPaymentPayload(2, requirements(), {

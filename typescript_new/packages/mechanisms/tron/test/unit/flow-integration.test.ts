@@ -165,7 +165,7 @@ describe("GasFree end-to-end (in-process)", () => {
     return {
       server: new GasFreeServer(),
       facilitator: new GasFreeFacilitator(facilitatorSigner(chain), api, feeConfig),
-      client: new GasFreeClient(await clientSigner(chain), api),
+      client: new GasFreeClient(await clientSigner(chain), { apiClients: api }),
     };
   }
 

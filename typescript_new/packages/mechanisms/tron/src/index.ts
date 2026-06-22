@@ -1,7 +1,7 @@
 // Client
 export { ExactTronScheme } from "./exact/client/scheme";
 export { registerExactTronScheme } from "./exact/client/register";
-export type { TronClientConfig } from "./exact/client/register";
+export type { ExactTronClientConfig } from "./exact/client/register";
 export {
   createPermit2ApprovalTx,
   getPermit2AllowanceReadParams,

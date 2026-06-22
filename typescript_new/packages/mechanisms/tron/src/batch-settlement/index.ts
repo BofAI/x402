@@ -10,7 +10,7 @@ export {
   recoverChannel,
 } from "./client";
 export type {
-  TronBatchSettlementClientConfig,
+  BatchSettlementTronClientConfig,
   BatchSettlementClientContext,
   BatchSettlementClientDeps,
   BatchSettlementDepositPolicy,

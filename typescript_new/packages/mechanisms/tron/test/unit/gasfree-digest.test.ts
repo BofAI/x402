@@ -72,7 +72,7 @@ describe("GasFree TIP-712 digest round-trip", () => {
     const providers = [{ address: PROVIDER }] as unknown as GasFreeProvider[];
 
     const client = new ClientScheme(clientSigner, {
-      [NETWORK]: mockApi(account, providers) as never,
+      apiClients: { [NETWORK]: mockApi(account, providers) as never },
     });
 
     const requirements = {

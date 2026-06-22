@@ -6,7 +6,7 @@ import { ExactTronScheme } from "./scheme";
 /**
  * Configuration options for registering TRON exact schemes to an x402Client
  */
-export interface TronClientConfig {
+export interface ExactTronClientConfig {
   /** The TRON signer used to create payment payloads. */
   signer: ClientTronSigner;
   /** Specific networks to register; defaults to the `tron:*` wildcard. */
@@ -26,7 +26,10 @@ export interface TronClientConfig {
  * @param config - Configuration for TRON client registration
  * @returns The client instance for chaining
  */
-export function registerExactTronScheme(client: x402Client, config: TronClientConfig): x402Client {
+export function registerExactTronScheme(
+  client: x402Client,
+  config: ExactTronClientConfig,
+): x402Client {
   const tronScheme = new ExactTronScheme(config.signer);
 
   if (config.networks && config.networks.length > 0) {

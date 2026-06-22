@@ -17,6 +17,17 @@ import {
 import { assembleGasFreeTransaction } from "../../shared/gasfree/assemble";
 
 /**
+ * Options for the GasFree client scheme.
+ *
+ * Mirrors the `(signer, options?)` shape used by the EVM schemes — required
+ * dependencies travel in the options object rather than as bare positional args.
+ */
+export interface ExactGasFreeSchemeOptions {
+  /** GasFree relayer clients keyed by CAIP-2 network. */
+  apiClients: Record<string, GasFreeAPIClient>;
+}
+
+/**
  * Deadline bounds (seconds from now) accepted by GasFree relayers.
  * Min/max are padded 5s inside the protocol bounds to avoid edge rejections.
  *
@@ -65,11 +76,11 @@ export class ExactGasFreeScheme implements SchemeNetworkClient {
    * Create the GasFree client scheme.
    *
    * @param signer - The TRON client signer.
-   * @param apiClients - GasFree relayer clients keyed by CAIP-2 network.
+   * @param options - Scheme options carrying the GasFree relayer clients.
    */
   constructor(
     private readonly signer: ClientTronSigner,
-    private readonly apiClients: Record<string, GasFreeAPIClient>,
+    private readonly options: ExactGasFreeSchemeOptions,
   ) {}
 
   /**
@@ -170,7 +181,7 @@ export class ExactGasFreeScheme implements SchemeNetworkClient {
    * @returns The relayer API client.
    */
   private getApiClient(network: string): GasFreeAPIClient {
-    const client = this.apiClients[network];
+    const client = this.options.apiClients[network];
     if (!client) {
       throw new Error(`GasFree is not configured for network: ${network}`);
     }
