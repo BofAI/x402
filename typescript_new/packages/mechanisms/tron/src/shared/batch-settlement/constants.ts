@@ -15,6 +15,7 @@ export const BATCH_SETTLEMENT_SCHEME = "batch-settlement" as const;
  * Deployed `x402BatchSettlement` contract addresses per TRON network (Base58Check).
  */
 export const BATCH_SETTLEMENT_ADDRESSES: Record<string, string> = {
+  "tron:mainnet": "TW9yNhTySkEHYfjnGQU2u4NAsdb1tW4fbm",
   "tron:nile": "TWBwWHZWwH8TzrZnbxit1J645VGYY1K2fA",
 };
 
@@ -22,6 +23,7 @@ export const BATCH_SETTLEMENT_ADDRESSES: Record<string, string> = {
  * Deployed `ERC3009DepositCollector` contract addresses per TRON network.
  */
 export const ERC3009_DEPOSIT_COLLECTOR_ADDRESSES: Record<string, string> = {
+  "tron:mainnet": "TTWA7aWMdx4jfcbp8XRAS2JAd2sUhyF9qj",
   "tron:nile": "TJUQ3BQt4YFg8EeevjiUa5LbfSGz5BxzRW",
 };
 
@@ -29,6 +31,7 @@ export const ERC3009_DEPOSIT_COLLECTOR_ADDRESSES: Record<string, string> = {
  * Deployed `Permit2DepositCollector` contract addresses per TRON network.
  */
 export const PERMIT2_DEPOSIT_COLLECTOR_ADDRESSES: Record<string, string> = {
+  "tron:mainnet": "TAg5qqp1K9x5KeSTWnRa8LT79B5HUjzSHY",
   "tron:nile": "TEp6bCqSEKAr99sCiqANC84RtRwx7xGbA4",
 };
 
