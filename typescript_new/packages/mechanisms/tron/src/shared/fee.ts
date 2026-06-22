@@ -26,6 +26,12 @@ export interface FeeInfo {
 
 /**
  * Facilitator-side fee configuration.
+ *
+ * The fee's effect differs by scheme: on `exact` / `exact_permit` it is
+ * **advisory** — advertised via `getExtra` so clients and other schemes can
+ * observe it, but the proxy transfers exactly `amount` and does NOT split a fee.
+ * Only on `exact_gasfree` is it **enforced** — the relayer actually deducts
+ * `feeAmount` from the GasFree wallet.
  */
 export interface ExactTronFeeConfig {
   /** Address that collects the fee. Defaults to the facilitator signer address. */

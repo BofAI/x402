@@ -251,10 +251,14 @@ export interface CreateClientTronSignerOptions {
  * Wallet-only: the private key never enters the SDK. To sign with a raw key
  * (dev/test), wrap it in an AgentWallet first. `tronWeb` supplies contract reads.
  *
- * If the wallet also exposes {@link AgentWallet.signTransaction}, the returned
- * signer gains {@link ClientTronSigner.ensureAllowance}, which the permit2 flow
- * uses to broadcast the one-time `approve(Permit2)` (mirrors the Python client).
- * Without it, the signer stays sign-only.
+ * The returned signer always exposes {@link ClientTronSigner.ensureAllowance}
+ * (used by the permit2 flow to broadcast the one-time `approve(Permit2)`, mirroring
+ * the Python client). If the wallet cannot sign transactions, it throws only when
+ * an approve is actually required — sign-only / pre-approved wallets still work.
+ *
+ * Side effect: sets `tronWeb`'s default address to the wallet address. Don't share
+ * one TronWeb instance across signers with different addresses — a later call
+ * overwrites the default; give each signer its own instance.
  *
  * @param tronWeb - The TronWeb instance used for contract reads and approve broadcast.
  * @param wallet - The wallet that signs typed data (and optionally transactions).
@@ -641,6 +645,10 @@ async function ensurePermit2Allowance(
  * enters the SDK), then broadcast — mirroring the production facilitator that
  * resolves a keystore-backed wallet unlocked out-of-band. For dev/test, wrap a
  * key in a wallet yourself (e.g. via TronWeb's `trx.sign`).
+ *
+ * Side effect: sets `tronWeb`'s default address (issuer) to the wallet address.
+ * Don't share one TronWeb instance across signers with different addresses — a
+ * later call overwrites the default; give each signer its own instance.
  *
  * @param tronWeb - The TronWeb instance used for reads, verification, and writes.
  * @param wallet - The wallet that signs settlement transactions.
