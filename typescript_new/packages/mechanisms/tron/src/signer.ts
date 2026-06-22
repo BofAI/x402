@@ -60,11 +60,12 @@ export interface ClientTronSigner {
    * one-time `approve(Permit2, MAX_UINT256)` if it does not (mirrors the Python
    * client's `ensure_allowance`). The user's wallet pays the approve's TRX.
    *
-   * Present only when the backing wallet can sign transactions
-   * ({@link AgentWallet.signTransaction}). The permit2 client flow calls this
-   * before signing; eip3009 payments never invoke it. `mode` defaults to the
-   * signer's configured mode (`"auto"`): `"skip"` returns immediately,
-   * `"interactive"` is not implemented.
+   * Always present on a signer created by {@link createClientTronSigner}. When
+   * the backing wallet lacks {@link AgentWallet.signTransaction}, it throws only
+   * if an approve is actually required — sign-only / pre-approved wallets still
+   * work. The permit2 client flow calls this before signing; eip3009 payments
+   * never invoke it. `mode` defaults to the signer's configured mode (`"auto"`):
+   * `"skip"` returns immediately, `"interactive"` is not implemented.
    */
   ensureAllowance?(args: {
     token: string;
@@ -90,7 +91,9 @@ export interface AgentWallet {
   getAddress(): Promise<string> | string;
 
   /**
-   * Sign EIP-712/TIP-712 typed data.
+   * Sign EIP-712/TIP-712 typed data, returning the signature hex. The `0x`
+   * prefix is optional — {@link createClientTronSigner} normalizes it — so a raw
+   * agent-wallet (which strips `0x`) satisfies this directly, no adapter needed.
    * Domain and message addresses should already be in EVM hex format.
    */
   signTypedData(args: {
@@ -98,7 +101,7 @@ export interface AgentWallet {
     types: Record<string, Array<{ name: string; type: string }>>;
     primaryType: string;
     message: Record<string, unknown>;
-  }): Promise<`0x${string}`>;
+  }): Promise<string>;
 
   /**
    * Optionally sign a built TRON transaction for broadcast (e.g. the one-time
@@ -267,7 +270,14 @@ export async function createClientTronSigner(
   const base = toClientTronSigner(
     {
       address,
-      signTypedData: args => wallet.signTypedData(args),
+      // agent-wallet strips the 0x prefix, so a raw wallet breaks the
+      // `0x${string}` contract; re-add it here so callers and ExactTronScheme
+      // get a conforming signature without their own adapter. Mirrors
+      // createClientEvmSigner.
+      signTypedData: async args => {
+        const sig = await wallet.signTypedData(args);
+        return `0x${sig.replace(/^0x/, "")}` as `0x${string}`;
+      },
     },
     tronWeb,
   );
