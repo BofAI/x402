@@ -160,6 +160,62 @@ describe("GasFree client createPaymentPayload", () => {
       ),
     ).rejects.toThrow(/Insufficient balance/);
   });
+
+  it("uses the maximum window deadline when none is requested", async () => {
+    const client = new ClientScheme(clientSigner(), { [NETWORK]: api(account()) as never });
+    const before = Math.floor(Date.now() / 1000);
+    const result = await client.createPaymentPayload(2, requirements(), {
+      extensions: { skipBalanceCheck: true },
+    });
+    const p = result.payload as ExactGasFreePayload;
+    // tron:nile max window = 3595s
+    const deadline = Number(p.gasfree.deadline);
+    expect(deadline).toBeGreaterThanOrEqual(before + 3590);
+    expect(deadline).toBeLessThanOrEqual(before + 3595 + 2);
+  });
+
+  it("honors a caller-requested deadline within the allowed window", async () => {
+    const client = new ClientScheme(clientSigner(), { [NETWORK]: api(account()) as never });
+    const requested = Math.floor(Date.now() / 1000) + 1000;
+    const result = await client.createPaymentPayload(2, requirements(), {
+      extensions: {
+        skipBalanceCheck: true,
+        paymentPermitContext: { meta: { validBefore: requested } },
+      },
+    });
+    const p = result.payload as ExactGasFreePayload;
+    expect(p.gasfree.deadline).toBe(String(requested));
+  });
+
+  it("clamps and warns when the requested deadline exceeds the window", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const client = new ClientScheme(clientSigner(), { [NETWORK]: api(account()) as never });
+    const before = Math.floor(Date.now() / 1000);
+    const requested = before + 99999; // well past nile max (3595)
+    const result = await client.createPaymentPayload(2, requirements(), {
+      extensions: {
+        skipBalanceCheck: true,
+        paymentPermitContext: { meta: { validBefore: requested } },
+      },
+    });
+    const p = result.payload as ExactGasFreePayload;
+    expect(Number(p.gasfree.deadline)).toBeLessThanOrEqual(before + 3595 + 2);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("[x402] GasFree deadline clamped"));
+    warn.mockRestore();
+  });
+
+  it("rejects a caller-requested deadline that is too soon", async () => {
+    const client = new ClientScheme(clientSigner(), { [NETWORK]: api(account()) as never });
+    const requested = Math.floor(Date.now() / 1000) + 10; // below min (55)
+    await expect(
+      client.createPaymentPayload(2, requirements(), {
+        extensions: {
+          skipBalanceCheck: true,
+          paymentPermitContext: { meta: { validBefore: requested } },
+        },
+      }),
+    ).rejects.toThrow(/too soon/);
+  });
 });
 
 describe("GasFree facilitator verify term validation", () => {

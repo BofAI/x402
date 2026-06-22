@@ -31,6 +31,28 @@ function getDeadlineBounds(network: string): { minDelta: number; maxDelta: numbe
 }
 
 /**
+ * Read a caller-supplied deadline (Unix seconds) from the payment context.
+ *
+ * Mirrors the Python client's `paymentPermitContext.meta.validBefore` source so
+ * an upstream that wants a shorter-lived permit can request one; when absent the
+ * scheme falls back to the maximum allowed window.
+ *
+ * @param context - Optional payment payload context.
+ * @returns The requested deadline in Unix seconds, or undefined when absent/invalid.
+ */
+function readRequestedDeadline(context?: PaymentPayloadContext): number | undefined {
+  const permitContext = context?.extensions?.paymentPermitContext as
+    | { meta?: { validBefore?: unknown } }
+    | undefined;
+  const raw = permitContext?.meta?.validBefore;
+  if (raw === undefined || raw === null) {
+    return undefined;
+  }
+  const seconds = Number(raw);
+  return Number.isFinite(seconds) && seconds > 0 ? Math.floor(seconds) : undefined;
+}
+
+/**
  * TRON client implementation for the `exact_gasfree` scheme.
  *
  * Builds and signs a GasFreeController `PermitTransfer` so a service provider
@@ -110,7 +132,7 @@ export class ExactGasFreeScheme implements SchemeNetworkClient {
       }
     }
 
-    const deadline = this.resolveDeadline(network);
+    const deadline = this.resolveDeadline(network, context);
 
     const message: GasFreeMessage = {
       token: requirements.asset,
@@ -227,20 +249,35 @@ export class ExactGasFreeScheme implements SchemeNetworkClient {
   }
 
   /**
-   * Resolve the permit deadline at the maximum allowed window for the network.
+   * Resolve the permit deadline, clamping to the network's allowed window.
+   *
+   * Mirrors the Python client: a caller-supplied deadline (via
+   * `extensions.paymentPermitContext.meta.validBefore`) is honored when present,
+   * otherwise the maximum allowed window is used. A value past the max is clamped
+   * down (with a warning); a value before the min is rejected.
    *
    * @param network - CAIP-2 network identifier.
+   * @param context - Optional payment payload context that may carry a
+   *   caller-requested `validBefore` deadline.
    * @returns The deadline as Unix seconds.
    */
-  private resolveDeadline(network: string): number {
+  private resolveDeadline(network: string, context?: PaymentPayloadContext): number {
     const now = Math.floor(Date.now() / 1000);
     const { minDelta, maxDelta } = getDeadlineBounds(network);
     const minDeadline = now + minDelta;
     const maxDeadline = now + maxDelta;
-    // Use the maximum allowed window by default.
-    const deadline = maxDeadline;
+
+    const requested = readRequestedDeadline(context);
+    const deadline = requested ?? maxDeadline;
+
     if (deadline < minDeadline) {
-      throw new Error(`GasFree deadline window invalid for ${network}`);
+      throw new Error(`GasFree deadline too soon for ${network}: ${deadline} < ${minDeadline}`);
+    }
+    if (deadline > maxDeadline) {
+      console.warn(
+        `[x402] GasFree deadline clamped: network=${network} from=${deadline} to=${maxDeadline}`,
+      );
+      return maxDeadline;
     }
     return deadline;
   }
