@@ -15,6 +15,7 @@ import { createPublicClient, http, type Chain } from "viem";
 import { bscTestnet } from "viem/chains";
 import { createClientEvmSigner } from "@bankofai/x402-evm/client/agent-wallet";
 import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
+import { UptoEvmScheme } from "@bankofai/x402-evm/upto/client";
 import type { x402Client } from "@bankofai/x402-fetch";
 
 import { tryResolveWallet } from "../env.js";
@@ -29,9 +30,19 @@ const EVM_NETWORKS: Record<string, Chain> = {
   // "eip155:84532": baseSepolia,
 };
 
+function resolveRpcUrl(network: string): string | undefined {
+  if (process.env.EVM_RPC_URL) {
+    return process.env.EVM_RPC_URL;
+  }
+  if (network === "eip155:97") {
+    return process.env.BSC_TESTNET_RPC_URL;
+  }
+  return undefined;
+}
+
 /**
- * Registers the EVM `exact` client scheme for every configured network, if an
- * EVM wallet is configured.
+ * Registers the EVM client schemes for every configured network, if an EVM
+ * wallet is configured.
  *
  * @param client - The x402 client to register the scheme on.
  * @returns `true` if at least one network registered, `false` if no EVM wallet.
@@ -43,10 +54,11 @@ export async function registerEvm(client: x402Client): Promise<boolean> {
   }
 
   for (const [network, chain] of Object.entries(EVM_NETWORKS) as [`${string}:${string}`, Chain][]) {
-    const publicClient = createPublicClient({ chain, transport: http() });
+    const publicClient = createPublicClient({ chain, transport: http(resolveRpcUrl(network)) });
     const signer = await createClientEvmSigner(wallet, publicClient);
     client.register(network, new ExactEvmScheme(signer));
-    console.info(`[evm] client registered ${network} (${signer.address})`);
+    client.register(network, new UptoEvmScheme(signer));
+    console.info(`[evm] client registered exact+upto ${network} (${signer.address})`);
   }
   return true;
 }

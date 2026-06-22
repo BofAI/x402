@@ -21,6 +21,7 @@ import {
   type GasSponsoringFacilitatorEvmSigner,
 } from "@bankofai/x402-evm/facilitator/agent-wallet";
 import { ExactEvmScheme } from "@bankofai/x402-evm/exact/facilitator";
+import { UptoEvmScheme } from "@bankofai/x402-evm/upto/facilitator";
 import {
   createErc20ApprovalGasSponsoringExtension,
   type Erc20ApprovalGasSponsoringSigner,
@@ -40,9 +41,19 @@ const EVM_NETWORKS: Record<string, Chain> = {
   // "eip155:84532": baseSepolia,
 };
 
+function resolveRpcUrl(network: string): string | undefined {
+  if (process.env.EVM_RPC_URL) {
+    return process.env.EVM_RPC_URL;
+  }
+  if (network === "eip155:97") {
+    return process.env.BSC_TESTNET_RPC_URL;
+  }
+  return undefined;
+}
+
 /**
- * Registers the EVM `exact` scheme on the facilitator for every configured
- * network, if an EVM wallet is configured in agent-wallet.
+ * Registers the EVM schemes on the facilitator for every configured network,
+ * if an EVM wallet is configured in agent-wallet.
  *
  * @param facilitator - The facilitator to register the scheme on.
  * @returns `true` if at least one network registered, `false` if no EVM wallet.
@@ -62,11 +73,12 @@ export async function registerEvm(facilitator: x402Facilitator): Promise<boolean
 
   const signers: Record<string, GasSponsoringFacilitatorEvmSigner> = {};
   for (const [network, chain] of Object.entries(EVM_NETWORKS) as [Network, Chain][]) {
-    const publicClient = createPublicClient({ chain, transport: http() });
+    const publicClient = createPublicClient({ chain, transport: http(resolveRpcUrl(network)) });
     const signer = createFacilitatorEvmSigner(publicClient, facWallet);
     facilitator.register(network, new ExactEvmScheme(signer));
+    facilitator.register(network, new UptoEvmScheme(signer));
     signers[network] = signer;
-    console.info(`[evm] facilitator registered ${network} (${facWallet.address})`);
+    console.info(`[evm] facilitator registered exact+upto ${network} (${facWallet.address})`);
   }
 
   // Register the ERC-20 approval gas-sponsoring extension once, resolving the

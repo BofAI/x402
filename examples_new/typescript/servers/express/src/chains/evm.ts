@@ -1,7 +1,7 @@
 /**
  * EVM setup for the resource server. The server holds no key — it registers the
- * `exact` server scheme per network and declares `accepts` (price + payTo) plus
- * the gas-sponsoring extension. Signing/settlement happens at client + facilitator.
+ * server schemes per network and declares `accepts` (price + payTo) plus the
+ * gas-sponsoring extension. Signing/settlement happens at client + facilitator.
  *
  * Tokens are configured per CAIP-2 network in `EVM_TOKENS`. Two approve paths:
  * - **ERC-3009** tokens (e.g. BSC DHLU) → `exact` eip3009: gasless, no approve.
@@ -15,6 +15,7 @@
  * table entry. Amounts are ≈ $0.001 per the token's decimals.
  */
 import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
+import { UptoEvmScheme } from "@bankofai/x402-evm/upto/server";
 import { declareErc20ApprovalGasSponsoringExtension } from "@bankofai/x402-extensions";
 import type { Network } from "@bankofai/x402-core/types";
 import type { x402ResourceServer } from "@bankofai/x402-express";
@@ -22,7 +23,7 @@ import type { x402ResourceServer } from "@bankofai/x402-express";
 type EvmToken = { asset: string; amount: string; extra: Record<string, unknown> };
 
 /** CAIP-2 network → tokens advertised on it (see specs/config.md for addresses). */
-const EVM_TOKENS: Record<string, EvmToken[]> = {
+const EVM_EXACT_TOKENS: Record<string, EvmToken[]> = {
   "eip155:97": [
     // DHLU (6 dec, ERC-3009) — eip3009, gasless. Domain verified on-chain.
     {
@@ -49,19 +50,34 @@ const EVM_TOKENS: Record<string, EvmToken[]> = {
   // "eip155:84532": [ { asset: "0x036CbD…", amount: "1000", extra: { name: "USDC", version: "2" } } ],
 };
 
+/** Upto currently uses Permit2, so only advertise plain permit2 assets here. */
+const EVM_UPTO_TOKENS: Record<string, EvmToken[]> = {
+  "eip155:97": [
+    // DHLU (6 dec, ERC-20) — Permit2 max authorization, settled by actual usage.
+    {
+      asset: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816",
+      amount: "1000", // max 0.001 × 1e6
+      extra: { assetTransferMethod: "permit2" },
+    },
+  ],
+};
+
 /** EVM is enabled when a payout address is configured. */
 export function hasEvm(): boolean {
   return !!process.env.EVM_ADDRESS;
 }
 
 /**
- * Registers the EVM `exact` server scheme for every configured network.
+ * Registers the EVM server schemes for every configured network.
  *
  * @param resourceServer - The resource server to register on.
  */
 export function registerEvm(resourceServer: x402ResourceServer): void {
-  for (const network of Object.keys(EVM_TOKENS) as Network[]) {
+  for (const network of Object.keys(EVM_EXACT_TOKENS) as Network[]) {
     resourceServer.register(network, new ExactEvmScheme());
+  }
+  for (const network of Object.keys(EVM_UPTO_TOKENS) as Network[]) {
+    resourceServer.register(network, new UptoEvmScheme());
   }
 }
 
@@ -71,11 +87,28 @@ export function registerEvm(resourceServer: x402ResourceServer): void {
  *
  * @returns Payment-requirements accept entries.
  */
-export function evmAccepts() {
+export function evmExactAccepts() {
   const payTo = process.env.EVM_ADDRESS as string;
-  return (Object.entries(EVM_TOKENS) as [Network, EvmToken[]][]).flatMap(([network, tokens]) =>
+  return (Object.entries(EVM_EXACT_TOKENS) as [Network, EvmToken[]][]).flatMap(([network, tokens]) =>
     tokens.map(token => ({
       scheme: "exact",
+      network,
+      payTo,
+      price: { amount: token.amount, asset: token.asset, extra: token.extra },
+    })),
+  );
+}
+
+/**
+ * Builds the `upto` accept entries advertised for EVM usage-based payments.
+ *
+ * @returns Payment-requirements accept entries.
+ */
+export function evmUptoAccepts() {
+  const payTo = process.env.EVM_ADDRESS as string;
+  return (Object.entries(EVM_UPTO_TOKENS) as [Network, EvmToken[]][]).flatMap(([network, tokens]) =>
+    tokens.map(token => ({
+      scheme: "upto",
       network,
       payTo,
       price: { amount: token.amount, asset: token.asset, extra: token.extra },

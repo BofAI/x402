@@ -5,7 +5,7 @@
  * wallet for it resolves, so the facilitator can run EVM-only, TRON-only, or
  * both.
  */
-import { resolveWallet, type Wallet } from "@bankofai/agent-wallet";
+import { RawSecretSigner, resolveWallet, type Wallet } from "@bankofai/agent-wallet";
 
 /**
  * A resolved agent-wallet that also signs typed data. `resolveWallet` is typed
@@ -27,6 +27,22 @@ const CAIP2_BY_FAMILY: Record<"evm" | "tron", string> = {
   tron: "tron:nile",
 };
 
+const RAW_KEY_ENV_BY_FAMILY: Record<"evm" | "tron", string[]> = {
+  evm: ["EVM_FACILITATOR_PRIVATE_KEY", "FACILITATOR_PRIVATE_KEY"],
+  tron: ["TRON_FACILITATOR_PRIVATE_KEY", "FACILITATOR_PRIVATE_KEY"],
+};
+
+function rawSecretWallet(family: "evm" | "tron"): SignerWallet | null {
+  const rawKey = RAW_KEY_ENV_BY_FAMILY[family].map(name => process.env[name]).find(Boolean);
+  if (!rawKey) {
+    return null;
+  }
+  return new RawSecretSigner(
+    { source: "private_key", private_key: rawKey.replace(/^0x/, "") },
+    CAIP2_BY_FAMILY[family],
+  ) as SignerWallet;
+}
+
 /**
  * Resolves the agent-wallet for a chain family, or `null` when none is configured.
  *
@@ -34,6 +50,11 @@ const CAIP2_BY_FAMILY: Record<"evm" | "tron", string> = {
  * @returns The wallet, or `null` to skip that chain.
  */
 export async function tryResolveWallet(family: "evm" | "tron"): Promise<SignerWallet | null> {
+  const rawWallet = rawSecretWallet(family);
+  if (rawWallet) {
+    return rawWallet;
+  }
+
   try {
     return (await resolveWallet({ network: CAIP2_BY_FAMILY[family] })) as SignerWallet;
   } catch {

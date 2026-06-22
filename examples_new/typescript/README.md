@@ -13,8 +13,16 @@ A full client → server → facilitator loop:
 | Example | Role | Port | Wallet |
 |---|---|---|---|
 | [`facilitator/basic`](facilitator/basic) | verifies + settles on-chain | 4022 | agent-wallet (EVM + TRON) |
-| [`servers/express`](servers/express) | sells `GET /weather` behind 402 | 4021 | none (keyless, payout address only) |
+| [`servers/express`](servers/express) | sells `GET /weather`, `/generate`, `/stream` behind 402 | 4021 | none (keyless, payout address only) |
 | [`clients/fetch`](clients/fetch) | pays automatically via wrapped `fetch` | — | agent-wallet (EVM + TRON) |
+
+Routes by scheme:
+
+| Route | Scheme | Notes |
+|---|---|---|
+| `GET /weather` | `exact` | fixed-price request |
+| `GET /generate` | `upto` | max authorization; handler calls `setSettlementOverrides(..., { amount: "50%" })` |
+| `GET /stream` | `batch-settlement` | TRON Nile only in this example |
 
 ## Supported chains & tokens
 
@@ -22,8 +30,16 @@ A full client → server → facilitator loop:
 |---|---|---|---|---|---|
 | TRON nile | `tron:nile` | USDT (6) | exact **permit2** | yes — client auto-broadcasts | only the approve (TRX) |
 | TRON nile | `tron:nile` | USDD (18) | exact **permit2** | yes — client auto-broadcasts | only the approve (TRX) |
+| TRON nile | `tron:nile` | USDT/USDD | **upto permit2** | yes — client auto-broadcasts | only the approve (TRX) |
+| TRON nile | `tron:nile` | USDT/USDD | **batch-settlement permit2** | yes — client auto-broadcasts | deposits/claims/refunds use TRX |
 | BSC testnet | `eip155:97` | DHLU (6) | exact **eip3009** | none | **none (fully gasless)** |
 | BSC testnet | `eip155:97` | USDC (18) | exact **permit2 + gas-sponsoring** | yes — client signs, facilitator relays | only the approve (BNB) |
+| BSC testnet | `eip155:97` | DHLU (6) | **upto permit2 + gas-sponsoring** | yes — client signs, facilitator relays | only the approve (BNB) |
+
+BSC Testnet `batch-settlement` is intentionally not enabled here because
+`x402-contracts@release-v0.0.4` lists no BSC Testnet `x402BatchSettlement`
+deployment. TRON Nile has `x402BatchSettlement` deployed and is the runnable
+testnet batch-settlement path in these examples.
 
 How each token settles on-chain:
 
@@ -99,6 +115,7 @@ chain reads and broadcast.
 
 ```bash
 pnpm install           # links the in-repo SDK packages (see pnpm-workspace.yaml)
+cd ../../typescript_new && pnpm build && cd ../examples_new/typescript
 cp .env-local.example .env-local   # one shared env; all three apps load it
 
 pnpm dev:facilitator   # terminal 1  (:4022)
@@ -108,7 +125,11 @@ pnpm dev:client        # terminal 3
 
 Configure the wallet via agent-wallet — a single `AGENT_WALLET_PRIVATE_KEY`
 serves both chains — and set the server's payout addresses
-(`EVM_ADDRESS` / `TRON_ADDRESS`). See `.env-local.example`.
+(`EVM_ADDRESS` / `TRON_ADDRESS`). For production-like smoke runs, split
+client/facilitator keys are also supported:
+`EVM_CLIENT_PRIVATE_KEY`, `EVM_FACILITATOR_PRIVATE_KEY`,
+`TRON_CLIENT_PRIVATE_KEY`, and `TRON_FACILITATOR_PRIVATE_KEY`. See
+`.env-local.example`.
 
 ## Relationship to `tests/integrations`
 

@@ -1,17 +1,27 @@
 /**
  * x402 fetch client — chain-agnostic.
  *
- * Registers EVM and TRON `exact` schemes (each gated on a configured wallet),
- * wraps `fetch` so 402 challenges are paid automatically, and hits a protected
- * resource. The payment-selection pipeline picks an option matching a registered
- * scheme/network; this file imports no chain SDK directly.
+ * Registers EVM and TRON schemes (each gated on a configured wallet), wraps
+ * `fetch` so 402 challenges are paid automatically, and hits protected
+ * resources. The payment-selection pipeline picks an option matching a
+ * registered scheme/network; this file imports no chain SDK directly.
  */
 import { x402Client, wrapFetchWithPayment } from "@bankofai/x402-fetch";
 
 import { registerEvm } from "./chains/evm.js";
 import { registerTron } from "./chains/tron.js";
 
-const RESOURCE_URL = process.env.RESOURCE_URL || "http://localhost:4021/weather";
+const DEFAULT_RESOURCE_URLS = [
+  "http://localhost:4021/weather",
+  "http://localhost:4021/generate",
+  "http://localhost:4021/stream",
+];
+
+const resourceUrls = process.env.RESOURCE_URLS
+  ? process.env.RESOURCE_URLS.split(",").map(url => url.trim()).filter(Boolean)
+  : process.env.RESOURCE_URL
+    ? [process.env.RESOURCE_URL]
+    : DEFAULT_RESOURCE_URLS;
 
 const client = new x402Client();
 
@@ -24,7 +34,9 @@ if (!evm && !tron) {
 
 const fetchWithPay = wrapFetchWithPayment(fetch, client);
 
-console.log(`→ GET ${RESOURCE_URL}`);
-const res = await fetchWithPay(RESOURCE_URL);
-console.log(`← ${res.status} ${res.statusText}`);
-console.log(JSON.stringify(await res.json(), null, 2));
+for (const resourceUrl of resourceUrls) {
+  console.log(`GET ${resourceUrl}`);
+  const res = await fetchWithPay(resourceUrl);
+  console.log(`${res.status} ${res.statusText}`);
+  console.log(JSON.stringify(await res.json(), null, 2));
+}

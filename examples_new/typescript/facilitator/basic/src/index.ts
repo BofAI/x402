@@ -22,7 +22,13 @@ const PORT = parseInt(process.env.PORT || "4022", 10);
 
 const facilitator = new x402Facilitator()
   .onBeforeSettle(async ctx => console.log("[settle] before", ctx.requirements.network))
-  .onAfterSettle(async ctx => console.log("[settle] after", ctx.requirements.network))
+  .onAfterSettle(async ctx =>
+    console.log("[settle] after", ctx.requirements.network, {
+      success: ctx.result.success,
+      errorReason: ctx.result.success ? undefined : ctx.result.errorReason,
+      transaction: ctx.result.transaction,
+    }),
+  )
   .onSettleFailure(async ctx => console.log("[settle] failure", ctx));
 
 // Register each chain only if its wallet resolves. Run EVM-only, TRON-only, or both.

@@ -6,6 +6,8 @@
 import { TronWeb } from "tronweb";
 import { createFacilitatorTronSigner } from "@bankofai/x402-tron";
 import { ExactTronScheme } from "@bankofai/x402-tron/exact/facilitator";
+import { UptoTronScheme } from "@bankofai/x402-tron/upto/facilitator";
+import { BatchSettlementTronFacilitatorScheme } from "@bankofai/x402-tron/batch-settlement/facilitator";
 import type { x402Facilitator } from "@bankofai/x402-core/facilitator";
 
 import { tryResolveWallet } from "../env.js";
@@ -15,8 +17,8 @@ export const TRON_NETWORK = "tron:nile";
 const NILE_RPC = "https://nile.trongrid.io";
 
 /**
- * Registers the TRON `exact` scheme on the facilitator, if a TRON wallet is
- * configured in agent-wallet.
+ * Registers the TRON schemes on the facilitator, if a TRON wallet is configured
+ * in agent-wallet.
  *
  * @param facilitator - The facilitator to register the scheme on.
  * @returns `true` if registered, `false` if no TRON wallet was configured.
@@ -38,11 +40,44 @@ export async function registerTron(facilitator: x402Facilitator): Promise<boolea
 
   const facWallet = {
     address: await wallet.getAddress(),
-    signTransaction: (tx: Record<string, unknown>) => wallet.signTransaction(tx),
+    signTransaction: (tx: Record<string, unknown>) => {
+      const rawTransactionKey =
+        process.env.TRON_FACILITATOR_PRIVATE_KEY ?? process.env.FACILITATOR_PRIVATE_KEY;
+      return rawTransactionKey
+        ? (tronWeb.trx.sign(tx as never, rawTransactionKey.replace(/^0x/, "")) as Promise<
+            Record<string, unknown>
+          >)
+        : wallet.signTransaction(tx);
+    },
   };
 
   const signer = createFacilitatorTronSigner(tronWeb, facWallet);
+  const authorizerSigner = {
+    address: facWallet.address,
+    async signTypedData(args: {
+      domain: Record<string, unknown>;
+      types: Record<string, Array<{ name: string; type: string }>>;
+      primaryType: string;
+      message: Record<string, unknown>;
+    }): Promise<`0x${string}`> {
+      const sig = await wallet.signTypedData({
+        types: { EIP712Domain: [], ...args.types },
+        domain: args.domain,
+        primaryType: args.primaryType,
+        message: args.message,
+      });
+      return `0x${sig.replace(/^0x/, "")}` as `0x${string}`;
+    },
+  };
+
   facilitator.register(TRON_NETWORK, new ExactTronScheme(signer));
-  console.info(`[tron] facilitator registered ${TRON_NETWORK} (${facWallet.address})`);
+  facilitator.register(TRON_NETWORK, new UptoTronScheme(signer));
+  facilitator.register(
+    TRON_NETWORK,
+    new BatchSettlementTronFacilitatorScheme(signer, authorizerSigner),
+  );
+  console.info(
+    `[tron] facilitator registered exact+upto+batch-settlement ${TRON_NETWORK} (${facWallet.address})`,
+  );
   return true;
 }
