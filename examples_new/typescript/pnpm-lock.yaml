@@ -625,6 +625,31 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
+  clients/gasfree:
+    dependencies:
+      '@bankofai/agent-wallet':
+        specifier: ^2.3.0
+        version: 2.4.0(@types/node@22.19.21)(typescript@5.9.3)
+      '@bankofai/x402-fetch':
+        specifier: workspace:*
+        version: link:../../../../typescript_new/packages/http/fetch
+      '@bankofai/x402-tron':
+        specifier: workspace:*
+        version: link:../../../../typescript_new/packages/mechanisms/tron
+      tronweb:
+        specifier: ^6.0.0
+        version: 6.3.0
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.21
+      tsx:
+        specifier: ^4.19.2
+        version: 4.22.4
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
   facilitator/basic:
     dependencies:
       '@bankofai/agent-wallet':
@@ -665,6 +690,37 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
+  facilitator/gasfree:
+    dependencies:
+      '@bankofai/agent-wallet':
+        specifier: ^2.3.0
+        version: 2.4.0(@types/node@22.19.21)(typescript@5.9.3)
+      '@bankofai/x402-core':
+        specifier: workspace:*
+        version: link:../../../../typescript_new/packages/core
+      '@bankofai/x402-tron':
+        specifier: workspace:*
+        version: link:../../../../typescript_new/packages/mechanisms/tron
+      express:
+        specifier: ^4.21.2
+        version: 4.22.2
+      tronweb:
+        specifier: ^6.0.0
+        version: 6.3.0
+    devDependencies:
+      '@types/express':
+        specifier: ^4.17.21
+        version: 4.17.25
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.21
+      tsx:
+        specifier: ^4.19.2
+        version: 4.22.4
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
   servers/express:
     dependencies:
       '@bankofai/x402-core':
@@ -679,6 +735,34 @@ importers:
       '@bankofai/x402-extensions':
         specifier: workspace:*
         version: link:../../../../typescript_new/packages/extensions
+      '@bankofai/x402-tron':
+        specifier: workspace:*
+        version: link:../../../../typescript_new/packages/mechanisms/tron
+      express:
+        specifier: ^4.21.2
+        version: 4.22.2
+    devDependencies:
+      '@types/express':
+        specifier: ^4.17.21
+        version: 4.17.25
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.21
+      tsx:
+        specifier: ^4.19.2
+        version: 4.22.4
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  servers/gasfree:
+    dependencies:
+      '@bankofai/x402-core':
+        specifier: workspace:*
+        version: link:../../../../typescript_new/packages/core
+      '@bankofai/x402-express':
+        specifier: workspace:*
+        version: link:../../../../typescript_new/packages/http/express
       '@bankofai/x402-tron':
         specifier: workspace:*
         version: link:../../../../typescript_new/packages/mechanisms/tron

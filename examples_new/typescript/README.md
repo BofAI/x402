@@ -16,6 +16,29 @@ A full client → server → facilitator loop:
 | [`servers/express`](servers/express) | sells `GET /weather` behind 402 | 4021 | none (keyless, payout address only) |
 | [`clients/fetch`](clients/fetch) | pays automatically via wrapped `fetch` | — | agent-wallet (EVM + TRON) |
 
+## GasFree scenario (TRON `exact_gasfree`)
+
+A parallel, self-contained trio demonstrating TRON's **gasless** scheme: the payer
+signs a TIP-712 GasFree permit and a relayer pays the on-chain energy — **no TRX
+for the payer, no one-time `approve`**. Funds come from the payer's GasFree
+custodial wallet (not the main wallet). TRON-only.
+
+| Example | Role | Port |
+|---|---|---|
+| [`facilitator/gasfree`](facilitator/gasfree) | verifies + relays via the GasFree API | 4032 |
+| [`servers/gasfree`](servers/gasfree) | sells `GET /weather` (`exact_gasfree`, USDT) | 4031 |
+| [`clients/gasfree`](clients/gasfree) | pays via wrapped `fetch` | — |
+
+```bash
+pnpm dev:gasfree-facilitator   # :4032
+pnpm dev:gasfree-server        # :4031
+pnpm dev:gasfree-client
+```
+
+Runs on its own ports (4031/4032) via dedicated `GASFREE_*` env vars, so it never
+clashes with the main line. Preconditions: the payer's GasFree account on Nile
+must be **activated and funded** with USDT, or settlement fails at the relayer.
+
 ## Supported chains & tokens
 
 | Chain | Network | Token | Scheme | One-time approve | User pays gas? |

@@ -1,0 +1,60 @@
+/**
+ * TRON GasFree chain setup for the facilitator (scheme `exact_gasfree`).
+ *
+ * Settlement does NOT broadcast a raw TRON tx: the facilitator forwards the
+ * signed permit to the GasFree relayer API, which pays energy and submits it.
+ * The `FacilitatorTronSigner` still supplies the issuer address and signs relayer
+ * requests, so it is created the same way as the `exact` facilitator — key
+ * custody stays in `@bankofai/agent-wallet`, and the TronWeb instance carries no
+ * private key.
+ */
+import { TronWeb } from "tronweb";
+import { createFacilitatorTronSigner } from "@bankofai/x402-tron";
+import { registerExactGasFreeTronScheme } from "@bankofai/x402-tron/gasfree/facilitator";
+import type { x402Facilitator } from "@bankofai/x402-core/facilitator";
+
+import { tryResolveTronWallet } from "../env.js";
+
+/** CAIP-2 network this facilitator settles on. */
+export const TRON_NETWORK = "tron:nile";
+const NILE_RPC = "https://nile.trongrid.io";
+
+/**
+ * Registers the TRON `exact_gasfree` scheme on the facilitator, if a TRON wallet
+ * resolves in agent-wallet.
+ *
+ * @param facilitator - The facilitator to register the scheme on.
+ * @returns `true` if registered, `false` when no TRON wallet was configured.
+ */
+export async function registerTronGasFree(facilitator: x402Facilitator): Promise<boolean> {
+  const wallet = await tryResolveTronWallet();
+  if (!wallet) {
+    return false;
+  }
+
+  const tronWeb = new TronWeb({
+    fullHost: NILE_RPC,
+    ...(process.env.TRON_GRID_API_KEY
+      ? { headers: { "TRON-PRO-API-KEY": process.env.TRON_GRID_API_KEY } }
+      : {}),
+  });
+
+  const facWallet = {
+    address: await wallet.getAddress(),
+    signTransaction: (tx: Record<string, unknown>) => wallet.signTransaction(tx),
+  };
+
+  const signer = createFacilitatorTronSigner(tronWeb, facWallet);
+
+  // Omitting apiBaseUrls falls back to the built-in GASFREE_API_BASE_URLS
+  // (Nile testnet relayer). Override with GASFREE_API_URL for your own relayer.
+  registerExactGasFreeTronScheme(facilitator, {
+    signer,
+    networks: TRON_NETWORK,
+    ...(process.env.GASFREE_API_URL
+      ? { apiBaseUrls: { "tron:nile": process.env.GASFREE_API_URL } }
+      : {}),
+  });
+  console.info(`[tron] facilitator registered ${TRON_NETWORK} exact_gasfree (${facWallet.address})`);
+  return true;
+}
