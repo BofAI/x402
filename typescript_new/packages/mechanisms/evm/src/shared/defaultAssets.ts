@@ -53,6 +53,22 @@ export const DEFAULT_STABLECOINS: Record<string, ExactDefaultAssetInfo> = {
     version: "2",
     decimals: 6,
   }, // Base Sepolia USDC
+  "eip155:97": {
+    address: "0x64544969ed7EBf5f083679233325356EbE738930",
+    name: "USD Coin",
+    version: "1",
+    decimals: 18,
+    assetTransferMethod: "permit2",
+  }, // BSC testnet USDC (plain BEP-20 — Permit2 deposit; DHLU's eip3009 token
+     // only implements transferWithAuthorization, not the receiveWithAuthorization
+     // that batch-settlement deposits require)
+  "eip155:56": {
+    address: "0x55d398326f99059fF775485246999027B3197955",
+    name: "Tether USD",
+    version: "1",
+    decimals: 18,
+    assetTransferMethod: "permit2",
+  }, // BSC mainnet USDT (plain BEP-20, no EIP-3009 — Permit2 deposit)
   "eip155:4326": {
     address: "0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7",
     name: "MegaUSD",
