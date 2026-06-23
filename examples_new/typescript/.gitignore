@@ -4,9 +4,11 @@
 #   exact    → .env-exact      (clients/fetch, servers/express, facilitator/basic)
 #   gasfree  → .env-gasfree    (clients/gasfree, servers/gasfree, facilitator/gasfree)
 #   batch    → .env-batch      (clients/*, servers/*, facilitator/batch-settlement)
+#   upto     → .env-upto       (clients/upto, servers/upto, facilitator/upto)
 .env-exact
 .env-gasfree
 .env-batch
+.env-upto
 .env
 
 node_modules/

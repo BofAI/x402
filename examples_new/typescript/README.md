@@ -63,6 +63,30 @@ Own ports (4041/4042) via dedicated `BATCH_*` env vars, so it never clashes with
 the other lines. BSC uses USDC (Permit2 deposit, one-time `approve(Permit2)`); TRON
 Nile uses USDT (Permit2 → one-time `approve(Permit2)`, client auto-broadcasts).
 
+## Upto scenario (EVM + TRON `upto`)
+
+A **usage-based billing** trio: the payer signs a Permit2 authorization for up to
+a **maximum** amount; the server decides the **real usage** per request and
+settles only that (≤ max). One signature shape, a different charge each request.
+
+| Example | Role | Port |
+|---|---|---|
+| [`facilitator/upto`](facilitator/upto) | verifies + settles the Permit2 `settle` (≤ max) | 4052 |
+| [`servers/upto`](servers/upto) | sells `GET /generate`, sets the per-request charge | 4051 |
+| [`clients/upto`](clients/upto) | pays via wrapped `fetch`, fires N usage-billed requests | — |
+
+```bash
+pnpm dev:upto-facilitator      # :4052
+pnpm dev:upto-server           # :4051
+pnpm dev:upto-client           # N usage-billed requests
+```
+
+Own ports (4051/4052) via the dedicated `.env-upto` file. The server signals the
+per-request charge with a `Settlement-Overrides` response header (a percent,
+atomic units, or a `$` price ≤ the advertised max); the middleware settles that
+amount and strips the header. BSC uses USDC, TRON Nile uses USDT — both Permit2
+(one-time `approve(Permit2)`).
+
 ## Supported chains & tokens
 
 | Chain | Network | Token | Scheme | One-time approve | User pays gas? |
@@ -152,6 +176,7 @@ three lines run side by side and you only fill in what you run:
 | exact (main) | `.env-exact.example` → `.env-exact` | `clients/fetch`, `servers/express`, `facilitator/basic` |
 | gasfree | `.env-gasfree.example` → `.env-gasfree` | `clients/gasfree`, `servers/gasfree`, `facilitator/gasfree` |
 | batch-settlement | `.env-batch.example` → `.env-batch` | `clients/batch-settlement`, `servers/batch-settlement`, `facilitator/batch-settlement` |
+| upto | `.env-upto.example` → `.env-upto` | `clients/upto`, `servers/upto`, `facilitator/upto` |
 
 ```bash
 pnpm install               # links the in-repo SDK packages (see pnpm-workspace.yaml)
