@@ -19,7 +19,7 @@ import {
   createFacilitatorEvmSigner,
   type FacilitatorEvmWallet,
   type GasSponsoringFacilitatorEvmSigner,
-} from "@bankofai/x402-evm/facilitator/agent-wallet";
+} from "@bankofai/x402-evm/adapters/agent-wallet";
 import { ExactEvmScheme } from "@bankofai/x402-evm/exact/facilitator";
 import {
   createErc20ApprovalGasSponsoringExtension,

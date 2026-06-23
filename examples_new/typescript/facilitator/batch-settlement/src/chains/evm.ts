@@ -19,7 +19,7 @@ import { bscTestnet } from "viem/chains";
 import {
   createFacilitatorEvmSigner,
   type FacilitatorEvmWallet,
-} from "@bankofai/x402-evm/facilitator/agent-wallet";
+} from "@bankofai/x402-evm/adapters/agent-wallet";
 import { BatchSettlementEvmScheme } from "@bankofai/x402-evm/batch-settlement/facilitator";
 import type { x402Facilitator } from "@bankofai/x402-core/facilitator";
 import type { Network } from "@bankofai/x402-core/types";

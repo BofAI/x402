@@ -1,24 +1,127 @@
 /**
- * BankofAI overlay — NOT from upstream @x402/evm.
+ * Adaptation layer — BankofAI overlay, NOT from upstream @x402/evm.
  *
- * Adds a wallet-bridge factory for facilitators, symmetric to TRON's
- * `createFacilitatorTronSigner`. Upstream only ships `toFacilitatorEvmSigner`,
- * which requires the integrator to hand-wire every on-chain op
- * (readContract / writeContract / sendTransaction / waitForTransactionReceipt /
- * getCode / verifyTypedData). This module builds all of that from a viem
- * public client + a key-custody wallet, so non-custodial signing is collected
- * in one place.
+ * Bridges an `@bankofai/agent-wallet` wallet (non-custodial key custody) to
+ * upstream's signer contracts, for both roles:
+ *   - {@link createClientEvmSigner}     → `ClientEvmSigner`     (symmetric to TRON's `createClientTronSigner`)
+ *   - {@link createFacilitatorEvmSigner} → `FacilitatorEvmSigner` (symmetric to TRON's `createFacilitatorTronSigner`)
  *
- * Upgrade safety: this file ONLY consumes upstream's public surface
- * (`toFacilitatorEvmSigner` + the `FacilitatorEvmSigner` type). It never edits
- * `signer.ts` or `index.ts`, so pulling a newer upstream is conflict-free as
- * long as that public surface is unchanged. The agent-wallet dependency is kept
- * out via the structural {@link FacilitatorEvmWallet} interface — any object of
- * that shape works (agent-wallet's `EvmSigner`, a keystore, hardware, etc.).
+ * Upstream ships only the composition helpers `toClientEvmSigner` /
+ * `toFacilitatorEvmSigner`, which expect the integrator to hand-wire address
+ * resolution, signature normalization, and every on-chain op. These factories
+ * close that gap so examples stay a one-liner and never touch a raw key.
+ *
+ * Upgrade safety: this module ONLY consumes upstream's public surface
+ * (`toClientEvmSigner` / `toFacilitatorEvmSigner` + the signer types). It never
+ * edits `signer.ts` / `index.ts`, so pulling a newer upstream is conflict-free
+ * as long as that public surface is unchanged. The agent-wallet dependency is
+ * kept out via the structural wallet interfaces below — any object of the right
+ * shape works (agent-wallet's `EvmSigner`, a keystore, hardware, etc.).
  */
 import { encodeFunctionData, type Abi, type Log, type PublicClient } from "viem";
 
-import { toFacilitatorEvmSigner, type FacilitatorEvmSigner } from "../signer";
+import {
+  toClientEvmSigner,
+  toFacilitatorEvmSigner,
+  type ClientEvmSigner,
+  type FacilitatorEvmSigner,
+} from "../signer";
+
+// ────────────────────────────────────────────────────────────────────────────
+// Client
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * A wallet that signs EIP-712 typed data without exposing its key — structurally
+ * compatible with `@bankofai/agent-wallet`'s `EvmSigner`. `signTypedData` may
+ * return the signature with or without the `0x` prefix (agent-wallet strips it);
+ * the factory normalizes it.
+ */
+export interface ClientEvmWallet {
+  getAddress(): Promise<string>;
+  signTypedData(data: {
+    domain: Record<string, unknown>;
+    types: Record<string, unknown>;
+    primaryType: string;
+    message: Record<string, unknown>;
+  }): Promise<string>;
+  /**
+   * Optionally sign a fully-specified EIP-1559 transaction (e.g. the one-time
+   * `approve(Permit2)` for the ERC-20 approval gas-sponsoring extension).
+   * agent-wallet's `EvmSigner` satisfies this; the returned hex may omit the
+   * `0x` prefix (agent-wallet strips it). When absent, the signer can't produce
+   * the gas-sponsored approval and that flow is simply skipped.
+   */
+  signTransaction?(tx: Record<string, unknown>): Promise<string>;
+}
+
+/** Minimal read surface for permit2 allowance enrichment (a viem client satisfies it). */
+export interface ClientEvmReadClient {
+  readContract(args: {
+    address: `0x${string}`;
+    abi: readonly unknown[];
+    functionName: string;
+    args?: readonly unknown[];
+  }): Promise<unknown>;
+}
+
+/**
+ * Creates a {@link ClientEvmSigner} from an agent-wallet — the EVM counterpart
+ * of `createClientTronSigner`. The key never enters the SDK; the wallet signs.
+ *
+ * @param wallet - The wallet that signs payment authorizations.
+ * @param publicClient - Optional viem client; enables EIP-2612/permit2
+ *   enrichment via `readContract`. Omit for ERC-3009-only flows.
+ * @returns A {@link ClientEvmSigner} backed by the wallet.
+ *
+ * @example
+ * ```typescript
+ * const wallet = await resolveWallet({ network: "evm" }); // @bankofai/agent-wallet
+ * const signer = await createClientEvmSigner(wallet, publicClient);
+ * new ExactEvmScheme(signer);
+ * ```
+ */
+export async function createClientEvmSigner(
+  wallet: ClientEvmWallet,
+  publicClient?: ClientEvmReadClient,
+): Promise<ClientEvmSigner> {
+  const address = (await wallet.getAddress()) as `0x${string}`;
+
+  // Bind to the wallet: agent-wallet's `LocalSigner.signTransaction` reads
+  // `this._impl`, so calling a detached reference throws. (`signTypedData` below
+  // is invoked as `wallet.signTypedData(...)`, so it stays bound.)
+  const signTransaction = wallet.signTransaction?.bind(wallet);
+
+  return toClientEvmSigner(
+    {
+      address,
+      // agent-wallet strips the `0x` (signature analog of SDK issue #2);
+      // re-add it so the returned signature matches the ClientEvmSigner contract.
+      signTypedData: async msg => {
+        const sig = await wallet.signTypedData(msg);
+        return `0x${sig.replace(/^0x/, "")}` as `0x${string}`;
+      },
+      // Enables the ERC-20 approval gas-sponsoring extension: the client signs
+      // the `approve(Permit2, MaxUint256)` tx offline (facilitator broadcasts it).
+      // agent-wallet's EvmSigner.signTransaction takes the viem EIP-1559 fields
+      // as-is and strips the `0x`; re-add it. getTransactionCount/estimateFeesPerGas
+      // come from `publicClient` via toClientEvmSigner.
+      ...(signTransaction
+        ? {
+            signTransaction: async (args: Record<string, unknown>) => {
+              const signed = await signTransaction(args);
+              return `0x${signed.replace(/^0x/, "")}` as `0x${string}`;
+            },
+          }
+        : {}),
+    },
+    publicClient,
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Facilitator
+// ────────────────────────────────────────────────────────────────────────────
 
 /**
  * A wallet that signs EIP-1559 settlement transactions without ever exposing
@@ -95,6 +198,7 @@ type LooseEvmPublicClient = {
     abi: readonly unknown[];
     functionName: string;
     args?: readonly unknown[];
+    account?: `0x${string}`;
   }): Promise<unknown>;
   verifyTypedData(args: {
     address: `0x${string}`;
@@ -221,7 +325,13 @@ export function createFacilitatorEvmSigner(
 
   const base = toFacilitatorEvmSigner({
     address: wallet.address,
-    readContract: args => client.readContract(args),
+    // Issue every read as the facilitator EOA (sets the eth_call `from`). View
+    // calls ignore the caller, but caller-authorized simulations need it — the
+    // upto proxy `settle` reverts with `UnauthorizedFacilitator` unless
+    // `msg.sender` is the witness-bound facilitator (= this single-key wallet).
+    // `...args` last so an explicit per-call `account` (if upstream ever adds one)
+    // overrides this default.
+    readContract: args => client.readContract({ account: wallet.address, ...args }),
     verifyTypedData: args => client.verifyTypedData(args),
     getCode: args => client.getCode(args),
     waitForTransactionReceipt: args => client.waitForTransactionReceipt(args),

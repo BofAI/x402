@@ -25,7 +25,7 @@ export async function createEIP3009Payload(
     from: signer.address,
     to: getAddress(paymentRequirements.payTo),
     value: paymentRequirements.amount,
-    validAfter: "0",
+    validAfter: (now - 600).toString(),
     validBefore: (now + paymentRequirements.maxTimeoutSeconds).toString(),
     nonce,
   };

@@ -12,7 +12,7 @@
  */
 import { createPublicClient, http, type Chain } from "viem";
 import { bscTestnet } from "viem/chains";
-import { createClientEvmSigner } from "@bankofai/x402-evm/client/agent-wallet";
+import { createClientEvmSigner } from "@bankofai/x402-evm/adapters/agent-wallet";
 import { BatchSettlementEvmScheme } from "@bankofai/x402-evm/batch-settlement/client";
 import type { x402Client } from "@bankofai/x402-fetch";
 

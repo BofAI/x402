@@ -302,7 +302,6 @@ export async function simulatePermit2Settle(
   config: Permit2ProxyConfig,
   signer: FacilitatorEvmSigner,
   settleArgs: readonly unknown[],
-  account?: `0x${string}`,
 ): Promise<boolean> {
   try {
     await signer.readContract({
@@ -310,7 +309,6 @@ export async function simulatePermit2Settle(
       abi: config.proxyABI,
       functionName: "settle",
       args: settleArgs,
-      ...(account ? { account } : {}),
     });
     return true;
   } catch {
@@ -334,7 +332,6 @@ export async function simulatePermit2SettleWithPermit(
   signer: FacilitatorEvmSigner,
   settleArgs: readonly unknown[],
   eip2612Info: Eip2612GasSponsoringInfo,
-  account?: `0x${string}`,
 ): Promise<boolean> {
   try {
     const { v, r, s } = splitEip2612Signature(eip2612Info.signature);
@@ -353,7 +350,6 @@ export async function simulatePermit2SettleWithPermit(
         },
         ...settleArgs,
       ],
-      ...(account ? { account } : {}),
     });
     return true;
   } catch {
@@ -636,7 +632,7 @@ export async function createPermit2PayloadForProxy(
   const nonce = createPermit2Nonce();
 
   // Lower time bound - allow some clock skew
-  const validAfter = "0";
+  const validAfter = (now - 600).toString();
   // Upper time bound is enforced by Permit2's deadline field
   const deadline = (now + paymentRequirements.maxTimeoutSeconds).toString();
 

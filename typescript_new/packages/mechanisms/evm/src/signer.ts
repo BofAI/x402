@@ -76,13 +76,6 @@ export type FacilitatorEvmSigner = {
     abi: readonly unknown[];
     functionName: string;
     args?: readonly unknown[];
-    /**
-     * Optional caller for the underlying `eth_call` (sets `msg.sender`). Required
-     * when simulating a function that authorizes by caller — e.g. the upto proxy
-     * `settle`, which reverts with `UnauthorizedFacilitator` unless `msg.sender`
-     * equals the witness-bound facilitator.
-     */
-    account?: `0x${string}`;
   }): Promise<unknown>;
   verifyTypedData(args: {
     address: `0x${string}`;

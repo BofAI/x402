@@ -221,24 +221,14 @@
         "default": "./dist/cjs/auth-capture/client/index.js"
       }
     },
-    "./facilitator/agent-wallet": {
+    "./adapters/agent-wallet": {
       "import": {
-        "types": "./dist/esm/facilitator/agent-wallet.d.mts",
-        "default": "./dist/esm/facilitator/agent-wallet.mjs"
+        "types": "./dist/esm/adapters/agent-wallet.d.mts",
+        "default": "./dist/esm/adapters/agent-wallet.mjs"
       },
       "require": {
-        "types": "./dist/cjs/facilitator/agent-wallet.d.ts",
-        "default": "./dist/cjs/facilitator/agent-wallet.js"
-      }
-    },
-    "./client/agent-wallet": {
-      "import": {
-        "types": "./dist/esm/client/agent-wallet.d.mts",
-        "default": "./dist/esm/client/agent-wallet.mjs"
-      },
-      "require": {
-        "types": "./dist/cjs/client/agent-wallet.d.ts",
-        "default": "./dist/cjs/client/agent-wallet.js"
+        "types": "./dist/cjs/adapters/agent-wallet.d.ts",
+        "default": "./dist/cjs/adapters/agent-wallet.js"
       }
     }
   },
