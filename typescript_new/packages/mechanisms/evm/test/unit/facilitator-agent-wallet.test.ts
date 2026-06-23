@@ -1,12 +1,17 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { encodeFunctionData, type Abi } from "viem";
 
 import {
   createFacilitatorEvmSigner,
-  type FacilitatorEvmPublicClient,
   type FacilitatorEvmWallet,
-} from "../../src/facilitator/agent-wallet";
+} from "../../src/adapters/agent-wallet";
+import { createEvmPublicClient } from "../../src/adapters/chains";
 
+// The factory builds its viem client internally from the CAIP-2 network; mock
+// that builder so tests inject a fake client without touching the network.
+vi.mock("../../src/adapters/chains", () => ({ createEvmPublicClient: vi.fn() }));
+
+const NETWORK = "eip155:8453";
 const WALLET_ADDRESS = `0x${"11".repeat(20)}` as `0x${string}`;
 const TOKEN = `0x${"22".repeat(20)}` as `0x${string}`;
 const RECIPIENT = `0x${"33".repeat(20)}` as `0x${string}`;
@@ -38,30 +43,39 @@ function makePublicClient(overrides: Record<string, unknown> = {}) {
     waitForTransactionReceipt: vi.fn(async () => ({ status: "success", logs: [] })),
     ...overrides,
   };
-  // `FacilitatorEvmPublicClient` is now a `Pick<viem PublicClient>` (issue #5),
-  // which this loose mock does not structurally satisfy. Intersect so the mock
-  // is accepted by the factory while keeping vi.fn types for assertions.
-  return pc as unknown as typeof pc & FacilitatorEvmPublicClient;
+  return pc;
+}
+
+/** Install a mock public client as the one the factory builds for `network`. */
+function useClient(pc: ReturnType<typeof makePublicClient>) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  vi.mocked(createEvmPublicClient).mockReturnValue(pc as any);
+  return pc;
 }
 
 function makeWallet(signImpl: () => Promise<string> = async () => "deadbeef") {
   // Default returns a hex WITHOUT the `0x` prefix, mirroring agent-wallet's
   // current behavior (SDK issue #2).
   return {
-    address: WALLET_ADDRESS,
+    getAddress: async () => WALLET_ADDRESS,
     signTransaction: vi.fn(signImpl),
   } satisfies FacilitatorEvmWallet;
 }
 
+beforeEach(() => {
+  vi.mocked(createEvmPublicClient).mockReset();
+});
+
 describe("createFacilitatorEvmSigner", () => {
-  it("exposes the wallet address via getAddresses()", () => {
-    const signer = createFacilitatorEvmSigner(makePublicClient(), makeWallet());
+  it("exposes the wallet address via getAddresses()", async () => {
+    useClient(makePublicClient());
+    const signer = await createFacilitatorEvmSigner(makeWallet(), { network: NETWORK });
     expect(signer.getAddresses()).toEqual([WALLET_ADDRESS]);
   });
 
   it("delegates read/verify/receipt ops to the public client", async () => {
-    const pc = makePublicClient();
-    const signer = createFacilitatorEvmSigner(pc, makeWallet());
+    const pc = useClient(makePublicClient());
+    const signer = await createFacilitatorEvmSigner(makeWallet(), { network: NETWORK });
 
     expect(
       await signer.readContract({ address: TOKEN, abi: erc20Abi, functionName: "balanceOf" }),
@@ -81,10 +95,21 @@ describe("createFacilitatorEvmSigner", () => {
     expect(receipt.status).toBe("success");
   });
 
+  it("reads as the facilitator EOA (sets the eth_call caller)", async () => {
+    const pc = useClient(makePublicClient());
+    const signer = await createFacilitatorEvmSigner(makeWallet(), { network: NETWORK });
+
+    await signer.readContract({ address: TOKEN, abi: erc20Abi, functionName: "balanceOf" });
+
+    expect(pc.readContract).toHaveBeenCalledWith(
+      expect.objectContaining({ account: WALLET_ADDRESS }),
+    );
+  });
+
   it("builds, wallet-signs, and broadcasts a writeContract call", async () => {
-    const pc = makePublicClient();
+    const pc = useClient(makePublicClient());
     const wallet = makeWallet();
-    const signer = createFacilitatorEvmSigner(pc, wallet);
+    const signer = await createFacilitatorEvmSigner(wallet, { network: NETWORK });
 
     const hash = await signer.writeContract({
       address: TOKEN,
@@ -112,12 +137,24 @@ describe("createFacilitatorEvmSigner", () => {
     expect(pc.estimateGas).toHaveBeenCalledOnce();
   });
 
+  // "pending" block tag avoids nonce reuse across rapid sequential settlements.
+  it("reads the nonce with blockTag 'pending'", async () => {
+    const pc = useClient(makePublicClient());
+    const signer = await createFacilitatorEvmSigner(makeWallet(), { network: NETWORK });
+
+    await signer.sendTransaction({ to: RECIPIENT, data: "0x" });
+
+    expect(pc.getTransactionCount).toHaveBeenCalledWith(
+      expect.objectContaining({ address: WALLET_ADDRESS, blockTag: "pending" }),
+    );
+  });
+
   // SDK issue #2: agent-wallet's EvmSigner.signTransaction strips the `0x`.
   it("normalizes a signed tx hex WITHOUT a 0x prefix before broadcasting", async () => {
-    const pc = makePublicClient();
-    const signer = createFacilitatorEvmSigner(
-      pc,
+    const pc = useClient(makePublicClient());
+    const signer = await createFacilitatorEvmSigner(
       makeWallet(async () => "abcd1234"),
+      { network: NETWORK },
     );
 
     await signer.sendTransaction({ to: RECIPIENT, data: "0x" });
@@ -126,10 +163,10 @@ describe("createFacilitatorEvmSigner", () => {
   });
 
   it("does NOT double-prefix a signed tx hex that already has 0x", async () => {
-    const pc = makePublicClient();
-    const signer = createFacilitatorEvmSigner(
-      pc,
+    const pc = useClient(makePublicClient());
+    const signer = await createFacilitatorEvmSigner(
       makeWallet(async () => "0xabcd1234"),
+      { network: NETWORK },
     );
 
     await signer.sendTransaction({ to: RECIPIENT, data: "0x" });
@@ -138,9 +175,9 @@ describe("createFacilitatorEvmSigner", () => {
   });
 
   it("uses the per-call gas override and skips gas estimation", async () => {
-    const pc = makePublicClient();
+    const pc = useClient(makePublicClient());
     const wallet = makeWallet();
-    const signer = createFacilitatorEvmSigner(pc, wallet);
+    const signer = await createFacilitatorEvmSigner(wallet, { network: NETWORK });
 
     await signer.writeContract({
       address: TOKEN,
@@ -155,9 +192,9 @@ describe("createFacilitatorEvmSigner", () => {
   });
 
   it("falls back to options.defaultGas when no per-call gas is given", async () => {
-    const pc = makePublicClient();
+    const pc = useClient(makePublicClient());
     const wallet = makeWallet();
-    const signer = createFacilitatorEvmSigner(pc, wallet, { defaultGas: 99_999n });
+    const signer = await createFacilitatorEvmSigner(wallet, { network: NETWORK, defaultGas: 99_999n });
 
     await signer.sendTransaction({ to: RECIPIENT, data: "0x" });
 
@@ -166,9 +203,9 @@ describe("createFacilitatorEvmSigner", () => {
   });
 
   it("appends dataSuffix to the encoded calldata", async () => {
-    const pc = makePublicClient();
+    useClient(makePublicClient());
     const wallet = makeWallet();
-    const signer = createFacilitatorEvmSigner(pc, wallet);
+    const signer = await createFacilitatorEvmSigner(wallet, { network: NETWORK });
 
     await signer.writeContract({
       address: TOKEN,
@@ -193,9 +230,9 @@ describe("createFacilitatorEvmSigner", () => {
   it("sendTransactions: broadcasts a pre-signed tx as-is and signs a call intent", async () => {
     const hashes = [`0x${"a1".repeat(32)}`, `0x${"b2".repeat(32)}`] as `0x${string}`[];
     let i = 0;
-    const pc = makePublicClient({ sendRawTransaction: vi.fn(async () => hashes[i++]) });
+    const pc = useClient(makePublicClient({ sendRawTransaction: vi.fn(async () => hashes[i++]) }));
     const wallet = makeWallet(async () => "abcd");
-    const signer = createFacilitatorEvmSigner(pc, wallet);
+    const signer = await createFacilitatorEvmSigner(wallet, { network: NETWORK });
 
     const PRESIGNED = `0x${"ff".repeat(40)}` as `0x${string}`;
     const result = await signer.sendTransactions([

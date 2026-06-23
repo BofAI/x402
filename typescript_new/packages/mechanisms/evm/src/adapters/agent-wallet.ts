@@ -1,24 +1,25 @@
 /**
  * Adaptation layer — BankofAI overlay, NOT from upstream @x402/evm.
  *
- * Bridges an `@bankofai/agent-wallet` wallet (non-custodial key custody) to
- * upstream's signer contracts, for both roles:
- *   - {@link createClientEvmSigner}     → `ClientEvmSigner`     (symmetric to TRON's `createClientTronSigner`)
- *   - {@link createFacilitatorEvmSigner} → `FacilitatorEvmSigner` (symmetric to TRON's `createFacilitatorTronSigner`)
+ * Bridges a non-custodial wallet (e.g. `@bankofai/agent-wallet`) to upstream's
+ * signer contracts, for both roles. Each factory takes `(wallet, { network })`
+ * and builds the viem client internally from the CAIP-2 network — callers no
+ * longer construct a viem chain / public client themselves.
  *
- * Upstream ships only the composition helpers `toClientEvmSigner` /
- * `toFacilitatorEvmSigner`, which expect the integrator to hand-wire address
- * resolution, signature normalization, and every on-chain op. These factories
- * close that gap so examples stay a one-liner and never touch a raw key.
+ *   - {@link createClientEvmSigner}      → `ClientEvmSigner`
+ *   - {@link createFacilitatorEvmSigner} → `FacilitatorEvmSigner`
  *
- * Upgrade safety: this module ONLY consumes upstream's public surface
- * (`toClientEvmSigner` / `toFacilitatorEvmSigner` + the signer types). It never
- * edits `signer.ts` / `index.ts`, so pulling a newer upstream is conflict-free
- * as long as that public surface is unchanged. The agent-wallet dependency is
- * kept out via the structural wallet interfaces below — any object of the right
- * shape works (agent-wallet's `EvmSigner`, a keystore, hardware, etc.).
+ * Wallet contracts come from `@bankofai/x402-core/wallets` (the chain-agnostic
+ * {@link ClientWallet} / {@link FacilitatorWallet} hierarchy); EVM only refines
+ * the facilitator transaction shape via {@link Eip1559TxFields}.
+ *
+ * Upgrade safety: consumes only upstream's public surface (`toClientEvmSigner` /
+ * `toFacilitatorEvmSigner` + the signer types); never edits `signer.ts` /
+ * `index.ts`. Wallet types are structural — no runtime coupling to agent-wallet.
  */
-import { encodeFunctionData, type Abi, type Log, type PublicClient } from "viem";
+import { encodeFunctionData, type Abi, type Log } from "viem";
+
+import type { ClientWallet, FacilitatorWallet } from "@bankofai/x402-core/wallets";
 
 import {
   toClientEvmSigner,
@@ -26,90 +27,69 @@ import {
   type ClientEvmSigner,
   type FacilitatorEvmSigner,
 } from "../signer";
+import { createEvmPublicClient } from "./chains";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Client
 // ────────────────────────────────────────────────────────────────────────────
 
-/**
- * A wallet that signs EIP-712 typed data without exposing its key — structurally
- * compatible with `@bankofai/agent-wallet`'s `EvmSigner`. `signTypedData` may
- * return the signature with or without the `0x` prefix (agent-wallet strips it);
- * the factory normalizes it.
- */
-export interface ClientEvmWallet {
-  getAddress(): Promise<string>;
-  signTypedData(data: {
-    domain: Record<string, unknown>;
-    types: Record<string, unknown>;
-    primaryType: string;
-    message: Record<string, unknown>;
-  }): Promise<string>;
-  /**
-   * Optionally sign a fully-specified EIP-1559 transaction (e.g. the one-time
-   * `approve(Permit2)` for the ERC-20 approval gas-sponsoring extension).
-   * agent-wallet's `EvmSigner` satisfies this; the returned hex may omit the
-   * `0x` prefix (agent-wallet strips it). When absent, the signer can't produce
-   * the gas-sponsored approval and that flow is simply skipped.
-   */
-  signTransaction?(tx: Record<string, unknown>): Promise<string>;
-}
+/** EVM client wallet — the chain-agnostic {@link ClientWallet} (no EVM refinement). */
+export type ClientEvmWallet = ClientWallet;
 
-/** Minimal read surface for permit2 allowance enrichment (a viem client satisfies it). */
-export interface ClientEvmReadClient {
-  readContract(args: {
-    address: `0x${string}`;
-    abi: readonly unknown[];
-    functionName: string;
-    args?: readonly unknown[];
-  }): Promise<unknown>;
+/** Options for {@link createClientEvmSigner}. */
+export interface CreateClientEvmSignerOptions {
+  /** CAIP-2 network, e.g. `"eip155:97"`. The viem client is built from it. */
+  network: string;
+  /** Optional RPC URL override; falls back to the chain's default. */
+  rpcUrl?: string;
 }
 
 /**
- * Creates a {@link ClientEvmSigner} from an agent-wallet — the EVM counterpart
- * of `createClientTronSigner`. The key never enters the SDK; the wallet signs.
+ * Creates a {@link ClientEvmSigner} from a wallet — the EVM counterpart of
+ * `createClientTronSigner`. The key never enters the SDK; the wallet signs. The
+ * viem public client (for EIP-2612 / permit2 enrichment + the gas-sponsored
+ * approve) is built internally from `opts.network`.
  *
  * @param wallet - The wallet that signs payment authorizations.
- * @param publicClient - Optional viem client; enables EIP-2612/permit2
- *   enrichment via `readContract`. Omit for ERC-3009-only flows.
+ * @param opts - Target network (+ optional RPC override).
  * @returns A {@link ClientEvmSigner} backed by the wallet.
  *
  * @example
  * ```typescript
- * const wallet = await resolveWallet({ network: "evm" }); // @bankofai/agent-wallet
- * const signer = await createClientEvmSigner(wallet, publicClient);
- * new ExactEvmScheme(signer);
+ * const wallet = await resolveWallet({ network: "eip155:97" }); // @bankofai/agent-wallet
+ * const signer = await createClientEvmSigner(wallet, { network: "eip155:97" });
+ * client.register("eip155:97", new ExactEvmScheme(signer));
  * ```
  */
 export async function createClientEvmSigner(
   wallet: ClientEvmWallet,
-  publicClient?: ClientEvmReadClient,
+  opts: CreateClientEvmSignerOptions,
 ): Promise<ClientEvmSigner> {
   const address = (await wallet.getAddress()) as `0x${string}`;
+  const publicClient = createEvmPublicClient(opts.network, opts.rpcUrl);
 
   // Bind to the wallet: agent-wallet's `LocalSigner.signTransaction` reads
-  // `this._impl`, so calling a detached reference throws. (`signTypedData` below
-  // is invoked as `wallet.signTypedData(...)`, so it stays bound.)
+  // `this._impl`, so a detached reference throws. (`signTypedData` below is
+  // invoked as `wallet.signTypedData(...)`, so it stays bound.)
   const signTransaction = wallet.signTransaction?.bind(wallet);
 
   return toClientEvmSigner(
     {
       address,
-      // agent-wallet strips the `0x` (signature analog of SDK issue #2);
-      // re-add it so the returned signature matches the ClientEvmSigner contract.
+      // agent-wallet strips the `0x` (signature analog of SDK issue #2); re-add it.
       signTypedData: async msg => {
         const sig = await wallet.signTypedData(msg);
         return `0x${sig.replace(/^0x/, "")}` as `0x${string}`;
       },
       // Enables the ERC-20 approval gas-sponsoring extension: the client signs
       // the `approve(Permit2, MaxUint256)` tx offline (facilitator broadcasts it).
-      // agent-wallet's EvmSigner.signTransaction takes the viem EIP-1559 fields
-      // as-is and strips the `0x`; re-add it. getTransactionCount/estimateFeesPerGas
-      // come from `publicClient` via toClientEvmSigner.
       ...(signTransaction
         ? {
             signTransaction: async (args: Record<string, unknown>) => {
               const signed = await signTransaction(args);
+              if (typeof signed !== "string") {
+                throw new Error("EVM signTransaction must return a serialized hex string");
+              }
               return `0x${signed.replace(/^0x/, "")}` as `0x${string}`;
             },
           }
@@ -119,65 +99,59 @@ export async function createClientEvmSigner(
   );
 }
 
+/**
+ * A typed-data signer with an eagerly-resolved address. Structurally satisfies
+ * the batch-settlement `AuthorizerSigner` (the receiver-authorizer key).
+ */
+export type EvmAuthorizerSigner = Pick<ClientEvmSigner, "address" | "signTypedData">;
+
+/**
+ * Creates an authorizer signer (address + typed-data signing) from a wallet —
+ * e.g. the batch-settlement `receiverAuthorizer`, which signs `ClaimBatch` /
+ * `Refund` EIP-712 digests. No chain client is built (signing is offline).
+ *
+ * @param wallet - The wallet that holds the authorizer key.
+ * @returns A signer satisfying batch-settlement's `AuthorizerSigner`.
+ */
+export async function createAuthorizerEvmSigner(wallet: ClientWallet): Promise<EvmAuthorizerSigner> {
+  const address = (await wallet.getAddress()) as `0x${string}`;
+  return {
+    address,
+    // agent-wallet strips the `0x`; re-add it so the signature conforms.
+    signTypedData: async msg => {
+      const sig = await wallet.signTypedData(msg);
+      return `0x${sig.replace(/^0x/, "")}` as `0x${string}`;
+    },
+  };
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // Facilitator
 // ────────────────────────────────────────────────────────────────────────────
 
 /**
- * A wallet that signs EIP-1559 settlement transactions without ever exposing
- * its private key to the SDK — structurally compatible with
- * `@bankofai/agent-wallet`'s `EvmSigner`, but intentionally not coupled to it.
- *
- * `signTransaction` returns a serialized signed transaction hex. The `0x`
- * prefix is optional: agent-wallet currently strips it (see SDK issue #2), so
- * the broadcast path normalizes defensively.
+ * Typed EIP-1559 fields the facilitator wallet receives to sign a settlement tx.
+ * A `type` (not `interface`) so it stays assignable to `Record<string, unknown>`
+ * — the shape a generic agent-wallet `signTransaction` accepts.
  */
-export interface FacilitatorEvmWallet {
-  /** Facilitator EVM address (0x-prefixed, checksummed or lowercase). */
-  readonly address: `0x${string}`;
-  /**
-   * Sign a fully-specified EIP-1559 transaction and return the serialized
-   * signed tx hex (with or without the `0x` prefix).
-   */
-  signTransaction(tx: {
-    to: `0x${string}`;
-    data: `0x${string}`;
-    value: bigint;
-    nonce: number;
-    gas: bigint;
-    maxFeePerGas: bigint;
-    maxPriorityFeePerGas: bigint;
-    chainId: number;
-  }): Promise<string>;
-}
+export type Eip1559TxFields = {
+  to: `0x${string}`;
+  data: `0x${string}`;
+  value: bigint;
+  nonce: number;
+  gas: bigint;
+  maxFeePerGas: bigint;
+  maxPriorityFeePerGas: bigint;
+  chainId: number;
+};
+
+/** EVM facilitator wallet — {@link FacilitatorWallet} refined to EIP-1559 fields. */
+export type FacilitatorEvmWallet = FacilitatorWallet<Eip1559TxFields>;
 
 /**
- * The viem public-client surface this factory needs. Defined as a `Pick` of
- * viem's `PublicClient` so a real client is assignable WITHOUT a cast — using a
- * hand-rolled structural interface with wider param types (e.g.
- * `verifyTypedData`'s `types: Record<string, unknown>`) would fail under
- * `strictFunctionTypes` and force every integrator to cast (see SDK issue #5).
- *
- * In tests, pass a mock via `as unknown as FacilitatorEvmPublicClient`.
- */
-export type FacilitatorEvmPublicClient = Pick<
-  PublicClient,
-  | "getChainId"
-  | "getTransactionCount"
-  | "estimateFeesPerGas"
-  | "estimateGas"
-  | "sendRawTransaction"
-  | "readContract"
-  | "verifyTypedData"
-  | "getCode"
-  | "waitForTransactionReceipt"
->;
-
-/**
- * Loose view of the public client for internal forwarding. viem's read/verify
- * methods are generic and strict, while upstream's `FacilitatorEvmSigner` shape
- * is loose; we narrow once here (the runtime client provides all these methods)
- * so the loose/strict impedance is resolved inside the SDK, not by integrators.
+ * Loose view of the viem public client for internal forwarding. viem's read/verify
+ * methods are generic and strict, while upstream's `FacilitatorEvmSigner` shape is
+ * loose; we narrow once here so the impedance is resolved inside the SDK.
  */
 type LooseEvmPublicClient = {
   getChainId(): Promise<number>;
@@ -215,20 +189,19 @@ type LooseEvmPublicClient = {
 };
 
 /** Options for {@link createFacilitatorEvmSigner}. */
-export interface FacilitatorEvmSignerOptions {
-  /**
-   * Gas limit to use when a per-call `gas` is not supplied. When unset, gas is
-   * estimated per transaction via `estimateGas`.
-   */
+export interface CreateFacilitatorEvmSignerOptions {
+  /** CAIP-2 network, e.g. `"eip155:97"`. The viem client is built from it. */
+  network: string;
+  /** Optional RPC URL override; falls back to the chain's default. */
+  rpcUrl?: string;
+  /** Gas limit when a per-call `gas` is not supplied; otherwise estimated. */
   defaultGas?: bigint;
 }
 
 /**
  * One transaction for {@link GasSponsoringFacilitatorEvmSigner.sendTransactions}:
- * either a pre-signed serialized tx (broadcast as-is) or an unsigned call intent
- * (signed by the facilitator wallet, then broadcast). Mirrors the
- * `@bankofai/x402-extensions` `TransactionRequest` shape without importing it,
- * so this overlay stays dependency-free.
+ * a pre-signed serialized tx (broadcast as-is) or an unsigned call intent (signed
+ * by the facilitator wallet, then broadcast).
  */
 export type EvmTransactionRequest =
   | `0x${string}`
@@ -236,8 +209,8 @@ export type EvmTransactionRequest =
 
 /**
  * {@link FacilitatorEvmSigner} plus `sendTransactions` — the shape the ERC-20
- * approval gas-sponsoring extension expects (it broadcasts the client's
- * pre-signed `approve` bundled with `settle`).
+ * approval gas-sponsoring extension expects (broadcasts the client's pre-signed
+ * `approve` bundled with `settle`).
  */
 export type GasSponsoringFacilitatorEvmSigner = FacilitatorEvmSigner & {
   sendTransactions(transactions: readonly EvmTransactionRequest[]): Promise<`0x${string}`[]>;
@@ -258,32 +231,33 @@ function appendDataSuffix(data: `0x${string}`, suffix?: `0x${string}`): `0x${str
 }
 
 /**
- * Creates a {@link FacilitatorEvmSigner} from a viem public client and a
- * key-custody wallet — the EVM counterpart of `createFacilitatorTronSigner`.
+ * Creates a {@link FacilitatorEvmSigner} from a wallet — the EVM counterpart of
+ * `createFacilitatorTronSigner`. The viem public client (reads / verification /
+ * broadcast) is built internally from `opts.network`. The transaction is built
+ * (nonce / EIP-1559 fees / gas), handed to the wallet to sign (the private key
+ * never enters the SDK), then broadcast.
  *
- * The transaction is built (nonce / EIP-1559 fees / gas), handed to the wallet
- * to sign (the private key never enters the SDK), then broadcast — collecting
- * all on-chain ops so each integrator no longer re-implements them.
- *
- * @param publicClient - viem public client used for reads, verification, and broadcast.
  * @param wallet - The wallet that signs settlement transactions.
- * @param options - Optional default gas limit.
- * @returns A {@link FacilitatorEvmSigner} backed by the public client + wallet.
+ * @param opts - Target network (+ optional RPC override / default gas).
+ * @returns A {@link GasSponsoringFacilitatorEvmSigner} backed by the wallet.
  *
  * @example
  * ```typescript
- * const publicClient = createPublicClient({ chain: base, transport: http() });
- * const signer = createFacilitatorEvmSigner(publicClient, agentWallet);
+ * const signer = await createFacilitatorEvmSigner(agentWallet, { network: "eip155:97" });
+ * facilitator.register("eip155:97", new ExactEvmScheme(signer));
  * ```
  */
-export function createFacilitatorEvmSigner(
-  publicClient: FacilitatorEvmPublicClient,
+export async function createFacilitatorEvmSigner(
   wallet: FacilitatorEvmWallet,
-  options: FacilitatorEvmSignerOptions = {},
-): GasSponsoringFacilitatorEvmSigner {
+  opts: CreateFacilitatorEvmSignerOptions,
+): Promise<GasSponsoringFacilitatorEvmSigner> {
+  const address = (await wallet.getAddress()) as `0x${string}`;
   // Narrow once: viem's strict generic methods → the loose shape we forward to
-  // upstream's FacilitatorEvmSigner. Keeps the cast inside the SDK (issue #5).
-  const client = publicClient as unknown as LooseEvmPublicClient;
+  // upstream's FacilitatorEvmSigner. Keeps the cast inside the SDK.
+  const client = createEvmPublicClient(
+    opts.network,
+    opts.rpcUrl,
+  ) as unknown as LooseEvmPublicClient;
 
   // Build → wallet-sign → broadcast. Shared by writeContract and sendTransaction.
   async function buildSignBroadcast(
@@ -297,13 +271,13 @@ export function createFacilitatorEvmSigner(
       // "pending" (not the default "latest") counts the EOA's not-yet-mined txs,
       // so rapid sequential settlements from one facilitator key don't reuse a
       // nonce while the previous settle is still in the mempool.
-      client.getTransactionCount({ address: wallet.address, blockTag: "pending" }),
+      client.getTransactionCount({ address, blockTag: "pending" }),
       client.estimateFeesPerGas(),
     ]);
     const gas =
       gasOverride ??
-      options.defaultGas ??
-      (await client.estimateGas({ account: wallet.address, to, data, value }));
+      opts.defaultGas ??
+      (await client.estimateGas({ account: address, to, data, value }));
 
     const signed = await wallet.signTransaction({
       to,
@@ -315,23 +289,23 @@ export function createFacilitatorEvmSigner(
       maxPriorityFeePerGas: fees.maxPriorityFeePerGas,
       chainId,
     });
-
-    // agent-wallet strips the `0x` prefix (SDK issue #2); strip-then-prefix is
-    // robust whether or not the prefix is present, so it survives an upstream
-    // fix that restores it. Carried over from the v1 facilitator signer.
+    if (typeof signed !== "string") {
+      throw new Error("EVM facilitator signTransaction must return a serialized hex string");
+    }
+    // agent-wallet strips the `0x` prefix; strip-then-prefix is robust either way.
     const serializedTransaction = `0x${signed.replace(/^0x/, "")}` as `0x${string}`;
     return client.sendRawTransaction({ serializedTransaction });
   }
 
   const base = toFacilitatorEvmSigner({
-    address: wallet.address,
+    address,
     // Issue every read as the facilitator EOA (sets the eth_call `from`). View
     // calls ignore the caller, but caller-authorized simulations need it — the
     // upto proxy `settle` reverts with `UnauthorizedFacilitator` unless
     // `msg.sender` is the witness-bound facilitator (= this single-key wallet).
     // `...args` last so an explicit per-call `account` (if upstream ever adds one)
     // overrides this default.
-    readContract: args => client.readContract({ account: wallet.address, ...args }),
+    readContract: args => client.readContract({ account: address, ...args }),
     verifyTypedData: args => client.verifyTypedData(args),
     getCode: args => client.getCode(args),
     waitForTransactionReceipt: args => client.waitForTransactionReceipt(args),
@@ -352,7 +326,6 @@ export function createFacilitatorEvmSigner(
   // Batch broadcast for the ERC-20 approval gas-sponsoring extension: the
   // client's pre-signed `approve` (a serialized tx) is broadcast as-is; the
   // `settle` call intent is signed by the facilitator wallet and broadcast.
-  // Executed sequentially; hashes returned in order (settle is last).
   return {
     ...base,
     async sendTransactions(transactions) {

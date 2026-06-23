@@ -1,7 +1,13 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import { createClientEvmSigner, type ClientEvmWallet } from "../../src/client/agent-wallet";
+import { createClientEvmSigner, type ClientEvmWallet } from "../../src/adapters/agent-wallet";
+import { createEvmPublicClient } from "../../src/adapters/chains";
 
+// The factory builds its viem client internally from the CAIP-2 network; mock
+// that builder so tests control the read surface without touching the network.
+vi.mock("../../src/adapters/chains", () => ({ createEvmPublicClient: vi.fn() }));
+
+const NETWORK = "eip155:97";
 const ADDRESS = `0x${"11".repeat(20)}` as `0x${string}`;
 const TYPED_DATA = {
   domain: { name: "USDC" },
@@ -17,47 +23,49 @@ function makeWallet(sig: string): ClientEvmWallet & { signTypedData: ReturnType<
   };
 }
 
+beforeEach(() => {
+  // Default: the internally-built client is absent (ERC-3009-only flows never read).
+  vi.mocked(createEvmPublicClient).mockReset();
+});
+
 describe("createClientEvmSigner", () => {
   it("resolves the wallet address eagerly", async () => {
-    const signer = await createClientEvmSigner(makeWallet("0xabcd"));
+    const signer = await createClientEvmSigner(makeWallet("0xabcd"), { network: NETWORK });
     expect(signer.address).toBe(ADDRESS);
   });
 
   it("forwards the typed-data message to the wallet unchanged", async () => {
     const wallet = makeWallet("0xabcd");
-    const signer = await createClientEvmSigner(wallet);
+    const signer = await createClientEvmSigner(wallet, { network: NETWORK });
     await signer.signTypedData(TYPED_DATA);
     expect(wallet.signTypedData).toHaveBeenCalledWith(TYPED_DATA);
   });
 
   // Signature analog of SDK issue #2: agent-wallet strips the 0x prefix.
   it("re-adds the 0x prefix when the wallet returns a bare signature", async () => {
-    const signer = await createClientEvmSigner(makeWallet("abcd1234"));
+    const signer = await createClientEvmSigner(makeWallet("abcd1234"), { network: NETWORK });
     expect(await signer.signTypedData(TYPED_DATA)).toBe("0xabcd1234");
   });
 
   it("does not double-prefix a signature that already has 0x", async () => {
-    const signer = await createClientEvmSigner(makeWallet("0xabcd1234"));
+    const signer = await createClientEvmSigner(makeWallet("0xabcd1234"), { network: NETWORK });
     expect(await signer.signTypedData(TYPED_DATA)).toBe("0xabcd1234");
   });
 
-  it("wires readContract from the public client when provided", async () => {
+  it("wires readContract from the internally-built public client", async () => {
     const publicClient = { readContract: vi.fn(async () => 42n) };
-    const signer = await createClientEvmSigner(makeWallet("0xabcd"), publicClient);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(createEvmPublicClient).mockReturnValue(publicClient as any);
+    const signer = await createClientEvmSigner(makeWallet("0xabcd"), { network: NETWORK });
     expect(signer.readContract).toBeDefined();
     await signer.readContract?.({ address: ADDRESS, abi: [], functionName: "allowance" });
     expect(publicClient.readContract).toHaveBeenCalled();
   });
 
-  it("omits readContract when no public client is given", async () => {
-    const signer = await createClientEvmSigner(makeWallet("0xabcd"));
-    expect(signer.readContract).toBeUndefined();
-  });
-
   // Enables the ERC-20 approval gas-sponsoring extension (sign approve offline).
   it("wires signTransaction from the wallet and re-adds the 0x prefix", async () => {
     const wallet = { ...makeWallet("0xsig"), signTransaction: vi.fn(async () => "beef") };
-    const signer = await createClientEvmSigner(wallet);
+    const signer = await createClientEvmSigner(wallet, { network: NETWORK });
     expect(signer.signTransaction).toBeDefined();
     const out = await signer.signTransaction?.({
       to: ADDRESS,
@@ -73,7 +81,7 @@ describe("createClientEvmSigner", () => {
   });
 
   it("omits signTransaction when the wallet lacks it", async () => {
-    const signer = await createClientEvmSigner(makeWallet("0xabcd"));
+    const signer = await createClientEvmSigner(makeWallet("0xabcd"), { network: NETWORK });
     expect(signer.signTransaction).toBeUndefined();
   });
 });
