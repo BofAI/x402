@@ -13,7 +13,6 @@ import { transferWithAuthorizationABI } from "../../src/constants";
 import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
 import {
   loadNileEnv,
-  nileTronWeb,
   tronAgentWallet,
   toClientAgentWallet,
   toFacilitatorAgentWallet,
@@ -42,23 +41,24 @@ describe.skipIf(!env)("Nile e2e — exact_gasfree via agent-wallet", () => {
   let req: PaymentRequirements;
 
   beforeAll(async () => {
-    const payerTw = nileTronWeb(e.payerPk, e.apiKey);
-    const facTw = nileTronWeb(e.facilitatorPk, e.apiKey);
     const apiClients = createGasFreeApiClients({
       [NILE]: e.gasfreeApiUrl ?? GASFREE_API_BASE_URLS[NILE]!,
     });
     relayer = apiClients[NILE]!;
 
-    clientSigner = await createClientTronSigner(
-      payerTw,
-      toClientAgentWallet(tronAgentWallet(e.payerPk)),
-    );
-    const facWallet = await toFacilitatorAgentWallet(tronAgentWallet(e.facilitatorPk));
-    const facSigner = createFacilitatorTronSigner(facTw, facWallet);
+    clientSigner = await createClientTronSigner(toClientAgentWallet(tronAgentWallet(e.payerPk)), {
+      network: NILE,
+      apiKey: e.apiKey,
+    });
+    const facWallet = toFacilitatorAgentWallet(tronAgentWallet(e.facilitatorPk));
+    const facSigner = await createFacilitatorTronSigner(facWallet, {
+      network: NILE,
+      apiKey: e.apiKey,
+    });
 
     server = new GasFreeServer();
     facilitator = new GasFreeFacilitator(facSigner, apiClients);
-    client = new GasFreeClient(clientSigner, apiClients);
+    client = new GasFreeClient(clientSigner, { apiClients });
 
     const amount = await server.parsePrice("0.1 USDT", NILE);
     const supported = facilitator.getExtra(NILE) ?? {};

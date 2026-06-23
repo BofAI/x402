@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { TronWeb, utils as tronUtils } from "tronweb";
 
 import { UptoTronScheme as UptoServer } from "../../src/upto/server/scheme";
@@ -10,8 +10,13 @@ import {
   type ClientTronSigner,
   type FacilitatorTronSigner,
 } from "../../src/signer";
+import { buildTronWeb } from "../../src/rpc";
 import { privateKeyTronWallet } from "./helpers";
 import { uptoPermit2WitnessTypes, X402_UPTO_PERMIT2_PROXY_ADDRESSES } from "../../src/constants";
+
+// The signer factories build TronWeb internally; mock that builder so each signer
+// gets a TronWeb seeded with its own key (set right before each create call).
+vi.mock("../../src/rpc", () => ({ buildTronWeb: vi.fn() }));
 import { normalizeAddressForSigning } from "../../src/utils";
 import type { UptoPermit2Payload } from "../../src/types";
 import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
@@ -57,14 +62,24 @@ function readStub(chain: Chain) {
 
 async function clientSigner(chain: Chain): Promise<ClientTronSigner> {
   const tw = tron(PAYER_PK);
-  const base = await createClientTronSigner(tw, privateKeyTronWallet(tw, PAYER_PK));
+  vi.mocked(buildTronWeb).mockReturnValue(tw);
+  // allowanceMode "skip": these flow tests stub chain reads and exercise the
+  // facilitator path, not the client's auto-approve (covered by client-allowance).
+  const base = await createClientTronSigner(privateKeyTronWallet(tw, PAYER_PK), {
+    network: NETWORK,
+    allowanceMode: "skip",
+  });
   return { ...base, readContract: readStub(chain) };
 }
 
-function facilitatorSigner(chain: Chain, capture?: WriteCapture): FacilitatorTronSigner {
-  const wallet = { address: addr(FAC_PK), signTransaction: async () => ({}) };
+async function facilitatorSigner(
+  chain: Chain,
+  capture?: WriteCapture,
+): Promise<FacilitatorTronSigner> {
+  vi.mocked(buildTronWeb).mockReturnValue(tron(FAC_PK));
+  const wallet = { getAddress: () => addr(FAC_PK), signTransaction: async () => ({}) };
   return {
-    ...createFacilitatorTronSigner(tron(FAC_PK), wallet),
+    ...(await createFacilitatorTronSigner(wallet, { network: NETWORK })),
     readContract: readStub(chain),
     writeContract: async (args: { args: readonly unknown[] }) => {
       if (capture) capture.args = args.args;
@@ -108,7 +123,7 @@ async function pay(client: UptoClient, req: PaymentRequirements): Promise<Paymen
 async function wire(chain: Chain, capture?: WriteCapture) {
   return {
     server: new UptoServer(),
-    facilitator: new UptoFacilitator(facilitatorSigner(chain, capture)),
+    facilitator: new UptoFacilitator(await facilitatorSigner(chain, capture)),
     client: new UptoClient(await clientSigner(chain)),
   };
 }

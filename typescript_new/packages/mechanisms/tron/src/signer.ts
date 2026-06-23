@@ -1,10 +1,12 @@
 import { TronWeb, utils as tronUtils } from "tronweb";
+import type { ClientWallet, FacilitatorWallet } from "@bankofai/x402-core/wallets";
 import {
   DEFAULT_FEE_LIMIT_SUN,
   PERMIT2_ADDRESSES,
   erc20AllowanceAbi,
   erc20ApproveAbi,
 } from "./constants";
+import { buildTronWeb } from "./rpc";
 import { tronAddressToEvm } from "./utils";
 
 /** Allowance-ensuring strategy for {@link ClientTronSigner.ensureAllowance}. */
@@ -61,9 +63,9 @@ export interface ClientTronSigner {
    * client's `ensure_allowance`). The user's wallet pays the approve's TRX.
    *
    * Always present on a signer created by {@link createClientTronSigner}. When
-   * the backing wallet lacks {@link AgentWallet.signTransaction}, it throws only
-   * if an approve is actually required — sign-only / pre-approved wallets still
-   * work. The permit2 client flow calls this before signing; eip3009 payments
+   * the backing wallet lacks {@link ClientTronWallet.signTransaction}, it throws
+   * only if an approve is actually required — sign-only / pre-approved wallets
+   * still work. The permit2 client flow calls this before signing; eip3009 payments
    * never invoke it. `mode` defaults to the signer's configured mode (`"auto"`):
    * `"skip"` returns immediately, `"interactive"` is not implemented.
    */
@@ -76,41 +78,14 @@ export interface ClientTronSigner {
 }
 
 /**
- * Minimal wallet abstraction for TRON client signing.
- *
- * Decouples the client signer from how the wallet was created (raw private key,
- * hosted/MDP wallet, hardware, `@bankofai/agent-wallet`, etc.). Any object that
- * exposes an address and can sign TIP-712 typed data satisfies it — no specific
- * wallet library is required (structural typing).
+ * Wallet abstraction for TRON client signing — the chain-agnostic
+ * {@link ClientWallet} from core (`getAddress` + `signTypedData` + optional
+ * `signTransaction`). Decouples the client signer from how the wallet was created
+ * (raw key, hosted/MDP, hardware, `@bankofai/agent-wallet`, …); any object of
+ * that shape satisfies it. `signTransaction` (when present) lets
+ * {@link ClientTronSigner.ensureAllowance} broadcast the one-time Permit2 approve.
  */
-export interface AgentWallet {
-  /**
-   * Get the wallet's TRON address (Base58Check) or EVM hex address.
-   * May be synchronous or asynchronous.
-   */
-  getAddress(): Promise<string> | string;
-
-  /**
-   * Sign EIP-712/TIP-712 typed data, returning the signature hex. The `0x`
-   * prefix is optional — {@link createClientTronSigner} normalizes it — so a raw
-   * agent-wallet (which strips `0x`) satisfies this directly, no adapter needed.
-   * Domain and message addresses should already be in EVM hex format.
-   */
-  signTypedData(args: {
-    domain: Record<string, unknown>;
-    types: Record<string, Array<{ name: string; type: string }>>;
-    primaryType: string;
-    message: Record<string, unknown>;
-  }): Promise<string>;
-
-  /**
-   * Optionally sign a built TRON transaction for broadcast (e.g. the one-time
-   * Permit2 `approve`). Same shape as {@link FacilitatorAgentWallet.signTransaction}.
-   * When absent, the client signer stays sign-only and
-   * {@link ClientTronSigner.ensureAllowance} is not exposed.
-   */
-  signTransaction?(transaction: Record<string, unknown>): Promise<string | Record<string, unknown>>;
-}
+export type ClientTronWallet = ClientWallet;
 
 /**
  * Signer interface for TRON facilitator operations.
@@ -238,6 +213,12 @@ export function toFacilitatorTronSigner(
 
 /** Options for {@link createClientTronSigner}. */
 export interface CreateClientTronSignerOptions {
+  /** CAIP-2 network, e.g. `"tron:nile"`. The TronWeb client is built from it. */
+  network: string;
+  /** RPC fullHost override; falls back to the network's default. */
+  rpcUrl?: string;
+  /** TronGrid API key (sent as the `TRON-PRO-API-KEY` header) when set. */
+  apiKey?: string;
   /**
    * Default mode for {@link ClientTronSigner.ensureAllowance} (default `"auto"`).
    * Set `"skip"` for apps that manage the Permit2 approval themselves.
@@ -246,30 +227,32 @@ export interface CreateClientTronSignerOptions {
 }
 
 /**
- * Creates a ClientTronSigner from an {@link AgentWallet}.
+ * Creates a ClientTronSigner from a {@link ClientTronWallet}. The TronWeb client
+ * (contract reads + approve broadcast) is built internally from `opts.network`.
  *
  * Wallet-only: the private key never enters the SDK. To sign with a raw key
- * (dev/test), wrap it in an AgentWallet first. `tronWeb` supplies contract reads.
+ * (dev/test), wrap it in a wallet first.
  *
  * The returned signer always exposes {@link ClientTronSigner.ensureAllowance}
  * (used by the permit2 flow to broadcast the one-time `approve(Permit2)`, mirroring
  * the Python client). If the wallet cannot sign transactions, it throws only when
  * an approve is actually required — sign-only / pre-approved wallets still work.
  *
- * Side effect: sets `tronWeb`'s default address to the wallet address. Don't share
- * one TronWeb instance across signers with different addresses — a later call
- * overwrites the default; give each signer its own instance.
- *
- * @param tronWeb - The TronWeb instance used for contract reads and approve broadcast.
  * @param wallet - The wallet that signs typed data (and optionally transactions).
- * @param options - Optional default allowance mode.
+ * @param opts - Target network (+ optional RPC / API key / allowance mode).
  * @returns A ClientTronSigner backed by the wallet.
+ *
+ * @example
+ * ```typescript
+ * const signer = await createClientTronSigner(wallet, { network: "tron:nile" });
+ * client.register("tron:*", new ExactTronScheme(signer));
+ * ```
  */
 export async function createClientTronSigner(
-  tronWeb: TronWeb,
-  wallet: AgentWallet,
-  options: CreateClientTronSignerOptions = {},
+  wallet: ClientTronWallet,
+  opts: CreateClientTronSignerOptions,
 ): Promise<ClientTronSigner> {
+  const tronWeb = buildTronWeb(opts.network, { rpcUrl: opts.rpcUrl, apiKey: opts.apiKey });
   const address = await wallet.getAddress();
   const base = toClientTronSigner(
     {
@@ -301,31 +284,64 @@ export async function createClientTronSigner(
     ensureAllowance: allowanceArgs =>
       ensurePermit2Allowance(
         { tronWeb, ownerAddress: address, signTransaction, readContract: base.readContract },
-        { ...allowanceArgs, mode: allowanceArgs.mode ?? options.allowanceMode },
+        { ...allowanceArgs, mode: allowanceArgs.mode ?? opts.allowanceMode },
       ),
   };
 }
 
 /**
- * Minimal facilitator wallet abstraction for on-chain settlement.
- *
- * Lets the facilitator sign settlement transactions without ever handing a raw
- * private key to the SDK — the key stays inside the wallet (e.g. a keystore
- * unlocked out-of-band). Only `exact`/permit2 settlement uses this; GasFree
- * settles via the relayer and needs no signing key.
+ * A typed-data signer with an eagerly-resolved address — the receiver-authorizer
+ * key for batch-settlement (signs `ClaimBatch` / `Refund` TIP-712 digests).
  */
-export interface FacilitatorAgentWallet {
-  /** Facilitator TRON address (Base58Check). */
+export interface TronAuthorizerSignerLike {
+  /** Authorizer address (Base58Check or EVM hex). */
   address: string;
-  /**
-   * Sign a built TRON transaction. May return the fully signed transaction
-   * object, a JSON string of one, or a raw signature hex — all are accepted.
-   */
-  signTransaction(transaction: Record<string, unknown>): Promise<string | Record<string, unknown>>;
+  signTypedData(args: {
+    domain: Record<string, unknown>;
+    types: Record<string, Array<{ name: string; type: string }>>;
+    primaryType: string;
+    message: Record<string, unknown>;
+  }): Promise<`0x${string}`>;
 }
 
-/** Options for facilitator on-chain writes. */
+/**
+ * Creates a TRON authorizer signer (address + typed-data signing) from a wallet —
+ * e.g. the batch-settlement `receiverAuthorizer`. No TronWeb is built (signing is
+ * offline); the address is resolved eagerly and the `0x` prefix re-added.
+ *
+ * @param wallet - The wallet that holds the authorizer key.
+ * @returns A signer satisfying batch-settlement's `TronAuthorizerSigner`.
+ */
+export async function createAuthorizerTronSigner(
+  wallet: ClientTronWallet,
+): Promise<TronAuthorizerSignerLike> {
+  const address = await wallet.getAddress();
+  return {
+    address,
+    signTypedData: async args => {
+      const sig = await wallet.signTypedData(args);
+      return `0x${sig.replace(/^0x/, "")}` as `0x${string}`;
+    },
+  };
+}
+
+/**
+ * Facilitator wallet abstraction for on-chain settlement — the chain-agnostic
+ * {@link FacilitatorWallet} from core (`getAddress` + `signTransaction`). Lets the
+ * facilitator sign settlement transactions without handing a raw key to the SDK.
+ * Only `exact`/permit2 settlement uses this; GasFree settles via the relayer and
+ * needs no signing key.
+ */
+export type FacilitatorTronWallet = FacilitatorWallet;
+
+/** Options for {@link createFacilitatorTronSigner}. */
 export interface FacilitatorTronSignerOptions {
+  /** CAIP-2 network, e.g. `"tron:nile"`. The TronWeb client is built from it. */
+  network: string;
+  /** RPC fullHost override; falls back to the network's default. */
+  rpcUrl?: string;
+  /** TronGrid API key (sent as the `TRON-PRO-API-KEY` header) when set. */
+  apiKey?: string;
   /** Fee limit in SUN (default {@link DEFAULT_FEE_LIMIT_SUN}). */
   feeLimit?: number;
   /** TRON permission id for multi-sig facilitator accounts (e.g. 2 = active). */
@@ -638,30 +654,32 @@ async function ensurePermit2Allowance(
 }
 
 /**
- * Creates a FacilitatorTronSigner from a TronWeb instance and a
- * {@link FacilitatorAgentWallet}.
+ * Creates a FacilitatorTronSigner from a {@link FacilitatorTronWallet}. The
+ * TronWeb client (reads / verification / writes) is built internally from
+ * `opts.network`.
  *
  * The transaction is built, handed to the wallet to sign (the private key never
  * enters the SDK), then broadcast — mirroring the production facilitator that
  * resolves a keystore-backed wallet unlocked out-of-band. For dev/test, wrap a
  * key in a wallet yourself (e.g. via TronWeb's `trx.sign`).
  *
- * Side effect: sets `tronWeb`'s default address (issuer) to the wallet address.
- * Don't share one TronWeb instance across signers with different addresses — a
- * later call overwrites the default; give each signer its own instance.
- *
- * @param tronWeb - The TronWeb instance used for reads, verification, and writes.
  * @param wallet - The wallet that signs settlement transactions.
- * @param options - Optional fee limit / multi-sig permission id.
- * @returns A FacilitatorTronSigner backed by TronWeb.
+ * @param opts - Target network (+ optional RPC / API key / fee limit / permission id).
+ * @returns A FacilitatorTronSigner backed by the wallet.
+ *
+ * @example
+ * ```typescript
+ * const signer = await createFacilitatorTronSigner(wallet, { network: "tron:nile" });
+ * facilitator.register("tron:nile", new ExactTronScheme(signer));
+ * ```
  */
-export function createFacilitatorTronSigner(
-  tronWeb: TronWeb,
-  wallet: FacilitatorAgentWallet,
-  options: FacilitatorTronSignerOptions = {},
-): FacilitatorTronSigner {
-  const address = wallet.address;
-  const feeLimit = options.feeLimit ?? DEFAULT_FEE_LIMIT_SUN;
+export async function createFacilitatorTronSigner(
+  wallet: FacilitatorTronWallet,
+  opts: FacilitatorTronSignerOptions,
+): Promise<FacilitatorTronSigner> {
+  const tronWeb = buildTronWeb(opts.network, { rpcUrl: opts.rpcUrl, apiKey: opts.apiKey });
+  const address = await wallet.getAddress();
+  const feeLimit = opts.feeLimit ?? DEFAULT_FEE_LIMIT_SUN;
 
   // Reads and tx building need a default issuer address; set it without a key.
   (tronWeb as unknown as WriteCapableTronWeb).setAddress(address);
@@ -694,7 +712,7 @@ export function createFacilitatorTronSigner(
       // then broadcast. Mirrors bankofai TronFacilitatorSigner.writeContract.
       return buildSignAndBroadcast(tronWeb, address, tx => wallet.signTransaction(tx), args, {
         feeLimit,
-        ...(options.permissionId != null ? { permissionId: options.permissionId } : {}),
+        ...(opts.permissionId != null ? { permissionId: opts.permissionId } : {}),
       });
     },
     async waitForTransactionReceipt(args) {

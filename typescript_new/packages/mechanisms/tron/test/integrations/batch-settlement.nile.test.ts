@@ -80,15 +80,16 @@ describe.skipIf(!env)("Nile e2e — batch-settlement lifecycle", () => {
   let req: PaymentRequirements;
 
   beforeAll(async () => {
-    const payerTw = nileTronWeb(e.payerPk, e.apiKey);
+    // facTw is still needed for the receiver-authorizer below; the signer
+    // factories build their own TronWeb internally from the network.
     const facTw = nileTronWeb(e.facilitatorPk, e.apiKey);
 
-    clientSigner = await createClientTronSigner(
-      payerTw,
-      toClientAgentWallet(tronAgentWallet(e.payerPk)),
-    );
-    const facWallet = await toFacilitatorAgentWallet(tronAgentWallet(e.facilitatorPk));
-    facSigner = createFacilitatorTronSigner(facTw, facWallet);
+    clientSigner = await createClientTronSigner(toClientAgentWallet(tronAgentWallet(e.payerPk)), {
+      network: NILE,
+      apiKey: e.apiKey,
+    });
+    const facWallet = toFacilitatorAgentWallet(tronAgentWallet(e.facilitatorPk));
+    facSigner = await createFacilitatorTronSigner(facWallet, { network: NILE, apiKey: e.apiKey });
 
     // Receiver-authorizer signs claim/refund digests. Use a dedicated key when
     // provided, else reuse the facilitator key.

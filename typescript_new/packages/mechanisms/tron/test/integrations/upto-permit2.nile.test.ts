@@ -15,7 +15,6 @@ import {
 import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
 import {
   loadNileEnv,
-  nileTronWeb,
   tronAgentWallet,
   toClientAgentWallet,
   toFacilitatorAgentWallet,
@@ -54,15 +53,15 @@ describe.skipIf(!env)("Nile e2e — upto (permit2) via agent-wallet", () => {
   let req: PaymentRequirements;
 
   beforeAll(async () => {
-    const payerTw = nileTronWeb(e.payerPk, e.apiKey);
-    const facTw = nileTronWeb(e.facilitatorPk, e.apiKey);
-
-    clientSigner = await createClientTronSigner(
-      payerTw,
-      toClientAgentWallet(tronAgentWallet(e.payerPk)),
-    );
-    const facWallet = await toFacilitatorAgentWallet(tronAgentWallet(e.facilitatorPk));
-    const facSigner = createFacilitatorTronSigner(facTw, facWallet);
+    clientSigner = await createClientTronSigner(toClientAgentWallet(tronAgentWallet(e.payerPk)), {
+      network: NILE,
+      apiKey: e.apiKey,
+    });
+    const facWallet = toFacilitatorAgentWallet(tronAgentWallet(e.facilitatorPk));
+    const facSigner = await createFacilitatorTronSigner(facWallet, {
+      network: NILE,
+      apiKey: e.apiKey,
+    });
 
     server = new UptoServer();
     facilitator = new UptoFacilitator(facSigner);

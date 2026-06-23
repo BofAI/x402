@@ -1,7 +1,11 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { TronWeb, utils as tronUtils } from "tronweb";
 import { createClientTronSigner, type ClientTronSigner } from "../../../src/signer";
 import { privateKeyTronWallet } from "../helpers";
+import { buildTronWeb } from "../../../src/rpc";
+
+// Factory builds TronWeb internally; mock the builder to inject the seeded one.
+vi.mock("../../../src/rpc", () => ({ buildTronWeb: vi.fn() }));
 import { getTronChainId, normalizeAddressForSigning, tronAddressToEvm } from "../../../src/utils";
 import {
   computeChannelId,
@@ -64,7 +68,8 @@ describe("batch-settlement digest (TRON)", () => {
 
   beforeAll(async () => {
     const tronWeb = new TronWeb({ fullHost: "https://nile.trongrid.io", privateKey: PAYER_PK });
-    signer = await createClientTronSigner(tronWeb, privateKeyTronWallet(tronWeb, PAYER_PK));
+    vi.mocked(buildTronWeb).mockReturnValue(tronWeb);
+    signer = await createClientTronSigner(privateKeyTronWallet(tronWeb, PAYER_PK), { network: NETWORK });
     config = {
       payer: normalizeAddressForSigning(signer.address),
       payerAuthorizer: normalizeAddressForSigning(signer.address),

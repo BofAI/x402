@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { TronWeb } from "tronweb";
 
 import { ExactTronScheme as ExactServer } from "../../src/exact/server/scheme";
@@ -13,9 +13,15 @@ import {
   type ClientTronSigner,
   type FacilitatorTronSigner,
 } from "../../src/signer";
+import { buildTronWeb } from "../../src/rpc";
 import { privateKeyTronWallet } from "./helpers";
 import type { ExactGasFreePayload, ExactPermit2Payload } from "../../src/types";
 import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
+
+// The signer factories build TronWeb internally from the network; mock that
+// builder so each signer gets a TronWeb seeded with its own key (set right
+// before each create call, which invokes buildTronWeb synchronously first).
+vi.mock("../../src/rpc", () => ({ buildTronWeb: vi.fn() }));
 
 /**
  * In-process integration tests for the TRON mechanism (no HTTP).
@@ -58,20 +64,23 @@ function readStub(chain: Chain) {
 
 async function clientSigner(chain: Chain): Promise<ClientTronSigner> {
   const tw = tron(PAYER_PK);
+  vi.mocked(buildTronWeb).mockReturnValue(tw);
   // allowanceMode "skip": these flow tests exercise the facilitator's allowance
   // gatekeeping, so the client must not auto-approve (covered by client-allowance).
-  const base = await createClientTronSigner(tw, privateKeyTronWallet(tw, PAYER_PK), {
+  const base = await createClientTronSigner(privateKeyTronWallet(tw, PAYER_PK), {
+    network: NETWORK,
     allowanceMode: "skip",
   });
   return { ...base, readContract: readStub(chain) };
 }
 
-function facilitatorSigner(chain: Chain): FacilitatorTronSigner {
+async function facilitatorSigner(chain: Chain): Promise<FacilitatorTronSigner> {
   // Wallet shell: real verifyTypedData comes from the signer; signing is stubbed
   // here because these tests override writeContract.
-  const wallet = { address: addr(FAC_PK), signTransaction: async () => ({}) };
+  vi.mocked(buildTronWeb).mockReturnValue(tron(FAC_PK));
+  const wallet = { getAddress: () => addr(FAC_PK), signTransaction: async () => ({}) };
   return {
-    ...createFacilitatorTronSigner(tron(FAC_PK), wallet),
+    ...(await createFacilitatorTronSigner(wallet, { network: NETWORK })),
     readContract: readStub(chain),
     writeContract: async () => FAKE_TX,
     waitForTransactionReceipt: async () => ({ status: "success" }),
@@ -164,7 +173,7 @@ describe("GasFree end-to-end (in-process)", () => {
     const api = { [NETWORK]: relayer() as never };
     return {
       server: new GasFreeServer(),
-      facilitator: new GasFreeFacilitator(facilitatorSigner(chain), api, feeConfig),
+      facilitator: new GasFreeFacilitator(await facilitatorSigner(chain), api, feeConfig),
       client: new GasFreeClient(await clientSigner(chain), { apiClients: api }),
     };
   }
@@ -253,7 +262,7 @@ describe("Permit2 (exact) end-to-end (in-process)", () => {
   async function wire(chain: Chain) {
     return {
       server: new ExactServer(),
-      facilitator: new ExactFacilitator(facilitatorSigner(chain)),
+      facilitator: new ExactFacilitator(await facilitatorSigner(chain)),
       client: new ExactClient(await clientSigner(chain)),
     };
   }

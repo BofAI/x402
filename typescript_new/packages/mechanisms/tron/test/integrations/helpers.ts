@@ -1,6 +1,6 @@
 import { TronWeb } from "tronweb";
 import { RawSecretSigner, type Wallet } from "@bankofai/agent-wallet";
-import type { AgentWallet, FacilitatorAgentWallet } from "../../src/signer";
+import type { ClientTronWallet, FacilitatorTronWallet } from "../../src/signer";
 
 /** CAIP-2 id and public RPC for the TRON Nile testnet. */
 export const NILE = "tron:nile" as const;
@@ -83,7 +83,7 @@ export function tronAgentWallet(privateKey: string): Wallet {
  * @param wallet - The agent-wallet wallet.
  * @returns A client AgentWallet.
  */
-export function toClientAgentWallet(wallet: Wallet): AgentWallet {
+export function toClientAgentWallet(wallet: Wallet): ClientTronWallet {
   return {
     getAddress: () => wallet.getAddress(),
     async signTypedData(args) {
@@ -102,16 +102,14 @@ export function toClientAgentWallet(wallet: Wallet): AgentWallet {
 }
 
 /**
- * Adapt an agent-wallet {@link Wallet} to the SDK's
- * {@link FacilitatorAgentWallet} (resolves the address eagerly).
+ * Adapt an agent-wallet {@link Wallet} to the SDK's {@link FacilitatorTronWallet}.
  *
  * @param wallet - The agent-wallet wallet.
  * @returns A facilitator wallet.
  */
-export async function toFacilitatorAgentWallet(wallet: Wallet): Promise<FacilitatorAgentWallet> {
-  const address = await wallet.getAddress();
+export function toFacilitatorAgentWallet(wallet: Wallet): FacilitatorTronWallet {
   return {
-    address,
+    getAddress: () => wallet.getAddress(),
     signTransaction: transaction => wallet.signTransaction(transaction),
   };
 }

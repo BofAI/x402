@@ -1,8 +1,12 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { TronWeb, utils as tronUtils } from "tronweb";
 import { ExactTronScheme } from "../../src/exact/client/scheme";
 import { createClientTronSigner, type ClientTronSigner } from "../../src/signer";
+import { buildTronWeb } from "../../src/rpc";
 import { privateKeyTronWallet } from "./helpers";
+
+// The factory builds TronWeb internally; mock that builder to inject the seeded one.
+vi.mock("../../src/rpc", () => ({ buildTronWeb: vi.fn() }));
 import {
   PERMIT2_ADDRESSES,
   X402_PERMIT2_PROXY_ADDRESSES,
@@ -42,9 +46,11 @@ describe("exact Permit2 TIP-712 digest (2-field witness)", () => {
 
   beforeAll(async () => {
     const tronWeb = new TronWeb({ fullHost: "https://nile.trongrid.io", privateKey: PAYER_PK });
+    vi.mocked(buildTronWeb).mockReturnValue(tronWeb);
     // allowanceMode "skip": this is an offline signing-digest test; skip the
     // on-chain Permit2 allowance read/approve (covered by client-allowance).
-    signer = await createClientTronSigner(tronWeb, privateKeyTronWallet(tronWeb, PAYER_PK), {
+    signer = await createClientTronSigner(privateKeyTronWallet(tronWeb, PAYER_PK), {
+      network: NETWORK,
       allowanceMode: "skip",
     });
     payerHex = tronAddressToEvm(signer.address);

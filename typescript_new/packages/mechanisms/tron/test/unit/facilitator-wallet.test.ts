@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { createFacilitatorTronSigner, type FacilitatorAgentWallet } from "../../src/signer";
+import { createFacilitatorTronSigner, type FacilitatorTronWallet } from "../../src/signer";
+import { buildTronWeb } from "../../src/rpc";
 import { x402ExactPermit2ProxyABI } from "../../src/constants";
+
+// The factory builds TronWeb internally from the network; mock that builder so
+// tests inject a fake TronWeb (was previously passed as the first arg).
+vi.mock("../../src/rpc", () => ({ buildTronWeb: vi.fn() }));
 
 /**
  * Facilitator wallet-signing path (F5 facilitator): on-chain settlement is
@@ -9,6 +14,7 @@ import { x402ExactPermit2ProxyABI } from "../../src/constants";
  * from our ABI and pinned here to the known-correct canonical string.
  */
 
+const NETWORK = "tron:nile";
 const FAC_ADDR = "TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC";
 const PROXY = "TFGoaq2KjizijgjtkVxT7yjffW1A5T1j6F";
 const TOKEN = "0x" + "a".repeat(40);
@@ -27,6 +33,16 @@ function fakeTronWeb(triggerSpy: ReturnType<typeof vi.fn>, broadcastSpy: ReturnT
   } as never;
 }
 
+/** Build a facilitator signer with the fake TronWeb routed through the mocked builder. */
+function makeFacilitatorSigner(
+  tw: unknown,
+  wallet: FacilitatorTronWallet,
+  options: Partial<Omit<Parameters<typeof createFacilitatorTronSigner>[1], "network">> = {},
+) {
+  vi.mocked(buildTronWeb).mockReturnValue(tw as never);
+  return createFacilitatorTronSigner(wallet, { network: NETWORK, ...options });
+}
+
 describe("createFacilitatorTronSigner — wallet path", () => {
   const settleArgs = [
     [[TOKEN, 1_000_000n], 7n, 9_999n], // permit tuple
@@ -38,15 +54,15 @@ describe("createFacilitatorTronSigner — wallet path", () => {
   it("derives the canonical settle selector and broadcasts the wallet-signed tx", async () => {
     const trigger = vi.fn(async () => ({ result: { result: true }, transaction: { raw_data: 1 } }));
     const broadcast = vi.fn(async () => ({ result: true, txid: "0xdeadbeef" }));
-    const wallet: FacilitatorAgentWallet = {
-      address: FAC_ADDR,
+    const wallet: FacilitatorTronWallet = {
+      getAddress: () => FAC_ADDR,
       signTransaction: vi.fn(async (tx: Record<string, unknown>) => ({
         ...tx,
         signature: ["abcd"],
       })),
     };
 
-    const signer = createFacilitatorTronSigner(fakeTronWeb(trigger, broadcast), wallet, {
+    const signer = await makeFacilitatorSigner(fakeTronWeb(trigger, broadcast), wallet, {
       permissionId: 2,
     });
 
@@ -74,11 +90,11 @@ describe("createFacilitatorTronSigner — wallet path", () => {
   it("maps tuple inputs to typed trigger parameters", async () => {
     const trigger = vi.fn(async () => ({ result: { result: true }, transaction: {} }));
     const broadcast = vi.fn(async () => ({ result: true, txid: "0x1" }));
-    const wallet: FacilitatorAgentWallet = {
-      address: FAC_ADDR,
+    const wallet: FacilitatorTronWallet = {
+      getAddress: () => FAC_ADDR,
       signTransaction: async () => ({ signature: ["x"] }),
     };
-    const signer = createFacilitatorTronSigner(fakeTronWeb(trigger, broadcast), wallet);
+    const signer = await makeFacilitatorSigner(fakeTronWeb(trigger, broadcast), wallet);
     await signer.writeContract({
       address: PROXY,
       abi: x402ExactPermit2ProxyABI as unknown as readonly Record<string, unknown>[],
@@ -98,8 +114,11 @@ describe("createFacilitatorTronSigner — wallet path", () => {
   it("throws when triggerSmartContract fails", async () => {
     const trigger = vi.fn(async () => ({ result: { result: false }, transaction: {} }));
     const broadcast = vi.fn();
-    const wallet: FacilitatorAgentWallet = { address: FAC_ADDR, signTransaction: async () => ({}) };
-    const signer = createFacilitatorTronSigner(fakeTronWeb(trigger, broadcast), wallet);
+    const wallet: FacilitatorTronWallet = {
+      getAddress: () => FAC_ADDR,
+      signTransaction: async () => ({}),
+    };
+    const signer = await makeFacilitatorSigner(fakeTronWeb(trigger, broadcast), wallet);
     await expect(
       signer.writeContract({
         address: PROXY,
@@ -114,11 +133,11 @@ describe("createFacilitatorTronSigner — wallet path", () => {
   it("accepts a raw signature hex from the wallet", async () => {
     const trigger = vi.fn(async () => ({ result: { result: true }, transaction: { r: 1 } }));
     const broadcast = vi.fn(async () => ({ result: true, txid: "0x2" }));
-    const wallet: FacilitatorAgentWallet = {
-      address: FAC_ADDR,
+    const wallet: FacilitatorTronWallet = {
+      getAddress: () => FAC_ADDR,
       signTransaction: async () => "0xrawsig",
     };
-    const signer = createFacilitatorTronSigner(fakeTronWeb(trigger, broadcast), wallet);
+    const signer = await makeFacilitatorSigner(fakeTronWeb(trigger, broadcast), wallet);
     await signer.writeContract({
       address: PROXY,
       abi: x402ExactPermit2ProxyABI as unknown as readonly Record<string, unknown>[],

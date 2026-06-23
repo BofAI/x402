@@ -20,12 +20,14 @@ export {
   toFacilitatorTronSigner,
   createClientTronSigner,
   createFacilitatorTronSigner,
+  createAuthorizerTronSigner,
 } from "./signer";
 export type {
   ClientTronSigner,
   FacilitatorTronSigner,
-  AgentWallet,
-  FacilitatorAgentWallet,
+  ClientTronWallet,
+  FacilitatorTronWallet,
+  TronAuthorizerSignerLike,
   FacilitatorTronSignerOptions,
   CreateClientTronSignerOptions,
   AllowanceMode,

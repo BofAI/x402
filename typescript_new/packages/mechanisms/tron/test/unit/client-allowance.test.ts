@@ -1,7 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
-import { createClientTronSigner, type AgentWallet, type ClientTronSigner } from "../../src/signer";
+import {
+  createClientTronSigner,
+  type ClientTronWallet,
+  type ClientTronSigner,
+} from "../../src/signer";
+import { buildTronWeb } from "../../src/rpc";
 import { ExactTronScheme } from "../../src/exact/client/scheme";
 import { PERMIT2_ADDRESSES } from "../../src/constants";
+
+// The factory builds TronWeb internally from the network; mock that builder so
+// tests inject a fake TronWeb (was previously passed as the first arg).
+vi.mock("../../src/rpc", () => ({ buildTronWeb: vi.fn() }));
 
 /**
  * Client-side auto-approve (Permit2 allowance), mirroring the Python client.
@@ -37,7 +46,17 @@ function fakeTronWeb(opts: {
   } as never;
 }
 
-const typedWallet = (extra: Partial<AgentWallet> = {}): AgentWallet => ({
+/** Build a client signer with the fake TronWeb routed through the mocked builder. */
+async function makeClientSigner(
+  tw: unknown,
+  wallet: ClientTronWallet,
+  options: Partial<Omit<Parameters<typeof createClientTronSigner>[1], "network">> = {},
+): Promise<ClientTronSigner> {
+  vi.mocked(buildTronWeb).mockReturnValue(tw as never);
+  return createClientTronSigner(wallet, { network: NETWORK, ...options });
+}
+
+const typedWallet = (extra: Partial<ClientTronWallet> = {}): ClientTronWallet => ({
   getAddress: () => OWNER,
   signTypedData: async () => "0xsig" as `0x${string}`,
   ...extra,
@@ -47,7 +66,7 @@ describe("ClientTronSigner.ensureAllowance", () => {
   it("returns true without broadcasting when the allowance already covers the amount", async () => {
     const trigger = vi.fn();
     const wallet = typedWallet({ signTransaction: vi.fn() });
-    const signer = await createClientTronSigner(
+    const signer = await makeClientSigner(
       fakeTronWeb({ allowance: 2_000_000n, trigger }),
       wallet,
     );
@@ -73,7 +92,7 @@ describe("ClientTronSigner.ensureAllowance", () => {
     }));
     const wallet = typedWallet({ signTransaction });
 
-    const signer = await createClientTronSigner(
+    const signer = await makeClientSigner(
       fakeTronWeb({ allowance: 0n, trigger, broadcast, txGet }),
       wallet,
     );
@@ -102,7 +121,7 @@ describe("ClientTronSigner.ensureAllowance", () => {
   it("skips the read and broadcast entirely when mode is 'skip'", async () => {
     const allowanceSpy = vi.fn(() => ({ call: async () => 0n }));
     const trigger = vi.fn();
-    const signer = await createClientTronSigner(
+    const signer = await makeClientSigner(
       fakeTronWeb({ allowanceSpy, trigger }),
       typedWallet({ signTransaction: vi.fn() }),
     );
@@ -120,7 +139,7 @@ describe("ClientTronSigner.ensureAllowance", () => {
   });
 
   it("throws when an approve is needed but the wallet cannot sign transactions", async () => {
-    const signer = await createClientTronSigner(fakeTronWeb({ allowance: 0n }), typedWallet());
+    const signer = await makeClientSigner(fakeTronWeb({ allowance: 0n }), typedWallet());
 
     await expect(
       signer.ensureAllowance!({ token: TOKEN, amount: 1_000_000n, network: NETWORK }),
@@ -128,7 +147,7 @@ describe("ClientTronSigner.ensureAllowance", () => {
   });
 
   it("lets a pre-approved sign-only wallet pass without signTransaction", async () => {
-    const signer = await createClientTronSigner(
+    const signer = await makeClientSigner(
       fakeTronWeb({ allowance: 5_000_000n }),
       typedWallet(),
     );
@@ -147,7 +166,7 @@ describe("ClientTronSigner.ensureAllowance", () => {
     const txGet = vi.fn(async () => ({ ret: [{ contractRet: "REVERT" }] }));
     const wallet = typedWallet({ signTransaction: async tx => ({ ...tx, signature: ["ab"] }) });
 
-    const signer = await createClientTronSigner(
+    const signer = await makeClientSigner(
       fakeTronWeb({ allowance: 0n, trigger, broadcast, txGet }),
       wallet,
     );

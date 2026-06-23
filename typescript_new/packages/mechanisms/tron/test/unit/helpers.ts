@@ -1,5 +1,5 @@
 import { TronWeb } from "tronweb";
-import type { AgentWallet } from "../../src/signer";
+import type { ClientTronWallet } from "../../src/signer";
 
 /**
  * Test-only helper: wrap a raw private key as an {@link AgentWallet}.
@@ -11,7 +11,7 @@ import type { AgentWallet } from "../../src/signer";
  * @param privateKey - The private key, with or without a `0x` prefix.
  * @returns An AgentWallet backed by the private key.
  */
-export function privateKeyTronWallet(tronWeb: TronWeb, privateKey: string): AgentWallet {
+export function privateKeyTronWallet(tronWeb: TronWeb, privateKey: string): ClientTronWallet {
   const clean = privateKey.replace(/^0x/, "");
   const address = TronWeb.address.fromPrivateKey(clean) as string;
   return {

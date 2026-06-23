@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { TronWeb, utils as tronUtils } from "tronweb";
 import {
   createClientTronSigner,
@@ -6,6 +6,10 @@ import {
   type FacilitatorTronSigner,
 } from "../../../src/signer";
 import { privateKeyTronWallet } from "../helpers";
+import { buildTronWeb } from "../../../src/rpc";
+
+// Factory builds TronWeb internally; mock the builder to inject the seeded one.
+vi.mock("../../../src/rpc", () => ({ buildTronWeb: vi.fn() }));
 import { getTronChainId, normalizeAddressForSigning, tronAddressToEvm } from "../../../src/utils";
 import {
   ERC3009_DEPOSIT_COLLECTOR_ADDRESSES,
@@ -75,7 +79,8 @@ describe("batch-settlement deposit authorizations (TRON)", () => {
 
   beforeAll(async () => {
     const tronWeb = new TronWeb({ fullHost: "https://nile.trongrid.io", privateKey: PAYER_PK });
-    signer = await createClientTronSigner(tronWeb, privateKeyTronWallet(tronWeb, PAYER_PK));
+    vi.mocked(buildTronWeb).mockReturnValue(tronWeb);
+    signer = await createClientTronSigner(privateKeyTronWallet(tronWeb, PAYER_PK), { network: NETWORK });
     payerHex = tronAddressToEvm(signer.address);
     config = {
       payer: normalizeAddressForSigning(signer.address),

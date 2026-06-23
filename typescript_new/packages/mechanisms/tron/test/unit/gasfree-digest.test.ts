@@ -1,9 +1,14 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { TronWeb } from "tronweb";
 import { ExactGasFreeScheme as ClientScheme } from "../../src/gasfree/client/scheme";
 import { ExactGasFreeScheme as FacilitatorScheme } from "../../src/gasfree/facilitator/scheme";
 import { createClientTronSigner, createFacilitatorTronSigner } from "../../src/signer";
+import { buildTronWeb } from "../../src/rpc";
 import { privateKeyTronWallet } from "./helpers";
+
+// The signer factories build TronWeb internally; mock that builder to inject the
+// seeded TronWeb (was previously passed as the first arg).
+vi.mock("../../src/rpc", () => ({ buildTronWeb: vi.fn() }));
 import { tronAddressToEvm } from "../../src/utils";
 import type { ExactGasFreePayload } from "../../src/types";
 import type { GasFreeAddressInfo, GasFreeProvider } from "../../src/shared/gasfree/api";
@@ -46,10 +51,10 @@ describe("GasFree TIP-712 digest round-trip", () => {
 
   beforeAll(async () => {
     const tronWeb = new TronWeb({ fullHost: "https://nile.trongrid.io", privateKey: PAYER_PK });
-    const clientSigner = await createClientTronSigner(
-      tronWeb,
-      privateKeyTronWallet(tronWeb, PAYER_PK),
-    );
+    vi.mocked(buildTronWeb).mockReturnValue(tronWeb);
+    const clientSigner = await createClientTronSigner(privateKeyTronWallet(tronWeb, PAYER_PK), {
+      network: NETWORK,
+    });
     payerHex = tronAddressToEvm(clientSigner.address);
 
     const account: GasFreeAddressInfo = {
@@ -91,10 +96,11 @@ describe("GasFree TIP-712 digest round-trip", () => {
     payload = result.payload as ExactGasFreePayload;
 
     const facWallet = {
-      address: TronWeb.address.fromPrivateKey(FACIL_PK) as string,
+      getAddress: () => TronWeb.address.fromPrivateKey(FACIL_PK) as string,
       signTransaction: async () => ({}),
     };
-    const facSigner = createFacilitatorTronSigner(tronWeb, facWallet);
+    vi.mocked(buildTronWeb).mockReturnValue(tronWeb);
+    const facSigner = await createFacilitatorTronSigner(facWallet, { network: NETWORK });
     facilitator = new FacilitatorScheme(
       facSigner,
       { [NETWORK]: mockApi(account, providers) as never },

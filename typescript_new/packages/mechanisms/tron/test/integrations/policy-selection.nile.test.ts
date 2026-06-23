@@ -20,7 +20,6 @@ import {
 } from "../../src/constants";
 import {
   loadNileEnv,
-  nileTronWeb,
   tronAgentWallet,
   toClientAgentWallet,
   toFacilitatorAgentWallet,
@@ -72,18 +71,16 @@ describe.skipIf(!env)("Nile e2e — policy & token selection", () => {
   }
 
   beforeAll(async () => {
-    const payerTw = nileTronWeb(e.payerPk, e.apiKey);
-    const facTw = nileTronWeb(e.facilitatorPk, e.apiKey);
-    clientSigner = await createClientTronSigner(
-      payerTw,
-      toClientAgentWallet(tronAgentWallet(e.payerPk)),
-    );
+    clientSigner = await createClientTronSigner(toClientAgentWallet(tronAgentWallet(e.payerPk)), {
+      network: NILE,
+      apiKey: e.apiKey,
+    });
     server = new ExactServer();
     facilitator = new ExactFacilitator(
-      createFacilitatorTronSigner(
-        facTw,
-        await toFacilitatorAgentWallet(tronAgentWallet(e.facilitatorPk)),
-      ),
+      await createFacilitatorTronSigner(toFacilitatorAgentWallet(tronAgentWallet(e.facilitatorPk)), {
+        network: NILE,
+        apiKey: e.apiKey,
+      }),
     );
   });
 

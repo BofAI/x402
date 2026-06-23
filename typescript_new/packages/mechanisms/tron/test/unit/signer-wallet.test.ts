@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { TronWeb } from "tronweb";
-import { createClientTronSigner, type AgentWallet } from "../../src/signer";
+import { createClientTronSigner, type ClientTronWallet } from "../../src/signer";
+import { buildTronWeb } from "../../src/rpc";
 import { privateKeyTronWallet } from "./helpers";
+
+// The factory builds TronWeb internally from the network; mock that builder so
+// tests inject a real/seeded TronWeb (was previously passed as the first arg).
+vi.mock("../../src/rpc", () => ({ buildTronWeb: vi.fn() }));
 
 /**
  * Offline tests for the AgentWallet abstraction (F5).
@@ -29,6 +34,12 @@ function tron(): TronWeb {
   return new TronWeb({ fullHost: "https://nile.trongrid.io", privateKey: PK });
 }
 
+/** Build a client signer with the given TronWeb routed through the mocked builder. */
+async function makeClient(tw: TronWeb, wallet: ClientTronWallet) {
+  vi.mocked(buildTronWeb).mockReturnValue(tw);
+  return createClientTronSigner(wallet, { network: "tron:nile" });
+}
+
 describe("privateKeyTronWallet", () => {
   it("derives a stable Base58 address and signs typed data", async () => {
     const wallet = privateKeyTronWallet(tron(), PK);
@@ -45,7 +56,7 @@ describe("createClientTronSigner (wallet-only)", () => {
   it("builds a signer from a private-key wallet and signs consistently", async () => {
     const tw = tron();
     const wallet = privateKeyTronWallet(tw, PK);
-    const signer = await createClientTronSigner(tw, wallet);
+    const signer = await makeClient(tw, wallet);
 
     expect(signer.address).toBe(await wallet.getAddress());
     const [viaSigner, viaWallet] = await Promise.all([
@@ -56,11 +67,11 @@ describe("createClientTronSigner (wallet-only)", () => {
   });
 
   it("delegates signing to an arbitrary wallet", async () => {
-    const wallet: AgentWallet = {
+    const wallet: ClientTronWallet = {
       getAddress: () => ADDR,
       signTypedData: vi.fn(async () => "0xdeadbeef" as `0x${string}`),
     };
-    const signer = await createClientTronSigner(tron(), wallet);
+    const signer = await makeClient(tron(), wallet);
 
     expect(signer.address).toBe(ADDR);
     expect(await signer.signTypedData(TYPED)).toBe("0xdeadbeef");
@@ -68,20 +79,20 @@ describe("createClientTronSigner (wallet-only)", () => {
   });
 
   it("awaits an async getAddress", async () => {
-    const wallet: AgentWallet = {
+    const wallet: ClientTronWallet = {
       getAddress: async () => ADDR,
       signTypedData: async () => "0x01" as `0x${string}`,
     };
-    const signer = await createClientTronSigner(tron(), wallet);
+    const signer = await makeClient(tron(), wallet);
     expect(signer.address).toBe(ADDR);
   });
 
   it("backs contract reads with the provided TronWeb instance", async () => {
-    const wallet: AgentWallet = {
+    const wallet: ClientTronWallet = {
       getAddress: () => ADDR,
       signTypedData: async () => "0x01" as `0x${string}`,
     };
-    const signer = await createClientTronSigner(tron(), wallet);
+    const signer = await makeClient(tron(), wallet);
     expect(typeof signer.readContract).toBe("function");
   });
 });
