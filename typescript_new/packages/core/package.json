@@ -132,6 +132,16 @@
         "types": "./dist/cjs/schemas/index.d.ts",
         "default": "./dist/cjs/schemas/index.js"
       }
+    },
+    "./wallets": {
+      "import": {
+        "types": "./dist/esm/wallets/index.d.mts",
+        "default": "./dist/esm/wallets/index.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/wallets/index.d.ts",
+        "default": "./dist/cjs/wallets/index.js"
+      }
     }
   },
   "files": [
