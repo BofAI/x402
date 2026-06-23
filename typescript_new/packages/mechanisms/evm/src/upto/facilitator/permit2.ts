@@ -261,6 +261,9 @@ export async function verifyUptoPermit2(
       signer,
       uptoSettleArgs,
       eip2612InfoForSim,
+      // The upto proxy `settle` authorizes by caller; simulate as the witness
+      // facilitator so the eth_call passes the `UnauthorizedFacilitator` check.
+      facilitatorAddress,
     );
     if (!simOk) {
       return diagnosePermit2SimulationFailure(
@@ -321,7 +324,14 @@ export async function verifyUptoPermit2(
     }
   }
 
-  const simOk = await simulatePermit2Settle(uptoProxyConfig, signer, uptoSettleArgs);
+  // The upto proxy `settle` authorizes by caller; simulate as the witness
+  // facilitator so the eth_call passes the `UnauthorizedFacilitator` check.
+  const simOk = await simulatePermit2Settle(
+    uptoProxyConfig,
+    signer,
+    uptoSettleArgs,
+    facilitatorAddress,
+  );
   if (!simOk) {
     return diagnosePermit2SimulationFailure(
       uptoProxyConfig,

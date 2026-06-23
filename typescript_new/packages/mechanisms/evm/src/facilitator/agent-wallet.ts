@@ -78,7 +78,10 @@ export type FacilitatorEvmPublicClient = Pick<
  */
 type LooseEvmPublicClient = {
   getChainId(): Promise<number>;
-  getTransactionCount(args: { address: `0x${string}` }): Promise<number>;
+  getTransactionCount(args: {
+    address: `0x${string}`;
+    blockTag?: "latest" | "pending";
+  }): Promise<number>;
   estimateFeesPerGas(): Promise<{ maxFeePerGas: bigint; maxPriorityFeePerGas: bigint }>;
   estimateGas(args: {
     account: `0x${string}`;
@@ -187,7 +190,10 @@ export function createFacilitatorEvmSigner(
     const value = 0n; // x402 settlement never transfers native value.
     const [chainId, nonce, fees] = await Promise.all([
       client.getChainId(),
-      client.getTransactionCount({ address: wallet.address }),
+      // "pending" (not the default "latest") counts the EOA's not-yet-mined txs,
+      // so rapid sequential settlements from one facilitator key don't reuse a
+      // nonce while the previous settle is still in the mempool.
+      client.getTransactionCount({ address: wallet.address, blockTag: "pending" }),
       client.estimateFeesPerGas(),
     ]);
     const gas =
