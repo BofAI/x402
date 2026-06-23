@@ -39,6 +39,30 @@ Runs on its own ports (4031/4032) via dedicated `GASFREE_*` env vars, so it neve
 clashes with the main line. Preconditions: the payer's GasFree account on Nile
 must be **activated and funded** with USDT, or settlement fails at the relayer.
 
+## Batch-settlement scenario (EVM + TRON `batch-settlement`)
+
+A payment-channel trio: the payer **deposits once** on-chain, then pays many
+requests with off-chain **vouchers**; the server's channel manager **claims** a
+batch and **settles** to `payTo` in a single tx — so N requests cost ~one
+deposit's worth of gas. Includes a **refund** path for the unused balance. Works
+on BSC and TRON Nile.
+
+| Example | Role | Port |
+|---|---|---|
+| [`facilitator/batch-settlement`](facilitator/batch-settlement) | verifies + submits deposit/claim/settle/refund; receiver-authorizer | 4042 |
+| [`servers/batch-settlement`](servers/batch-settlement) | sells `GET /weather`, runs the channel manager | 4041 |
+| [`clients/batch-settlement`](clients/batch-settlement) | deposits + sends a burst of vouchers, optional refund | — |
+
+```bash
+pnpm dev:batch-facilitator     # :4042
+pnpm dev:batch-server          # :4041
+pnpm dev:batch-client          # 1 deposit + N-1 vouchers
+```
+
+Own ports (4041/4042) via dedicated `BATCH_*` env vars, so it never clashes with
+the other lines. BSC uses USDC (Permit2 deposit, one-time `approve(Permit2)`); TRON
+Nile uses USDT (Permit2 → one-time `approve(Permit2)`, client auto-broadcasts).
+
 ## Supported chains & tokens
 
 | Chain | Network | Token | Scheme | One-time approve | User pays gas? |
@@ -120,9 +144,18 @@ chain reads and broadcast.
 
 ## Run
 
+Env is **split by business scenario** — one self-contained file per line, so the
+three lines run side by side and you only fill in what you run:
+
+| Scenario | Template → fill | Loaded by |
+|---|---|---|
+| exact (main) | `.env-exact.example` → `.env-exact` | `clients/fetch`, `servers/express`, `facilitator/basic` |
+| gasfree | `.env-gasfree.example` → `.env-gasfree` | `clients/gasfree`, `servers/gasfree`, `facilitator/gasfree` |
+| batch-settlement | `.env-batch.example` → `.env-batch` | `clients/batch-settlement`, `servers/batch-settlement`, `facilitator/batch-settlement` |
+
 ```bash
-pnpm install           # links the in-repo SDK packages (see pnpm-workspace.yaml)
-cp .env-local.example .env-local   # one shared env; all three apps load it
+pnpm install               # links the in-repo SDK packages (see pnpm-workspace.yaml)
+cp .env-exact.example .env-exact   # then fill it in
 
 pnpm dev:facilitator   # terminal 1  (:4022)
 pnpm dev:server        # terminal 2  (:4021)
@@ -131,7 +164,7 @@ pnpm dev:client        # terminal 3
 
 Configure the wallet via agent-wallet — a single `AGENT_WALLET_PRIVATE_KEY`
 serves both chains — and set the server's payout addresses
-(`EVM_ADDRESS` / `TRON_ADDRESS`). See `.env-local.example`.
+(`EVM_ADDRESS` / `TRON_ADDRESS`). See each `.env-<scenario>.example`.
 
 ## Relationship to `tests/integrations`
 

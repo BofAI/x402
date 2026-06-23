@@ -15,10 +15,10 @@ import {
 
 import { hasTron, registerTron, tronAccepts } from "./chains/tron.js";
 
-// Dedicated env vars so the shared .env-local (which points the main-line apps
-// at 4021/4022) never shadows the GasFree ports.
-const PORT = parseInt(process.env.GASFREE_SERVER_PORT || "4031", 10);
-const FACILITATOR_URL = process.env.GASFREE_FACILITATOR_URL || "http://localhost:4032";
+// Dedicated env vars (set in .env-gasfree) so the GasFree line keeps its own
+// :4031/:4032, independent of the other scenarios.
+const PORT = parseInt(process.env.SERVER_PORT || "4031", 10);
+const FACILITATOR_URL = process.env.FACILITATOR_URL || "http://localhost:4032";
 
 const facilitatorClient = new HTTPFacilitatorClient({ url: FACILITATOR_URL });
 const resourceServer = new x402ResourceServer(facilitatorClient);

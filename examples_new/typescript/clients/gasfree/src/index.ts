@@ -10,9 +10,9 @@ import { x402Client, wrapFetchWithPayment } from "@bankofai/x402-fetch";
 
 import { registerTronGasFree } from "./chains/tron.js";
 
-// Dedicated env var so the shared .env-local (RESOURCE_URL → main-line :4021)
-// never shadows the GasFree server port.
-const RESOURCE_URL = process.env.GASFREE_RESOURCE_URL || "http://localhost:4031/weather";
+// Dedicated env var (set in .env-gasfree) so the GasFree line stays on its own
+// :4031 server, independent of the other scenarios.
+const RESOURCE_URL = process.env.RESOURCE_URL || "http://localhost:4031/weather";
 
 const client = new x402Client();
 

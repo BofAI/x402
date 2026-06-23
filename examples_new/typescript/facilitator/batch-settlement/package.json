@@ -1,19 +1,23 @@
 {
-  "name": "@bankofai/x402-example-gasfree-client",
+  "name": "@bankofai/x402-example-batch-facilitator",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx --env-file=../../.env-gasfree src/index.ts",
+    "dev": "tsx --env-file=../../.env-batch src/index.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@bankofai/x402-fetch": "workspace:*",
+    "@bankofai/x402-core": "workspace:*",
+    "@bankofai/x402-evm": "workspace:*",
     "@bankofai/x402-tron": "workspace:*",
     "@bankofai/agent-wallet": "^2.3.0",
-    "tronweb": "^6.0.0"
+    "express": "^4.21.2",
+    "tronweb": "^6.0.0",
+    "viem": "^2.48.11"
   },
   "devDependencies": {
+    "@types/express": "^4.17.21",
     "@types/node": "^22.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.0"

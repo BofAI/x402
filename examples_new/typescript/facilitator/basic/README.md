@@ -22,7 +22,7 @@ TRON-only, or both.
 ## Run
 
 ```bash
-# From examples_new/typescript: cp .env-local.example .env-local and fill the wallet.
+# From examples_new/typescript: cp .env-exact.example .env-exact and fill the wallet.
 pnpm install
 pnpm dev   # or: pnpm --filter @bankofai/x402-example-facilitator-basic dev
 ```

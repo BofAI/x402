@@ -17,8 +17,8 @@ import type {
 
 import { registerTronGasFree } from "./chains/tron.js";
 
-// Dedicated env var so the shared .env-local never shadows the GasFree port.
-const PORT = parseInt(process.env.GASFREE_FACILITATOR_PORT || "4032", 10);
+// Dedicated env var (set in .env-gasfree) so the GasFree line keeps its own :4032.
+const PORT = parseInt(process.env.FACILITATOR_PORT || "4032", 10);
 
 const facilitator = new x402Facilitator()
   .onBeforeSettle(async ctx => console.log("[settle] before", ctx.requirements.network))

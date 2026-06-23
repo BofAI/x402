@@ -19,12 +19,12 @@ pnpm dev:gasfree-server        # :4031
 pnpm dev:gasfree-client
 ```
 
-## Env (`.env-local`)
+## Env (`.env-gasfree`)
 
 | Var | Purpose |
 |---|---|
 | `AGENT_WALLET_PRIVATE_KEY` | payer key (agent-wallet) |
-| `GASFREE_RESOURCE_URL` | defaults to `http://localhost:4031/weather` |
+| `RESOURCE_URL` | defaults to `http://localhost:4031/weather` |
 | `TRON_GRID_API_KEY` | optional, raises TronGrid rate limits |
 | `GASFREE_API_URL` | optional, override the Nile relayer base URL |
 

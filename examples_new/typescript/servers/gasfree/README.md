@@ -17,10 +17,10 @@ pnpm dev:gasfree-server        # :4031
 pnpm dev:gasfree-client
 ```
 
-## Env (`.env-local`)
+## Env (`.env-gasfree`)
 
 | Var | Purpose |
 |---|---|
 | `TRON_ADDRESS` | payout address (`T...`); required |
-| `GASFREE_FACILITATOR_URL` | defaults to `http://localhost:4032` |
-| `GASFREE_SERVER_PORT` | defaults to `4031` |
+| `FACILITATOR_URL` | defaults to `http://localhost:4032` |
+| `SERVER_PORT` | defaults to `4031` |

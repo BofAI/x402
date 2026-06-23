@@ -1,10 +1,10 @@
 /**
- * Basic x402 facilitator — chain-agnostic.
+ * x402 batch-settlement facilitator — chain-agnostic, EVM + TRON.
  *
- * Exposes /verify, /settle, /supported over HTTP and dispatches by the payment's
- * `network` field. EVM and TRON are registered from their own modules under
- * `chains/`, each gated on whether an agent-wallet is configured — so this file
- * never imports a chain SDK or touches a key.
+ * Exposes /verify, /settle, /supported over HTTP. For the `batch-settlement`
+ * scheme it verifies channel deposits and vouchers, and on settle it submits the
+ * on-chain `deposit` / `claimWithSignature` / `settle` / `refund` txs. Per-chain
+ * setup lives in `src/chains/`; each registers only when its wallet resolves.
  */
 import express from "express";
 import { x402Facilitator } from "@bankofai/x402-core/facilitator";
@@ -18,14 +18,15 @@ import type {
 import { registerEvm } from "./chains/evm.js";
 import { registerTron } from "./chains/tron.js";
 
-const PORT = parseInt(process.env.FACILITATOR_PORT || "4022", 10);
+// Dedicated port so the batch line never clashes with the exact (4022) or
+// gasfree (4032) facilitators when running side by side.
+const PORT = parseInt(process.env.FACILITATOR_PORT || "4042", 10);
 
 const facilitator = new x402Facilitator()
   .onBeforeSettle(async ctx => console.log("[settle] before", ctx.requirements.network))
   .onAfterSettle(async ctx => console.log("[settle] after", ctx.requirements.network))
   .onSettleFailure(async ctx => console.log("[settle] failure", ctx));
 
-// Register each chain only if its wallet resolves. Run EVM-only, TRON-only, or both.
 const evm = await registerEvm(facilitator);
 const tron = await registerTron(facilitator);
 if (!evm && !tron) {
@@ -46,6 +47,10 @@ app.post("/verify", async (req, res) => {
       return res.status(400).json({ error: "Missing paymentPayload or paymentRequirements" });
     }
     const response: VerifyResponse = await facilitator.verify(paymentPayload, paymentRequirements);
+    console.log(
+      `[verify] ${paymentRequirements.network} valid=${response.isValid}` +
+        (response.isValid ? "" : ` reason=${response.invalidReason}`),
+    );
     res.json(response);
   } catch (error) {
     console.error("[verify] error:", error);
@@ -79,5 +84,7 @@ app.get("/supported", (_req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Facilitator on http://localhost:${PORT}  (evm=${evm}, tron=${tron})`);
+  console.log(
+    `🚀 Batch-settlement facilitator on http://localhost:${PORT}  (evm=${evm}, tron=${tron})`,
+  );
 });

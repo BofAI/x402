@@ -1,6 +1,12 @@
-# Local env — all three apps load this shared file (../../.env-local).
-# Copy .env-local.example to .env-local and fill it in; never commit it.
-.env-local
+# Local env — one file per business scenario; each scenario's apps load its own.
+# Copy the matching .env-<scenario>.example to .env-<scenario> and fill it in;
+# never commit it.
+#   exact    → .env-exact      (clients/fetch, servers/express, facilitator/basic)
+#   gasfree  → .env-gasfree    (clients/gasfree, servers/gasfree, facilitator/gasfree)
+#   batch    → .env-batch      (clients/*, servers/*, facilitator/batch-settlement)
+.env-exact
+.env-gasfree
+.env-batch
 .env
 
 node_modules/

@@ -18,14 +18,14 @@ pnpm dev:gasfree-server        # :4031
 pnpm dev:gasfree-client
 ```
 
-## Env (`.env-local`)
+## Env (`.env-gasfree`)
 
 | Var | Purpose |
 |---|---|
 | `AGENT_WALLET_PRIVATE_KEY` | facilitator key (agent-wallet); issuer address + relayer-request signing |
 | `TRON_GRID_API_KEY` | optional, raises TronGrid rate limits |
 | `GASFREE_API_URL` | optional, override the Nile relayer base URL |
-| `GASFREE_FACILITATOR_PORT` | defaults to `4032` |
+| `FACILITATOR_PORT` | defaults to `4032` |
 
 ## Endpoints
 

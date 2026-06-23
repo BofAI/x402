@@ -16,7 +16,7 @@ import {
 import { hasEvm, registerEvm, evmAccepts, evmExtensions } from "./chains/evm.js";
 import { hasTron, registerTron, tronAccepts } from "./chains/tron.js";
 
-const PORT = parseInt(process.env.PORT || "4021", 10);
+const PORT = parseInt(process.env.SERVER_PORT || "4021", 10);
 const FACILITATOR_URL = process.env.FACILITATOR_URL || "http://localhost:4022";
 
 const facilitatorClient = new HTTPFacilitatorClient({ url: FACILITATOR_URL });

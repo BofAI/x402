@@ -10,7 +10,10 @@
     "dev:client": "pnpm --filter @bankofai/x402-example-client-fetch dev",
     "dev:gasfree-facilitator": "pnpm --filter @bankofai/x402-example-gasfree-facilitator dev",
     "dev:gasfree-server": "pnpm --filter @bankofai/x402-example-gasfree-server dev",
-    "dev:gasfree-client": "pnpm --filter @bankofai/x402-example-gasfree-client dev"
+    "dev:gasfree-client": "pnpm --filter @bankofai/x402-example-gasfree-client dev",
+    "dev:batch-facilitator": "pnpm --filter @bankofai/x402-example-batch-facilitator dev",
+    "dev:batch-server": "pnpm --filter @bankofai/x402-example-batch-server dev",
+    "dev:batch-client": "pnpm --filter @bankofai/x402-example-batch-client dev"
   },
   "engines": {
     "node": ">=20"
