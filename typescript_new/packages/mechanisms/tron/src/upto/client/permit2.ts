@@ -6,6 +6,7 @@ import {
 } from "../../constants";
 import { ClientTronSigner } from "../../signer";
 import { UptoPermit2Payload } from "../../types";
+import { readFeeFromExtra } from "../../shared/fee";
 import { createNonce, getTronChainId, normalizeAddressForSigning } from "../../utils";
 
 /**
@@ -80,6 +81,20 @@ export async function createUptoPermit2Payload(
       validAfter,
     },
   };
+
+  // Ensure the one-time Permit2 allowance before signing (mirrors the exact
+  // client). No-op when the signer can't broadcast (sign-only wallet) or when
+  // the allowance already covers the authorized maximum + fee. TRON's mainstream
+  // tokens (USDT/USDD) lack ERC-3009, so this approve is required on first use.
+  // `permitted.amount` is the upto ceiling — approve at least that much, since
+  // the facilitator may settle for any amount up to it.
+  const feeAmount = readFeeFromExtra(paymentRequirements.extra)?.feeAmount ?? "0";
+  const totalRequired = BigInt(paymentRequirements.amount) + BigInt(feeAmount);
+  await signer.ensureAllowance?.({
+    token: paymentRequirements.asset,
+    amount: totalRequired,
+    network,
+  });
 
   const signature = await signUptoPermit2Authorization(
     signer,
