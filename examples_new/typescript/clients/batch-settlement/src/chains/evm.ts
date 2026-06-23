@@ -10,20 +10,14 @@
  * network gets its own viem public client + signer, registered under its exact
  * CAIP-2 id. Adding a chain is one `EVM_NETWORKS` entry.
  */
-import { createPublicClient, http, type Chain } from "viem";
-import { bscTestnet } from "viem/chains";
 import { createClientEvmSigner } from "@bankofai/x402-evm/adapters/agent-wallet";
 import { BatchSettlementEvmScheme } from "@bankofai/x402-evm/batch-settlement/client";
 import type { x402Client } from "@bankofai/x402-fetch";
 
 import { tryResolveWallet, type BatchClientOptions, type RefundableScheme } from "../env.js";
 
-/** CAIP-2 network → viem chain. Add a chain here to support it. */
-const EVM_NETWORKS: Record<string, Chain> = {
-  "eip155:97": bscTestnet,
-  // BSC mainnet — REAL FUNDS. Uncomment + `import { bsc } from "viem/chains"`.
-  // "eip155:56": bsc,
-};
+/** CAIP-2 networks to support. Add an id here (e.g. "eip155:8453"). */
+const EVM_NETWORKS = ["eip155:97"] as const;
 
 /**
  * Registers the EVM `batch-settlement` client scheme for every configured
@@ -43,9 +37,8 @@ export async function registerEvm(
   }
 
   const schemes: RefundableScheme[] = [];
-  for (const [network, chain] of Object.entries(EVM_NETWORKS) as [`${string}:${string}`, Chain][]) {
-    const publicClient = createPublicClient({ chain, transport: http() });
-    const signer = await createClientEvmSigner(wallet, publicClient);
+  for (const network of EVM_NETWORKS) {
+    const signer = await createClientEvmSigner(wallet, { network });
     const scheme = new BatchSettlementEvmScheme(signer, {
       salt: opts.salt,
       depositPolicy: { depositMultiplier: opts.depositMultiplier },

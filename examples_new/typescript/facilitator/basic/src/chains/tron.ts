@@ -3,7 +3,6 @@
  * in `@bankofai/agent-wallet`, and `createFacilitatorTronSigner` sets the
  * issuer address from the wallet (the TronWeb instance carries no private key).
  */
-import { TronWeb } from "tronweb";
 import { createFacilitatorTronSigner } from "@bankofai/x402-tron";
 import { ExactTronScheme } from "@bankofai/x402-tron/exact/facilitator";
 import type { x402Facilitator } from "@bankofai/x402-core/facilitator";
@@ -12,7 +11,6 @@ import { tryResolveWallet } from "../env.js";
 
 /** CAIP-2 network this facilitator settles on. */
 export const TRON_NETWORK = "tron:nile";
-const NILE_RPC = "https://nile.trongrid.io";
 
 /**
  * Registers the TRON `exact` scheme on the facilitator, if a TRON wallet is
@@ -27,22 +25,14 @@ export async function registerTron(facilitator: x402Facilitator): Promise<boolea
     return false;
   }
 
-  // No private key on TronWeb — createFacilitatorTronSigner sets the issuer
-  // address from the wallet, and the wallet signs.
-  const tronWeb = new TronWeb({
-    fullHost: NILE_RPC,
-    ...(process.env.TRON_GRID_API_KEY
-      ? { headers: { "TRON-PRO-API-KEY": process.env.TRON_GRID_API_KEY } }
-      : {}),
+  // Key-less: the agent-wallet satisfies FacilitatorTronWallet directly; the
+  // factory builds TronWeb internally and the wallet signs (no raw key in SDK).
+  const address = await wallet.getAddress();
+  const signer = await createFacilitatorTronSigner(wallet, {
+    network: TRON_NETWORK,
+    apiKey: process.env.TRON_GRID_API_KEY,
   });
-
-  const facWallet = {
-    address: await wallet.getAddress(),
-    signTransaction: (tx: Record<string, unknown>) => wallet.signTransaction(tx),
-  };
-
-  const signer = createFacilitatorTronSigner(tronWeb, facWallet);
   facilitator.register(TRON_NETWORK, new ExactTronScheme(signer));
-  console.info(`[tron] facilitator registered ${TRON_NETWORK} (${facWallet.address})`);
+  console.info(`[tron] facilitator registered ${TRON_NETWORK} (${address})`);
   return true;
 }

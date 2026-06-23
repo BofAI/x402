@@ -10,20 +10,14 @@
  * network gets its own viem public client + signer, registered under its exact
  * CAIP-2 id. Adding a chain is one `EVM_NETWORKS` entry.
  */
-import { createPublicClient, http, type Chain } from "viem";
-import { bscTestnet } from "viem/chains";
 import { createClientEvmSigner } from "@bankofai/x402-evm/adapters/agent-wallet";
 import { UptoEvmScheme } from "@bankofai/x402-evm/upto/client";
 import type { x402Client } from "@bankofai/x402-fetch";
 
 import { tryResolveWallet } from "../env.js";
 
-/** CAIP-2 network → viem chain. Add a chain here to support it. */
-const EVM_NETWORKS: Record<string, Chain> = {
-  "eip155:97": bscTestnet,
-  // BSC mainnet — REAL FUNDS. Uncomment + `import { bsc } from "viem/chains"`.
-  // "eip155:56": bsc,
-};
+/** CAIP-2 networks to support. Add an id here (e.g. "eip155:8453"). */
+const EVM_NETWORKS = ["eip155:97"] as const;
 
 /**
  * Registers the EVM `upto` client scheme for every configured network, if an EVM
@@ -39,9 +33,8 @@ export async function registerEvm(client: x402Client): Promise<string[]> {
   }
 
   const registered: string[] = [];
-  for (const [network, chain] of Object.entries(EVM_NETWORKS) as [`${string}:${string}`, Chain][]) {
-    const publicClient = createPublicClient({ chain, transport: http() });
-    const signer = await createClientEvmSigner(wallet, publicClient);
+  for (const network of EVM_NETWORKS) {
+    const signer = await createClientEvmSigner(wallet, { network });
     client.register(network, new UptoEvmScheme(signer));
     registered.push(network);
     console.info(`[evm] client registered ${network} upto (${signer.address})`);

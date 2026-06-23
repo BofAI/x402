@@ -14,24 +14,17 @@
  * The batch-settlement contract is a deterministic CREATE2 singleton at the same
  * address on every EVM chain, so adding a chain is one `EVM_NETWORKS` entry.
  */
-import { createPublicClient, http, type Chain } from "viem";
-import { bscTestnet } from "viem/chains";
 import {
+  createAuthorizerEvmSigner,
   createFacilitatorEvmSigner,
-  type FacilitatorEvmWallet,
 } from "@bankofai/x402-evm/adapters/agent-wallet";
 import { BatchSettlementEvmScheme } from "@bankofai/x402-evm/batch-settlement/facilitator";
 import type { x402Facilitator } from "@bankofai/x402-core/facilitator";
-import type { Network } from "@bankofai/x402-core/types";
 
 import { tryResolveWallet } from "../env.js";
 
-/** CAIP-2 network → viem chain. Add a chain here to settle batches on it. */
-const EVM_NETWORKS: Record<string, Chain> = {
-  "eip155:97": bscTestnet,
-  // BSC mainnet — REAL FUNDS. Uncomment + `import { bsc } from "viem/chains"`.
-  // "eip155:56": bsc,
-};
+/** CAIP-2 networks to settle batches on. Add an id here (e.g. "eip155:8453"). */
+const EVM_NETWORKS = ["eip155:97"] as const;
 
 /**
  * Registers the EVM `batch-settlement` scheme on the facilitator for every
@@ -46,35 +39,17 @@ export async function registerEvm(facilitator: x402Facilitator): Promise<boolean
     return false;
   }
 
-  const address = (await wallet.getAddress()) as `0x${string}`;
+  // One agent-wallet plays both facilitator roles: submitter (broadcasts the
+  // on-chain txs, built per-network below) and receiver-authorizer (signs the
+  // ClaimBatch/Refund digests). In production these may be separate keys.
+  const authorizerSigner = await createAuthorizerEvmSigner(wallet);
 
-  // One key, used across networks. Address resolved eagerly; signing stays in
-  // the wallet.
-  const facWallet: FacilitatorEvmWallet = {
-    address,
-    signTransaction: tx => wallet.signTransaction(tx),
-  };
-
-  // Receiver-authorizer: signs claim/refund EIP-712 digests. Structurally an
-  // `AuthorizerSigner` — agent-wallet returns a 0x-prefixed signature already.
-  const authorizerSigner = {
-    address,
-    signTypedData: async (params: {
-      domain: Record<string, unknown>;
-      types: Record<string, unknown>;
-      primaryType: string;
-      message: Record<string, unknown>;
-    }): Promise<`0x${string}`> => {
-      const sig = await wallet.signTypedData(params);
-      return (sig.startsWith("0x") ? sig : `0x${sig}`) as `0x${string}`;
-    },
-  };
-
-  for (const [network, chain] of Object.entries(EVM_NETWORKS) as [Network, Chain][]) {
-    const publicClient = createPublicClient({ chain, transport: http() });
-    const signer = createFacilitatorEvmSigner(publicClient, facWallet);
+  for (const network of EVM_NETWORKS) {
+    const signer = await createFacilitatorEvmSigner(wallet, { network });
     facilitator.register(network, new BatchSettlementEvmScheme(signer, authorizerSigner));
-    console.info(`[evm] facilitator registered ${network} batch-settlement (${address})`);
+    console.info(
+      `[evm] facilitator registered ${network} batch-settlement (${authorizerSigner.address})`,
+    );
   }
   return true;
 }

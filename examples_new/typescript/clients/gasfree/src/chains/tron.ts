@@ -10,14 +10,13 @@
  *
  * GasFree is TRON-only — there is no EVM counterpart.
  */
-import { TronWeb } from "tronweb";
 import { createClientTronSigner } from "@bankofai/x402-tron";
 import { registerExactGasFreeTronScheme } from "@bankofai/x402-tron/gasfree/client";
 import type { x402Client } from "@bankofai/x402-fetch";
 
 import { tryResolveTronWallet } from "../env.js";
 
-const NILE_RPC = "https://nile.trongrid.io";
+const TRON_NETWORK = "tron:nile";
 
 /**
  * Registers the TRON `exact_gasfree` client scheme, if a TRON wallet resolves.
@@ -31,19 +30,12 @@ export async function registerTronGasFree(client: x402Client): Promise<boolean> 
     return false;
   }
 
-  const tronWeb = new TronWeb({
-    fullHost: NILE_RPC,
-    ...(process.env.TRON_GRID_API_KEY
-      ? { headers: { "TRON-PRO-API-KEY": process.env.TRON_GRID_API_KEY } }
-      : {}),
-  });
-
-  // GasFree needs no on-chain approve: the relayer pays energy and submits, so
-  // no `signTransaction` here (contrast the permit2 `exact` client, which
-  // auto-broadcasts a one-time `approve`).
-  const signer = await createClientTronSigner(tronWeb, {
-    getAddress: () => wallet.getAddress(),
-    signTypedData: args => wallet.signTypedData(args),
+  // The agent-wallet satisfies ClientTronWallet directly. GasFree needs no
+  // on-chain approve (the relayer pays energy and submits), so `ensureAllowance`
+  // / `signTransaction` is simply never invoked by the gasfree client scheme.
+  const signer = await createClientTronSigner(wallet, {
+    network: TRON_NETWORK,
+    apiKey: process.env.TRON_GRID_API_KEY,
   });
 
   // Omitting apiBaseUrls falls back to the built-in GASFREE_API_BASE_URLS

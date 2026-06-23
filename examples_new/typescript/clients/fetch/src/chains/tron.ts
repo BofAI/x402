@@ -9,14 +9,13 @@
  * that USDT/USDD (no ERC-3009) need before their first payment — parity with the
  * Python client.
  */
-import { TronWeb } from "tronweb";
 import { createClientTronSigner } from "@bankofai/x402-tron";
 import { ExactTronScheme } from "@bankofai/x402-tron/exact/client";
 import type { x402Client } from "@bankofai/x402-fetch";
 
 import { tryResolveWallet } from "../env.js";
 
-const NILE_RPC = "https://nile.trongrid.io";
+const TRON_NETWORK = "tron:nile";
 
 /**
  * Registers the TRON `exact` client scheme, if a TRON wallet is configured.
@@ -30,18 +29,12 @@ export async function registerTron(client: x402Client): Promise<boolean> {
     return false;
   }
 
-  const tronWeb = new TronWeb({
-    fullHost: NILE_RPC,
-    ...(process.env.TRON_GRID_API_KEY
-      ? { headers: { "TRON-PRO-API-KEY": process.env.TRON_GRID_API_KEY } }
-      : {}),
-  });
-
-  const signer = await createClientTronSigner(tronWeb, {
-    getAddress: () => wallet.getAddress(),
-    signTypedData: args => wallet.signTypedData(args),
-    // Enables the signer to broadcast the one-time Permit2 approve (USDT/USDD).
-    signTransaction: tx => wallet.signTransaction(tx),
+  // The agent-wallet satisfies ClientTronWallet directly (getAddress /
+  // signTypedData / signTransaction); the factory handles `this`-binding and
+  // auto-broadcasts the one-time Permit2 approve for USDT/USDD.
+  const signer = await createClientTronSigner(wallet, {
+    network: TRON_NETWORK,
+    apiKey: process.env.TRON_GRID_API_KEY,
   });
   client.register("tron:*", new ExactTronScheme(signer));
   console.info(`[tron] client registered tron:* (${signer.address})`);

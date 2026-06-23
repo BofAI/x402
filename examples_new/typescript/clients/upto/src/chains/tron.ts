@@ -9,7 +9,6 @@
  * advertised maximum, and needs a one-time `approve(Permit2)` from the payer.
  * `signTransaction` lets the signer auto-broadcast that approve.
  */
-import { TronWeb } from "tronweb";
 import { createClientTronSigner } from "@bankofai/x402-tron";
 import { UptoTronScheme } from "@bankofai/x402-tron/upto/client";
 import type { x402Client } from "@bankofai/x402-fetch";
@@ -17,7 +16,6 @@ import type { x402Client } from "@bankofai/x402-fetch";
 import { tryResolveWallet } from "../env.js";
 
 const TRON_NETWORK = "tron:nile";
-const NILE_RPC = "https://nile.trongrid.io";
 
 /**
  * Registers the TRON `upto` client scheme, if a TRON wallet is configured.
@@ -31,18 +29,9 @@ export async function registerTron(client: x402Client): Promise<string[]> {
     return [];
   }
 
-  const tronWeb = new TronWeb({
-    fullHost: NILE_RPC,
-    ...(process.env.TRON_GRID_API_KEY
-      ? { headers: { "TRON-PRO-API-KEY": process.env.TRON_GRID_API_KEY } }
-      : {}),
-  });
-
-  const signer = await createClientTronSigner(tronWeb, {
-    getAddress: () => wallet.getAddress(),
-    signTypedData: args => wallet.signTypedData(args),
-    // Enables the signer to broadcast the one-time Permit2 approve (USDT).
-    signTransaction: tx => wallet.signTransaction(tx),
+  const signer = await createClientTronSigner(wallet, {
+    network: TRON_NETWORK,
+    apiKey: process.env.TRON_GRID_API_KEY,
   });
 
   client.register(TRON_NETWORK, new UptoTronScheme(signer));

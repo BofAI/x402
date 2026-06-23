@@ -10,7 +10,6 @@
  * auto-broadcast that approve (parity with the `exact` TRON client). Later
  * requests are voucher-only.
  */
-import { TronWeb } from "tronweb";
 import { createClientTronSigner } from "@bankofai/x402-tron";
 import { BatchSettlementTronScheme } from "@bankofai/x402-tron/batch-settlement/client";
 import type { x402Client } from "@bankofai/x402-fetch";
@@ -18,7 +17,6 @@ import type { x402Client } from "@bankofai/x402-fetch";
 import { tryResolveWallet, type BatchClientOptions, type RefundableScheme } from "../env.js";
 
 const TRON_NETWORK = "tron:nile";
-const NILE_RPC = "https://nile.trongrid.io";
 
 /**
  * Registers the TRON `batch-settlement` client scheme, if a TRON wallet is
@@ -37,18 +35,11 @@ export async function registerTron(
     return [];
   }
 
-  const tronWeb = new TronWeb({
-    fullHost: NILE_RPC,
-    ...(process.env.TRON_GRID_API_KEY
-      ? { headers: { "TRON-PRO-API-KEY": process.env.TRON_GRID_API_KEY } }
-      : {}),
-  });
-
-  const signer = await createClientTronSigner(tronWeb, {
-    getAddress: () => wallet.getAddress(),
-    signTypedData: args => wallet.signTypedData(args),
-    // Enables the signer to broadcast the one-time Permit2 approve (USDT deposit).
-    signTransaction: tx => wallet.signTransaction(tx),
+  // The agent-wallet satisfies ClientTronWallet directly; the factory handles
+  // `this`-binding and auto-broadcasts the one-time Permit2 approve (USDT deposit).
+  const signer = await createClientTronSigner(wallet, {
+    network: TRON_NETWORK,
+    apiKey: process.env.TRON_GRID_API_KEY,
   });
 
   const scheme = new BatchSettlementTronScheme(signer, {

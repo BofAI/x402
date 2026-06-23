@@ -13,11 +13,8 @@
  * resolver, so USDC-style (permit2, no EIP-2612) approves are broadcast on the
  * right chain. Adding a chain (e.g. Base Sepolia) is one table entry.
  */
-import { createPublicClient, http, type Chain } from "viem";
-import { bscTestnet } from "viem/chains";
 import {
   createFacilitatorEvmSigner,
-  type FacilitatorEvmWallet,
   type GasSponsoringFacilitatorEvmSigner,
 } from "@bankofai/x402-evm/adapters/agent-wallet";
 import { ExactEvmScheme } from "@bankofai/x402-evm/exact/facilitator";
@@ -26,19 +23,11 @@ import {
   type Erc20ApprovalGasSponsoringSigner,
 } from "@bankofai/x402-extensions";
 import type { x402Facilitator } from "@bankofai/x402-core/facilitator";
-import type { Network } from "@bankofai/x402-core/types";
 
 import { tryResolveWallet } from "../env.js";
 
-/** CAIP-2 network → viem chain. Add a chain here to settle on it. */
-const EVM_NETWORKS: Record<string, Chain> = {
-  "eip155:97": bscTestnet,
-  // BSC mainnet — REAL FUNDS. Uncomment + `import { bsc } from "viem/chains"`.
-  // The gas-sponsoring extension auto-covers it via the per-network signer resolver.
-  // "eip155:56": bsc,
-  // Other EVM testnets, e.g. Base Sepolia:
-  // "eip155:84532": baseSepolia,
-};
+/** CAIP-2 networks to settle on. Add an id here (e.g. "eip155:8453"). */
+const EVM_NETWORKS = ["eip155:97"] as const;
 
 /**
  * Registers the EVM `exact` scheme on the facilitator for every configured
@@ -54,19 +43,17 @@ export async function registerEvm(facilitator: x402Facilitator): Promise<boolean
   }
 
   // Adapt the agent-wallet to the SDK's facilitator wallet shape (one key, used
-  // across networks). The address is resolved eagerly; signing stays in the wallet.
-  const facWallet: FacilitatorEvmWallet = {
-    address: (await wallet.getAddress()) as `0x${string}`,
-    signTransaction: tx => wallet.signTransaction(tx),
-  };
+  // across networks). Signing stays in the wallet; the SDK never sees the key.
+  // The agent-wallet satisfies FacilitatorEvmWallet directly; the factory builds
+  // the viem client internally and the wallet signs (no raw key in the SDK).
+  const address = (await wallet.getAddress()) as `0x${string}`;
 
   const signers: Record<string, GasSponsoringFacilitatorEvmSigner> = {};
-  for (const [network, chain] of Object.entries(EVM_NETWORKS) as [Network, Chain][]) {
-    const publicClient = createPublicClient({ chain, transport: http() });
-    const signer = createFacilitatorEvmSigner(publicClient, facWallet);
+  for (const network of EVM_NETWORKS) {
+    const signer = await createFacilitatorEvmSigner(wallet, { network });
     facilitator.register(network, new ExactEvmScheme(signer));
     signers[network] = signer;
-    console.info(`[evm] facilitator registered ${network} (${facWallet.address})`);
+    console.info(`[evm] facilitator registered ${network} (${address})`);
   }
 
   // Register the ERC-20 approval gas-sponsoring extension once, resolving the

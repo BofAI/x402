@@ -10,24 +10,14 @@
  * The upto Permit2 proxy is a deterministic CREATE2 singleton at the same address
  * on every EVM chain, so adding a chain is one `EVM_NETWORKS` entry.
  */
-import { createPublicClient, http, type Chain } from "viem";
-import { bscTestnet } from "viem/chains";
-import {
-  createFacilitatorEvmSigner,
-  type FacilitatorEvmWallet,
-} from "@bankofai/x402-evm/adapters/agent-wallet";
+import { createFacilitatorEvmSigner } from "@bankofai/x402-evm/adapters/agent-wallet";
 import { UptoEvmScheme } from "@bankofai/x402-evm/upto/facilitator";
 import type { x402Facilitator } from "@bankofai/x402-core/facilitator";
-import type { Network } from "@bankofai/x402-core/types";
 
 import { tryResolveWallet } from "../env.js";
 
-/** CAIP-2 network → viem chain. Add a chain here to settle upto payments on it. */
-const EVM_NETWORKS: Record<string, Chain> = {
-  "eip155:97": bscTestnet,
-  // BSC mainnet — REAL FUNDS. Uncomment + `import { bsc } from "viem/chains"`.
-  // "eip155:56": bsc,
-};
+/** CAIP-2 networks to settle upto payments on. Add an id here (e.g. "eip155:8453"). */
+const EVM_NETWORKS = ["eip155:97"] as const;
 
 /**
  * Registers the EVM `upto` scheme on the facilitator for every configured
@@ -42,17 +32,10 @@ export async function registerEvm(facilitator: x402Facilitator): Promise<boolean
     return false;
   }
 
-  const address = (await wallet.getAddress()) as `0x${string}`;
-  const facWallet: FacilitatorEvmWallet = {
-    address,
-    signTransaction: tx => wallet.signTransaction(tx),
-  };
-
-  for (const [network, chain] of Object.entries(EVM_NETWORKS) as [Network, Chain][]) {
-    const publicClient = createPublicClient({ chain, transport: http() });
-    const signer = createFacilitatorEvmSigner(publicClient, facWallet);
+  for (const network of EVM_NETWORKS) {
+    const signer = await createFacilitatorEvmSigner(wallet, { network });
     facilitator.register(network, new UptoEvmScheme(signer));
-    console.info(`[evm] facilitator registered ${network} upto (${address})`);
+    console.info(`[evm] facilitator registered ${network} upto`);
   }
   return true;
 }
