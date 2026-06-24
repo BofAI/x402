@@ -11,7 +11,7 @@
  * server advertises and what wallets are configured here — this file imports no
  * chain SDK directly.
  */
-import { x402Client, wrapFetchWithPayment } from "@bankofai/x402-fetch";
+import { x402Client, wrapFetchWithPayment, decodePaymentResponseHeader } from "@bankofai/x402-fetch";
 
 import { registerEvm } from "./chains/evm.js";
 import { registerTron } from "./chains/tron.js";
@@ -73,18 +73,16 @@ if (REFUND_AFTER) {
 
 /**
  * Reads the settled network from a paid response's `PAYMENT-RESPONSE` header
- * (Base64-encoded SettleResponse JSON), or `undefined` if absent/unparseable.
+ * via the SDK decoder, or `undefined` if absent/unparseable.
  *
  * @param res - The response returned by the payment-wrapped fetch.
  * @returns The CAIP-2 network string, or `undefined`.
  */
 function networkFromPaymentResponse(res: Response): string | undefined {
-  const header =
-    res.headers.get("payment-response") ?? res.headers.get("x-payment-response");
+  const header = res.headers.get("payment-response") ?? res.headers.get("x-payment-response");
   if (!header) return undefined;
   try {
-    const decoded = JSON.parse(Buffer.from(header, "base64").toString("utf8"));
-    return typeof decoded?.network === "string" ? decoded.network : undefined;
+    return decodePaymentResponseHeader(header).network;
   } catch {
     return undefined;
   }

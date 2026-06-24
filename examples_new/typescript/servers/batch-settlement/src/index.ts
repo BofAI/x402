@@ -7,7 +7,7 @@
  * vouchers and settles to `payTo` in the background. Per-chain setup lives in
  * `src/chains/`; a chain registers only when its payout address is set.
  */
-import express, { type RequestHandler } from "express";
+import express from "express";
 import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
 import {
   x402ResourceServer,
@@ -52,8 +52,7 @@ const routes = {
 const httpServer = new x402HTTPResourceServer(resourceServer, routes);
 
 const app = express();
-// The middleware is async (returns a Promise); cast to express's RequestHandler.
-app.use(paymentMiddlewareFromHTTPServer(httpServer) as unknown as RequestHandler);
+app.use(paymentMiddlewareFromHTTPServer(httpServer));
 
 app.get("/weather", (_req, res) => {
   res.json({ report: { weather: "sunny", temperature: 70 } });

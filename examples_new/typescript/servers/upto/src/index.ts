@@ -10,12 +10,13 @@
  * Per-chain setup lives in `src/chains/`; a chain registers only when its payout
  * address is set.
  */
-import express, { type RequestHandler } from "express";
+import express from "express";
 import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
 import {
   x402ResourceServer,
   x402HTTPResourceServer,
   paymentMiddlewareFromHTTPServer,
+  setSettlementOverrides,
 } from "@bankofai/x402-express";
 
 import { hasEvm, registerEvm, evmAccepts } from "./chains/evm.js";
@@ -57,8 +58,7 @@ const routes = {
 const httpServer = new x402HTTPResourceServer(resourceServer, routes);
 
 const app = express();
-// The middleware is async (returns a Promise); cast to express's RequestHandler.
-app.use(paymentMiddlewareFromHTTPServer(httpServer) as unknown as RequestHandler);
+app.use(paymentMiddlewareFromHTTPServer(httpServer));
 
 app.get("/generate", (_req, res) => {
   // Simulate work that produces a variable cost. In production this might be LLM
@@ -69,7 +69,7 @@ app.get("/generate", (_req, res) => {
   const chargedPercent = `${(1 + Math.random() * 99).toFixed(2)}%`;
 
   // Tell the middleware to settle only the used fraction (<= authorized max).
-  res.setHeader("Settlement-Overrides", JSON.stringify({ amount: chargedPercent }));
+  setSettlementOverrides(res, { amount: chargedPercent });
 
   res.json({
     result: "Here is your generated text...",
