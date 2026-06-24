@@ -1,5 +1,6 @@
 import { x402Client, x402ClientConfig, x402HTTPClient } from "@bankofai/x402-core/client";
 import { type PaymentRequired } from "@bankofai/x402-core/types";
+import { log } from "@bankofai/x402-core";
 
 /**
  * Enables the payment of APIs using the x402 payment protocol v2.
@@ -52,6 +53,8 @@ export function wrapFetchWithPayment(
     if (response.status !== 402) {
       return response;
     }
+
+    log.info("x402: received 402, attempting payment", { url: request.url });
 
     // Parse payment requirements from response
     let paymentRequired: PaymentRequired;
@@ -120,6 +123,10 @@ export function wrapFetchWithPayment(
 
     // Retry the request with payment
     const secondResponse = await fetch(clonedRequest);
+    log[secondResponse.ok ? "info" : "warn"]("x402: paid request result", {
+      url: request.url,
+      status: secondResponse.status,
+    });
 
     // Fire payment response hooks and handle recovery
     const result = await httpClient.processPaymentResult(

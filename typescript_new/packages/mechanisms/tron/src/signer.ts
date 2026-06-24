@@ -8,6 +8,7 @@ import {
 } from "./constants";
 import { buildTronWeb } from "./rpc";
 import { tronAddressToEvm } from "./utils";
+import { log } from "@bankofai/x402-core";
 
 /** Allowance-ensuring strategy for {@link ClientTronSigner.ensureAllowance}. */
 export type AllowanceMode = "auto" | "skip" | "interactive";
@@ -487,6 +488,13 @@ async function buildSignAndBroadcast(
   const fn = findAbiFunction(args.abi, args.functionName);
   const selector = buildFunctionSelector(fn);
   const parameters = encodeTriggerParameters(fn, args.args);
+  log.debug("x402 tron: build+broadcast start", {
+    contract: args.address,
+    method: args.functionName,
+    issuer: issuerAddress,
+    feeLimit: options.feeLimit,
+    ...(options.permissionId != null ? { permissionId: options.permissionId } : {}),
+  });
   const built = await tw.transactionBuilder.triggerSmartContract(
     args.address,
     selector,
@@ -499,18 +507,38 @@ async function buildSignAndBroadcast(
     issuerAddress,
   );
   if (!built.result?.result) {
+    log.error("x402 tron: triggerSmartContract failed", {
+      contract: args.address,
+      method: args.functionName,
+      response: JSON.stringify(built),
+    });
     throw new Error(`triggerSmartContract failed: ${JSON.stringify(built)}`);
   }
   const signed = toSignedTransaction(await signTransaction(built.transaction), built.transaction);
   const broadcast = await tw.trx.sendRawTransaction(signed);
   if (!broadcast.result) {
+    log.error("x402 tron: broadcast rejected", {
+      contract: args.address,
+      method: args.functionName,
+      response: JSON.stringify(broadcast),
+    });
     throw new Error(`sendRawTransaction failed: ${JSON.stringify(broadcast)}`);
   }
   if (!broadcast.txid) {
     // Broadcast reported success but returned no txid; the caller would then
     // poll an empty hash and stall until timeout. Fail fast instead.
+    log.error("x402 tron: broadcast returned no txid", {
+      contract: args.address,
+      method: args.functionName,
+      response: JSON.stringify(broadcast),
+    });
     throw new Error(`sendRawTransaction returned no txid: ${JSON.stringify(broadcast)}`);
   }
+  log.info("x402 tron: broadcast ok", {
+    contract: args.address,
+    method: args.functionName,
+    txid: broadcast.txid,
+  });
   return broadcast.txid;
 }
 
@@ -559,7 +587,13 @@ async function pollTransactionPacked(tronWeb: TronWeb, hash: string): Promise<{ 
     if (contractRet === last) {
       streak += 1;
       if (streak >= 2) {
-        return { status: contractRet === "SUCCESS" ? "success" : "reverted" };
+        const status = contractRet === "SUCCESS" ? "success" : "reverted";
+        log[status === "success" ? "info" : "warn"]("x402 tron: tx confirmed", {
+          hash,
+          status,
+          contractRet,
+        });
+        return { status };
       }
     } else {
       last = contractRet;
@@ -567,6 +601,7 @@ async function pollTransactionPacked(tronWeb: TronWeb, hash: string): Promise<{ 
     }
   }
 
+  log.warn("x402 tron: tx confirm timeout (pending)", { hash, timeoutMs });
   return { status: "pending" };
 }
 

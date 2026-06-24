@@ -28,6 +28,7 @@ import {
   type FacilitatorEvmSigner,
 } from "../signer";
 import { createEvmPublicClient } from "./chains";
+import { log } from "@bankofai/x402-core";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Client
@@ -296,7 +297,18 @@ export async function createFacilitatorEvmSigner(
     }
     // agent-wallet strips the `0x` prefix; strip-then-prefix is robust either way.
     const serializedTransaction = `0x${signed.replace(/^0x/, "")}` as `0x${string}`;
-    return client.sendRawTransaction({ serializedTransaction });
+    log.debug("x402 evm: broadcast start", { to, chainId, nonce });
+    try {
+      const hash = await client.sendRawTransaction({ serializedTransaction });
+      log.info("x402 evm: broadcast ok", { to, hash });
+      return hash;
+    } catch (error) {
+      log.error("x402 evm: broadcast failed", {
+        to,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
   }
 
   const base = toFacilitatorEvmSigner({
@@ -310,7 +322,14 @@ export async function createFacilitatorEvmSigner(
     readContract: args => client.readContract({ account: address, ...args }),
     verifyTypedData: args => client.verifyTypedData(args),
     getCode: args => client.getCode(args),
-    waitForTransactionReceipt: args => client.waitForTransactionReceipt(args),
+    waitForTransactionReceipt: async args => {
+      const receipt = await client.waitForTransactionReceipt(args);
+      log[receipt.status === "success" ? "info" : "warn"]("x402 evm: tx receipt", {
+        hash: args.hash,
+        status: receipt.status,
+      });
+      return receipt;
+    },
     writeContract: args => {
       const data = appendDataSuffix(
         encodeFunctionData({
@@ -335,7 +354,9 @@ export async function createFacilitatorEvmSigner(
       for (const tx of transactions) {
         if (typeof tx === "string") {
           const serializedTransaction = `0x${tx.replace(/^0x/, "")}` as `0x${string}`;
-          hashes.push(await client.sendRawTransaction({ serializedTransaction }));
+          const hash = await client.sendRawTransaction({ serializedTransaction });
+          log.info("x402 evm: pre-signed tx broadcast ok", { hash });
+          hashes.push(hash);
         } else {
           hashes.push(await buildSignBroadcast(tx.to, tx.data, tx.gas));
         }
