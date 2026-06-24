@@ -194,7 +194,10 @@ describe("createFacilitatorEvmSigner", () => {
   it("falls back to options.defaultGas when no per-call gas is given", async () => {
     const pc = useClient(makePublicClient());
     const wallet = makeWallet();
-    const signer = await createFacilitatorEvmSigner(wallet, { network: NETWORK, defaultGas: 99_999n });
+    const signer = await createFacilitatorEvmSigner(wallet, {
+      network: NETWORK,
+      defaultGas: 99_999n,
+    });
 
     await signer.sendTransaction({ to: RECIPIENT, data: "0x" });
 

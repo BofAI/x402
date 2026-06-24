@@ -60,8 +60,8 @@ export const DEFAULT_STABLECOINS: Record<string, ExactDefaultAssetInfo> = {
     decimals: 18,
     assetTransferMethod: "permit2",
   }, // BSC testnet USDC (plain BEP-20 — Permit2 deposit; DHLU's eip3009 token
-     // only implements transferWithAuthorization, not the receiveWithAuthorization
-     // that batch-settlement deposits require)
+  // only implements transferWithAuthorization, not the receiveWithAuthorization
+  // that batch-settlement deposits require)
   "eip155:56": {
     address: "0x55d398326f99059fF775485246999027B3197955",
     name: "Tether USD",
