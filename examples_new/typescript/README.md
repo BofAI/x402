@@ -191,6 +191,31 @@ Configure the wallet via agent-wallet — a single `AGENT_WALLET_PRIVATE_KEY`
 serves both chains — and set the server's payout addresses
 (`EVM_ADDRESS` / `TRON_ADDRESS`). See each `.env-<scenario>.example`.
 
+## Logging / Observability
+
+Every `@bankofai/x402-*` package writes its logs through **one process-global
+logger** exported from `@bankofai/x402-core`. By default it writes to `console`
+(so doing nothing keeps the current behavior). Call `setLogger(...)` **once** at
+startup to redirect all SDK output — across core, mechanisms, http middleware,
+and extensions — to a file, `pino`/`winston`, or nowhere. No per-call wiring and
+no change to any SDK function signature.
+
+```ts
+import { setLogger, noopLogger, type Logger } from "@bankofai/x402-core";
+
+// Logger is console-shaped: debug / info / warn / error, variadic args.
+setLogger(myFileLogger);     // capture all SDK logs
+// setLogger(noopLogger);    // or silence the SDK entirely
+```
+
+| Example | What it shows | Run |
+|---|---|---|
+| [`logging`](logging) | redirect all SDK logs to `x402.log`; then silence | `pnpm dev:logging` |
+
+The example is keyless/offline — it triggers a real SDK log path and writes the
+output to `./x402.log`. See [`logging/README.md`](logging/README.md) for `pino` /
+`winston` adapters.
+
 ## Relationship to `tests/integrations`
 
 These examples are **onboarding templates**, not tests — no assertions, run by

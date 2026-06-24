@@ -857,6 +857,25 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
+  logging:
+    dependencies:
+      '@bankofai/x402-core':
+        specifier: workspace:*
+        version: link:../../../typescript_new/packages/core
+      '@bankofai/x402-extensions':
+        specifier: workspace:*
+        version: link:../../../typescript_new/packages/extensions
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.21
+      tsx:
+        specifier: ^4.19.2
+        version: 4.22.4
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
   servers/batch-settlement:
     dependencies:
       '@bankofai/x402-core':

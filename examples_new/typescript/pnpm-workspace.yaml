@@ -2,6 +2,7 @@ packages:
   - "clients/*"
   - "servers/*"
   - "facilitator/*"
+  - "logging"
   # Link the in-repo SDK packages so examples build against local source.
   - "../../typescript_new/packages/core"
   - "../../typescript_new/packages/extensions"
