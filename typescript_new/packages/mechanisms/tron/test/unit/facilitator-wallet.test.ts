@@ -130,6 +130,26 @@ describe("createFacilitatorTronSigner — wallet path", () => {
     expect(broadcast).not.toHaveBeenCalled();
   });
 
+  it("throws a clear contract error when the wallet returns malformed JSON", async () => {
+    const trigger = vi.fn(async () => ({ result: { result: true }, transaction: { raw_data: 1 } }));
+    const broadcast = vi.fn();
+    const wallet: FacilitatorTronWallet = {
+      getAddress: () => FAC_ADDR,
+      // Looks like JSON (leading "{") but is not parseable — a contract violation.
+      signTransaction: async () => "{not valid json",
+    };
+    const signer = await makeFacilitatorSigner(fakeTronWeb(trigger, broadcast), wallet);
+    await expect(
+      signer.writeContract({
+        address: PROXY,
+        abi: x402ExactPermit2ProxyABI as unknown as readonly Record<string, unknown>[],
+        functionName: "settle",
+        args: settleArgs,
+      }),
+    ).rejects.toThrow(/malformed JSON/);
+    expect(broadcast).not.toHaveBeenCalled();
+  });
+
   it("accepts a raw signature hex from the wallet", async () => {
     const trigger = vi.fn(async () => ({ result: { result: true }, transaction: { r: 1 } }));
     const broadcast = vi.fn(async () => ({ result: true, txid: "0x2" }));

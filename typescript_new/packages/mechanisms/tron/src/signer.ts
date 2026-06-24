@@ -446,7 +446,14 @@ function toSignedTransaction(
   }
   const trimmed = result.trim();
   if (trimmed.startsWith("{")) {
-    const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(trimmed) as Record<string, unknown>;
+    } catch (err) {
+      throw new Error(
+        `signTransaction returned a malformed JSON string: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
     if (Array.isArray((parsed as { signature?: unknown }).signature)) {
       return { ...unsigned, ...parsed };
     }
