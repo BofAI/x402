@@ -24,9 +24,9 @@ describe('getTronRpcUrl', () => {
     expect(getTronRpcUrl('tron:mainnet')).toBe('https://api.trongrid.io');
   });
 
-  it('returns default URL for non-mainnet networks when TRON_GRID_API_KEY is not set', () => {
-    expect(getTronRpcUrl('tron:nile')).toBe(TRON_RPC_URLS['tron:nile']);
-    expect(getTronRpcUrl('tron:shasta')).toBe(TRON_RPC_URLS['tron:shasta']);
+  it('returns fallback URL for nile/shasta when TRON_GRID_API_KEY is not set', () => {
+    expect(getTronRpcUrl('tron:nile')).toBe(TRON_FALLBACK_RPC_URLS['tron:nile']);
+    expect(getTronRpcUrl('tron:shasta')).toBe(TRON_FALLBACK_RPC_URLS['tron:shasta']);
   });
 
   it('returns default URL for non-mainnet networks when TRON_GRID_API_KEY is set', () => {

@@ -78,6 +78,10 @@ export const TRON_RPC_URLS: Record<string, string> = {
 /** Fallback RPC URLs used when TRON_GRID_API_KEY is not set */
 export const TRON_FALLBACK_RPC_URLS: Record<string, string> = {
   'tron:mainnet': 'https://hptg.bankofai.io',
+  // nileex is the official Nile endpoint and works without a TronGrid key
+  // (the default nile.trongrid.io host gets rate-limited unkeyed).
+  'tron:nile': 'https://api.nileex.io',
+  'tron:shasta': 'https://api.shasta.trongrid.io',
 };
 
 /**
