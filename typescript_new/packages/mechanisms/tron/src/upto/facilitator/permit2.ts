@@ -286,10 +286,11 @@ export async function settleUptoPermit2(
       payer,
       amount: settlementAmount.toString(),
     };
-  } catch {
+  } catch (err) {
     return {
       success: false,
       errorReason: errors.TRANSACTION_FAILED,
+      errorMessage: err instanceof Error ? err.message : String(err),
       transaction: "",
       network: payload.accepted.network,
       payer,

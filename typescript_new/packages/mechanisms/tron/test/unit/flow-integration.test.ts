@@ -288,6 +288,31 @@ describe("Permit2 (exact) end-to-end (in-process)", () => {
     expect(settle.transaction).toBe(FAKE_TX);
   });
 
+  it("surfaces the broadcast error in errorMessage when settle throws", async () => {
+    const chain: Chain = { balance: 10_000_000n, allowance: 10_000_000n };
+    const base = await facilitatorSigner(chain);
+    // Settlement broadcast fails — buildSignAndBroadcast packs the full TRON
+    // response into the thrown Error; the settle catch must surface it.
+    const throwing: FacilitatorTronSigner = {
+      ...base,
+      writeContract: async () => {
+        throw new Error("CONTRACT_VALIDATE_ERROR: account does not have enough energy");
+      },
+    };
+    const server = new ExactServer();
+    const facilitator = new ExactFacilitator(throwing);
+    const client = new ExactClient(await clientSigner(chain));
+
+    const req = await negotiate(server, facilitator, "exact");
+    const payload = await pay(client, req);
+    expect((await facilitator.verify(payload, req)).isValid).toBe(true);
+
+    const settle = await facilitator.settle(payload, req);
+    expect(settle.success).toBe(false);
+    expect(settle.errorReason).toBe("transaction_failed"); // category preserved
+    expect(settle.errorMessage).toContain("not have enough energy"); // detail surfaced
+  });
+
   it("rejects insufficient Permit2 allowance at verify", async () => {
     const chain: Chain = { balance: 10_000_000n, allowance: 0n };
     const { server, facilitator, client } = await wire(chain);
