@@ -117,6 +117,12 @@ export class GasFreeAPIClient {
     const response = await fetch(url, { headers, signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS) });
     const bodyText = await response.text();
 
+    if (response.status === 404) {
+      // Network not supported by GasFree service — return empty list gracefully
+      // instead of crashing fee/quote with a 500. Mirrors Python's get_providers.
+      console.warn(`GasFree service not available for this network (404): ${url}`);
+      return [];
+    }
     if (!response.ok) {
       console.error(`GasFree config API HTTP error ${response.status} at ${url}: ${bodyText}`);
       throw new Error(`GasFree config API error: ${response.status}`);

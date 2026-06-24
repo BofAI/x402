@@ -232,6 +232,16 @@ describe('GasFreeAPIClient', () => {
       .rejects.toThrow('null data');
   });
 
+  it('should return [] from getProviders on 404 (network unsupported)', async () => {
+    (fetch as any).mockResolvedValue({
+      ok: false,
+      status: 404,
+      text: async () => 'Not Found',
+    });
+
+    await expect(client.getProviders()).resolves.toEqual([]);
+  });
+
   it('should throw on null data from submit', async () => {
     (fetch as any).mockResolvedValue({
       ok: true,
