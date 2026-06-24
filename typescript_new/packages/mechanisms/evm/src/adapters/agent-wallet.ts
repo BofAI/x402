@@ -113,7 +113,9 @@ export type EvmAuthorizerSigner = Pick<ClientEvmSigner, "address" | "signTypedDa
  * @param wallet - The wallet that holds the authorizer key.
  * @returns A signer satisfying batch-settlement's `AuthorizerSigner`.
  */
-export async function createAuthorizerEvmSigner(wallet: ClientWallet): Promise<EvmAuthorizerSigner> {
+export async function createAuthorizerEvmSigner(
+  wallet: ClientWallet,
+): Promise<EvmAuthorizerSigner> {
   const address = (await wallet.getAddress()) as `0x${string}`;
   return {
     address,
