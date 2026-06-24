@@ -9,6 +9,7 @@ import {
 } from "../types/facilitator";
 import { z } from "../schemas";
 import { safeBase64Decode } from "../utils";
+import { log } from "../observability/logger";
 
 const DEFAULT_FACILITATOR_URL = "https://x402.org/facilitator";
 
@@ -221,7 +222,7 @@ function logExtensionResponsesHeader(response: Response): void {
       }
       sanitized[extensionKey] = filtered;
     }
-    console.log(`[x402] extension responses: ${JSON.stringify(sanitized)}`);
+    log.info(`[x402] extension responses: ${JSON.stringify(sanitized)}`);
   } catch {
     // Ignore malformed header
   }

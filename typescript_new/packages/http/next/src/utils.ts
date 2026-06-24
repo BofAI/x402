@@ -13,6 +13,7 @@ import {
 } from "@bankofai/x402-core/server";
 import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
 import { NextAdapter } from "./adapter";
+import { log } from "@bankofai/x402-core";
 
 /**
  * Result of createHttpServer
@@ -216,7 +217,7 @@ export async function handleSettlement(
     if (error instanceof FacilitatorResponseError) {
       return createFacilitatorErrorResponse(error);
     }
-    console.error("Settlement failed:", error);
+    log.error("Settlement failed:", error);
     // If settlement fails, return an error response
     return new NextResponse(JSON.stringify({}), {
       status: 402,

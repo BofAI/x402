@@ -15,6 +15,7 @@ import {
 import { SchemeNetworkServer, Network } from "@bankofai/x402-core/types";
 import { NextFunction, Request, Response } from "express";
 import { ExpressAdapter } from "./adapter";
+import { log } from "@bankofai/x402-core";
 
 /**
  * Set settlement overrides on the response for partial settlement.
@@ -128,7 +129,7 @@ export function paymentMiddlewareFromHTTPServer(
         validateBazaarRouteExtensions(httpServer.routes);
       })
       .catch(err => {
-        console.error("Failed to load bazaar extension:", err);
+        log.error("Failed to load bazaar extension:", err);
       });
   }
 
@@ -350,7 +351,7 @@ export function paymentMiddlewareFromHTTPServer(
             sendFacilitatorError(res, error);
             return;
           }
-          console.error(error);
+          log.error(error);
           // If settlement fails, don't send the buffered response
           bufferedCalls = [];
           res.status(402).json({});
@@ -475,7 +476,11 @@ export type {
   SchemeNetworkServer,
 } from "@bankofai/x402-core/types";
 
-export type { PaywallProvider, PaywallConfig, SettlementOverrides } from "@bankofai/x402-core/server";
+export type {
+  PaywallProvider,
+  PaywallConfig,
+  SettlementOverrides,
+} from "@bankofai/x402-core/server";
 
 export { RouteConfigurationError, SETTLEMENT_OVERRIDES_HEADER } from "@bankofai/x402-core/server";
 

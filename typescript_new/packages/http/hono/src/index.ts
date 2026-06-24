@@ -15,6 +15,7 @@ import {
 import { SchemeNetworkServer, Network } from "@bankofai/x402-core/types";
 import { Context, MiddlewareHandler } from "hono";
 import { HonoAdapter } from "./adapter";
+import { log } from "@bankofai/x402-core";
 
 /**
  * Set settlement overrides on the response for partial settlement.
@@ -129,7 +130,7 @@ export function paymentMiddlewareFromHTTPServer(
         validateBazaarRouteExtensions(httpServer.routes);
       })
       .catch(err => {
-        console.error("Failed to load bazaar extension:", err);
+        log.error("Failed to load bazaar extension:", err);
       });
   }
 
@@ -267,7 +268,7 @@ export function paymentMiddlewareFromHTTPServer(
             c.res = res;
             return;
           }
-          console.error(error);
+          log.error(error);
           // If settlement fails, return an error response
           res = c.json({}, 402);
         }
@@ -378,7 +379,11 @@ export type {
   SchemeNetworkServer,
 } from "@bankofai/x402-core/types";
 
-export type { PaywallProvider, PaywallConfig, SettlementOverrides } from "@bankofai/x402-core/server";
+export type {
+  PaywallProvider,
+  PaywallConfig,
+  SettlementOverrides,
+} from "@bankofai/x402-core/server";
 
 export { RouteConfigurationError, SETTLEMENT_OVERRIDES_HEADER } from "@bankofai/x402-core/server";
 

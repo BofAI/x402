@@ -15,6 +15,7 @@ import { SchemeNetworkServer, SchemePaymentRequiredContext } from "../types/mech
 import { Price, Network, ResourceServerExtension, ResourceServerExtensionHooks } from "../types";
 import type { DeepReadonly } from "../types/readonly";
 import { deepEqual, findByNetworkAndScheme } from "../utils";
+import { log } from "../observability/logger";
 import {
   assertAcceptsAllowlistedAfterExtensionEnrich,
   assertAcceptsAdditiveExtraAfterSchemeEnrich,
@@ -605,7 +606,7 @@ export class x402ResourceServer {
       } catch (error) {
         lastError = error as Error;
         // Log error but continue with other facilitators
-        console.warn(`Failed to fetch supported kinds from facilitator: ${error}`);
+        log.warn(`Failed to fetch supported kinds from facilitator: ${error}`);
       }
     }
 
@@ -685,7 +686,7 @@ export class x402ResourceServer {
     if (!SchemeNetworkServer) {
       // Fallback to placeholder implementation if no server registered
       // TODO: Remove this fallback once implementations are registered
-      console.warn(
+      log.warn(
         `No server implementation registered for scheme: ${scheme}, network: ${resourceConfig.network}`,
       );
       return requirements;
@@ -1340,7 +1341,7 @@ export class x402ResourceServer {
    */
   private warnResourceServerHookFailure(phase: string, label: string, error: unknown): void {
     const detail = error instanceof Error ? error.message : String(error);
-    console.warn(`[x402] Resource server ${phase} hook threw (${label}): ${detail}`);
+    log.warn(`[x402] Resource server ${phase} hook threw (${label}): ${detail}`);
   }
 
   /**
@@ -1352,7 +1353,7 @@ export class x402ResourceServer {
    */
   private warnExtensionHookFailure(extensionKey: string, hookName: string, error: unknown): void {
     const detail = error instanceof Error ? error.message : String(error);
-    console.warn(`[x402] extension "${extensionKey}" ${hookName} threw: ${detail}`);
+    log.warn(`[x402] extension "${extensionKey}" ${hookName} threw: ${detail}`);
   }
 
   /**

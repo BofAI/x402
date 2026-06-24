@@ -22,6 +22,7 @@ import {
 } from "@bankofai/x402-core/types";
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { FastifyAdapter } from "./adapter";
+import { log } from "@bankofai/x402-core";
 
 /**
  * Sets settlement overrides on a Fastify reply for partial settlement (upto scheme).
@@ -306,7 +307,7 @@ export function paymentMiddlewareFromHTTPServer(
         validateBazaarRouteExtensions(httpServer.routes);
       })
       .catch(err => {
-        console.error("Failed to load bazaar extension:", err);
+        log.error("Failed to load bazaar extension:", err);
       });
   }
 
@@ -473,7 +474,7 @@ export function paymentMiddlewareFromHTTPServer(
         reply.type("application/json");
         return JSON.stringify({ error: error.message });
       }
-      console.error(error);
+      log.error(error);
       reply.removeHeader(SETTLEMENT_OVERRIDES_HEADER);
       reply.status(402);
       reply.type("application/json");

@@ -16,6 +16,7 @@ import type {
   ResourceInfo,
 } from "@bankofai/x402-core/types";
 import type { DiscoveryExtension, DiscoveryInfo } from "./types";
+import { log } from "@bankofai/x402-core";
 import type { McpDiscoveryInfo } from "./mcp/types";
 import type { DiscoveredHTTPResource } from "./http/types";
 import type { DiscoveredMCPResource } from "./mcp/types";
@@ -504,9 +505,7 @@ export function extractDiscoveryInfo(
           if (validate) {
             const result = validateDiscoveryExtension(extension);
             if (!result.valid) {
-              console.warn(
-                `V2 discovery extension validation failed: ${result.errors?.join(", ")}`,
-              );
+              log.warn(`V2 discovery extension validation failed: ${result.errors?.join(", ")}`);
             } else {
               discoveryInfo = extension.info;
             }
@@ -514,7 +513,7 @@ export function extractDiscoveryInfo(
             discoveryInfo = extension.info;
           }
         } catch (error) {
-          console.warn(`V2 discovery extension extraction failed: ${error}`);
+          log.warn(`V2 discovery extension extraction failed: ${error}`);
         }
       }
     }

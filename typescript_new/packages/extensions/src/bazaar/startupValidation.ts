@@ -8,6 +8,7 @@
 import type { RoutesConfig } from "@bankofai/x402-core/server";
 import type { DiscoveryExtension } from "./types";
 import { validateDiscoveryExtension, validateDiscoveryExtensionSpec } from "./facilitator";
+import { log } from "@bankofai/x402-core";
 
 export { checkIfBazaarNeeded } from "@bankofai/x402-core/server";
 
@@ -62,7 +63,7 @@ export function validateBazaarRouteExtensions(routes: RoutesConfig): void {
     ) {
       const specResult = validateDiscoveryExtensionSpec(bazaarExt as Record<string, unknown>);
       if (!specResult.valid) {
-        console.warn(
+        log.warn(
           `x402: Route "${pattern}" has an invalid bazaar extension: ${specResult.errors?.join(", ")}`,
         );
         continue;
@@ -72,12 +73,12 @@ export function validateBazaarRouteExtensions(routes: RoutesConfig): void {
         extForSchema as unknown as DiscoveryExtension,
       );
       if (!schemaResult.valid) {
-        console.warn(
+        log.warn(
           `x402: Route "${pattern}" has an invalid bazaar extension: ${schemaResult.errors?.join(", ")}`,
         );
       }
     } else {
-      console.warn(
+      log.warn(
         `x402: Route "${pattern}" declares a bazaar extension but it is malformed ` +
           `(expected an object with "info" and "schema" fields)`,
       );

@@ -13,6 +13,7 @@ import {
 } from "@bankofai/x402-core/server";
 import { SchemeNetworkServer, Network } from "@bankofai/x402-core/types";
 import { NextRequest, NextResponse } from "next/server";
+import { log } from "@bankofai/x402-core";
 import {
   prepareHttpServer,
   createRequestContext,
@@ -95,7 +96,7 @@ export function paymentProxyFromHTTPServer(
         validateBazaarRouteExtensions(httpServer.routes);
       })
       .catch(err => {
-        console.error("Failed to load bazaar extension:", err);
+        log.error("Failed to load bazaar extension:", err);
       });
   }
 
@@ -300,7 +301,7 @@ export function withX402FromHTTPServer<T = unknown>(
         validateBazaarRouteExtensions(httpServer.routes);
       })
       .catch(err => {
-        console.error("Failed to load bazaar extension:", err);
+        log.error("Failed to load bazaar extension:", err);
       });
   }
 

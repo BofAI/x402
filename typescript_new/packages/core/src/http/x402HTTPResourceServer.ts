@@ -20,6 +20,7 @@ import {
   PaymentRequirements,
 } from "../types";
 import { x402Version } from "..";
+import { log } from "../observability/logger";
 
 export const SETTLEMENT_OVERRIDES_HEADER = "Settlement-Overrides";
 
@@ -944,7 +945,7 @@ export class x402HTTPResourceServer {
         config.extensions &&
         "bazaar" in config.extensions
       ) {
-        console.warn(
+        log.warn(
           `[x402] Route "${pattern}": Wildcard (*) patterns with bazaar discovery extensions ` +
             `will auto-generate parameter names (var1, var2, ...). ` +
             `Consider using named parameters instead (e.g. /weather/:city) for better discovery metadata.`,
@@ -1026,7 +1027,7 @@ export class x402HTTPResourceServer {
       try {
         return decodePaymentSignatureHeader(header);
       } catch (error) {
-        console.warn("Failed to decode PAYMENT-SIGNATURE header:", error);
+        log.warn("Failed to decode PAYMENT-SIGNATURE header:", error);
       }
     }
 

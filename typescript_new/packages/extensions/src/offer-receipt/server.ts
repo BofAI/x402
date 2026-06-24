@@ -15,6 +15,7 @@ import type {
 } from "@bankofai/x402-core/types";
 import type { PaymentRequirements } from "@bankofai/x402-core/types";
 import type { HTTPTransportContext } from "@bankofai/x402-core/http";
+import { log } from "@bankofai/x402-core";
 import {
   OFFER_RECEIPT,
   type OfferReceiptIssuer,
@@ -159,7 +160,7 @@ export function createOfferReceiptExtension(issuer: OfferReceiptIssuer): Resourc
         (context.transportContext as HTTPTransportContext)?.request?.adapter?.getUrl?.();
 
       if (!resourceUrl) {
-        console.warn("[offer-receipt] No resource URL available for signing offers");
+        log.warn("[offer-receipt] No resource URL available for signing offers");
         return undefined;
       }
 
@@ -173,7 +174,7 @@ export function createOfferReceiptExtension(issuer: OfferReceiptIssuer): Resourc
           const signedOffer = await issuer.issueOffer(resourceUrl, offerInput);
           offers.push(signedOffer);
         } catch (error) {
-          console.error(`[offer-receipt] Failed to sign offer for requirement ${i}:`, error);
+          log.error(`[offer-receipt] Failed to sign offer for requirement ${i}:`, error);
         }
       }
 
@@ -205,14 +206,14 @@ export function createOfferReceiptExtension(issuer: OfferReceiptIssuer): Resourc
       // Get payer from settlement result
       const payer = context.result.payer;
       if (!payer) {
-        console.warn("[offer-receipt] No payer available for signing receipt");
+        log.warn("[offer-receipt] No payer available for signing receipt");
         return undefined;
       }
 
       // Get network and transaction from settlement result
       const network = context.result.network;
       if (!network) {
-        console.warn("[offer-receipt] No network available for signing receipt");
+        log.warn("[offer-receipt] No network available for signing receipt");
         return undefined;
       }
       const transaction = context.result.transaction;
@@ -223,7 +224,7 @@ export function createOfferReceiptExtension(issuer: OfferReceiptIssuer): Resourc
       )?.request?.adapter?.getUrl?.();
 
       if (!resourceUrl) {
-        console.warn("[offer-receipt] No resource URL available for signing receipt");
+        log.warn("[offer-receipt] No resource URL available for signing receipt");
         return undefined;
       }
 
@@ -245,7 +246,7 @@ export function createOfferReceiptExtension(issuer: OfferReceiptIssuer): Resourc
           schema: RECEIPT_SCHEMA,
         };
       } catch (error) {
-        console.error("[offer-receipt] Failed to sign receipt:", error);
+        log.error("[offer-receipt] Failed to sign receipt:", error);
         return undefined;
       }
     },

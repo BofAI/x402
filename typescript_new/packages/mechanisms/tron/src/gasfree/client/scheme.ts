@@ -7,6 +7,7 @@ import {
 import { ClientTronSigner } from "../../signer";
 import { ExactGasFreePayload, GasFreeMessage } from "../../types";
 import { getDecimals } from "../../shared/tokens";
+import { log } from "@bankofai/x402-core";
 import { readFeeFromExtra, type FeeInfo } from "../../shared/fee";
 import { transferWithAuthorizationABI } from "../../constants";
 import {
@@ -285,7 +286,7 @@ export class ExactGasFreeTronScheme implements SchemeNetworkClient {
       throw new Error(`GasFree deadline too soon for ${network}: ${deadline} < ${minDeadline}`);
     }
     if (deadline > maxDeadline) {
-      console.warn(
+      log.warn(
         `[x402] GasFree deadline clamped: network=${network} from=${deadline} to=${maxDeadline}`,
       );
       return maxDeadline;
