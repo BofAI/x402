@@ -5,6 +5,7 @@
  * fees, activation), provider listing, transaction submission, and status
  * polling. Ported from the reference implementation.
  */
+import { log } from "@bankofai/x402-core";
 
 export interface GasFreeResponse<T> {
   code: number;
@@ -103,6 +104,13 @@ export class GasFreeAPIClient {
       headers: this.headers(),
       signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
     });
+    if (response.status === 404) {
+      // Network not served by GasFree — return an empty provider list so fee/quote
+      // degrades gracefully instead of crashing with HTTP 500. Mirrors Python's
+      // get_providers (commit ed1e6ef).
+      log.warn(`[x402] GasFree service not available for this network (404): ${url}`);
+      return [];
+    }
     const bodyText = await response.text();
     if (!response.ok) {
       throw new Error(`GasFree config API error: ${response.status} - ${bodyText}`);
