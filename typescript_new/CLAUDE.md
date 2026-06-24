@@ -84,6 +84,51 @@ PublicClient / TronWeb) — callers pass a structural wallet, not a chain client
   (`createEvmPublicClient` / `buildTronWeb`), not by injecting a chain client.
 - **Mechanisms must not cross-import** (`evm` ⊄ `tron`); shared types go in `core`.
 
+## Scheme API surface
+
+A payment scheme is a class implementing one of `core`'s role interfaces
+(`SchemeNetworkClient` / `SchemeNetworkServer` / `SchemeNetworkFacilitator`),
+shipped per role under its own subpath. EVM and TRON keep a symmetric surface.
+
+**Class naming — `<Scheme><Chain>Scheme`, the *same name across all three roles*,**
+disambiguated by the import subpath (mirrors upstream EVM):
+
+| Scheme | EVM | TRON |
+|---|---|---|
+| `exact` | `ExactEvmScheme` | `ExactTronScheme` |
+| `upto` | `UptoEvmScheme` | `UptoTronScheme` |
+| `batch-settlement` | `BatchSettlementEvmScheme` | `BatchSettlementTronScheme` |
+| `auth-capture` | `AuthCaptureEvmScheme` | — |
+| `exact_gasfree` | — | `ExactGasFreeTronScheme` |
+
+```ts
+// same identifier, the role is the subpath — not a suffix on the class name
+import { BatchSettlementTronScheme } from "@bankofai/x402-tron/batch-settlement/client";
+import { BatchSettlementTronScheme } from "@bankofai/x402-tron/batch-settlement/facilitator";
+```
+
+- **Don't invent role-suffixed class names** (`...ServerScheme`,
+  `...FacilitatorScheme`) or per-role aliases. The role is the subpath.
+- The **aggregate entry** (`./<scheme>`, e.g. `@bankofai/x402-tron/batch-settlement`)
+  re-exports **only the client scheme** plus scheme-specific helper functions/types
+  (`signVoucher`, `InMemoryClientChannelStorage`, `computeChannelId`, …). The
+  server/facilitator scheme classes are reached **via their role subpaths only**.
+
+**Registration — instantiate then `register`; no thin wrappers:**
+
+```ts
+facilitator.register(network, new BatchSettlementTronScheme(signer, authorizerSigner));
+```
+
+- A `register<Scheme><Chain>Scheme(target, config)` helper exists **only** when it
+  encapsulates non-public internals — never as a pass-through. Current set:
+  - `registerExactEvmScheme` / `registerExactTronScheme` — `exact`, V1 back-compat.
+  - `registerExactGasFreeTronScheme` — wires the GasFree relayer API clients
+    (`createGasFreeApiClients`, base-URL registry) callers shouldn't assemble by hand.
+- `upto`, `batch-settlement`, `auth-capture` have **no** register helper — use
+  `new + register`. Don't add thin ones (they were removed deliberately to keep the
+  EVM/TRON surface symmetric).
+
 ## Conventions (quick)
 
 - ESM-only, `.js` suffixes on relative imports; **no default exports**; **no `any`**.
