@@ -20,7 +20,7 @@ import * as errors from "./errors";
  * Verifies the GasFree permit (terms + TIP-712 signature) and settles it by
  * submitting through the GasFree relayer API, which pays energy on-chain.
  */
-export class ExactGasFreeScheme implements SchemeNetworkFacilitator {
+export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
   readonly scheme = "exact_gasfree";
   readonly caipFamily = "tron:*";
 

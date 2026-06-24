@@ -69,7 +69,7 @@ function readRequestedDeadline(context?: PaymentPayloadContext): number | undefi
  * Builds and signs a GasFreeController `PermitTransfer` so a service provider
  * can relay the transfer and pay energy — the payer needs no TRX.
  */
-export class ExactGasFreeScheme implements SchemeNetworkClient {
+export class ExactGasFreeTronScheme implements SchemeNetworkClient {
   readonly scheme = "exact_gasfree";
 
   /**

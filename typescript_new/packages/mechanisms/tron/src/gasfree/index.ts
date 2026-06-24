@@ -1,4 +1,4 @@
-export { ExactGasFreeScheme } from "./client/scheme";
+export { ExactGasFreeTronScheme } from "./client/scheme";
 
 // GasFree shared primitives
 export {

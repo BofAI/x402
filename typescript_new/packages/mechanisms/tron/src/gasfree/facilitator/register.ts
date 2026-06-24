@@ -4,7 +4,7 @@ import { FacilitatorTronSigner } from "../../signer";
 import { ExactTronFeeConfig } from "../../shared/fee";
 import { GasFreeAPIClient, createGasFreeApiClients } from "../../shared/gasfree/api";
 import { GASFREE_API_BASE_URLS } from "../../shared/gasfree/config";
-import { ExactGasFreeScheme } from "./scheme";
+import { ExactGasFreeTronScheme } from "./scheme";
 
 /**
  * Configuration for registering the GasFree facilitator scheme.
@@ -35,7 +35,7 @@ export function registerExactGasFreeTronScheme(
     config.apiClients ?? createGasFreeApiClients(config.apiBaseUrls ?? GASFREE_API_BASE_URLS);
   facilitator.register(
     config.networks,
-    new ExactGasFreeScheme(config.signer, apiClients, config.fee),
+    new ExactGasFreeTronScheme(config.signer, apiClients, config.fee),
   );
   return facilitator;
 }

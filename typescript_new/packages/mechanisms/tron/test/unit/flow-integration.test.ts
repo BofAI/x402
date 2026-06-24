@@ -4,9 +4,9 @@ import { TronWeb } from "tronweb";
 import { ExactTronScheme as ExactServer } from "../../src/exact/server/scheme";
 import { ExactTronScheme as ExactFacilitator } from "../../src/exact/facilitator/scheme";
 import { ExactTronScheme as ExactClient } from "../../src/exact/client/scheme";
-import { ExactGasFreeScheme as GasFreeServer } from "../../src/gasfree/server/scheme";
-import { ExactGasFreeScheme as GasFreeFacilitator } from "../../src/gasfree/facilitator/scheme";
-import { ExactGasFreeScheme as GasFreeClient } from "../../src/gasfree/client/scheme";
+import { ExactGasFreeTronScheme as GasFreeServer } from "../../src/gasfree/server/scheme";
+import { ExactGasFreeTronScheme as GasFreeFacilitator } from "../../src/gasfree/facilitator/scheme";
+import { ExactGasFreeTronScheme as GasFreeClient } from "../../src/gasfree/client/scheme";
 import {
   createClientTronSigner,
   createFacilitatorTronSigner,

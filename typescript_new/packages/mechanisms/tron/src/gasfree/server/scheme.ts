@@ -21,7 +21,7 @@ import { buildFeeInfo, type ExactTronFeeConfig } from "../../shared/fee";
  * from the token registry; fee terms come from the facilitator's advertised
  * fee config.
  */
-export class ExactGasFreeScheme implements SchemeNetworkServer {
+export class ExactGasFreeTronScheme implements SchemeNetworkServer {
   readonly scheme = "exact_gasfree";
 
   /**

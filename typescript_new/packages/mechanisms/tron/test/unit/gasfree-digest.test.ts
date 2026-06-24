@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { TronWeb } from "tronweb";
-import { ExactGasFreeScheme as ClientScheme } from "../../src/gasfree/client/scheme";
-import { ExactGasFreeScheme as FacilitatorScheme } from "../../src/gasfree/facilitator/scheme";
+import { ExactGasFreeTronScheme as ClientScheme } from "../../src/gasfree/client/scheme";
+import { ExactGasFreeTronScheme as FacilitatorScheme } from "../../src/gasfree/facilitator/scheme";
 import { createClientTronSigner, createFacilitatorTronSigner } from "../../src/signer";
 import { buildTronWeb } from "../../src/rpc";
 import { privateKeyTronWallet } from "./helpers";

@@ -1,6 +1,6 @@
 import { x402ResourceServer } from "@bankofai/x402-core/server";
 import { Network } from "@bankofai/x402-core/types";
-import { ExactGasFreeScheme } from "./scheme";
+import { ExactGasFreeTronScheme } from "./scheme";
 
 /**
  * Configuration for registering the GasFree server scheme.
@@ -21,9 +21,9 @@ export function registerExactGasFreeTronScheme(
   config: TronGasFreeResourceServerConfig = {},
 ): x402ResourceServer {
   if (config.networks && config.networks.length > 0) {
-    config.networks.forEach(network => server.register(network, new ExactGasFreeScheme()));
+    config.networks.forEach(network => server.register(network, new ExactGasFreeTronScheme()));
   } else {
-    server.register("tron:*", new ExactGasFreeScheme());
+    server.register("tron:*", new ExactGasFreeTronScheme());
   }
 
   return server;

@@ -3,7 +3,7 @@ import { Network } from "@bankofai/x402-core/types";
 import { ClientTronSigner } from "../../signer";
 import { GasFreeAPIClient, createGasFreeApiClients } from "../../shared/gasfree/api";
 import { GASFREE_API_BASE_URLS } from "../../shared/gasfree/config";
-import { ExactGasFreeScheme } from "./scheme";
+import { ExactGasFreeTronScheme } from "./scheme";
 
 /**
  * GasFree register-time scheme options. Either pass ready-made `apiClients`, or
@@ -47,7 +47,7 @@ export function registerExactGasFreeTronScheme(
   const apiClients =
     config.schemeOptions?.apiClients ??
     createGasFreeApiClients(config.schemeOptions?.apiBaseUrls ?? GASFREE_API_BASE_URLS);
-  const scheme = new ExactGasFreeScheme(config.signer, { apiClients });
+  const scheme = new ExactGasFreeTronScheme(config.signer, { apiClients });
 
   if (config.networks && config.networks.length > 0) {
     config.networks.forEach(network => client.register(network, scheme));

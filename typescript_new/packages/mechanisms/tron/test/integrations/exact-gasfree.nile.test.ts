@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { ExactGasFreeScheme as GasFreeServer } from "../../src/gasfree/server/scheme";
-import { ExactGasFreeScheme as GasFreeFacilitator } from "../../src/gasfree/facilitator/scheme";
-import { ExactGasFreeScheme as GasFreeClient } from "../../src/gasfree/client/scheme";
+import { ExactGasFreeTronScheme as GasFreeServer } from "../../src/gasfree/server/scheme";
+import { ExactGasFreeTronScheme as GasFreeFacilitator } from "../../src/gasfree/facilitator/scheme";
+import { ExactGasFreeTronScheme as GasFreeClient } from "../../src/gasfree/client/scheme";
 import {
   createClientTronSigner,
   createFacilitatorTronSigner,

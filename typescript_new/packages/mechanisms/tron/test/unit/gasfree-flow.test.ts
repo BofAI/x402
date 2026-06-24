@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { TronWeb } from "tronweb";
-import { ExactGasFreeScheme as ClientScheme } from "../../src/gasfree/client/scheme";
-import { ExactGasFreeScheme as FacilitatorScheme } from "../../src/gasfree/facilitator/scheme";
+import { ExactGasFreeTronScheme as ClientScheme } from "../../src/gasfree/client/scheme";
+import { ExactGasFreeTronScheme as FacilitatorScheme } from "../../src/gasfree/facilitator/scheme";
 import type { ClientTronSigner, FacilitatorTronSigner } from "../../src/signer";
 import type { ExactGasFreePayload } from "../../src/types";
 import type { GasFreeAddressInfo, GasFreeProvider } from "../../src/shared/gasfree/api";
