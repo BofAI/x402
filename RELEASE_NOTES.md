@@ -1,3 +1,17 @@
+# v0.6.1 — TRON exact_permit Wallet CLI Fix
+
+Release date: June 24, 2026
+
+## Changes
+
+- **Python TRON facilitator signer**: restored wallet CLI / `agent-wallet` transaction signing for contract writes while keeping active permission support through `TRON_PERMISSION_ID` (default `2`).
+- **`exact_permit` settlement**: facilitator settlement no longer requires `TRON_FACILITATOR_PRIVATE_KEY` / `TRON_PRIVATE_KEY` when the active wallet is already available through wallet CLI.
+- **Version alignment**: Python package metadata, runtime `bankofai.x402.__version__`, and TypeScript package metadata are aligned to `0.6.1`.
+
+## Verification
+
+- Python signer regression tests passed for TRON facilitator contract writes and existing client signer wallet payload behavior.
+
 # v0.6.0 — TypeScript / Python Facilitator Parity
 
 Release date: May 13, 2026
