@@ -10,7 +10,11 @@ import {
 } from "@bankofai/x402-core/types";
 import type { DeepReadonly } from "@bankofai/x402-core/types";
 import type { SettleContext, SettleResultContext } from "@bankofai/x402-core/server";
-import { convertToTokenAmount, numberToDecimalString, parseMoneyString } from "@bankofai/x402-core/utils";
+import {
+  convertToTokenAmount,
+  numberToDecimalString,
+  parseMoneyString,
+} from "@bankofai/x402-core/utils";
 import type { FacilitatorClient } from "@bankofai/x402-core/server";
 import { normalizeAddressForSigning } from "../../utils";
 import { getDefaultAsset } from "../../shared/defaultAssets";
@@ -55,7 +59,7 @@ export interface BatchSettlementRequestContext {
 /**
  * Server-side implementation of the `batch-settlement` scheme for TRON networks.
  */
-export class BatchSettlementServerScheme implements SchemeNetworkServer {
+export class BatchSettlementTronScheme implements SchemeNetworkServer {
   readonly scheme = BATCH_SETTLEMENT_SCHEME;
   readonly schemeHooks: SchemeServerHooks;
 
@@ -215,7 +219,7 @@ export class BatchSettlementServerScheme implements SchemeNetworkServer {
    * @param parser - A parser function to try before the default USD→token conversion.
    * @returns `this` for chaining.
    */
-  registerMoneyParser(parser: MoneyParser): BatchSettlementServerScheme {
+  registerMoneyParser(parser: MoneyParser): BatchSettlementTronScheme {
     this.moneyParsers.push(parser);
     return this;
   }

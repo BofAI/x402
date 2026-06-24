@@ -2,7 +2,7 @@ import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { TronWeb } from "tronweb";
 import { privateKeyTronWallet } from "../helpers";
 import { normalizeAddressForSigning } from "../../../src/utils";
-import { BatchSettlementServerScheme } from "../../../src/batch-settlement/server/scheme";
+import { BatchSettlementTronScheme } from "../../../src/batch-settlement/server/scheme";
 import { InMemoryChannelStorage, type Channel } from "../../../src/batch-settlement/server/storage";
 import { computeChannelId } from "../../../src/shared/batch-settlement/utils";
 import { signVoucher } from "../../../src/batch-settlement/client/voucher";
@@ -123,7 +123,7 @@ function storedChannel(
 }
 
 describe("batch-settlement server hooks (TRON, offline)", () => {
-  let server: BatchSettlementServerScheme;
+  let server: BatchSettlementTronScheme;
   let storage: InMemoryChannelStorage;
   let signer: ClientTronSigner;
   let payer: string;
@@ -143,7 +143,7 @@ describe("batch-settlement server hooks (TRON, offline)", () => {
 
   beforeEach(() => {
     storage = new InMemoryChannelStorage();
-    server = new BatchSettlementServerScheme(RECEIVER, { storage });
+    server = new BatchSettlementTronScheme(RECEIVER, { storage });
   });
 
   // ---- onBeforeVerify ----

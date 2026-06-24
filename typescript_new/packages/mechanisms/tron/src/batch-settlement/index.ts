@@ -1,7 +1,6 @@
 // Client
 export {
   BatchSettlementTronScheme,
-  registerBatchSettlementTronScheme,
   InMemoryClientChannelStorage,
   signVoucher,
   refundChannel,
@@ -10,7 +9,6 @@ export {
   recoverChannel,
 } from "./client";
 export type {
-  BatchSettlementTronClientConfig,
   BatchSettlementClientContext,
   BatchSettlementClientDeps,
   BatchSettlementDepositPolicy,
@@ -20,19 +18,13 @@ export type {
   RefundOptions,
 } from "./client";
 
-// Facilitator
-export {
-  BatchSettlementTronFacilitatorScheme,
-  registerBatchSettlementTronFacilitatorScheme,
-} from "./facilitator";
-export type { TronBatchSettlementFacilitatorConfig } from "./facilitator";
+// Server / Facilitator scheme classes are intentionally NOT re-exported here —
+// like exact/upto (and EVM), the aggregate entry exposes only the client scheme.
+// Import the server/facilitator scheme via their role subpaths
+// (`./batch-settlement/server`, `./batch-settlement/facilitator`).
 
-// Server
-export {
-  BatchSettlementServerScheme,
-  BatchSettlementChannelManager,
-  InMemoryChannelStorage,
-} from "./server";
+// Server helpers
+export { BatchSettlementChannelManager, InMemoryChannelStorage } from "./server";
 export type {
   BatchSettlementTronSchemeServerConfig,
   BatchSettlementRequestContext,

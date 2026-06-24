@@ -10,8 +10,6 @@ export {
 
 // Upto client
 export { UptoTronScheme } from "./upto/client/scheme";
-export { registerUptoTronScheme } from "./upto/client/register";
-export type { UptoTronClientConfig } from "./upto/client/register";
 export { createUptoPermit2Payload } from "./upto/client/permit2";
 
 // Signers

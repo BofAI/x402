@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { TronWeb } from "tronweb";
 import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
-import { BatchSettlementServerScheme } from "../../src/batch-settlement/server/scheme";
+import { BatchSettlementTronScheme } from "../../src/batch-settlement/server/scheme";
 import { BatchSettlementTronScheme as BatchSettlementFacilitator } from "../../src/batch-settlement/facilitator/scheme";
 import { BatchSettlementTronScheme as BatchSettlementClient } from "../../src/batch-settlement/client/scheme";
 import type {
@@ -111,7 +111,7 @@ describe.skipIf(!env)("Nile e2e — batch-settlement contract direct paths", () 
       process.env.AUTHORIZER_PRIVATE_KEY ?? e.facilitatorPk,
     );
 
-    const server = new BatchSettlementServerScheme(e.payTo, {
+    const server = new BatchSettlementTronScheme(e.payTo, {
       receiverAuthorizerSigner: authorizer,
     });
     facilitator = new BatchSettlementFacilitator(facSigner, authorizer);

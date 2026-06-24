@@ -1,5 +1,9 @@
 import type { SettleResponse } from "@bankofai/x402-core/types";
-import type { SettleContext, SettleFailureContext, SettleResultContext } from "@bankofai/x402-core/server";
+import type {
+  SettleContext,
+  SettleFailureContext,
+  SettleResultContext,
+} from "@bankofai/x402-core/server";
 import { signClaimBatch, signRefund } from "../../shared/batch-settlement/authorizerSigner";
 import {
   isBatchSettlementDepositPayload,
@@ -9,7 +13,7 @@ import {
 import type { BatchSettlementPaymentResponseExtra, BatchSettlementVoucherClaim } from "../types";
 import { computeChannelId } from "../../shared/batch-settlement/utils";
 import * as Errors from "../errors";
-import type { BatchSettlementServerScheme } from "./scheme";
+import type { BatchSettlementTronScheme } from "./scheme";
 import type { Channel } from "./storage";
 import {
   parseRefundSettlementSnapshot,
@@ -50,12 +54,12 @@ function channelStateExtra(
  * middleware responds immediately. Cooperative refund payloads proceed to settlement
  * enrichment before facilitator settlement.
  *
- * @param scheme - Owning `BatchSettlementServerScheme` instance for storage access.
+ * @param scheme - Owning `BatchSettlementTronScheme` instance for storage access.
  * @param ctx - Settle lifecycle context (payload and requirements).
  * @returns Nothing to proceed; `abort` to fail; `skip` with a result to short-circuit settlement.
  */
 export async function handleBeforeSettle(
-  scheme: BatchSettlementServerScheme,
+  scheme: BatchSettlementTronScheme,
   ctx: SettleContext,
 ): Promise<
   void | { abort: true; reason: string; message?: string } | { skip: true; result: SettleResponse }
@@ -163,12 +167,12 @@ export async function handleBeforeSettle(
 /**
  * Enriches cooperative refund vouchers with facilitator settlement fields.
  *
- * @param scheme - Owning `BatchSettlementServerScheme` instance for storage and signer access.
+ * @param scheme - Owning `BatchSettlementTronScheme` instance for storage and signer access.
  * @param ctx - Settlement context for the current payment.
  * @returns Additive refund settlement fields, or nothing for non-refund payloads.
  */
 export async function handleEnrichSettlementPayload(
-  scheme: BatchSettlementServerScheme,
+  scheme: BatchSettlementTronScheme,
   ctx: SettleContext,
 ): Promise<Record<string, unknown> | void> {
   const { paymentPayload, requirements } = ctx;
@@ -261,7 +265,7 @@ export async function handleEnrichSettlementPayload(
  * Updates channel state to reflect the settlement outcome — adjusting charged amounts,
  * balances, and handling cooperative-refund cleanup (channel record deletion).
  *
- * @param scheme - Owning `BatchSettlementServerScheme` instance for storage access.
+ * @param scheme - Owning `BatchSettlementTronScheme` instance for storage access.
  * @param ctx - Post-settle lifecycle context.
  * @param ctx.paymentPayload - Payment payload that was settled (possibly rewritten).
  * @param ctx.requirements - Requirements used for settlement.
@@ -269,7 +273,7 @@ export async function handleEnrichSettlementPayload(
  * @returns Resolves when session updates are complete (no return value).
  */
 export async function handleAfterSettle(
-  scheme: BatchSettlementServerScheme,
+  scheme: BatchSettlementTronScheme,
   ctx: SettleResultContext,
 ): Promise<void> {
   const { paymentPayload, requirements, result } = ctx;
@@ -366,11 +370,11 @@ export async function handleAfterSettle(
 /**
  * Cleanup hook: clears this request's reservation after settlement throws.
  *
- * @param scheme - Owning `BatchSettlementServerScheme` instance.
+ * @param scheme - Owning `BatchSettlementTronScheme` instance.
  * @param ctx - Settle failure context for the current payment.
  */
 export async function handleSettleFailure(
-  scheme: BatchSettlementServerScheme,
+  scheme: BatchSettlementTronScheme,
   ctx: SettleFailureContext,
 ): Promise<void> {
   await scheme.clearPendingRequest(ctx.paymentPayload);
@@ -379,12 +383,12 @@ export async function handleSettleFailure(
 /**
  * Supplies server-owned settlement response fields from the channel snapshot.
  *
- * @param scheme - Owning `BatchSettlementServerScheme` instance for snapshot access.
+ * @param scheme - Owning `BatchSettlementTronScheme` instance for snapshot access.
  * @param ctx - Settlement result context for the current payment.
  * @returns Additive response extra fields, or nothing when no snapshot exists.
  */
 export async function handleEnrichSettlementResponse(
-  scheme: BatchSettlementServerScheme,
+  scheme: BatchSettlementTronScheme,
   ctx: SettleResultContext,
 ): Promise<Record<string, unknown> | void> {
   const raw = ctx.paymentPayload.payload;

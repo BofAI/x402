@@ -11,7 +11,7 @@
  * normalizes that internally — here we only forward the wallet's signature.
  */
 import { createAuthorizerTronSigner, createFacilitatorTronSigner } from "@bankofai/x402-tron";
-import { registerBatchSettlementTronFacilitatorScheme } from "@bankofai/x402-tron/batch-settlement/facilitator";
+import { BatchSettlementTronScheme } from "@bankofai/x402-tron/batch-settlement/facilitator";
 import type { x402Facilitator } from "@bankofai/x402-core/facilitator";
 
 import { tryResolveWallet } from "../env.js";
@@ -41,11 +41,10 @@ export async function registerTron(facilitator: x402Facilitator): Promise<boolea
   });
   const authorizerSigner = await createAuthorizerTronSigner(wallet);
 
-  registerBatchSettlementTronFacilitatorScheme(facilitator, {
-    signer,
-    authorizerSigner,
-    networks: TRON_NETWORK,
-  });
+  facilitator.register(
+    TRON_NETWORK,
+    new BatchSettlementTronScheme(signer, authorizerSigner),
+  );
   console.info(
     `[tron] facilitator registered ${TRON_NETWORK} batch-settlement (${authorizerSigner.address})`,
   );

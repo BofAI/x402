@@ -25,7 +25,7 @@ import {
 } from "../../shared/batch-settlement/utils";
 import { validateChannelConfig } from "../facilitator/utils";
 import * as Errors from "../errors";
-import type { BatchSettlementServerScheme } from "./scheme";
+import type { BatchSettlementTronScheme } from "./scheme";
 import type { Channel, PendingRequest } from "./storage";
 import { readExtraNumber, readExtraString } from "./utils";
 
@@ -70,12 +70,12 @@ function isPendingLive(pending: PendingRequest | undefined, now: number): boolea
  * When no local channel record exists, verification is delegated to the facilitator (which checks onchain state);
  * `handleAfterVerify` then rebuilds the channel record from the verify response.
  *
- * @param scheme - Owning `BatchSettlementServerScheme` instance for storage access.
+ * @param scheme - Owning `BatchSettlementTronScheme` instance for storage access.
  * @param ctx - Verify lifecycle context (payload, requirements, and related state).
  * @returns Nothing to continue verification; or an object with `abort` to fail with a reason.
  */
 export async function handleBeforeVerify(
-  scheme: BatchSettlementServerScheme,
+  scheme: BatchSettlementTronScheme,
   ctx: VerifyContext,
 ): Promise<
   void | { abort: true; reason: string; message?: string } | { skip: true; result: VerifyResponse }
@@ -185,11 +185,11 @@ export async function handleBeforeVerify(
 /**
  * Adds server channel state to corrective 402 responses for cumulative mismatches.
  *
- * @param scheme - Owning `BatchSettlementServerScheme` instance for storage access.
+ * @param scheme - Owning `BatchSettlementTronScheme` instance for storage access.
  * @param ctx - Payment-required response context.
  */
 export async function handleEnrichPaymentRequiredResponse(
-  scheme: BatchSettlementServerScheme,
+  scheme: BatchSettlementTronScheme,
   ctx: SchemePaymentRequiredContext,
 ): Promise<void> {
   if (ctx.error !== Errors.ErrCumulativeAmountMismatch) {
@@ -251,7 +251,7 @@ export async function handleEnrichPaymentRequiredResponse(
  * For refund payloads, additionally returns a `skipHandler` directive so that
  * the resource server bypasses the application handler and settles inline.
  *
- * @param scheme - Owning `BatchSettlementServerScheme` instance for storage access.
+ * @param scheme - Owning `BatchSettlementTronScheme` instance for storage access.
  * @param ctx - Post-verify lifecycle context.
  * @param ctx.paymentPayload - Incoming payment payload that was verified.
  * @param ctx.requirements - Requirements used for verification.
@@ -259,7 +259,7 @@ export async function handleEnrichPaymentRequiredResponse(
  * @returns Optional `skipHandler` directive when this is a refund voucher; otherwise void.
  */
 export async function handleAfterVerify(
-  scheme: BatchSettlementServerScheme,
+  scheme: BatchSettlementTronScheme,
   ctx: VerifyResultContext,
 ): Promise<void | { skipHandler: true; response?: { contentType?: string; body?: unknown } }> {
   const { paymentPayload, result } = ctx;
@@ -350,11 +350,11 @@ export async function handleAfterVerify(
 /**
  * Cleanup hook: clears this request's reservation after verify throws.
  *
- * @param scheme - Owning `BatchSettlementServerScheme` instance.
+ * @param scheme - Owning `BatchSettlementTronScheme` instance.
  * @param ctx - Verify failure context for the current payment.
  */
 export async function handleVerifyFailure(
-  scheme: BatchSettlementServerScheme,
+  scheme: BatchSettlementTronScheme,
   ctx: VerifyFailureContext,
 ): Promise<void> {
   await scheme.clearPendingRequest(ctx.paymentPayload);
@@ -363,11 +363,11 @@ export async function handleVerifyFailure(
 /**
  * Cleanup hook: clears this request's reservation when handler work is canceled.
  *
- * @param scheme - Owning `BatchSettlementServerScheme` instance.
+ * @param scheme - Owning `BatchSettlementTronScheme` instance.
  * @param ctx - Verified-payment cancellation context.
  */
 export async function handleVerifiedPaymentCanceled(
-  scheme: BatchSettlementServerScheme,
+  scheme: BatchSettlementTronScheme,
   ctx: VerifiedPaymentCanceledContext,
 ): Promise<void> {
   if (ctx.reason !== "handler_threw" && ctx.reason !== "handler_failed") {
@@ -387,7 +387,7 @@ export async function handleVerifiedPaymentCanceled(
  * @returns A {@link VerifyResponse}, or `undefined` to fall back to facilitator verification.
  */
 async function verifyVoucherLocally(
-  scheme: BatchSettlementServerScheme,
+  scheme: BatchSettlementTronScheme,
   raw: BatchSettlementVoucherPayload,
   requirements: VerifyContext["requirements"],
   channel: Channel | undefined,

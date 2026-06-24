@@ -11,7 +11,7 @@
  * Permit2 token (no ERC-3009), so the client deposits via Permit2 — the payer
  * needs a one-time `approve(Permit2)` (the shipped client auto-broadcasts it).
  */
-import { BatchSettlementServerScheme } from "@bankofai/x402-tron/batch-settlement/server";
+import { BatchSettlementTronScheme } from "@bankofai/x402-tron/batch-settlement/server";
 import type { FacilitatorClient } from "@bankofai/x402-core/server";
 import type { x402ResourceServer } from "@bankofai/x402-express";
 
@@ -39,7 +39,7 @@ export function registerTron(
   facilitator: FacilitatorClient,
 ): StoppableManager[] {
   const payTo = process.env.TRON_ADDRESS as string;
-  const scheme = new BatchSettlementServerScheme(payTo);
+  const scheme = new BatchSettlementTronScheme(payTo);
   resourceServer.register(TRON_NETWORK, scheme);
 
   const manager = scheme.createChannelManager(facilitator, TRON_NETWORK);

@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { TronWeb } from "tronweb";
 import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
 import type { FacilitatorClient } from "@bankofai/x402-core/server";
-import { BatchSettlementServerScheme } from "../../src/batch-settlement/server/scheme";
+import { BatchSettlementTronScheme } from "../../src/batch-settlement/server/scheme";
 import { BatchSettlementChannelManager } from "../../src/batch-settlement/server/channelManager";
 import { BatchSettlementTronScheme as BatchSettlementFacilitator } from "../../src/batch-settlement/facilitator/scheme";
 import { BatchSettlementTronScheme as BatchSettlementClient } from "../../src/batch-settlement/client/scheme";
@@ -71,7 +71,7 @@ function authorizerFromKey(tronWeb: TronWeb, privateKey: string): TronAuthorizer
 
 describe.skipIf(!env)("Nile e2e — batch-settlement lifecycle", () => {
   const e = env!;
-  let server: BatchSettlementServerScheme;
+  let server: BatchSettlementTronScheme;
   let facilitator: BatchSettlementFacilitator;
   let client: BatchSettlementClient;
   let clientSigner: ClientTronSigner;
@@ -102,7 +102,7 @@ describe.skipIf(!env)("Nile e2e — batch-settlement lifecycle", () => {
       .map(b => b.toString(16).padStart(2, "0"))
       .join("")}` as `0x${string}`;
 
-    server = new BatchSettlementServerScheme(e.payTo, { receiverAuthorizerSigner: authorizer });
+    server = new BatchSettlementTronScheme(e.payTo, { receiverAuthorizerSigner: authorizer });
     facilitator = new BatchSettlementFacilitator(facSigner, authorizer);
     client = new BatchSettlementClient(clientSigner, { salt });
 

@@ -1,4 +1,4 @@
-export { BatchSettlementServerScheme } from "./scheme";
+export { BatchSettlementTronScheme } from "./scheme";
 export type {
   BatchSettlementTronSchemeServerConfig,
   BatchSettlementRequestContext,

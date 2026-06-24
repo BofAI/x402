@@ -6,14 +6,14 @@ import type {
 } from "@bankofai/x402-core/types";
 import type { FacilitatorClient } from "@bankofai/x402-core/server";
 import type { BatchSettlementVoucherClaim } from "../types";
-import type { BatchSettlementServerScheme } from "./scheme";
+import type { BatchSettlementTronScheme } from "./scheme";
 import { computeChannelId } from "../../shared/batch-settlement/utils";
 import { BATCH_SETTLEMENT_SCHEME } from "../../shared/batch-settlement/constants";
 import { signClaimBatch, signRefund } from "../../shared/batch-settlement/authorizerSigner";
 import type { Channel } from "./storage";
 
 export interface ChannelManagerConfig {
-  scheme: BatchSettlementServerScheme;
+  scheme: BatchSettlementTronScheme;
   facilitator: FacilitatorClient;
   receiver: string;
   token: string;
@@ -103,7 +103,7 @@ function hasLivePendingRequest(channel: Channel, now = Date.now()): boolean {
  * `refundIdleChannels()`) and an optional interval runner.
  */
 export class BatchSettlementChannelManager {
-  private readonly scheme: BatchSettlementServerScheme;
+  private readonly scheme: BatchSettlementTronScheme;
   private readonly facilitator: FacilitatorClient;
   private readonly receiver: string;
   private readonly token: string;
