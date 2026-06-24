@@ -30,7 +30,6 @@ class TronFacilitatorSigner(FacilitatorSigner):
         self._wallet = wallet
         self._address: str | None = None
         self._async_tron_clients: dict[str, Any] = {}
-        self._private_key: Any = None  # tronpy PrivateKey for direct signing
         # TRON_PERMISSION_ID: 0=owner, 2=active (default). Multi-sig accounts
         # with owner threshold > 1 must use permission_id=2 (active).
         self._permission_id: int = int(os.environ.get("TRON_PERMISSION_ID", "2"))
@@ -44,17 +43,6 @@ class TronFacilitatorSigner(FacilitatorSigner):
         wallet = await provider.get_active_wallet()
         signer = cls(wallet)
         signer.set_address(await wallet.get_address())
-
-        # Resolve private key for direct tronpy signing (bypasses agent-wallet
-        # sign_transaction which requires raw_data_hex that tronpy does not expose).
-        # Priority: TRON_FACILITATOR_PRIVATE_KEY env → TRON_PRIVATE_KEY env
-        raw_pk = os.environ.get("TRON_FACILITATOR_PRIVATE_KEY") or os.environ.get(
-            "TRON_PRIVATE_KEY"
-        )
-        if raw_pk:
-            from tronpy.keys import PrivateKey as TronPrivateKey
-
-            signer._private_key = TronPrivateKey(bytes.fromhex(raw_pk))
         return signer
 
     @staticmethod
@@ -305,15 +293,10 @@ class TronFacilitatorSigner(FacilitatorSigner):
                 .fee_limit(1_000_000_000)
             )
             txn = await txn_builder.build()
-
-            # Sign directly with tronpy private key (agent-wallet sign_transaction
-            # requires raw_data_hex which tronpy does not expose in to_json()).
-            if self._private_key is None:
-                raise RuntimeError(
-                    "TronFacilitatorSigner: private key not available for signing. "
-                    "Set TRON_FACILITATOR_PRIVATE_KEY or TRON_PRIVATE_KEY in environment."
-                )
-            txn = txn.sign(self._private_key)
+            unsigned_payload = _build_unsigned_tx_payload(txn)
+            raw_result = await self._wallet.sign_transaction(unsigned_payload)
+            sig_hex = self._extract_tron_signature(raw_result)
+            txn._signature = [sig_hex]
 
             # Log transaction details before broadcast
             try:
