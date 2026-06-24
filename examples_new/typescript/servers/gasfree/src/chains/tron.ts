@@ -28,16 +28,12 @@ export function registerTron(resourceServer: x402ResourceServer): void {
 }
 
 /**
- * Builds the `accepts` entries advertised for TRON GasFree payments (USDT).
+ * Builds the `accepts` entries advertised for TRON GasFree payments — USDT,
+ * priced in `"$"` form (the scheme maps it to the network's default asset, USDT).
  *
  * @returns Payment-requirements accept entries.
  */
 export function tronAccepts() {
   const payTo = process.env.TRON_ADDRESS as string;
-  return ["0.001 USDT"].map(price => ({
-    scheme: "exact_gasfree",
-    network: TRON_NETWORK,
-    payTo,
-    price,
-  }));
+  return [{ scheme: "exact_gasfree", network: TRON_NETWORK, payTo, price: "$0.001" }];
 }
