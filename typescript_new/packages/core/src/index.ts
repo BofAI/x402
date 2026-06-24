@@ -9,3 +9,5 @@ export {
   getLogger,
   log,
 } from "./observability/logger";
+
+export { attachFacilitatorLogging, createFacilitator } from "./observability/facilitatorLogging";

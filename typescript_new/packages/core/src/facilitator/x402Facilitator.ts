@@ -5,7 +5,6 @@ import { SchemeNetworkFacilitator, FacilitatorContext } from "../types/mechanism
 import { PaymentPayload, PaymentRequirements } from "../types/payments";
 import { Network } from "../types";
 import { networkMatchesPattern, type SchemeData } from "../utils";
-import { log } from "../observability/logger";
 
 /**
  * Facilitator Hook Context Interfaces
@@ -339,13 +338,6 @@ export class x402Facilitator {
         facilitatorContext,
       );
 
-      log[verifyResult.isValid ? "info" : "warn"]("x402: verify result", {
-        scheme: paymentRequirements.scheme,
-        network: paymentRequirements.network,
-        isValid: verifyResult.isValid,
-        ...(verifyResult.isValid ? {} : { invalidReason: verifyResult.invalidReason }),
-      });
-
       // Check if verification failed (isValid: false)
       if (!verifyResult.isValid) {
         const failureContext: FacilitatorVerifyFailureContext = {
@@ -384,12 +376,6 @@ export class x402Facilitator {
 
       return verifyResult;
     } catch (error) {
-      log.error("x402: verify threw", {
-        scheme: paymentRequirements.scheme,
-        network: paymentRequirements.network,
-        error: error instanceof Error ? error.message : String(error),
-      });
-
       const failureContext: FacilitatorVerifyFailureContext = {
         ...context,
         error: error as Error,
@@ -463,23 +449,11 @@ export class x402Facilitator {
       }
 
       const facilitatorContext = this.buildFacilitatorContext();
-      log.info("x402: settle start", {
-        scheme: paymentRequirements.scheme,
-        network: paymentRequirements.network,
-      });
       const settleResult = await schemeNetworkFacilitator.settle(
         paymentPayload,
         paymentRequirements,
         facilitatorContext,
       );
-
-      log[settleResult.success ? "info" : "warn"]("x402: settle result", {
-        scheme: paymentRequirements.scheme,
-        network: paymentRequirements.network,
-        success: settleResult.success,
-        ...(settleResult.transaction ? { transaction: settleResult.transaction } : {}),
-        ...(settleResult.success ? {} : { errorReason: settleResult.errorReason }),
-      });
 
       // Execute afterSettle hooks
       const resultContext: FacilitatorSettleResultContext = {
@@ -493,12 +467,6 @@ export class x402Facilitator {
 
       return settleResult;
     } catch (error) {
-      log.error("x402: settle threw", {
-        scheme: paymentRequirements.scheme,
-        network: paymentRequirements.network,
-        error: error instanceof Error ? error.message : String(error),
-      });
-
       const failureContext: FacilitatorSettleFailureContext = {
         ...context,
         error: error as Error,

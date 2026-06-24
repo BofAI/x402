@@ -44,6 +44,12 @@ setLogger(myLogger);   // call once at startup; affects all SDK packages
 - It's a **global** logger (not per-instance). Components are not distinguished;
   the message text carries any `[x402]` / `[tron]` prefix the SDK already adds.
 
+> **Facilitator verify/settle logs are opt-in.** The `x402Facilitator` body stays
+> byte-identical to upstream, so it emits no verify/settle logs on its own.
+> Construct it via `createFacilitator()` (or call `attachFacilitatorLogging(f)`)
+> to register that observability on its hooks — those lines then flow through the
+> same global logger set here. See `examples_new/typescript/facilitator/gasfree`.
+
 ## Adapting a real logger
 
 `pino` (arg order is `(obj, msg)`, so adapt):
