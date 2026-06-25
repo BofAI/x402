@@ -14,8 +14,6 @@ export { createUptoPermit2Payload } from "./upto/client/permit2";
 
 // Signers
 export {
-  toClientTronSigner,
-  toFacilitatorTronSigner,
   createClientTronSigner,
   createFacilitatorTronSigner,
   createAuthorizerTronSigner,
@@ -70,18 +68,12 @@ export {
   getNetworkTokens,
   registerToken,
   getDecimals,
-  buildAssetExtra,
   parsePrice,
   type TokenInfo,
 } from "./shared/tokens";
 
 // Fee
 export {
-  resolveBaseFee,
-  isTokenAllowed,
-  buildFeeInfo,
-  validateFee,
-  readFeeFromExtra,
   type FeeInfo,
   type ExactTronFeeConfig,
 } from "./shared/fee";

@@ -61,6 +61,16 @@
         "default": "./dist/cjs/index.js"
       }
     },
+    "./exact": {
+      "import": {
+        "types": "./dist/esm/exact/index.d.mts",
+        "default": "./dist/esm/exact/index.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/exact/index.d.ts",
+        "default": "./dist/cjs/exact/index.js"
+      }
+    },
     "./exact/client": {
       "import": {
         "types": "./dist/esm/exact/client/index.d.mts",
