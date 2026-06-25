@@ -17,6 +17,8 @@
     "dev:upto-facilitator": "pnpm --filter @bankofai/x402-example-upto-facilitator dev",
     "dev:upto-server": "pnpm --filter @bankofai/x402-example-upto-server dev",
     "dev:upto-client": "pnpm --filter @bankofai/x402-example-upto-client dev",
+    "dev:mcp-server": "pnpm --filter @bankofai/x402-example-mcp-server dev",
+    "dev:mcp-client": "pnpm --filter @bankofai/x402-example-mcp-client dev",
     "dev:logging": "pnpm --filter @bankofai/x402-example-logging dev"
   },
   "engines": {
