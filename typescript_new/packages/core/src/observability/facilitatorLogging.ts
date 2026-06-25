@@ -11,10 +11,9 @@
  *
  * @example
  * ```ts
- * import { x402Facilitator } from "@bankofai/x402-core/facilitator";
- * import { attachFacilitatorLogging } from "@bankofai/x402-core";
+ * import { createFacilitator } from "@bankofai/x402-core";
  *
- * const facilitator = attachFacilitatorLogging(new x402Facilitator());
+ * const facilitator = createFacilitator(); // logging pre-attached
  * facilitator.register("tron:nile", scheme);
  * ```
  */
@@ -27,6 +26,8 @@ import { x402Facilitator } from "../facilitator/x402Facilitator";
  * Idempotent per facilitator is NOT guaranteed — call once per instance.
  * Hooks never abort or recover; they only observe.
  *
+ * @internal Package-internal; consumers use {@link createFacilitator}. Exported
+ * for unit tests and {@link createFacilitator} only — not part of the public API.
  * @param facilitator - The facilitator to instrument.
  * @returns The same facilitator, for chaining.
  */

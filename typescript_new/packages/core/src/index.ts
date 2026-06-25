@@ -1,13 +1,5 @@
 export const x402Version = 2;
 
-export {
-  type Logger,
-  consoleLogger,
-  noopLogger,
-  setLogger,
-  resetLogger,
-  getLogger,
-  log,
-} from "./observability/logger";
+export { type Logger, consoleLogger, noopLogger, setLogger, log } from "./observability/logger";
 
-export { attachFacilitatorLogging, createFacilitator } from "./observability/facilitatorLogging";
+export { createFacilitator } from "./observability/facilitatorLogging";

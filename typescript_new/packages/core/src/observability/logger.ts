@@ -66,15 +66,6 @@ export function resetLogger(): void {
 }
 
 /**
- * The currently installed logger.
- *
- * @returns The active logger (defaults to {@link consoleLogger}).
- */
-export function getLogger(): Logger {
-  return active;
-}
-
-/**
  * The handle SDK modules import and write through. Each method dispatches to the
  * active logger at call time, so a later {@link setLogger} still takes effect.
  */
