@@ -216,6 +216,9 @@ __marimo__/
 *node_modules/
 .specify/
 
+# Turbo build cache
+.turbo/
+
 # macOS
 .DS_Store
 
