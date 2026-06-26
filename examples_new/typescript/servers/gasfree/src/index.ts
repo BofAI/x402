@@ -14,13 +14,21 @@ import {
 } from "@bankofai/x402-express";
 
 import { hasTron, registerTron, tronAccepts } from "./chains/tron.js";
+import { ResourceStrippingFacilitatorClient } from "./resourceStrippingFacilitator.js";
 
 // Dedicated env vars (set in .env-gasfree) so the GasFree line keeps its own
 // :4031/:4032, independent of the other scenarios.
 const PORT = parseInt(process.env.SERVER_PORT || "4031", 10);
 const FACILITATOR_URL = process.env.FACILITATOR_URL || "http://localhost:4032";
+// Opt-in: drop `paymentPayload.resource` (a localhost URL when running locally)
+// before verify/settle, to dodge edge WAFs that flag it as SSRF. See
+// resourceStrippingFacilitator.ts. Off by default — wire payload stays untouched.
+const STRIP_RESOURCE_URL = process.env.STRIP_RESOURCE_URL === "true";
 
-const facilitatorClient = new HTTPFacilitatorClient({ url: FACILITATOR_URL });
+const httpFacilitator = new HTTPFacilitatorClient({ url: FACILITATOR_URL });
+const facilitatorClient = STRIP_RESOURCE_URL
+  ? new ResourceStrippingFacilitatorClient(httpFacilitator)
+  : httpFacilitator;
 const resourceServer = new x402ResourceServer(facilitatorClient);
 
 if (!hasTron()) {
@@ -48,6 +56,6 @@ app.get("/weather", (_req, res) => {
 
 app.listen(PORT, () => {
   console.log(
-    `🌤️  GasFree resource server on http://localhost:${PORT} → facilitator ${FACILITATOR_URL}`,
+    `🌤️  GasFree resource server on http://localhost:${PORT} → facilitator ${FACILITATOR_URL}${STRIP_RESOURCE_URL ? " [resource.url stripped]" : ""}`,
   );
 });

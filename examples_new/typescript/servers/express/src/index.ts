@@ -15,11 +15,19 @@ import {
 
 import { hasEvm, registerEvm, evmAccepts, evmExtensions } from "./chains/evm.js";
 import { hasTron, registerTron, tronAccepts } from "./chains/tron.js";
+import { ResourceStrippingFacilitatorClient } from "./resourceStrippingFacilitator.js";
 
 const PORT = parseInt(process.env.SERVER_PORT || "4021", 10);
 const FACILITATOR_URL = process.env.FACILITATOR_URL || "http://localhost:4022";
+// Opt-in: drop `paymentPayload.resource` (a localhost URL when running locally)
+// before verify/settle, to dodge edge WAFs that flag it as SSRF. See
+// resourceStrippingFacilitator.ts. Off by default — wire payload stays untouched.
+const STRIP_RESOURCE_URL = process.env.STRIP_RESOURCE_URL === "true";
 
-const facilitatorClient = new HTTPFacilitatorClient({ url: FACILITATOR_URL });
+const httpFacilitator = new HTTPFacilitatorClient({ url: FACILITATOR_URL });
+const facilitatorClient = STRIP_RESOURCE_URL
+  ? new ResourceStrippingFacilitatorClient(httpFacilitator)
+  : httpFacilitator;
 const resourceServer = new x402ResourceServer(facilitatorClient);
 
 // Register each chain (and advertise its tokens) only when its payout is set.
@@ -63,6 +71,6 @@ app.get("/weather", (_req, res) => {
 
 app.listen(PORT, () => {
   console.log(
-    `🌤️  Resource server on http://localhost:${PORT}  (evm=${hasEvm()}, tron=${hasTron()}) → facilitator ${FACILITATOR_URL}`,
+    `🌤️  Resource server on http://localhost:${PORT}  (evm=${hasEvm()}, tron=${hasTron()}) → facilitator ${FACILITATOR_URL}${STRIP_RESOURCE_URL ? " [resource.url stripped]" : ""}`,
   );
 });

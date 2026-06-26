@@ -21,14 +21,22 @@ import {
 
 import { hasEvm, registerEvm, evmAccepts } from "./chains/evm.js";
 import { hasTron, registerTron, tronAccepts } from "./chains/tron.js";
+import { ResourceStrippingFacilitatorClient } from "./resourceStrippingFacilitator.js";
 
 const PORT = parseInt(process.env.SERVER_PORT || "4051", 10);
 const FACILITATOR_URL = process.env.FACILITATOR_URL || "http://localhost:4052";
 // The authorization ceiling the client signs. Real charge is a random fraction
 // of this, decided per request below.
 const MAX_PRICE = process.env.MAX_PRICE || "$0.10";
+// Opt-in: drop `paymentPayload.resource` (a localhost URL when running locally)
+// before verify/settle, to dodge edge WAFs that flag it as SSRF. See
+// resourceStrippingFacilitator.ts. Off by default — wire payload stays untouched.
+const STRIP_RESOURCE_URL = process.env.STRIP_RESOURCE_URL === "true";
 
-const facilitatorClient = new HTTPFacilitatorClient({ url: FACILITATOR_URL });
+const httpFacilitator = new HTTPFacilitatorClient({ url: FACILITATOR_URL });
+const facilitatorClient = STRIP_RESOURCE_URL
+  ? new ResourceStrippingFacilitatorClient(httpFacilitator)
+  : httpFacilitator;
 const resourceServer = new x402ResourceServer(facilitatorClient);
 
 // Register each chain and collect its accepts, only when its payout is set.
@@ -83,7 +91,7 @@ app.get("/generate", (_req, res) => {
 
 app.listen(PORT, () => {
   console.log(
-    `🧾 Upto server on http://localhost:${PORT}  (evm=${hasEvm()}, tron=${hasTron()}) → facilitator ${FACILITATOR_URL}`,
+    `🧾 Upto server on http://localhost:${PORT}  (evm=${hasEvm()}, tron=${hasTron()}) → facilitator ${FACILITATOR_URL}${STRIP_RESOURCE_URL ? " [resource.url stripped]" : ""}`,
   );
   console.log(`  GET /generate — usage-based billing via upto (max ${MAX_PRICE})`);
 });

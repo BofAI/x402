@@ -17,11 +17,21 @@ import {
 
 import { hasEvm, registerEvm, evmAccepts, type StoppableManager } from "./chains/evm.js";
 import { hasTron, registerTron, tronAccepts } from "./chains/tron.js";
+import { ResourceStrippingFacilitatorClient } from "./resourceStrippingFacilitator.js";
 
 const PORT = parseInt(process.env.SERVER_PORT || "4041", 10);
 const FACILITATOR_URL = process.env.FACILITATOR_URL || "http://localhost:4042";
+// Opt-in: drop `paymentPayload.resource` (a localhost URL when running locally)
+// before verify/settle, to dodge edge WAFs that flag it as SSRF. See
+// resourceStrippingFacilitator.ts. Off by default — wire payload stays untouched.
+// The wrapped client is reused by the channel managers below, so claim/settle
+// calls are stripped too.
+const STRIP_RESOURCE_URL = process.env.STRIP_RESOURCE_URL === "true";
 
-const facilitatorClient = new HTTPFacilitatorClient({ url: FACILITATOR_URL });
+const httpFacilitator = new HTTPFacilitatorClient({ url: FACILITATOR_URL });
+const facilitatorClient = STRIP_RESOURCE_URL
+  ? new ResourceStrippingFacilitatorClient(httpFacilitator)
+  : httpFacilitator;
 const resourceServer = new x402ResourceServer(facilitatorClient);
 
 // Register each chain (and start its channel manager) only when its payout is set.
@@ -60,7 +70,7 @@ app.get("/weather", (_req, res) => {
 
 const server = app.listen(PORT, () => {
   console.log(
-    `🌤️  Batch-settlement server on http://localhost:${PORT}  (evm=${hasEvm()}, tron=${hasTron()}) → facilitator ${FACILITATOR_URL}`,
+    `🌤️  Batch-settlement server on http://localhost:${PORT}  (evm=${hasEvm()}, tron=${hasTron()}) → facilitator ${FACILITATOR_URL}${STRIP_RESOURCE_URL ? " [resource.url stripped]" : ""}`,
   );
 });
 
