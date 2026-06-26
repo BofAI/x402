@@ -3,8 +3,6 @@ import { Network } from "@bankofai/x402-core/types";
 import { ClientEvmSigner } from "../../signer";
 import { ExactEvmScheme } from "./scheme";
 import { ExactEvmSchemeOptions } from "./rpc";
-import { ExactEvmSchemeV1 } from "../v1/client/scheme";
-import { NETWORKS } from "../../v1";
 
 /**
  * Configuration options for registering EVM schemes to an x402Client
@@ -45,7 +43,10 @@ export interface EvmClientConfig {
  *
  * This function registers:
  * - V2: eip155:* wildcard scheme with ExactEvmScheme (or specific networks if provided)
- * - V1: All supported EVM networks with ExactEvmSchemeV1
+ *
+ * Note: legacy x402 v1 schemes are no longer auto-registered. The v1 classes
+ * (`ExactEvmSchemeV1`, `NETWORKS`) are still exported under `@bankofai/x402-evm/v1`
+ * and `@bankofai/x402-evm/exact/v1/*` for callers that explicitly need them.
  *
  * @param client - The x402Client instance to register schemes to
  * @param config - Configuration for EVM client registration
@@ -77,11 +78,6 @@ export function registerExactEvmScheme(client: x402Client, config: EvmClientConf
     // Register wildcard for all EVM chains
     client.register("eip155:*", evmScheme);
   }
-
-  // Register all V1 networks
-  NETWORKS.forEach(network => {
-    client.registerV1(network as Network, new ExactEvmSchemeV1(config.signer));
-  });
 
   // Apply policies if provided
   if (config.policies) {

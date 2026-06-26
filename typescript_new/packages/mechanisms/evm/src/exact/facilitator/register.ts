@@ -2,8 +2,6 @@ import { x402Facilitator } from "@bankofai/x402-core/facilitator";
 import { Network } from "@bankofai/x402-core/types";
 import { FacilitatorEvmSigner } from "../../signer";
 import { ExactEvmScheme } from "./scheme";
-import { ExactEvmSchemeV1 } from "../v1/facilitator/scheme";
-import { NETWORKS } from "../../v1";
 
 /**
  * Configuration options for registering EVM schemes to an x402Facilitator
@@ -44,7 +42,10 @@ export interface EvmFacilitatorConfig {
  *
  * This function registers:
  * - V2: Specified networks with ExactEvmScheme
- * - V1: All supported EVM networks with ExactEvmSchemeV1
+ *
+ * Note: legacy x402 v1 schemes are no longer auto-registered. The v1 classes
+ * (`ExactEvmSchemeV1`, `NETWORKS`) are still exported under `@bankofai/x402-evm/v1`
+ * and `@bankofai/x402-evm/exact/v1/*` for callers that explicitly need them.
  *
  * @param facilitator - The x402Facilitator instance to register schemes to
  * @param config - Configuration for EVM facilitator registration
@@ -79,15 +80,6 @@ export function registerExactEvmScheme(
   facilitator.register(
     config.networks,
     new ExactEvmScheme(config.signer, {
-      eip6492AllowedFactories: config.eip6492AllowedFactories,
-      simulateInSettle: config.simulateInSettle,
-    }),
-  );
-
-  // Register all V1 networks
-  facilitator.registerV1(
-    NETWORKS as Network[],
-    new ExactEvmSchemeV1(config.signer, {
       eip6492AllowedFactories: config.eip6492AllowedFactories,
       simulateInSettle: config.simulateInSettle,
     }),
