@@ -27,8 +27,24 @@ const FACILITATOR_URL = process.env.FACILITATOR_URL || "http://localhost:4042";
 // The wrapped client is reused by the channel managers below, so claim/settle
 // calls are stripped too.
 const STRIP_RESOURCE_URL = process.env.STRIP_RESOURCE_URL === "true";
+// Optional facilitator API key. When set, it's sent as `X-API-KEY` on every
+// facilitator call (verify/settle/supported). Hosted facilitators use it to pick
+// a rate-limit tier; anonymous calls still work, so it's unset by default.
+const FACILITATOR_API_KEY = process.env.FACILITATOR_API_KEY;
 
-const httpFacilitator = new HTTPFacilitatorClient({ url: FACILITATOR_URL });
+const apiKeyHeaders: Record<string, string> = FACILITATOR_API_KEY ? { "X-API-KEY": FACILITATOR_API_KEY } : {};
+const httpFacilitator = new HTTPFacilitatorClient({
+  url: FACILITATOR_URL,
+  ...(FACILITATOR_API_KEY
+    ? {
+        createAuthHeaders: async () => ({
+          verify: apiKeyHeaders,
+          settle: apiKeyHeaders,
+          supported: apiKeyHeaders,
+        }),
+      }
+    : {}),
+});
 const facilitatorClient = STRIP_RESOURCE_URL
   ? new ResourceStrippingFacilitatorClient(httpFacilitator)
   : httpFacilitator;
@@ -70,7 +86,7 @@ app.get("/weather", (_req, res) => {
 
 const server = app.listen(PORT, () => {
   console.log(
-    `🌤️  Batch-settlement server on http://localhost:${PORT}  (evm=${hasEvm()}, tron=${hasTron()}) → facilitator ${FACILITATOR_URL}${STRIP_RESOURCE_URL ? " [resource.url stripped]" : ""}`,
+    `🌤️  Batch-settlement server on http://localhost:${PORT}  (evm=${hasEvm()}, tron=${hasTron()}) → facilitator ${FACILITATOR_URL}${STRIP_RESOURCE_URL ? " [resource.url stripped]" : ""}${FACILITATOR_API_KEY ? " [api key]" : ""}`,
   );
 });
 

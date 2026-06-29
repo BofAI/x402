@@ -32,8 +32,24 @@ const MAX_PRICE = process.env.MAX_PRICE || "$0.10";
 // before verify/settle, to dodge edge WAFs that flag it as SSRF. See
 // resourceStrippingFacilitator.ts. Off by default — wire payload stays untouched.
 const STRIP_RESOURCE_URL = process.env.STRIP_RESOURCE_URL === "true";
+// Optional facilitator API key. When set, it's sent as `X-API-KEY` on every
+// facilitator call (verify/settle/supported). Hosted facilitators use it to pick
+// a rate-limit tier; anonymous calls still work, so it's unset by default.
+const FACILITATOR_API_KEY = process.env.FACILITATOR_API_KEY;
 
-const httpFacilitator = new HTTPFacilitatorClient({ url: FACILITATOR_URL });
+const apiKeyHeaders: Record<string, string> = FACILITATOR_API_KEY ? { "X-API-KEY": FACILITATOR_API_KEY } : {};
+const httpFacilitator = new HTTPFacilitatorClient({
+  url: FACILITATOR_URL,
+  ...(FACILITATOR_API_KEY
+    ? {
+        createAuthHeaders: async () => ({
+          verify: apiKeyHeaders,
+          settle: apiKeyHeaders,
+          supported: apiKeyHeaders,
+        }),
+      }
+    : {}),
+});
 const facilitatorClient = STRIP_RESOURCE_URL
   ? new ResourceStrippingFacilitatorClient(httpFacilitator)
   : httpFacilitator;
@@ -91,7 +107,7 @@ app.get("/generate", (_req, res) => {
 
 app.listen(PORT, () => {
   console.log(
-    `🧾 Upto server on http://localhost:${PORT}  (evm=${hasEvm()}, tron=${hasTron()}) → facilitator ${FACILITATOR_URL}${STRIP_RESOURCE_URL ? " [resource.url stripped]" : ""}`,
+    `🧾 Upto server on http://localhost:${PORT}  (evm=${hasEvm()}, tron=${hasTron()}) → facilitator ${FACILITATOR_URL}${STRIP_RESOURCE_URL ? " [resource.url stripped]" : ""}${FACILITATOR_API_KEY ? " [api key]" : ""}`,
   );
   console.log(`  GET /generate — usage-based billing via upto (max ${MAX_PRICE})`);
 });

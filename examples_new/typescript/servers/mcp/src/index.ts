@@ -24,6 +24,11 @@ import { hasTron, registerTron, tronAccepts } from "./chains/tron.js";
 
 const PORT = parseInt(process.env.MCP_SERVER_PORT || "4023", 10);
 const FACILITATOR_URL = process.env.FACILITATOR_URL || "http://localhost:4022";
+// Optional facilitator API key. When set, it's sent as `X-API-KEY` on every
+// facilitator call (verify/settle/supported). Hosted facilitators use it to pick
+// a rate-limit tier; anonymous calls still work, so it's unset by default.
+const FACILITATOR_API_KEY = process.env.FACILITATOR_API_KEY;
+const apiKeyHeaders: Record<string, string> = FACILITATOR_API_KEY ? { "X-API-KEY": FACILITATOR_API_KEY } : {};
 
 /**
  * Fake weather data for the demo tool.
@@ -44,7 +49,18 @@ function getWeatherData(city: string): { city: string; weather: string; temperat
  * @returns The MCP server with tools registered.
  */
 async function buildServer(): Promise<McpServer> {
-  const facilitatorClient = new HTTPFacilitatorClient({ url: FACILITATOR_URL });
+  const facilitatorClient = new HTTPFacilitatorClient({
+    url: FACILITATOR_URL,
+    ...(FACILITATOR_API_KEY
+      ? {
+          createAuthHeaders: async () => ({
+            verify: apiKeyHeaders,
+            settle: apiKeyHeaders,
+            supported: apiKeyHeaders,
+          }),
+        }
+      : {}),
+  });
   const resourceServer = new x402ResourceServer(facilitatorClient);
 
   // Register each chain (and collect its advertised resource configs) only when
@@ -118,6 +134,6 @@ app.get("/health", (_req, res) => {
 
 app.listen(PORT, () => {
   console.log(
-    `🚀 x402 MCP server on http://localhost:${PORT}/sse  (evm=${hasEvm()}, tron=${hasTron()}) → facilitator ${FACILITATOR_URL}`,
+    `🚀 x402 MCP server on http://localhost:${PORT}/sse  (evm=${hasEvm()}, tron=${hasTron()}) → facilitator ${FACILITATOR_URL}${FACILITATOR_API_KEY ? " [api key]" : ""}`,
   );
 });
