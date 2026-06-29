@@ -19,6 +19,13 @@ import { tryResolveWallet } from "../env.js";
 /** CAIP-2 networks to support. Add an id here (e.g. "eip155:8453"). */
 const EVM_NETWORKS = ["eip155:97"] as const;
 
+// Optional RPC override for the EVM network(s). Without it the adapter uses viem's
+// built-in default, which for BSC testnet is a public node that is frequently
+// unreachable (`data-seed-prebsc-*.bnbchain.org:8545`). The upto/permit2 path
+// reads the chain (allowance, settlement state), so a dead default RPC fails the
+// run. Set a reliable endpoint, e.g. EVM_RPC_URL=https://bsc-testnet-rpc.publicnode.com
+const EVM_RPC_URL = process.env.EVM_RPC_URL?.trim() || undefined;
+
 /**
  * Registers the EVM `upto` client scheme for every configured network, if an EVM
  * wallet is configured.
@@ -34,7 +41,7 @@ export async function registerEvm(client: x402Client): Promise<string[]> {
 
   const registered: string[] = [];
   for (const network of EVM_NETWORKS) {
-    const signer = await createClientEvmSigner(wallet, { network });
+    const signer = await createClientEvmSigner(wallet, { network, rpcUrl: EVM_RPC_URL });
     client.register(network, new UptoEvmScheme(signer));
     registered.push(network);
     console.info(`[evm] client registered ${network} upto (${signer.address})`);
