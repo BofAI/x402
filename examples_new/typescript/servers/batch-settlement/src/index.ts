@@ -9,8 +9,8 @@
  */
 import express from "express";
 import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
+import { createResourceServer } from "@bankofai/x402-core";
 import {
-  x402ResourceServer,
   x402HTTPResourceServer,
   paymentMiddlewareFromHTTPServer,
 } from "@bankofai/x402-express";
@@ -48,7 +48,8 @@ const httpFacilitator = new HTTPFacilitatorClient({
 const facilitatorClient = STRIP_RESOURCE_URL
   ? new ResourceStrippingFacilitatorClient(httpFacilitator)
   : httpFacilitator;
-const resourceServer = new x402ResourceServer(facilitatorClient);
+// createResourceServer pre-attaches verify/settle logging (see express example).
+const resourceServer = createResourceServer(facilitatorClient);
 
 // Register each chain (and start its channel manager) only when its payout is set.
 type Accept = ReturnType<typeof evmAccepts>[number] | ReturnType<typeof tronAccepts>[number];

@@ -16,7 +16,8 @@ import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
 import type { ResourceConfig } from "@bankofai/x402-core/server";
 import type { PaymentRequirements } from "@bankofai/x402-core/types";
-import { x402ResourceServer, createPaymentWrapper } from "@bankofai/x402-mcp";
+import { createResourceServer } from "@bankofai/x402-core";
+import { createPaymentWrapper } from "@bankofai/x402-mcp";
 import { z } from "zod";
 
 import { hasEvm, registerEvm, evmAccepts } from "./chains/evm.js";
@@ -61,7 +62,8 @@ async function buildServer(): Promise<McpServer> {
         }
       : {}),
   });
-  const resourceServer = new x402ResourceServer(facilitatorClient);
+  // createResourceServer pre-attaches verify/settle logging (see express example).
+  const resourceServer = createResourceServer(facilitatorClient);
 
   // Register each chain (and collect its advertised resource configs) only when
   // its payout address is set.

@@ -7,8 +7,8 @@
  */
 import express from "express";
 import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
+import { createResourceServer } from "@bankofai/x402-core";
 import {
-  x402ResourceServer,
   x402HTTPResourceServer,
   paymentMiddlewareFromHTTPServer,
 } from "@bankofai/x402-express";
@@ -45,7 +45,8 @@ const httpFacilitator = new HTTPFacilitatorClient({
 const facilitatorClient = STRIP_RESOURCE_URL
   ? new ResourceStrippingFacilitatorClient(httpFacilitator)
   : httpFacilitator;
-const resourceServer = new x402ResourceServer(facilitatorClient);
+// createResourceServer pre-attaches verify/settle logging (see express example).
+const resourceServer = createResourceServer(facilitatorClient);
 
 if (!hasTron()) {
   console.error("❌ No payout address configured (set TRON_ADDRESS).");
