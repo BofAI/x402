@@ -17,7 +17,13 @@
  * facilitator.register("tron:nile", scheme);
  * ```
  */
-import { log } from "./logger";
+import {
+  logVerifyValid,
+  logVerifyFailed,
+  logSettleStart,
+  logSettleResult,
+  logSettleThrew,
+} from "./paymentLogFormat";
 import { x402Facilitator } from "../facilitator/x402Facilitator";
 
 /**
@@ -33,44 +39,23 @@ import { x402Facilitator } from "../facilitator/x402Facilitator";
  */
 export function attachFacilitatorLogging(facilitator: x402Facilitator): x402Facilitator {
   facilitator.onAfterVerify(async ({ requirements }) => {
-    log.info("x402: verify result", {
-      scheme: requirements.scheme,
-      network: requirements.network,
-      isValid: true,
-    });
+    logVerifyValid(requirements.scheme, requirements.network);
   });
 
   facilitator.onVerifyFailure(async ({ requirements, error }) => {
-    log.warn("x402: verify failed", {
-      scheme: requirements.scheme,
-      network: requirements.network,
-      reason: error.message,
-    });
+    logVerifyFailed(requirements.scheme, requirements.network, error.message);
   });
 
   facilitator.onBeforeSettle(async ({ requirements }) => {
-    log.info("x402: settle start", {
-      scheme: requirements.scheme,
-      network: requirements.network,
-    });
+    logSettleStart(requirements.scheme, requirements.network);
   });
 
   facilitator.onAfterSettle(async ({ requirements, result }) => {
-    log[result.success ? "info" : "warn"]("x402: settle result", {
-      scheme: requirements.scheme,
-      network: requirements.network,
-      success: result.success,
-      ...(result.transaction ? { transaction: result.transaction } : {}),
-      ...(result.success ? {} : { errorReason: result.errorReason }),
-    });
+    logSettleResult(requirements.scheme, requirements.network, result);
   });
 
   facilitator.onSettleFailure(async ({ requirements, error }) => {
-    log.error("x402: settle threw", {
-      scheme: requirements.scheme,
-      network: requirements.network,
-      error: error.message,
-    });
+    logSettleThrew(requirements.scheme, requirements.network, error.message);
   });
 
   return facilitator;
