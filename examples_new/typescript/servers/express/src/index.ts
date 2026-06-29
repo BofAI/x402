@@ -7,8 +7,10 @@
  */
 import express from "express";
 import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
+// createResourceServer = new x402ResourceServer + verify/settle logging
+// pre-attached (the resource-server mirror of createFacilitator).
+import { createResourceServer } from "@bankofai/x402-core";
 import {
-  x402ResourceServer,
   x402HTTPResourceServer,
   paymentMiddlewareFromHTTPServer,
 } from "@bankofai/x402-express";
@@ -16,7 +18,6 @@ import {
 import { hasEvm, registerEvm, evmAccepts, evmExtensions } from "./chains/evm.js";
 import { hasTron, registerTron, tronAccepts } from "./chains/tron.js";
 import { ResourceStrippingFacilitatorClient } from "./resourceStrippingFacilitator.js";
-import { attachPaymentLogging } from "./loggingHooks.js";
 
 const PORT = parseInt(process.env.SERVER_PORT || "4021", 10);
 const FACILITATOR_URL = process.env.FACILITATOR_URL || "http://localhost:4022";
@@ -45,10 +46,9 @@ const httpFacilitator = new HTTPFacilitatorClient({
 const facilitatorClient = STRIP_RESOURCE_URL
   ? new ResourceStrippingFacilitatorClient(httpFacilitator)
   : httpFacilitator;
-const resourceServer = new x402ResourceServer(facilitatorClient);
-// Log every verify/settle result, including the invalidReason/errorReason the
-// middleware otherwise swallows on a 402. See loggingHooks.ts.
-attachPaymentLogging(resourceServer);
+// Logging pre-attached: verify/settle results (incl. the invalidReason/
+// errorReason the middleware otherwise swallows on a 402) print via the SDK.
+const resourceServer = createResourceServer(facilitatorClient);
 
 // Register each chain (and advertise its tokens) only when its payout is set.
 // Each chain may advertise multiple tokens, so accepts is flattened. EVM prices
