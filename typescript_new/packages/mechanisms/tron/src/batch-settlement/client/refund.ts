@@ -84,9 +84,16 @@ async function probeRefundRequirements(
   }
 
   const paymentRequired = decodePaymentRequiredHeader(header);
-  const requirements = paymentRequired.accepts.find(a => a.scheme === BATCH_SETTLEMENT_SCHEME);
+  // Select this VM family's accept. A route may advertise batch-settlement on
+  // several networks (e.g. EVM + TRON); picking the first scheme match would
+  // hand an eip155 channel to the TRON mechanism (computeChannelId →
+  // getTronChainId then rejects it). The TRON package only handles tron:*
+  // networks, so filter to those.
+  const requirements = paymentRequired.accepts.find(
+    a => a.scheme === BATCH_SETTLEMENT_SCHEME && a.network.startsWith("tron:"),
+  );
   if (!requirements) {
-    throw new Error(`No ${BATCH_SETTLEMENT_SCHEME} payment option at ${url}`);
+    throw new Error(`No ${BATCH_SETTLEMENT_SCHEME} payment option for tron:* at ${url}`);
   }
 
   const extra = requirements.extra as Partial<BatchSettlementPaymentRequirementsExtra> | undefined;
