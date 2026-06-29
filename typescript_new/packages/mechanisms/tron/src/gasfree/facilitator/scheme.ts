@@ -48,7 +48,16 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
     if (!this.feeConfig.baseFee) return undefined;
     return {
       feeConfig: {
-        feeTo: this.feeConfig.feeTo ?? this.signer.getAddresses()[0],
+        // GasFree feeTo MUST be a registered relayer provider — verify rejects
+        // anything else with `gasfree_fee_to_mismatch`. NEVER default to the
+        // facilitator's own address (it is not a provider; that produced the
+        // mismatch in production). Advertise feeTo only when explicitly
+        // configured to a real provider; otherwise omit it so the client picks
+        // one from the relayer's provider list. This mirrors the Python
+        // facilitator's `fee_quote`, which selects a provider rather than the
+        // facilitator address. (`exact` differs: there the facilitator IS the
+        // fee recipient, so its scheme keeps the self-address default.)
+        ...(this.feeConfig.feeTo ? { feeTo: this.feeConfig.feeTo } : {}),
         ...(this.feeConfig.caller ? { caller: this.feeConfig.caller } : {}),
         baseFee: this.feeConfig.baseFee,
         ...(this.feeConfig.allowedTokens ? { allowedTokens: this.feeConfig.allowedTokens } : {}),
