@@ -18,8 +18,8 @@ lib/
 lib64/
 
 # The Python `lib/` rule above also matches the x402 TS site source dir; keep it tracked.
-!typescript_new/site/lib/
-!typescript_new/site/lib/**
+!typescript/site/lib/
+!typescript/site/lib/**
 parts/
 sdist/
 var/
@@ -211,8 +211,8 @@ marimo/_lsp/
 __marimo__/
 /.idea/
 /.vscode/
-/examples/typescript/client-web/node_modules/
-/examples/typescript/client/node_modules/
+/legacy/examples/typescript/client-web/node_modules/
+/legacy/examples/typescript/client/node_modules/
 *node_modules/
 .specify/
 

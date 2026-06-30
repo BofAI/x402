@@ -12,23 +12,25 @@ This repository hosts the BankofAI SDK (Python + TypeScript), the reference faci
 
 Each component has its own `CLAUDE.md` (where present) with build/test commands and conventions.
 
+> The `legacy/` tree holds the previous-generation SDK (Python + old TypeScript + e2e), kept only as reference and **slated for removal**. New work lives in `typescript/` and `examples/`.
+
 | Path | Language | Purpose |
 |---|---|---|
-| [python/x402/](python/x402/) | Python | SDK: client, server (FastAPI/Flask), facilitator, mechanisms (EVM + TRON). |
-| [typescript/](typescript/) | TypeScript | SDK: fetch client, server middleware, facilitator, mechanisms (EVM + TRON). |
-| [specs/](specs/) | Markdown | Protocol specs (`protocol.md`, `roles.md`, `config.md`, `schemes/*.md`) + in-flight feature specs (`NNN-<slug>/`). Read **first** when touching wire formats. Mirrors upstream `x402-foundation/x402/specs/` layout. |
+| [legacy/python/x402/](legacy/python/x402/) | Python | SDK: client, server (FastAPI/Flask), facilitator, mechanisms (EVM + TRON). |
+| [legacy/typescript/](legacy/typescript/) | TypeScript | SDK: fetch client, server middleware, facilitator, mechanisms (EVM + TRON). |
+| [legacy/specs/](legacy/specs/) | Markdown | Protocol specs (`protocol.md`, `roles.md`, `config.md`, `schemes/*.md`) + in-flight feature specs (`NNN-<slug>/`). Read **first** when touching wire formats. Mirrors upstream `x402-foundation/x402/specs/` layout. |
 | [docs/solutions.md](docs/solutions.md) | Markdown | Hard-won debugging knowledge. **Read before investigating bugs in related areas.** |
-| [examples/](examples/) | Mixed | Smoke tests and integration examples. |
-| [integration/](integration/) | Python | Generic step runner used by `e2e/scenarios/`. |
-| [e2e/](e2e/) | Python | End-to-end scenarios (mock facilitator + resource server + client). See [e2e/README.md](e2e/README.md). Wired into CI via `check_e2e.yml`. |
+| [legacy/examples/](legacy/examples/) | Mixed | Smoke tests and integration examples. |
+| [legacy/integration/](legacy/integration/) | Python | Generic step runner used by `legacy/e2e/scenarios/`. |
+| [legacy/e2e/](legacy/e2e/) | Python | End-to-end scenarios (mock facilitator + resource server + client). See [legacy/e2e/README.md](legacy/e2e/README.md). Wired into CI via `check_e2e.yml`. |
 | [tron-contribution/](tron-contribution/) | Markdown | Upstream contribution planning for `x402-foundation/x402`. |
 
 ## Key reading order (new contributor)
 
-1. [specs/protocol.md](specs/protocol.md) — wire format, headers, encoding
-2. [specs/roles.md](specs/roles.md) — Client / Server / Facilitator; **payment selection pipeline** (policy hook at step 5)
-3. [specs/config.md](specs/config.md) — network + contract registry
-4. Scheme spec for the scheme you are touching: [`schemes/exact.md`](specs/schemes/exact.md) · [`schemes/exact-permit.md`](specs/schemes/exact-permit.md) · [`schemes/exact-gasfree.md`](specs/schemes/exact-gasfree.md)
+1. [legacy/specs/protocol.md](legacy/specs/protocol.md) — wire format, headers, encoding
+2. [legacy/specs/roles.md](legacy/specs/roles.md) — Client / Server / Facilitator; **payment selection pipeline** (policy hook at step 5)
+3. [legacy/specs/config.md](legacy/specs/config.md) — network + contract registry
+4. Scheme spec for the scheme you are touching: [`schemes/exact.md`](legacy/specs/schemes/exact.md) · [`schemes/exact-permit.md`](legacy/specs/schemes/exact-permit.md) · [`schemes/exact-gasfree.md`](legacy/specs/schemes/exact-gasfree.md)
 5. [docs/solutions.md](docs/solutions.md) — bug-avoidance checklist (TRON address hex, GasFree deadline bounds, balance source, etc.)
 
 ## Conventions
@@ -47,14 +49,14 @@ This repo uses a Claude-Code-native layout: rules, commands, and agents that let
 | Path | What it gives you |
 |---|---|
 | [.claude/rules/common/](.claude/rules/common/) | Repo-wide conventions (addressing, amounts, headers, pipeline) |
-| [.claude/rules/schemes/](.claude/rules/schemes/) | `exact`, `exact_permit`, `exact_gasfree` — invariants + gotchas |
+| [.claude/rules/schemes/](.claude/rules/schemes/) | `exact`, `upto`, `batch-settlement`, `auth-capture`, `exact_gasfree` — invariants + gotchas |
 | [.claude/rules/networks/](.claude/rules/networks/) | TRON, EVM — signing rules, chain ids, RPC defaults |
-| [.claude/rules/python/](.claude/rules/python/), [.claude/rules/typescript/](.claude/rules/typescript/) | Language-specific conventions (tooling, idioms, don'ts) |
-| [.claude/rules/testing/](.claude/rules/testing/) | Scenario + e2e authoring conventions |
+| [.claude/rules/typescript/](.claude/rules/typescript/) | TypeScript conventions (pnpm/turbo, ESM, fork+overlay, signer factories) |
+| [.claude/rules/testing/](.claude/rules/testing/) | vitest unit + integration test conventions |
 | [.claude/commands/x402/](.claude/commands/x402/) | Slash-command wizards (`/x402:compound`, `/x402:create-scenario`) |
 | [.claude/agents/](.claude/agents/) | Specialized subagents (`code-reviewer`, `security-reviewer`, `scheme-author`) |
 
-Each major component also has its own `CLAUDE.md` with build/test commands and local conventions: [python/x402/](python/x402/CLAUDE.md), [typescript/](typescript/CLAUDE.md), [e2e/](e2e/CLAUDE.md), [examples/](examples/CLAUDE.md), [docs/](docs/CLAUDE.md), [specs/](specs/CLAUDE.md), [integration/](integration/CLAUDE.md).
+Each major component also has its own `CLAUDE.md` with build/test commands and local conventions: [legacy/python/x402/](legacy/python/x402/CLAUDE.md), [legacy/typescript/](legacy/typescript/CLAUDE.md), [legacy/e2e/](legacy/e2e/CLAUDE.md), [legacy/examples/](legacy/examples/CLAUDE.md), [docs/](docs/CLAUDE.md), [legacy/specs/](legacy/specs/CLAUDE.md), [legacy/integration/](legacy/integration/CLAUDE.md).
 
 ## Safety rules
 

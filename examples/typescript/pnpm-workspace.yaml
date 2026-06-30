@@ -1,0 +1,11 @@
+packages:
+  - "clients/*"
+  - "servers/*"
+  - "facilitator/*"
+  - "logging"
+  # Link the in-repo SDK packages so examples build against local source.
+  - "../../typescript/packages/core"
+  - "../../typescript/packages/extensions"
+  - "../../typescript/packages/http/*"
+  - "../../typescript/packages/mcp"
+  - "../../typescript/packages/mechanisms/*"

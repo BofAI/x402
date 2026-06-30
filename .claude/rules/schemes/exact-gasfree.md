@@ -1,8 +1,8 @@
 # Scheme: `exact_gasfree`
 
-**Spec**: [specs/schemes/exact-gasfree.md](../../../specs/schemes/exact-gasfree.md)
+Code: `mechanisms/tron/src/gasfree/{client,facilitator,server}`. Class `ExactGasFreeTronScheme`. **TRON-only.** Wire it with `registerExactGasFreeTronScheme` (it assembles the GasFree relayer API clients — `createGasFreeApiClients`, base-URL registry — that callers shouldn't build by hand).
 
-`exact_gasfree` enables **gasless payments on TRON**. Users hold tokens in a GasFree custodial wallet and sign TIP-712 permits. A service provider (relayer) submits the transaction on-chain, paying TRX gas and collecting a `maxFee`. **TRON-only.**
+`exact_gasfree` enables **gasless payments on TRON**. Users hold tokens in a GasFree custodial wallet and sign TIP-712 permits. A service provider (relayer) submits the transaction on-chain, paying TRX gas and collecting a `maxFee`.
 
 ## When to use
 
@@ -13,22 +13,19 @@
 ## Key invariants
 
 - Domain is `{"name": "GasFreeController", "version": "V1.0.0", "chainId": <tron_chain_id>, "verifyingContract": <GasFreeController EVM hex>}`.
-- All address fields — `verifyingContract`, `token`, `serviceProvider`, `user`, `receiver` — are **EVM hex**, not Base58. See [docs/solutions.md entry #1](../../../docs/solutions.md).
+- All address fields — `verifyingContract`, `token`, `serviceProvider`, `user`, `receiver` — are **EVM hex**, not Base58 ([networks/tron.md](../networks/tron.md)).
 - Funds are in `gasFreeAddress`, not the main wallet.
+- **`feeTo` is the relayer's registered service provider.** Verify rejects any other `feeTo` with `gasfree_fee_to_mismatch`. The facilitator must not advertise its own wallet as `feeTo` — only emit `feeTo` when it is an actual registered provider (commit `c4472cc`). The client resolves the provider from `fee.feeTo` if present, else picks from the providers endpoint.
 
 ## Common gotchas — all caught in production already, do not repeat
 
-- **Address format** ([solutions.md #1](../../../docs/solutions.md)): TIP-712 requires 0x-prefixed hex for every address field. Passing Base58 produces a signature that looks valid but verifies to the wrong address. `PR #53` fixed this.
-- **Deadline bounds** ([solutions.md #2](../../../docs/solutions.md)): mainnet enforces `[50, 600]` seconds, testnets `[50, 3600]`. Clamp per-network with 5s padding on each side: mainnet `[55, 595]`, testnet `[55, 3595]`. Warn when clamping. `PR #56` fixed this.
-- **Balance source** ([solutions.md #3](../../../docs/solutions.md)): `SufficientBalancePolicy` must call `mechanism.checkBalance()` (which queries `gasFreeAddress` via GasFree API), **not** `signer.checkBalance()` (which queries the main wallet). Main wallet may be empty while GasFree wallet has funds. `PR #59` fixed this.
-- **`raw_data_hex` preservation** (commit `e6f4cb7`): when constructing TRON approval transactions, preserve `raw_data_hex` as-is on the payload; do not recompute.
+- **Address format**: TIP-712 requires 0x-prefixed hex for every address field. Base58 → a signature that verifies to the wrong address.
+- **Deadline bounds**: mainnet enforces `[50, 600]`s, testnets `[50, 3600]`s. Clamp per-network with 5s padding: mainnet `[55, 595]`, testnet `[55, 3595]`. Warn when clamping.
+- **Balance source**: balance checks must query `gasFreeAddress` via the GasFree API, **not** the main wallet (which may be empty while the GasFree wallet has funds).
 
 ## Testing
 
-`python/x402/tests/exact/test_tron_client.py`, `test_tron_facilitator.py`. GasFree-specific:
-
-- Mock the GasFree API for deadline clamping tests.
-- Use TRON zero-address fallback in config.
+`mechanisms/tron/test/unit/gasfree-*.test.ts` (`gasfree-api`, `gasfree-digest`, `gasfree-feeto`, `gasfree-flow`). Mock the GasFree API for deadline-clamping and feeTo tests.
 
 ## Safety
 

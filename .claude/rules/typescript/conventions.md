@@ -1,35 +1,48 @@
 # TypeScript conventions (x402)
 
-Target: **Node 20+**. `pnpm >= 10` workspace. All packages ESM-only.
+Target: **Node 20+**. `pnpm >= 11` workspace + `turbo` build graph. All packages ESM-only, published as `@bankofai/x402-*`. See [typescript/CLAUDE.md](../../../typescript/CLAUDE.md) for build/test commands and the full fork/scheme rules — this sheet is the convention floor.
 
 ## Tooling
 
-- **Package manager**: `pnpm` (workspace config at `typescript/pnpm-workspace.yaml`). No `npm` / `yarn` lockfiles.
-- **Build**: `tsc` per package. Output to `dist/`. Don't import from `dist/` in source or tests.
-- **Tests**: `vitest` (`vitest run`). Co-locate `*.test.ts` with source.
+- **Package manager**: `pnpm` (workspace at `typescript/pnpm-workspace.yaml`). No `npm` / `yarn` lockfiles.
+- **Build**: `turbo run build` per package → `dist/` (**gitignored**). The `examples/` workspace links these packages and builds from source — rebuild after changing SDK source. Don't import from `dist/` in source or tests.
+- **Tests**: `vitest`. Unit in `packages/*/test/unit` (`pnpm test`, offline). Integration in `packages/*/test/integrations/*.nile.test.ts` (real chains, self-skip). See [testing/conventions.md](../testing/conventions.md).
 - **tsconfig**: extend `tsconfig.base.json`. Do not disable `strict`, `noUncheckedIndexedAccess`, or `noImplicitOverride`.
 
 ## Idioms
 
-- **`"type": "module"` everywhere**. Import with explicit `.js` suffixes in relative imports (required by Node ESM resolution).
-- **No default exports** in public API packages. Named exports only, so IDE rename and grep stay coherent.
-- **`BigInt`** for all amounts. `number` is reserved for chainIds, timestamps (unix seconds fit), and loop counters.
-- **Typed data via `viem`**. For TRON, the in-tree TIP-712 signer in `packages/mechanisms/tron/src/` — do not add a new lib.
-- **Address normalization**: strings stored lowercase. Checksum only at the boundary of APIs that require it (verifier on-chain). Use `addressToHex` helpers for TRON Base58 → 0x-hex conversion **before** any typed-data signing.
-- **Errors**: `X402Error` subclasses from `@bankofai/x402`'s `errors.ts`. Preserve facilitator error codes as discriminants on the subclass.
-- **Snapshot tests** only for stable wire formats (`config.test.ts`). Never for log output or stack traces.
+- **`"type": "module"` everywhere**. Explicit `.js` suffixes on relative imports (Node ESM resolution).
+- **No default exports** in public API packages. Named exports only.
+- **`BigInt`** for all amounts. `number` only for chainIds, timestamps, loop counters. Serialize with `.toString()` — never re-encode through `Number`.
+- **Typed data via `viem`** (EVM) and the in-tree TIP-712 signer (`mechanisms/tron`). Convert TRON Base58 → 0x-hex with `tronAddressToEvm` / `normalizeAddressForSigning` **before** any typed-data signing.
+- **Errors**: `X402Error` subclasses; preserve facilitator error codes as discriminants.
+- **No `any`** — prefer `unknown` + narrowing. **No `require()`**. **No `console.log` in library code** — accept a logger via options or return data.
 
-## Package boundaries
+## Package structure
 
-- `@bankofai/x402` is the consumer-facing entry. Additions to its public surface require a doc update in `specs/` (if wire-format) and a test.
-- Mechanisms live in their own workspace package per chain family (`evm`, `tron`, …). Don't cross-import across mechanisms.
-- `packages/legacy` and `packages/x402-deprecated` are **frozen** — do not add new code there. Deprecate in a new entry point instead.
-- `packages/core` is currently just a `dist` pre-artifact. If you need shared types, put them in `@bankofai/x402/src/types/` and re-export.
+Consumers import granular packages directly — there is **no umbrella `@bankofai/x402` package**.
+
+- `core` (`@bankofai/x402-core`) — protocol types, client/server/facilitator orchestration, http resource server, chain-agnostic `Wallet` contracts.
+- `mechanisms/{evm,tron}` — per-chain schemes; one workspace package per chain family. **Mechanisms must not cross-import** (`evm` ⊄ `tron`); shared types go in `core`.
+- `extensions` — payload extensions (gas-sponsoring, offer-receipt, sign-in-with-x).
+- `http/{fetch,express,fastify,hono,next,axios}`, `mcp` — transports.
+- `packages/legacy`, `packages/x402-deprecated` — **frozen** back-compat. Do not add new code there.
+
+## Upstream fork — the load-bearing rule
+
+`core` and `mechanisms/evm` are **forked from `x402-foundation/x402`**. Keep them **byte-identical to upstream modulo the `@x402/* → @bankofai/x402-*` rename**.
+
+- **Put BankofAI additions in NEW overlay files; never edit upstream files.** Overlays live in `core/src/wallets/`, `mechanisms/evm/src/adapters/`, etc.
+- Before changing an upstream-derived file (`signer.ts`, `exact/**`, `upto/**`, `shared/permit2.ts`, …) ask whether it belongs in an overlay. A bug that "looks upstream" is usually the **overlay wiring** — fix it there.
+- `mechanisms/tron` has **no upstream** — owned here; edit directly.
+
+## Signer factories (adapter layer)
+
+Wallet → signer adaptation lives in the overlay, not upstream `signer.ts`. Convention:
+**`create<Role><Chain>Signer(wallet, { network, rpcUrl?, apiKey? })`** — Role ∈ {Client, Facilitator, Authorizer}, Chain ∈ {Evm, Tron}. The factory builds the chain client internally from the CAIP-2 `network`; callers pass a structural `Wallet`, not a chain client. Unit-test by mocking the client builder (`createEvmPublicClient` / `buildTronWeb`), not by injecting a chain client.
 
 ## Don'ts
 
-- **No default exports in public packages.**
-- **No `any`.** Prefer `unknown` + narrowing.
-- **No re-encoding BigInt through `Number`.** Serialize with `.toString()` for JSON.
-- **No `require()`** — ESM only.
-- **No `console.log` in library code.** Accept a logger via options or return data; let the consumer decide what to log.
+- **No default exports in public packages.** **No `any`.** **No `require()`.** **No `console.log` in library code.**
+- **No cross-mechanism imports.** **No editing upstream-forked files** when an overlay will do.
+- **No thin pass-through `register<Scheme>` helpers** — use `new + register`.
