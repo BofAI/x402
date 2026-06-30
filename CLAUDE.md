@@ -54,7 +54,7 @@ This repo uses a Claude-Code-native layout: rules, commands, and agents that let
 | [.claude/rules/typescript/](.claude/rules/typescript/) | TypeScript conventions (pnpm/turbo, ESM, fork+overlay, signer factories) |
 | [.claude/rules/testing/](.claude/rules/testing/) | vitest unit + integration test conventions |
 | [.claude/commands/x402/](.claude/commands/x402/) | Slash-command wizards (`/x402:compound`) |
-| [.claude/agents/](.claude/agents/) | Specialized subagents (`code-reviewer`, `security-reviewer`, `scheme-author`) |
+| [.claude/agents/](.claude/agents/) | Specialized subagents (`code-reviewer`, `security-reviewer`) |
 
 Each major component also has its own `CLAUDE.md` with build/test commands and local conventions: [legacy/python/x402/](legacy/python/x402/CLAUDE.md), [legacy/typescript/](legacy/typescript/CLAUDE.md), [legacy/e2e/](legacy/e2e/CLAUDE.md), [legacy/examples/](legacy/examples/CLAUDE.md), [docs/](docs/CLAUDE.md), [legacy/specs/](legacy/specs/CLAUDE.md), [legacy/integration/](legacy/integration/CLAUDE.md).
 

@@ -68,7 +68,7 @@ Structure every rule file:
 ## Relation to other surfaces
 
 - **[typescript/CLAUDE.md](../../typescript/CLAUDE.md)** — the SDK's own build/test/layout guide and the fork/overlay + signer-factory + scheme-API rules. Rules here cite it; it is the authoritative source for structure.
-- **.claude/agents/** — specialized reviewers (`code-reviewer`, `security-reviewer`, `scheme-author`) that load the rules relevant to their domain. Payment-path / signing changes route through `security-reviewer`.
+- **.claude/agents/** — specialized reviewers (`code-reviewer`, `security-reviewer`) that load the rules relevant to their domain. Payment-path / signing changes route through `security-reviewer`.
 - **.claude/commands/x402/** — slash-command wizards that scaffold code conforming to these rules.
 
 ## Don'ts
