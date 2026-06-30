@@ -12,7 +12,9 @@ x402 currently supports the **TRON** and **BSC** networks, with plans to expand 
 
 ## Current Release
 
-Version `0.6.0` completes the TypeScript parity milestone against the Python SDK. Both SDKs support facilitator verify and settle flows for `exact`, `exact_permit`, and `exact_gasfree`, with TRON Nile smoke coverage for permit and GasFree settlement.
+Version `1.0.0-beta.0`. The SDK is a **TypeScript-only** pnpm/turbo monorepo published as granular `@bankofai/x402-*` packages (there is no umbrella package). `core` and the EVM mechanism are forks of the [`x402-foundation/x402`](https://github.com/x402-foundation/x402) upstream; the TRON mechanism is in-house. Supported schemes: `exact` (ERC-3009 / Permit2), `upto`, `batch-settlement`, `auth-capture` (EVM), and `exact_gasfree` (TRON).
+
+> The previous-generation Python + TypeScript SDK lives under [`legacy/`](legacy/) for reference and is slated for removal.
 
 ## Features
 
@@ -20,231 +22,84 @@ Version `0.6.0` completes the TypeScript parity milestone against the Python SDK
 - **AI Ready**: First-class support for AI Agents via specialized x402 skills.
 - **Trust Minimized**: Uses **TIP-712/EIP-712** structured data signing. Facilitators cannot modify payment terms.
 - **Stateless & Accountless**: No user accounts or session management required. Payments are verified per request.
-- **Framework Integrations**: 
-    - **Python**: FastAPI, Flask, httpx
-    - **TypeScript**: Native fetch, Node.js
-
-## Compatibility Notes
-
-- The `exact` scheme is being aligned to the Coinbase x402 v2 wire format.
-- For `exact`, transfer authorization data is now carried in `payload.authorization`.
-- A temporary fallback still accepts the legacy `extensions.transferAuthorization` shape during migration.
+- **Framework Integrations** (TypeScript): a wrapped-`fetch` client plus middleware for **Express, Fastify, Hono, Next.js, Axios**, and an **MCP** transport.
 
 ## Installation
 
-### Python
-The Python SDK includes support for Server (FastAPI/Flask), Client, and Facilitator.
+Install only the granular packages you need:
 
 ```bash
-pip install "bankofai-x402[all]==0.6.0"
+# client (wrapped fetch) + the chains you pay on
+npm install @bankofai/x402-fetch @bankofai/x402-evm @bankofai/x402-tron
+
+# resource server (Express shown; also fastify/hono/next/axios)
+npm install @bankofai/x402-core @bankofai/x402-express
 ```
 
-For local development from source, use `pip install -e .[all]` inside `python/x402`.
-
-### TypeScript
-The TypeScript SDK provides client, server, and facilitator integration tools.
-
-```bash
-npm install @bankofai/x402@0.6.0
-```
-
-## AI Agent Integration
-
-x402 is designed for the Agentic Web. AI agents can autonomously negotiate and pay for resources using the [**x402-payment**](https://github.com/BofAI/skills/tree/main/x402-payment) skill.
-
-This skill enables agents to:
-
-1. Detect `402 Payment Required` responses.
-2. Sign TIP-712/EIP-712 payment authorizations automatically.
-3. Manage wallet balances and handle the challenge-response loop.
+The repo itself is a `pnpm` (>=11) workspace; from `typescript/` run `pnpm install && pnpm build`. The `examples/` workspace links these packages and builds from source.
 
 ## Quick Start
 
-### 1. Facilitator
-The Facilitator is responsible for verifying TIP-712/EIP-712 signatures and executing on-chain settlements.
+A full loop has three roles: **Client** (payer), **Resource Server** (seller), **Facilitator** (verify + settle on-chain). Runnable trios for every scheme live under [`examples/typescript/`](examples/typescript/) — start there.
 
-- **Self-Hosted**: Deploy and manage your own Facilitator instance for full control over fee policies and settlement strategies. See the [**demo repository quick start**](https://github.com/BofAI/x402-demo/tree/main?tab=readme-ov-file#quick-start) for deployment instructions.
-- **Official Facilitator**: An [officially hosted Facilitator](https://github.com/BofAI/x402-facilitator) service is available, allowing you to use x402 without deploying infrastructure yourself.
+### Client (Buyer)
 
-### 2. Server (Seller)
-Protect your FastAPI endpoints with a single decorator.
+The client wraps `fetch` so `402` challenges are paid automatically. Key custody is in [`@bankofai/agent-wallet`](https://github.com/BofAI/agent-wallet); the signer factory adapts the wallet and builds the chain client internally from the CAIP-2 network.
 
-**TRON Example:**
-```python
-from fastapi import FastAPI
-from bankofai.x402.server import X402Server
-from bankofai.x402.fastapi import x402_protected
-from bankofai.x402.facilitator import FacilitatorClient
-from bankofai.x402.config import NetworkConfig
+**EVM (BSC) example:**
 
-app = FastAPI()
-server = X402Server()
-server.set_facilitator(FacilitatorClient("http://localhost:8001"))
+```typescript
+import { x402Client, wrapFetchWithPayment } from "@bankofai/x402-fetch";
+import { createClientEvmSigner } from "@bankofai/x402-evm/adapters/agent-wallet";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
 
-@app.get("/protected")
-@x402_protected(
-    server=server,
-    prices=["0.0001 USDT"],
-    schemes=["exact_permit"],
-    network=NetworkConfig.TRON_NILE,
-    pay_to="<YOUR_TRON_WALLET_ADDRESS>",
-)
-async def protected_endpoint():
-    return {"data": "This is premium content!"}
+const wallet = /* resolve your @bankofai/agent-wallet */;
+const signer = await createClientEvmSigner(wallet, {
+  network: "eip155:97",
+  // Permit2 tokens (e.g. USDC) read the chain; set a reliable RPC.
+  // ERC-3009 tokens (e.g. DHLU) sign offline and need none.
+  rpcUrl: "https://bsc-testnet-rpc.publicnode.com",
+});
+
+// The selector is the payment-selection policy: pick which advertised option to pay.
+const client = new x402Client((_x402Version, accepts) => accepts[0]);
+client.register("eip155:97", new ExactEvmScheme(signer));
+
+const fetchWithPay = wrapFetchWithPayment(fetch, client);
+const res = await fetchWithPay("http://localhost:4021/weather"); // 402 handled automatically
+const data = await res.json();
 ```
 
-**EVM (BSC) Example:**
-```python
-from fastapi import FastAPI
-from bankofai.x402.server import X402Server
-from bankofai.x402.fastapi import x402_protected
-from bankofai.x402.facilitator import FacilitatorClient
-from bankofai.x402.config import NetworkConfig
-from bankofai.x402.mechanisms.evm.exact_permit import ExactPermitEvmServerMechanism
-from bankofai.x402.mechanisms.evm.exact import ExactEvmServerMechanism
+**TRON** is symmetric — swap the imports and register under `tron:*`:
 
-app = FastAPI()
-server = X402Server()
-server.register(NetworkConfig.BSC_TESTNET, ExactPermitEvmServerMechanism())
-server.register(NetworkConfig.BSC_TESTNET, ExactEvmServerMechanism())
-server.set_facilitator(FacilitatorClient("http://localhost:8001"))
+```typescript
+import { createClientTronSigner } from "@bankofai/x402-tron";
+import { ExactTronScheme } from "@bankofai/x402-tron/exact/client";
 
-@app.get("/protected")
-@x402_protected(
-    server=server,
-    prices=["0.0001 USDT", "0.0001 DHLU"],
-    schemes=["exact_permit", "exact"],
-    network=NetworkConfig.BSC_TESTNET,
-    pay_to="<YOUR_BSC_WALLET_ADDRESS>",
-)
-async def protected_endpoint():
-    return {"data": "This is premium content!"}
+const signer = await createClientTronSigner(wallet, { network: "tron:nile" });
+client.register("tron:*", new ExactTronScheme(signer));
 ```
 
-For a smoke-tested BSC testnet example set, see [`examples/bsc-testnet-smoke/README.md`](examples/bsc-testnet-smoke/README.md). The `exact` route there uses `DHLU`, which supports ERC-3009 on testnet.
+### Server (Seller)
 
-### 3. Client (Buyer)
-Clients handle the `402` challenge-response loop automatically using the SDK.
+Build a resource server with `createResourceServer` (from `@bankofai/x402-core`), point it at a facilitator via `HTTPFacilitatorClient` (`@bankofai/x402-core/server`), and protect routes with the framework middleware — e.g. `paymentMiddlewareFromHTTPServer` from `@bankofai/x402-express`. The server is keyless (it only holds a payout address). See [`examples/typescript/servers/express`](examples/typescript/servers/express) for the full wiring.
 
- **TRON — TypeScript Example:**
- ```typescript
- import 'dotenv/config'
- import {
-   X402Client, X402FetchClient,
-   ExactPermitTronClientMechanism, ExactGasFreeClientMechanism,
-   TronClientSigner, SufficientBalancePolicy,
-   GasFreeAPIClient, getGasFreeApiBaseUrl,
- } from '@bankofai/x402'
+### Facilitator
 
- const signer = await TronClientSigner.create()
+The facilitator verifies signatures and settles on-chain. Construct `new x402Facilitator()` (from `@bankofai/x402-core/facilitator`) and `register(network, scheme)` per chain with a facilitator signer. Self-host it, or use the [officially hosted Facilitator](https://github.com/BofAI/x402-facilitator). See [`examples/typescript/facilitator/basic`](examples/typescript/facilitator/basic).
 
- const x402 = new X402Client()
+## AI Agent Integration
 
- // Register both exact_permit and exact_gasfree mechanisms
- x402.register('tron:*', new ExactPermitTronClientMechanism(signer))
- x402.register('tron:*', new ExactGasFreeClientMechanism(signer, {
-   'tron:nile': new GasFreeAPIClient(getGasFreeApiBaseUrl('tron:nile')),
-   'tron:mainnet': new GasFreeAPIClient(getGasFreeApiBaseUrl('tron:mainnet')),
- }))
- x402.registerPolicy(SufficientBalancePolicy)
+x402 is designed for the Agentic Web. AI agents can autonomously negotiate and pay for resources using the [**x402-payment**](https://github.com/BofAI/skills/tree/main/x402-payment) skill, which lets agents detect `402` responses, sign TIP-712/EIP-712 authorizations, and manage the challenge-response loop.
 
- const client = new X402FetchClient(x402)
+**Configuration:** set up [`agent-wallet`](https://github.com/BofAI/agent-wallet) and let the signer factories resolve the active wallet. When `TRON_GRID_API_KEY` is unset, mainnet TRON RPC routes to a BankofAI-operated fallback (`https://hptg.bankofai.io`); set it for production.
 
- // The SDK handles the 402 flow automatically
- // Demo service: https://x402-demo.bankofai.io/protected-nile
- const response = await client.get('http://localhost:8000/protected')
- const data = await response.json()
- ```
-
- **TRON — Python Example:**
- ```python
- import asyncio, httpx
- from bankofai.x402.clients import X402Client, X402HttpClient, SufficientBalancePolicy
- from bankofai.x402.mechanisms.tron.exact_permit import ExactPermitTronClientMechanism
- from bankofai.x402.mechanisms.tron.exact_gasfree.client import ExactGasFreeClientMechanism
- from bankofai.x402.signers.client import TronClientSigner
- from bankofai.x402.utils.gasfree import GasFreeAPIClient
- from bankofai.x402.config import NetworkConfig
-
- gasfree_clients = {
-     "tron:nile": GasFreeAPIClient(NetworkConfig.get_gasfree_api_base_url("tron:nile")),
-     "tron:mainnet": GasFreeAPIClient(NetworkConfig.get_gasfree_api_base_url("tron:mainnet")),
- }
-
- async def main():
-     signer = await TronClientSigner.create()
-
-     x402 = X402Client()
-     x402.register("tron:*", ExactPermitTronClientMechanism(signer))
-     x402.register("tron:*", ExactGasFreeClientMechanism(signer, clients=gasfree_clients))
-     x402.register_policy(SufficientBalancePolicy)
-
-     async with httpx.AsyncClient(timeout=120) as http:
-         client = X402HttpClient(http, x402)
-         response = await client.get("http://localhost:8000/protected")
-         print(response.json())
-
-asyncio.run(main())
+```bash
+export AGENT_WALLET_PRIVATE_KEY="your_private_key_here"
+export TRON_GRID_API_KEY="your_trongrid_api_key_here"  # recommended for production
 ```
 
- **EVM (BSC) — TypeScript Example:**
- ```typescript
- import 'dotenv/config'
- import {
-   X402Client, X402FetchClient,
-   ExactPermitEvmClientMechanism, ExactEvmClientMechanism,
-   EvmClientSigner, SufficientBalancePolicy,
- } from '@bankofai/x402'
-
- const signer = await EvmClientSigner.create()
-
- const x402 = new X402Client()
- x402.register('eip155:*', new ExactPermitEvmClientMechanism(signer))
- x402.register('eip155:*', new ExactEvmClientMechanism(signer))
- x402.registerPolicy(SufficientBalancePolicy)
-
- const client = new X402FetchClient(x402)
-
- // The SDK handles the 402 flow automatically
- // Use an endpoint that advertises an ERC-3009-compatible token for `exact`
- const response = await client.get('http://localhost:8000/protected-bsc-testnet-coinbase')
- const data = await response.json()
- ```
-
-The BSC testnet smoke path validated on 2026-04-03 was:
-
-- Coinbase official client -> our server
-- our client -> Coinbase official server
-
-Runbook and txids are documented in [`examples/bsc-testnet-smoke/README.md`](examples/bsc-testnet-smoke/README.md) and [`specs/001-exact-v2-compat/spec.md`](specs/001-exact-v2-compat/spec.md).
-
-### 4. Agent (Buyer)
- AI agents can handle x402 payments autonomously by using the specialized payment skill.
-
- **Configuration:**
- Configure `agent-wallet` first, then let the signer factories resolve the active wallet. For wallet setup instructions and supported configuration modes, see `https://github.com/BofAI/agent-wallet`.
-
- When `TRON_GRID_API_KEY` is not set, mainnet RPC calls are automatically routed to a BankOfAI-operated fallback endpoint (`https://hptg.bankofai.io`). Setting `TRON_GRID_API_KEY` uses TronGrid directly and is recommended for production workloads.
-
- ```bash
- # Example: configure agent-wallet via environment
- # See https://github.com/BofAI/agent-wallet for the full setup guide
- export AGENT_WALLET_PRIVATE_KEY="your_private_key_here"
- export TRON_GRID_API_KEY="your_trongrid_api_key_here"  # Recommended for production
- ```
-
-**Using with Agentic Tools:**
-You can add the [**x402-payment**](https://github.com/BofAI/skills/tree/main/x402-payment) skill to your favorite agentic tools:
-
-- **OpenClaw**: `npx clawhub install x402-payment`
-- **opencode**: Copy the skill to your project's `.opencode/skill/` directory to enable autonomous TRON payments.
-
-Once configured, your agent will:
-1. Automatically detect when an API requires payment (`402`).
-2. Negotiate terms and sign authorizations using the provided wallet.
-3. Manage gas (TRX) and token (USDT/USDD) balances to ensure smooth operation.
-
-**Try it out:** Tell your Agent to visit `https://x402-demo.bankofai.io/protected-nile`. The Agent will automatically complete the x402 payment and return the resource.
+**Try it out:** tell your agent to visit `https://x402-demo.bankofai.io/protected-nile` — it completes the x402 payment and returns the resource.
 
 ## Architecture
 
@@ -267,15 +122,15 @@ sequenceDiagram
 
     Client->>Server: GET /api
     Server->>Client: 402 PAYMENT-REQUIRED: {...}
-    
+
     Note over Client: Create payment<br/>payload
-    
+
     Client->>Server: GET /api<br/>PAYMENT-SIGNATURE: {...}
     Server->>Facilitator: POST /verify<br/>PAYMENT-SIGNATURE<br/>PAYMENT-REQUIRED
     Facilitator->>Server: 200 Verification: {...}
-    
+
     Note over Server: Do work
-    
+
     Server->>Facilitator: POST /settle<br/>PAYMENT-SIGNATURE<br/>PAYMENT-REQUIRED
     Facilitator->>Blockchain: Submit tx
     Blockchain->>Facilitator: tx confirmed
@@ -285,7 +140,7 @@ sequenceDiagram
 
 ## Supported Networks & Assets
 
-x402 currently supports TRC-20 tokens on the TRON network and BEP-20 tokens on the BSC network. Custom tokens can be registered via the `TokenRegistry`.
+x402 currently supports TRC-20 tokens on the TRON network and BEP-20 tokens on the BSC network.
 
 | Network | ID | Status | Recommended For |
 |---------|----|--------|-----------------|
@@ -295,40 +150,37 @@ x402 currently supports TRC-20 tokens on the TRON network and BEP-20 tokens on t
 | **BSC Testnet** | `eip155:97` | Testnet | **Development & Testing** |
 | **BSC Mainnet** | `eip155:56` | Mainnet | Production |
 
-**Supported Tokens:**
-- **USDT** (Tether)
-- **USDD** (Decentralized USD)
+**Tokens seen in the examples:** BSC testnet — `DHLU` (ERC-3009) and `USDC` (Permit2); TRON Nile — `USDT` and `USDD` (Permit2).
 
 ## Supported Payment Schemes
 
-The x402 protocol supports multiple payment schemes to accommodate different user needs and blockchain capabilities.
-
 | Scheme | Chain | Description |
 |--------|-------|-------------|
-| **`exact_permit`** | TRON, EVM | Standard x402 scheme using TIP-712/EIP-712 permits. Requires a `PaymentPermit` contract. |
-| **`exact_gasfree`**| TRON | Allows users to pay with USDT/USDD without holding TRX for gas. Settled via the official GasFree Proxy. |
-| **`exact`** | EVM | Native direct payment using ERC-3009 (`TransferWithAuthorization`) where supported by the token (e.g., USDC). |
+| **`exact`** | EVM, TRON | Fixed, pre-quoted single payment. Transfer method chosen via `extra.assetTransferMethod`: `eip3009` (ERC-3009 `TransferWithAuthorization`, e.g. USDC/DHLU) or `permit2` (Uniswap Permit2). |
+| **`upto`** | EVM, TRON | Usage-based: the payer signs an up-to-max authorization; the server settles the actual amount used (≤ max). |
+| **`batch-settlement`** | EVM, TRON | Payment channels: deposit once, pay many requests with off-chain vouchers, settle a batch (with refund of the remainder). |
+| **`auth-capture`** | EVM | Refundable payments via Base's Commerce Payments escrow — authorize, then capture / void / refund. |
+| **`exact_gasfree`** | TRON | Pay with USDT/USDD without holding TRX for gas; a relayer submits and pays energy via the official GasFree Proxy. |
 
 ## Development
 
 ### Prerequisites
-- Python 3.10+
-- Node.js 18+
-- A TRON Wallet (e.g., TronLink) with TRX for gas/energy, and/or a BSC Wallet (e.g., MetaMask) with BNB for gas.
+- Node.js 20+
+- `pnpm` >= 11
+- A TRON wallet with TRX for gas/energy, and/or a BSC wallet with BNB for gas.
+
+### Build & test
+```bash
+cd typescript
+pnpm install
+pnpm build           # turbo run build (all packages → dist/, gitignored)
+pnpm test            # vitest unit tests (offline, no secrets)
+pnpm test:integration  # real-chain tests; self-skip without .env creds
+```
 
 ### Configuration
-Environment variables for development:
-- Configure wallet access through `agent-wallet`. See `https://github.com/BofAI/agent-wallet` for supported environment variables and providers.
-- `TRON_GRID_API_KEY`: Recommended for production. When not set, mainnet RPC calls use a BankOfAI fallback endpoint automatically.
-
-### Testing
-```bash
-# Run Python tests
-cd python/x402 && pytest
-
-# Run TypeScript tests
-cd typescript && pnpm test
-```
+- Configure wallet access through [`agent-wallet`](https://github.com/BofAI/agent-wallet).
+- `TRON_GRID_API_KEY`: recommended for production. When unset, mainnet TRON RPC uses a BankofAI fallback endpoint automatically.
 
 ## Security & Risk
 
