@@ -41,8 +41,8 @@ A new `specs/<scheme>.md` with these sections (order matters):
 
 3. After generation, suggest:
    - Adding a corresponding `.claude/rules/schemes/<scheme>.md` summarizing gotchas
-   - Scaffolding an e2e scenario with `/x402:create-scenario`
-   - Opening an in-flight feature spec under `specs/<NNN>-<slug>/` if the scheme is non-trivial
+   - Adding `vitest` unit tests under `mechanisms/<chain>/test/unit/<scheme>/`
+   - Registering the scheme on the client/facilitator with `new + register`
 
 ## Constraints
 
