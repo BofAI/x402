@@ -6,7 +6,7 @@ x402 currently supports the **TRON** and **BSC** networks, with plans to expand 
 
 ---
 
-**[📚 Full Documentation](https://docs.bankofai.io/)** | **[💻 Demo Repository](https://github.com/BofAI/x402-demo)**
+**[📚 Full Documentation](https://docs.bankofai.io/)**
 
 ---
 
@@ -104,8 +104,6 @@ x402 is designed for the Agentic Web. AI agents can autonomously negotiate and p
 export AGENT_WALLET_PRIVATE_KEY="your_private_key_here"
 export TRON_GRID_API_KEY="your_trongrid_api_key_here"  # recommended for production
 ```
-
-**Try it out:** tell your agent to visit `https://x402-demo.bankofai.io/protected-nile` — it completes the x402 payment and returns the resource.
 
 ## Architecture
 
