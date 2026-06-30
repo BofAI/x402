@@ -12,7 +12,7 @@ x402 currently supports the **TRON** and **BSC** networks, with plans to expand 
 
 ## Current Release
 
-Version `1.0.0-beta.0`. The SDK is a **TypeScript-only** pnpm/turbo monorepo published as granular `@bankofai/x402-*` packages (there is no umbrella package). `core` and the EVM mechanism are forks of the [`x402-foundation/x402`](https://github.com/x402-foundation/x402) upstream; the TRON mechanism is in-house. Supported schemes: `exact` (ERC-3009 / Permit2), `upto`, `batch-settlement`, `auth-capture` (EVM), and `exact_gasfree` (TRON).
+Version `1.0.0`. The SDK is a **TypeScript-only** pnpm/turbo monorepo published as granular `@bankofai/x402-*` packages (there is no umbrella package). `core` and the EVM mechanism are forks of the [`x402-foundation/x402`](https://github.com/x402-foundation/x402) upstream; the TRON mechanism is in-house. Supported schemes: `exact` (ERC-3009 / Permit2), `upto`, `batch-settlement`, `auth-capture` (EVM), and `exact_gasfree` (TRON).
 
 > The previous-generation Python + TypeScript SDK lives under [`legacy/`](legacy/) for reference and is slated for removal.
 
@@ -46,38 +46,44 @@ A full loop has three roles: **Client** (payer), **Resource Server** (seller), *
 
 The client wraps `fetch` so `402` challenges are paid automatically. Key custody is in [`@bankofai/agent-wallet`](https://github.com/BofAI/agent-wallet); the signer factory adapts the wallet and builds the chain client internally from the CAIP-2 network.
 
-**EVM (BSC) example:**
+**TRON (Nile) example:**
 
 ```typescript
 import { x402Client, wrapFetchWithPayment } from "@bankofai/x402-fetch";
-import { createClientEvmSigner } from "@bankofai/x402-evm/adapters/agent-wallet";
-import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
+import { createClientTronSigner } from "@bankofai/x402-tron";
+import { ExactTronScheme } from "@bankofai/x402-tron/exact/client";
 
 const wallet = /* resolve your @bankofai/agent-wallet */;
-const signer = await createClientEvmSigner(wallet, {
-  network: "eip155:97",
-  // Permit2 tokens (e.g. USDC) read the chain; set a reliable RPC.
-  // ERC-3009 tokens (e.g. DHLU) sign offline and need none.
-  rpcUrl: "https://bsc-testnet-rpc.publicnode.com",
+// The factory builds TronWeb from the network and auto-broadcasts the one-time
+// Permit2 approve that USDT/USDD need. When TRON_GRID_API_KEY is unset, mainnet
+// RPC falls back to a BankofAI-operated endpoint.
+const signer = await createClientTronSigner(wallet, {
+  network: "tron:nile",
+  apiKey: process.env.TRON_GRID_API_KEY,
 });
 
 // The selector is the payment-selection policy: pick which advertised option to pay.
 const client = new x402Client((_x402Version, accepts) => accepts[0]);
-client.register("eip155:97", new ExactEvmScheme(signer));
+client.register("tron:*", new ExactTronScheme(signer));
 
 const fetchWithPay = wrapFetchWithPayment(fetch, client);
 const res = await fetchWithPay("http://localhost:4021/weather"); // 402 handled automatically
 const data = await res.json();
 ```
 
-**TRON** is symmetric — swap the imports and register under `tron:*`:
+**EVM (BSC)** is symmetric — swap the imports and register under the exact chain id:
 
 ```typescript
-import { createClientTronSigner } from "@bankofai/x402-tron";
-import { ExactTronScheme } from "@bankofai/x402-tron/exact/client";
+import { createClientEvmSigner } from "@bankofai/x402-evm/adapters/agent-wallet";
+import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
 
-const signer = await createClientTronSigner(wallet, { network: "tron:nile" });
-client.register("tron:*", new ExactTronScheme(signer));
+const signer = await createClientEvmSigner(wallet, {
+  network: "eip155:97",
+  // Permit2 tokens (e.g. USDC) read the chain; set a reliable RPC.
+  // ERC-3009 tokens (e.g. DHLU) sign offline and need none.
+  rpcUrl: "https://bsc-testnet-rpc.publicnode.com",
+});
+client.register("eip155:97", new ExactEvmScheme(signer));
 ```
 
 ### Server (Seller)
