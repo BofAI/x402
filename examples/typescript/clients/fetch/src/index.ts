@@ -32,7 +32,7 @@ const TOKEN_ADDRESSES: Record<string, Record<string, string>> = {
   eip155: {
     DHLU: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816", // eip155:97, ERC-3009
     USDC: "0x64544969ed7EBf5f083679233325356EbE738930", // eip155:97, permit2
-    USDT: "0x7ef95a0FEE0Dd31b22626fA2e10Ee6A223F8a684", // eip155:97, permit2
+    USDT: "0x337610d27c682e347c9cd60bd4b3b107c9d34ddd", // eip155:97, permit2
   },
   tron: {
     USDT: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf", // tron:nile, permit2
