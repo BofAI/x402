@@ -36,6 +36,12 @@ const EVM_TOKENS: Record<string, EvmToken[]> = {
       amount: "1000000000000000", // 0.001 × 1e18
       extra: { assetTransferMethod: "permit2" },
     },
+    // USDT (18 dec, plain BEP-20) — permit2 + gas-sponsored approve.
+    {
+      asset: "0x337610d277a1ca8e55981e7672002fc92574d428",
+      amount: "1000000000000000", // 0.001 × 1e18
+      extra: { assetTransferMethod: "permit2" },
+    },
   ],
   // ── BSC mainnet (eip155:56) — REAL FUNDS ──────────────────────────────
   // All plain BEP-20 (no ERC-3009 / no EIP-2612, verified on-chain) → permit2 +
