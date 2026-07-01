@@ -26,11 +26,18 @@ const RESOURCE_URL = process.env.RESOURCE_URL || "http://localhost:4021/weather"
 
 // Friendly token symbol → asset address, mirroring what `servers/express`
 // advertises. Lets PAY_TARGETS name tokens by symbol instead of address.
-const TOKEN_ADDRESSES: Record<string, string> = {
-  DHLU: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816", // eip155:97, ERC-3009
-  USDC: "0x64544969ed7EBf5f083679233325356EbE738930", // eip155:97, permit2
-  USDT: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf", // tron:nile, permit2
-  USDD: "TGjgvdTWWrybVLaVeFqSyVqJQWjxqRYbaK", // tron:nile, permit2
+// Indexed by chain family so the same symbol can resolve differently per
+// network (e.g. USDT on eip155:97 vs tron:nile are different contracts).
+const TOKEN_ADDRESSES: Record<string, Record<string, string>> = {
+  eip155: {
+    DHLU: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816", // eip155:97, ERC-3009
+    USDC: "0x64544969ed7EBf5f083679233325356EbE738930", // eip155:97, permit2
+    USDT: "0x337610d277a1ca8e55981e7672002fc92574d428", // eip155:97, permit2
+  },
+  tron: {
+    USDT: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf", // tron:nile, permit2
+    USDD: "TGjgvdTWWrybVLaVeFqSyVqJQWjxqRYbaK", // tron:nile, permit2
+  },
 };
 
 /** A single payment to perform: a network prefix + optional asset address. */
@@ -41,8 +48,9 @@ interface PayTarget {
 }
 
 /** Resolve a token tag (symbol or address) to an asset address. */
-function resolveToken(token: string): string {
-  return TOKEN_ADDRESSES[token.toUpperCase()] ?? token;
+function resolveToken(prefix: string, token: string): string {
+  const family = prefix.startsWith("eip155") ? "eip155" : prefix.startsWith("tron") ? "tron" : "";
+  return TOKEN_ADDRESSES[family]?.[token.toUpperCase()] ?? token;
 }
 
 /** Parse the PAY_TARGETS env var into targets (empty when unset). */
@@ -55,7 +63,7 @@ function parsePayTargets(): PayTarget[] {
     .filter(Boolean)
     .map(entry => {
       const [prefix, token] = entry.split("@", 2);
-      return { raw: entry, prefix: prefix!.trim(), asset: token ? resolveToken(token.trim()) : undefined };
+      return { raw: entry, prefix: prefix!.trim(), asset: token ? resolveToken(prefix!.trim(), token.trim()) : undefined };
     });
 }
 
