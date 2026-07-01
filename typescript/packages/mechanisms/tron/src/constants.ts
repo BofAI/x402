@@ -110,7 +110,7 @@ export const PERMIT2_ADDRESSES: Record<string, string> = {
  * Enforces that Permit2 transfers can only go to the witness.to address.
  */
 export const X402_PERMIT2_PROXY_ADDRESSES: Record<string, string> = {
-  "tron:mainnet": "TSaZpDMntELqULvLpyrn61JRATfvSpgNuz",
+  "tron:mainnet": "TN49yaJmZMZoEdDCqjB4uPzQLHvYkGw95m",
   "tron:nile": "TFGoaq2KjizijgjtkVxT7yjffW1A5T1j6F",
 };
 
@@ -119,7 +119,7 @@ export const X402_PERMIT2_PROXY_ADDRESSES: Record<string, string> = {
  * Used by variable-amount settlement flows.
  */
 export const X402_UPTO_PERMIT2_PROXY_ADDRESSES: Record<string, string> = {
-  "tron:mainnet": "TK3imNBs3PL3BGKtee9nEcbnNxBtMtequq",
+  "tron:mainnet": "TBLeFPkfDiweBbYmAPqnakaFBPDt9p93sR",
   "tron:nile": "TKvcqQ7S2bYyys5ZZNpjj9xGiPhiwzHq1K",
 };
 
