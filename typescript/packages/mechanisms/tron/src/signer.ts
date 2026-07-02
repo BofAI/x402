@@ -549,19 +549,26 @@ async function buildSignAndBroadcast(
   return broadcast.txid;
 }
 
-type TronTxResult = { ret?: ReadonlyArray<{ contractRet?: string }> };
+type TronTxInfo = {
+  blockNumber?: number;
+  receipt?: { result?: string };
+};
 
 /**
- * Poll TRON for a transaction's execution result via `getTransaction`.
+ * Poll TRON for a transaction's confirmed result via the fullNode
+ * `gettransactioninfobyid` endpoint.
  *
- * `getTransactionInfo` only populates the receipt after the block solidifies
- * (~19 confirmations / ~60s on Nile), too slow to confirm a settle/approve.
- * `getTransaction.ret[0].contractRet` carries the result much sooner (~3-4s,
- * once the tx is packed) — BUT in the sub-second window right after broadcast
- * the node returns a *preconfirm* (local pre-execution) `ret` that can read
- * REVERT even for a tx that ultimately succeeds. Trusting that produced false
- * settle failures. So we (a) delay before the first read to skip the preconfirm
- * window, and (b) require two consecutive identical reads before reporting.
+ * Unlike `getTransaction` (which returns a preconfirm `contractRet` that can
+ * transiently read REVERT on mainnet), this endpoint only populates
+ * `blockNumber` once the tx is packed into a confirmed block (~3-6s). The
+ * `receipt.result` field then carries the authoritative final status — no
+ * preconfirm window, no false REVERT. This mirrors tronpy's
+ * `get_transaction_info`, which uses the same fullNode endpoint.
+ *
+ * (tronweb's own `trx.getTransactionInfo` reaches the solidityNode variant
+ * `walletsolidity/gettransactioninfobyid`, which only returns after the block
+ * solidifies (~19 confirmations / ~60s) — too slow. Calling the fullNode
+ * endpoint directly avoids that delay while staying accurate.)
  *
  * @param tronWeb - The TronWeb instance used to read the transaction.
  * @param hash - The transaction id to wait for.
@@ -569,42 +576,30 @@ type TronTxResult = { ret?: ReadonlyArray<{ contractRet?: string }> };
  */
 async function pollTransactionPacked(tronWeb: TronWeb, hash: string): Promise<{ status: string }> {
   const timeoutMs = 90_000;
-  const delayMs = 1_500;
+  const delayMs = 3_000;
   const deadline = Date.now() + timeoutMs;
 
-  let last = "";
-  let streak = 0;
   while (Date.now() < deadline) {
-    // Delay first: skips the sub-second preconfirm window, whose local-execution
-    // `ret` can read REVERT for a tx that ultimately succeeds.
     await new Promise(resolve => setTimeout(resolve, delayMs));
-    let contractRet = "";
+    let info: TronTxInfo | null = null;
     try {
-      const tx = (await tronWeb.trx.getTransaction(hash)) as TronTxResult | null;
-      contractRet = tx?.ret?.[0]?.contractRet ?? "";
+      info = (await tronWeb.fullNode.request("wallet/gettransactioninfobyid", { value: hash }, "post")) as
+        | TronTxInfo
+        | null;
     } catch {
-      // Not yet propagated / transient node or rate-limit error — keep polling.
+      // Not yet confirmed / transient node or rate-limit error — keep polling.
     }
-    if (!contractRet) {
-      last = "";
-      streak = 0;
-      continue;
-    }
-    // Require two consecutive identical reads before trusting the packed result.
-    if (contractRet === last) {
-      streak += 1;
-      if (streak >= 2) {
-        const status = contractRet === "SUCCESS" ? "success" : "reverted";
-        log[status === "success" ? "info" : "warn"]("x402 tron: tx confirmed", {
-          hash,
-          status,
-          contractRet,
-        });
-        return { status };
-      }
-    } else {
-      last = contractRet;
-      streak = 1;
+    // blockNumber is populated only once the tx is packed into a confirmed
+    // block — no preconfirm window. The receipt.result is then authoritative.
+    if (info?.blockNumber) {
+      const result = info.receipt?.result ?? "";
+      const status = result === "SUCCESS" ? "success" : "reverted";
+      log[status === "success" ? "info" : "warn"]("x402 tron: tx confirmed", {
+        hash,
+        status,
+        contractRet: result,
+      });
+      return { status };
     }
   }
 
