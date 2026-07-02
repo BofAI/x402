@@ -1,17 +1,17 @@
 # x402 Conventions
 
-Repository-wide conventions that apply to every component, every language, every scheme. Break these silently and you will produce bugs that take days to diagnose.
+Repository-wide conventions that apply to every component, every scheme. Break these silently and you will produce bugs that take days to diagnose.
 
 ## Addressing
 
 - **Lowercase everything**: addresses, selectors, event topics.
-- **TRON + EIP/TIP-712**: convert TRON Base58 addresses (`T...`) to **0x-prefixed EVM hex** before passing to any EIP-712 / TIP-712 signer. This applies to `verifyingContract`, `token`, `serviceProvider`, `user`, `receiver`, and any other `address`-typed field, **both in the domain and in the message**. See [docs/solutions.md entry #1](../../../docs/solutions.md).
-- **Network identifiers**: CAIP-2 `eip155:<chainId>` for EVM, `tron:<name>` for TRON. Detection rule: `tron:` prefix → TRON, `eip155:` prefix → EVM. See [specs/config.md](../../../specs/config.md).
+- **TRON + EIP/TIP-712**: convert TRON Base58 addresses (`T...`) to **0x-prefixed EVM hex** before passing to any EIP-712 / TIP-712 signer. This applies to `verifyingContract`, `token`, `serviceProvider`, `user`, `receiver`, and any other `address`-typed field, **both in the domain and in the message**. Use `tronAddressToEvm` / `normalizeAddressForSigning` from `mechanisms/tron/src/utils.ts` — do not reimplement. See [docs/solutions.md entry #1](../../../docs/solutions.md).
+- **Network identifiers**: CAIP-2 `eip155:<chainId>` for EVM, `tron:<name>` for TRON. Detection rule: `tron:` prefix → TRON, `eip155:` prefix → EVM.
 
 ## Amounts & fees
 
 - **Fees in millionths** (e.g. `3000` = 0.3%).
-- **Token amounts in smallest unit** (wei / sun). Never use floating point. Use `BigInt` in TS, `int` in Python.
+- **Token amounts in smallest unit** (wei / sun). Never use floating point. Use `BigInt` in TS; serialize with `.toString()`, never through `Number`.
 
 ## Payment identifiers
 
@@ -20,7 +20,7 @@ Repository-wide conventions that apply to every component, every language, every
 ## HTTP wire format
 
 - **Header encoding**: `Base64(UTF-8(JSON.stringify(object)))`.
-- **Headers** (see [specs/protocol.md](../../../specs/protocol.md)):
+- **Headers**:
   - `PAYMENT-REQUIRED` — server → client (402 response)
   - `PAYMENT-SIGNATURE` — client → server (retry request)
   - `PAYMENT-RESPONSE` — server → client (success response, with settlement info)
@@ -37,11 +37,11 @@ Repository-wide conventions that apply to every component, every language, every
 ## Mechanism registration
 
 - **Exact match** (e.g. `"tron:nile"`) outranks **wildcard** (e.g. `"tron:*"`). Register more specific first, or accept that exact-match mechanisms win the lookup regardless of insertion order.
-- Each mechanism is associated with a scheme (`exact`, `exact_permit`, `exact_gasfree`, ...). Do not conflate schemes across mechanisms; register each scheme-network pair explicitly.
+- Each scheme class is registered per `(network, scheme)` with `new + register` (no thin wrapper). Do not conflate schemes across mechanisms; register each scheme-network pair explicitly. See [typescript/CLAUDE.md](../../../typescript/CLAUDE.md) "Scheme API surface".
 
 ## Policy pipeline
 
-Client payment selection is a five-step pipeline (see [specs/roles.md](../../../specs/roles.md)):
+Client payment selection is a five-step pipeline:
 
 ```
 [1] Filter by scheme  →  [2] Filter by network  →  [3] Filter by max amount
@@ -56,4 +56,4 @@ Format: `<type>(<scope>): <description>`.
 
 Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `ci`.
 
-Scopes (choose the narrowest one that fits): `python`, `typescript`, `tron`, `evm`, `gasfree`, `facilitator`, `client`, `server`, `specs`, `docs`, `ci`, `design`.
+Scopes (choose the narrowest one that fits): `typescript`, `tron`, `evm`, `gasfree`, `facilitator`, `client`, `server`, `core`, `http`, `mcp`, `docs`, `ci`, `design`.

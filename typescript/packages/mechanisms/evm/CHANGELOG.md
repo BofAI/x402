@@ -1,0 +1,208 @@
+# @bankofai/x402-evm Changelog
+
+## 2.15.0
+
+### Minor Changes
+
+- [238fac4](https://github.com/x402-foundation/x402/commit/238fac4): Add Mezo mainnet (chain ID 31612) support with mUSD as the default stablecoin ([#2590](https://github.com/x402-foundation/x402/pull/2590)) - Thanks [@ryanRfox](https://github.com/ryanRfox)!
+- [5304005](https://github.com/x402-foundation/x402/commit/5304005): Add XDC Network mainnet (chain ID 50) and Apothem testnet (chain ID 51) support with USDC as the default stablecoin ([#2597](https://github.com/x402-foundation/x402/pull/2597)) - Thanks [@AnilChinchawale](https://github.com/AnilChinchawale)!
+- [6acb8fc](https://github.com/x402-foundation/x402/commit/6acb8fc): Added calldataSuffix support for builder-code extension ([#2329](https://github.com/x402-foundation/x402/pull/2329)) - Thanks [@0xClouds](https://github.com/0xClouds) and [@pk-coinbase](https://github.com/pk-coinbase), [@phdargen](https://github.com/phdargen)!
+- Updated dependencies [bfa580e](https://github.com/x402-foundation/x402/commit/bfa580e)
+- Updated dependencies [3a60816](https://github.com/x402-foundation/x402/commit/3a60816)
+- Updated dependencies [7539e93](https://github.com/x402-foundation/x402/commit/7539e93)
+  - @bankofai/x402-core@2.15.0
+
+### Patch Changes
+
+- [c4420b7](https://github.com/x402-foundation/x402/commit/c4420b7): Fixed a bug where EVM facilitator verify accepted payments whose asset address was an EOA. Calling any function on an EOA via `eth_call` silently returns empty data without reverting, causing on-chain simulation to pass and the subsequent settlement to land as a no-op with no `Transfer` event emitted. The fix checks `eth_getCode` on the asset address early in `verifyEIP3009`, `verifyPermit2`, and `verifyUptoPermit2`; any address with no bytecode is rejected with `asset_not_deployed_contract`. ([#2554](https://github.com/x402-foundation/x402/pull/2554)) - Thanks [@CarsonRoscoe](https://github.com/CarsonRoscoe)!
+- [f4c532e](https://github.com/x402-foundation/x402/commit/f4c532e): Set EVM authorization `validAfter` to 0 to reduce onchain timing failures when payloads are queued or block timestamps lag behind client clocks ([#2601](https://github.com/x402-foundation/x402/pull/2601)) - Thanks [@phdargen](https://github.com/phdargen)!
+
+## 2.14.0
+
+### Minor Changes
+
+- 10e59e1: Add auth-capture client scheme for detecting and signing payment payloads
+- 51f889b: **[Breaking for facilitator implementers using ERC-4337 smart wallet deployment]** Fixed ERC-6492 factory call injection vulnerability in EVM exact settlement (v1 and v2) and simplified the configuration API. The `deployERC4337WithEIP6492` boolean has been removed; `eip6492AllowedFactories?: string[]` is now the sole gate for enabling smart wallet deployment. Settlement deploys an undeployed smart wallet if and only if its factory address is present in `eip6492AllowedFactories` (case-insensitive). An empty or omitted list disables the feature entirely and rejects factory deployment calls with `eip6492_factory_not_allowed`. Facilitators previously using `deployERC4337WithEIP6492: true` must remove that field and populate `eip6492AllowedFactories` with every factory address they trust.
+- d4bdfa7: Clarify exact EVM channel asset semantics and align voucher asset selection with the transfer method.
+- Updated dependencies [be788e0]
+- Updated dependencies [0af31dd]
+  - @bankofai/x402-core@2.14.0
+
+## 2.13.0
+
+### Minor Changes
+
+- 114b6b1: Add HPP mainnet (chain ID 190415) and HPP Sepolia (chain ID 181228) support with USDC.e (Bridged USDC) as the default stablecoin
+- 581e55e: Add ADI Chain (chain ID 36900) support with USDC.e as the default stablecoin
+- 3ba5d2e: add optional batch-settlement client/file-storage and server/file-storage (and server/redis-storage) exports to avoid pulling Node-fs/Redis helpers into default bundles
+- a242149: unwrap ERC-6492 signatures for exact/upto permit2 flows and batch-settlement
+- abbd40e: Added checks for 0 amount to settle/refund for batch-settlement
+- Updated dependencies [ad08a9a]
+- Updated dependencies [5fca9f3]
+- Updated dependencies [95f2094]
+- Updated dependencies [49ea054]
+  - @bankofai/x402-core@2.13.0
+
+## 2.12.0
+
+### Minor Changes
+
+- 45d7d19: Implemented batch-settlement mechanism
+- e7150b3: Add Radius Network (chain ID 723487) and Radius Testnet (chain ID 72344) support with SBC as the default stablecoin
+- ee7c156: chore: tighten viem dependency floor to ^2.48.11
+
+  Raises the viem floor in every `@bankofai/x402-*` package.json that lists viem as a direct dep so future `pnpm install` re-resolutions cannot regress below this version. Fixes the incomplete tightening from #2013.
+
+- Updated dependencies [608034f]
+- Updated dependencies [d235050]
+- Updated dependencies [45d7d19]
+  - @bankofai/x402-core@2.12.0
+
+## 2.11.0
+
+### Minor Changes
+
+- 032295b: fix(paywall): use dynamic token decimals instead of hardcoding 6
+
+  The EVM paywall no longer assumes all tokens have 6 decimal places. Server-side amount conversion in `evmPaywall.generateHtml`:
+
+  - Resolves the token's decimal precision via a new `getDefaultTokenDecimals` helper that looks up the network in `@bankofai/x402-evm`'s `DEFAULT_STABLECOINS` registry — the same source the scheme `getAssetDecimals` methods read from and the inline scheme dispatch in `@bankofai/x402-core`'s `x402ResourceServer` uses. Falls back to 6 (USDC default) when the network is unknown.
+  - Replaces the lossy `parseFloat(amount) / 10**decimals` math with `Number(formatUnits(BigInt(amount), decimals))`, preserving precision through the atomic-to-display conversion.
+
+  `@bankofai/x402-evm` now publicly re-exports `DEFAULT_STABLECOINS` from `./shared/defaultAssets` so consumers can read the canonical default-asset registry directly.
+
+### Patch Changes
+
+- dc04108: Fixed a bug affecting USD prices with 7+ decimal places of precision (e.g. `$0.0000001` or smaller).
+- Updated dependencies [a051f48]
+- Updated dependencies [dc04108]
+  - @bankofai/x402-core@2.11.0
+
+## 2.10.0
+
+### Minor Changes
+
+- 9424291: chore: bump viem lockfile to 2.47.12
+
+  Updates the resolved viem version across all direct dependencies, adding chain definitions for Mezo Testnet, MegaETH, Stable, and Stable Testnet that were missing from previously locked versions.
+
+  - @bankofai/x402-core@2.10.0
+
+## 2.9.0
+
+### Minor Changes
+
+- 8c80edd: Add Polygon mainnet (chain ID 137) support with USDC as the default stablecoin
+- bbe45f5: Add Stable mainnet (chain ID 988) support with USDT0 as the default stablecoin
+- bff876d: Add Stable testnet (chain ID 2201) support with USDT0 as the default stablecoin
+- 2250cae: Migrated project from coinbase/x402 to x402-foundation/x402 organization
+- d352574: Add upto payment scheme TypeScript SDK with client, facilitator, and server support for permit2-based "up to" payments on EVM chains.
+
+### Patch Changes
+
+- 9f52f9c: Add Arbitrum One (chain ID 42161) and Arbitrum Sepolid (chain ID 421614) support with USDC as the default stablecoin
+- 011e680: Add Mezo Testnet (chain ID 31611) support with mUSD as the default stablecoin
+- ad2658a: Updated x402UptoPermit2Proxy canonical address to 0x4020A4f3b7b90ccA423B9fabCc0CE57C6C240002, deployed with deterministic bytecode for reproducible cross-chain CREATE2 addresses
+- Updated dependencies [8cf3fca]
+- Updated dependencies [c0e3969]
+- Updated dependencies [2250cae]
+- Updated dependencies [d352574]
+  - @bankofai/x402-core@2.9.0
+
+## 2.8.0
+
+### Minor Changes
+
+- Updated dependencies [067f297]
+- Updated dependencies [4c1e44f]
+- Updated dependencies [5135fab]
+  - @bankofai/x402-core@2.8.0
+
+## 2.7.0
+
+### Minor Changes
+
+- 8b731cb: Replaced `sendRawApprovalAndSettle` with a generic `sendTransactions` signer method that accepts an array of pre-signed serialized transactions or unsigned call intents. The signer owns execution strategy (sequential, batched, or atomic bundling). Closed fail-open verification paths, aligned Permit2 amount check to exact match, and added `signerForNetwork` to the extensions package.
+
+### Patch Changes
+
+- d8e9f3f: Added simulation to permit2 verify and (optional) settle
+- 1a6e08b: Simulate transaction in verify and (optional) settle; Added multicall utility for efficient rpc calls; Fixed undeployed smart wallet handling to prevent facilitator grieving and account for implementation dependent verifyTypedData
+- Updated dependencies [8931cb3]
+  - @bankofai/x402-core@2.7.0
+
+## 2.6.0
+
+### Minor Changes
+
+- f431337: Added assetTransferMethod and supportsEip2612 flag to defaultAssets
+- Updated dependencies [f41baed]
+- Updated dependencies [aeef1bf]
+- Updated dependencies [2564781]
+- Updated dependencies [b341973]
+- Updated dependencies [29fe09a]
+  - @bankofai/x402-core@2.6.0
+
+## 2.5.0
+
+### Minor Changes
+
+- 7fe268f: Implemented the erc20 approval gas sponsorship extension
+- 33a9cab: Update Permit2 witness struct (remove extra field), contract addresses, and error names for post-audit x402 proxy contracts on Base Sepolia
+
+### Patch Changes
+
+- 55a4396: Separated v1 legacy network name resolution from v2 CAIP-2 resolution; getEvmChainId now only accepts eip155:CHAIN_ID format, v1 code uses getEvmChainIdV1 from v1/index
+- Updated dependencies [96a9db0]
+- Updated dependencies [7fe268f]
+- Updated dependencies [1ab1c86]
+- Updated dependencies [d0a2b11]
+- Updated dependencies
+  - @bankofai/x402-core@2.5.0
+  - @bankofai/x402-extensions@2.5.0
+
+## 2.4.0
+
+### Minor Changes
+
+- 018181b: Implement EIP-2612 gasless Permit2 approval extension
+
+  - Implemented EIP-2612 gas sponsoring for the exact EVM scheme — clients automatically sign EIP-2612 permits when Permit2 allowance is insufficient, and facilitators route to `settleWithPermit` when the extension is present
+
+### Patch Changes
+
+- Updated dependencies [57a5488]
+- Updated dependencies [018181b]
+- Updated dependencies [3fb55d7]
+  - @bankofai/x402-core@2.4.0
+  - @bankofai/x402-extensions@2.4.0
+
+## 2.3.1
+
+### Patch Changes
+
+- 0c6064d: Add MegaETH mainnet (chain ID 4326) support with USDM as the default stablecoin
+- Updated dependencies [9ec9f15]
+  - @bankofai/x402-core@2.3.1
+
+## 2.3.0
+
+### Minor Changes
+
+- 51b8445: Bumped @bankofai/x402-core dependency to 2.3.0
+- 51b8445: Upgraded exact evm to support permit2 payments
+
+### Patch Changes
+
+- adb1b55: Improved error messages for insufficient funds. The `invalidMessage` field now includes the required amount, available balance, asset denomination, and actionable guidance when payment fails due to insufficient funds.
+- Updated dependencies [51b8445]
+- Updated dependencies [51b8445]
+  - @bankofai/x402-core@2.3.0
+
+## 2.0.0
+
+- Implements x402 2.0.0 for the TypeScript SDK.
+
+## 1.0.0
+
+- Implements x402 1.0.0 for the TypeScript SDK.
