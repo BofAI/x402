@@ -22,21 +22,30 @@ import { x402Client, wrapFetchWithPayment } from "@bankofai/x402-fetch";
 import { registerEvm } from "./chains/evm.js";
 import { registerTron } from "./chains/tron.js";
 
-const RESOURCE_URL = process.env.RESOURCE_URL || "http://localhost:4021/weather";
+const RESOURCE_URL =
+  process.env.RESOURCE_URL || "http://localhost:4021/weather";
 
 // Friendly token symbol → asset address, mirroring what `servers/express`
 // advertises. Lets PAY_TARGETS name tokens by symbol instead of address.
 // Indexed by chain family so the same symbol can resolve differently per
 // network (e.g. USDT on eip155:97 vs tron:nile are different contracts).
 const TOKEN_ADDRESSES: Record<string, Record<string, string>> = {
-  eip155: {
+  "eip155:97": {
     DHLU: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816", // eip155:97, ERC-3009
     USDC: "0x64544969ed7EBf5f083679233325356EbE738930", // eip155:97, permit2
     USDT: "0x337610d27c682E347C9cD60BD4b3b107C9d34dDd", // eip155:97, permit2
   },
-  tron: {
+  "eip155:56": {
+    USDC: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+    USDT: "0x55d398326f99059fF775485246999027B3197955",
+  },
+  "tron:nile": {
     USDT: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf", // tron:nile, permit2
     USDD: "TGjgvdTWWrybVLaVeFqSyVqJQWjxqRYbaK", // tron:nile, permit2
+  },
+  "tron:mainnet": {
+    USDT: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+    USDD: "TXDk8mbtRbXeYuMNS83CfKPaYYT8XWv9Hz",
   },
 };
 
@@ -49,8 +58,7 @@ interface PayTarget {
 
 /** Resolve a token tag (symbol or address) to an asset address. */
 function resolveToken(prefix: string, token: string): string {
-  const family = prefix.startsWith("eip155") ? "eip155" : prefix.startsWith("tron") ? "tron" : "";
-  return TOKEN_ADDRESSES[family]?.[token.toUpperCase()] ?? token;
+  return TOKEN_ADDRESSES[prefix]?.[token.toUpperCase()] ?? token;
 }
 
 /** Parse the PAY_TARGETS env var into targets (empty when unset). */
@@ -59,11 +67,15 @@ function parsePayTargets(): PayTarget[] {
   if (!raw) return [];
   return raw
     .split(",")
-    .map(s => s.trim())
+    .map((s) => s.trim())
     .filter(Boolean)
-    .map(entry => {
+    .map((entry) => {
       const [prefix, token] = entry.split("@", 2);
-      return { raw: entry, prefix: prefix!.trim(), asset: token ? resolveToken(prefix!.trim(), token.trim()) : undefined };
+      return {
+        raw: entry,
+        prefix: prefix!.trim(),
+        asset: token ? resolveToken(prefix!.trim(), token.trim()) : undefined,
+      };
     });
 }
 
@@ -74,7 +86,9 @@ const client = new x402Client((_x402Version, accepts) => {
   const t = target;
   if (!t) return accepts[0]!;
   const match = accepts.find(
-    a => a.network.startsWith(t.prefix) && (!t.asset || a.asset.toLowerCase() === t.asset.toLowerCase()),
+    (a) =>
+      a.network.startsWith(t.prefix) &&
+      (!t.asset || a.asset.toLowerCase() === t.asset.toLowerCase()),
   );
   if (!match) {
     throw new Error(`server offered no payment option matching "${t.raw}"`);
@@ -92,7 +106,9 @@ if (targets.length === 0) {
   if (tron) targets.push({ raw: "tron", prefix: "tron:" });
 }
 if (targets.length === 0) {
-  console.error("❌ No wallet configured for EVM or TRON (see agent-wallet setup).");
+  console.error(
+    "❌ No wallet configured for EVM or TRON (see agent-wallet setup).",
+  );
   process.exit(1);
 }
 
@@ -101,11 +117,15 @@ for (const t of targets) {
   const needsEvm = t.prefix.startsWith("eip155");
   const needsTron = t.prefix.startsWith("tron");
   if (needsEvm && !evm) {
-    console.error(`❌ target "${t.raw}" needs an EVM wallet, but none is configured.`);
+    console.error(
+      `❌ target "${t.raw}" needs an EVM wallet, but none is configured.`,
+    );
     process.exit(1);
   }
   if (needsTron && !tron) {
-    console.error(`❌ target "${t.raw}" needs a TRON wallet, but none is configured.`);
+    console.error(
+      `❌ target "${t.raw}" needs a TRON wallet, but none is configured.`,
+    );
     process.exit(1);
   }
 }

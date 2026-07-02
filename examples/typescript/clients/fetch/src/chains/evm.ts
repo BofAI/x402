@@ -17,8 +17,8 @@ import type { x402Client } from "@bankofai/x402-fetch";
 
 import { tryResolveWallet } from "../env.js";
 
-/** CAIP-2 networks to support. Add an id here (e.g. "eip155:8453"). */
-const EVM_NETWORKS = ["eip155:97"] as const;
+/** BSC testnet + mainnet; PAY_TARGETS decides which one the client pays on. */
+const EVM_NETWORKS = ["eip155:97", "eip155:56"] as const;
 
 // Optional RPC override for the EVM network(s). Without it the adapter uses viem's
 // built-in default, which for BSC testnet is a public node that is frequently
@@ -27,6 +27,10 @@ const EVM_NETWORKS = ["eip155:97"] as const;
 // tokens (e.g. DHLU) sign offline and don't need RPC. Set a reliable endpoint,
 // e.g. EVM_RPC_URL=https://bsc-testnet-rpc.publicnode.com
 const EVM_RPC_URL = process.env.EVM_RPC_URL?.trim() || undefined;
+const EVM_RPC_NETWORK =
+  process.env.PAY_TARGETS?.split(",")
+    .map((target) => target.trim().split("@", 1)[0])
+    .find((network) => network?.startsWith("eip155:")) || "eip155:97";
 
 /**
  * Registers the EVM `exact` client scheme for every configured network, if an
@@ -42,7 +46,10 @@ export async function registerEvm(client: x402Client): Promise<boolean> {
   }
 
   for (const network of EVM_NETWORKS) {
-    const signer = await createClientEvmSigner(wallet, { network, rpcUrl: EVM_RPC_URL });
+    const signer = await createClientEvmSigner(wallet, {
+      network,
+      rpcUrl: network === EVM_RPC_NETWORK ? EVM_RPC_URL : undefined,
+    });
     client.register(network, new ExactEvmScheme(signer));
     console.info(`[evm] client registered ${network} (${signer.address})`);
   }

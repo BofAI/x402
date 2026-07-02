@@ -26,8 +26,16 @@ import type { x402Facilitator } from "@bankofai/x402-core/facilitator";
 
 import { tryResolveWallet } from "../env.js";
 
-/** CAIP-2 networks to settle on. Add an id here (e.g. "eip155:8453"). */
-const EVM_NETWORKS = ["eip155:97"] as const;
+/** BSC testnet + mainnet. */
+const EVM_NETWORKS = ["eip155:97", "eip155:56"] as const;
+
+// Optional RPC override. The default BSC testnet endpoint selected by viem is
+// frequently unreachable, so use the same override as the exact client.
+const EVM_RPC_URL = process.env.EVM_RPC_URL?.trim() || undefined;
+const EVM_RPC_NETWORK =
+  process.env.PAY_TARGETS?.split(",")
+    .map((target) => target.trim().split("@", 1)[0])
+    .find((network) => network?.startsWith("eip155:")) || "eip155:97";
 
 /**
  * Registers the EVM `exact` scheme on the facilitator for every configured
@@ -36,7 +44,9 @@ const EVM_NETWORKS = ["eip155:97"] as const;
  * @param facilitator - The facilitator to register the scheme on.
  * @returns `true` if at least one network registered, `false` if no EVM wallet.
  */
-export async function registerEvm(facilitator: x402Facilitator): Promise<boolean> {
+export async function registerEvm(
+  facilitator: x402Facilitator,
+): Promise<boolean> {
   const wallet = await tryResolveWallet("evm");
   if (!wallet) {
     return false;
@@ -50,7 +60,10 @@ export async function registerEvm(facilitator: x402Facilitator): Promise<boolean
 
   const signers: Record<string, GasSponsoringFacilitatorEvmSigner> = {};
   for (const network of EVM_NETWORKS) {
-    const signer = await createFacilitatorEvmSigner(wallet, { network });
+    const signer = await createFacilitatorEvmSigner(wallet, {
+      network,
+      rpcUrl: network === EVM_RPC_NETWORK ? EVM_RPC_URL : undefined,
+    });
     facilitator.register(network, new ExactEvmScheme(signer));
     signers[network] = signer;
     console.info(`[evm] facilitator registered ${network} (${address})`);
@@ -59,11 +72,14 @@ export async function registerEvm(facilitator: x402Facilitator): Promise<boolean
   // Register the ERC-20 approval gas-sponsoring extension once, resolving the
   // per-network signer (each `signer` already exposes `sendTransactions`). Lets
   // the facilitator broadcast the client's pre-signed Permit2 approve + settle.
-  const defaultSigner = Object.values(signers)[0] as Erc20ApprovalGasSponsoringSigner;
+  const defaultSigner = Object.values(
+    signers,
+  )[0] as Erc20ApprovalGasSponsoringSigner;
   facilitator.registerExtension(
     createErc20ApprovalGasSponsoringExtension(
       defaultSigner,
-      network => signers[network] as Erc20ApprovalGasSponsoringSigner | undefined,
+      (network) =>
+        signers[network] as Erc20ApprovalGasSponsoringSigner | undefined,
     ),
   );
   return true;

@@ -15,7 +15,7 @@ import type { x402Client } from "@bankofai/x402-fetch";
 
 import { tryResolveWallet } from "../env.js";
 
-const TRON_NETWORK = "tron:nile";
+const TRON_NETWORKS = ["tron:nile", "tron:mainnet"] as const;
 
 /**
  * Registers the TRON `exact` client scheme, if a TRON wallet is configured.
@@ -32,11 +32,13 @@ export async function registerTron(client: x402Client): Promise<boolean> {
   // The agent-wallet satisfies ClientTronWallet directly (getAddress /
   // signTypedData / signTransaction); the factory handles `this`-binding and
   // auto-broadcasts the one-time Permit2 approve for USDT/USDD.
-  const signer = await createClientTronSigner(wallet, {
-    network: TRON_NETWORK,
-    apiKey: process.env.TRON_GRID_API_KEY,
-  });
-  client.register("tron:*", new ExactTronScheme(signer));
-  console.info(`[tron] client registered tron:* (${signer.address})`);
+  for (const network of TRON_NETWORKS) {
+    const signer = await createClientTronSigner(wallet, {
+      network,
+      apiKey: process.env.TRON_GRID_API_KEY,
+    });
+    client.register(network, new ExactTronScheme(signer));
+    console.info(`[tron] client registered ${network} (${signer.address})`);
+  }
   return true;
 }

@@ -19,7 +19,11 @@ import { declareErc20ApprovalGasSponsoringExtension } from "@bankofai/x402-exten
 import type { Network } from "@bankofai/x402-core/types";
 import type { x402ResourceServer } from "@bankofai/x402-express";
 
-type EvmToken = { asset: string; amount: string; extra: Record<string, unknown> };
+type EvmToken = {
+  asset: string;
+  amount: string;
+  extra: Record<string, unknown>;
+};
 
 /** CAIP-2 network → tokens advertised on it (see specs/config.md for addresses). */
 const EVM_TOKENS: Record<string, EvmToken[]> = {
@@ -43,14 +47,19 @@ const EVM_TOKENS: Record<string, EvmToken[]> = {
       extra: { assetTransferMethod: "permit2" },
     },
   ],
-  // ── BSC mainnet (eip155:56) — REAL FUNDS ──────────────────────────────
-  // All plain BEP-20 (no ERC-3009 / no EIP-2612, verified on-chain) → permit2 +
-  // gas-sponsored approve. Amounts below are ≈ $0.001 (18 dec). Uncomment to enable.
-  // "eip155:56": [
-  //   { asset: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", amount: "1000000000000000", extra: { assetTransferMethod: "permit2" } }, // USDC (18)
-  //   { asset: "0x55d398326f99059fF775485246999027B3197955", amount: "1000000000000000", extra: { assetTransferMethod: "permit2" } }, // USDT (18)
-  //   { asset: "0xA7f552078dcC247C2684336020c03648500C6d9F", amount: "1000000000000000", extra: { assetTransferMethod: "permit2" } }, // EPS  (18)
-  // ],
+  // BSC mainnet — REAL FUNDS.
+  "eip155:56": [
+    {
+      asset: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+      amount: "1000000000000000",
+      extra: { assetTransferMethod: "permit2" },
+    }, // USDC (18)
+    {
+      asset: "0x55d398326f99059fF775485246999027B3197955",
+      amount: "1000000000000000",
+      extra: { assetTransferMethod: "permit2" },
+    }, // USDT (18)
+  ],
   // ── Other EVM testnet: Base Sepolia USDC (eip3009) ────────────────────
   // "eip155:84532": [ { asset: "0x036CbD…", amount: "1000", extra: { name: "USDC", version: "2" } } ],
 };
@@ -79,13 +88,14 @@ export function registerEvm(resourceServer: x402ResourceServer): void {
  */
 export function evmAccepts() {
   const payTo = process.env.EVM_ADDRESS as string;
-  return (Object.entries(EVM_TOKENS) as [Network, EvmToken[]][]).flatMap(([network, tokens]) =>
-    tokens.map(token => ({
-      scheme: "exact",
-      network,
-      payTo,
-      price: { amount: token.amount, asset: token.asset, extra: token.extra },
-    })),
+  return (Object.entries(EVM_TOKENS) as [Network, EvmToken[]][]).flatMap(
+    ([network, tokens]) =>
+      tokens.map((token) => ({
+        scheme: "exact",
+        network,
+        payTo,
+        price: { amount: token.amount, asset: token.asset, extra: token.extra },
+      })),
   );
 }
 

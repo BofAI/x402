@@ -25,11 +25,20 @@ const OWNER = "0x" + "c".repeat(40);
 const SETTLE_SELECTOR =
   "settle(((address,uint256),uint256,uint256),address,(address,uint256),bytes)";
 
-function fakeTronWeb(triggerSpy: ReturnType<typeof vi.fn>, broadcastSpy: ReturnType<typeof vi.fn>) {
+function fakeTronWeb(
+  triggerSpy: ReturnType<typeof vi.fn>,
+  broadcastSpy: ReturnType<typeof vi.fn>,
+  txInfoSpy: ReturnType<typeof vi.fn> = vi.fn(),
+) {
   return {
     setAddress: vi.fn(),
     transactionBuilder: { triggerSmartContract: triggerSpy },
-    trx: { sendRawTransaction: broadcastSpy },
+    trx: {
+      sendRawTransaction: broadcastSpy,
+      // A transient preconfirm REVERT must not influence final confirmation.
+      getTransaction: vi.fn(async () => ({ ret: [{ contractRet: "REVERT" }] })),
+    },
+    fullNode: { request: txInfoSpy },
   } as never;
 }
 
@@ -85,6 +94,34 @@ describe("createFacilitatorTronSigner — wallet path", () => {
     // Wallet signed (key stays in the wallet); SDK never saw a private key.
     expect(wallet.signTransaction).toHaveBeenCalledWith({ raw_data: 1 });
     expect(broadcast).toHaveBeenCalledWith({ raw_data: 1, signature: ["abcd"] });
+  });
+
+  it("uses the packed receipt instead of a transient preconfirm REVERT", async () => {
+    vi.useFakeTimers();
+    try {
+      const txInfo = vi.fn(async () => ({
+        blockNumber: 84_101_804,
+        receipt: { result: "SUCCESS" },
+      }));
+      const tw = fakeTronWeb(vi.fn(), vi.fn(), txInfo);
+      const signer = await makeFacilitatorSigner(tw, {
+        getAddress: () => FAC_ADDR,
+        signTransaction: async tx => tx,
+      });
+
+      const receiptPromise = signer.waitForTransactionReceipt({ hash: "0xconfirmed" });
+      await vi.advanceTimersByTimeAsync(3_000);
+
+      await expect(receiptPromise).resolves.toEqual({ status: "success" });
+      expect(txInfo).toHaveBeenCalledWith(
+        "wallet/gettransactioninfobyid",
+        { value: "0xconfirmed" },
+        "post",
+      );
+      expect(tw.trx.getTransaction).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("maps tuple inputs to typed trigger parameters", async () => {
