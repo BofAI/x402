@@ -38,7 +38,7 @@ const EVM_TOKENS: Record<string, EvmToken[]> = {
     },
     // USDT (18 dec, plain BEP-20) — permit2 + gas-sponsored approve.
     {
-      asset: "0x337610d27c682e347c9cd60bd4b3b107c9d34ddd",
+      asset: "0x337610d27c682E347C9cD60BD4b3b107C9d34dDd",
       amount: "1000000000000000", // 0.001 × 1e18
       extra: { assetTransferMethod: "permit2" },
     },
