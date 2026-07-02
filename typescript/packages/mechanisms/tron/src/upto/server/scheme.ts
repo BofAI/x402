@@ -6,7 +6,7 @@ import {
   SchemeNetworkServer,
   MoneyParser,
 } from "@bankofai/x402-core/types";
-import { parseMoneyString } from "@bankofai/x402-core/utils";
+import { convertToTokenAmount, numberToDecimalString, parseMoneyString } from "@bankofai/x402-core/utils";
 import { ExactDefaultAssetInfo, getDefaultAsset } from "../../shared/defaultAssets";
 import { getDecimals, parsePrice as parseTokenPrice } from "../../shared/tokens";
 import { buildFeeInfo, type ExactTronFeeConfig } from "../../shared/fee";
@@ -163,7 +163,7 @@ export class UptoTronScheme implements SchemeNetworkServer {
    */
   private defaultMoneyConversion(amount: number, network: Network): AssetAmount {
     const assetInfo = this.getDefaultAsset(network);
-    const tokenAmount = this.convertToTokenAmount(amount.toString(), assetInfo.decimals);
+    const tokenAmount = convertToTokenAmount(numberToDecimalString(amount), assetInfo.decimals);
 
     return {
       amount: tokenAmount,
@@ -172,24 +172,6 @@ export class UptoTronScheme implements SchemeNetworkServer {
         assetTransferMethod: "permit2",
       },
     };
-  }
-
-  /**
-   * Convert decimal amount to token units.
-   *
-   * @param decimalAmount - The decimal amount to convert
-   * @param decimals - The number of decimals for the token
-   * @returns The token amount as a string
-   */
-  private convertToTokenAmount(decimalAmount: string, decimals: number): string {
-    const amount = parseFloat(decimalAmount);
-    if (isNaN(amount)) {
-      throw new Error(`Invalid amount: ${decimalAmount}`);
-    }
-    const [intPart, decPart = ""] = String(amount).split(".");
-    const paddedDec = decPart.padEnd(decimals, "0").slice(0, decimals);
-    const tokenAmount = (intPart + paddedDec).replace(/^0+/, "") || "0";
-    return tokenAmount;
   }
 
   /**

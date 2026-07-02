@@ -6,7 +6,7 @@ import {
   SchemeNetworkServer,
   MoneyParser,
 } from "@bankofai/x402-core/types";
-import { parseMoneyString } from "@bankofai/x402-core/utils";
+import { convertToTokenAmount, numberToDecimalString, parseMoneyString } from "@bankofai/x402-core/utils";
 import { ExactDefaultAssetInfo, getDefaultAsset } from "../../shared/defaultAssets";
 import { getDecimals, parsePrice as parseTokenPrice } from "../../shared/tokens";
 import { buildFeeInfo, type ExactTronFeeConfig } from "../../shared/fee";
@@ -196,7 +196,7 @@ export class ExactTronScheme implements SchemeNetworkServer {
    */
   private defaultMoneyConversion(amount: number, network: Network): AssetAmount {
     const assetInfo = this.getDefaultAsset(network);
-    const tokenAmount = this.convertToTokenAmount(amount.toString(), assetInfo.decimals);
+    const tokenAmount = convertToTokenAmount(numberToDecimalString(amount), assetInfo.decimals);
 
     // TIP-712 (eip3009) tokens need name/version for the TransferWithAuthorization
     // domain. Permit2 tokens don't — except those that also support EIP-2612, where
@@ -217,25 +217,6 @@ export class ExactTronScheme implements SchemeNetworkServer {
         }),
       },
     };
-  }
-
-  /**
-   * Convert decimal amount to token units (e.g., 0.10 -> 100000 for 6-decimal tokens)
-   *
-   * @param decimalAmount - The decimal amount to convert
-   * @param decimals - The number of decimals for the token
-   * @returns The token amount as a string
-   */
-  private convertToTokenAmount(decimalAmount: string, decimals: number): string {
-    const amount = parseFloat(decimalAmount);
-    if (isNaN(amount)) {
-      throw new Error(`Invalid amount: ${decimalAmount}`);
-    }
-    // Convert to smallest unit (e.g., for USDT with 6 decimals: 0.10 * 10^6 = 100000)
-    const [intPart, decPart = ""] = String(amount).split(".");
-    const paddedDec = decPart.padEnd(decimals, "0").slice(0, decimals);
-    const tokenAmount = (intPart + paddedDec).replace(/^0+/, "") || "0";
-    return tokenAmount;
   }
 
   /**
