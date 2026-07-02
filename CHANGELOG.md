@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-07-02
+
+### Added — TypeScript-only SDK rewrite
+
+- TypeScript-only pnpm/turbo monorepo published as granular `@bankofai/x402-*` packages (`core`, `evm`, `tron`, `fetch`, `express`, `mcp`, `extensions`).
+- `core` and the EVM mechanism forked from the [`x402-foundation/x402`](https://github.com/x402-foundation/x402) upstream; TRON mechanism is in-house.
+- Supported schemes: `exact` (ERC-3009 / Permit2), `upto`, `batch-settlement`, `auth-capture` (EVM), and `exact_gasfree` (TRON).
+- BSC testnet USDT (`0x337610d2…`, 18 dec, permit2) added to the express `exact` example alongside DHLU and USDC.
+- Mainnet USDT registered in the EVM default-asset registry (`eip155:56`, permit2).
+
+### Changed
+
+- Fetch client `TOKEN_ADDRESSES` indexed by chain family so `USDT` resolves to the correct contract per network (BSC testnet vs TRON Nile).
+- README aligned with the TypeScript-only SDK; `.env-exact.example` lists USDT among EVM token options.
+- The previous-generation Python + TypeScript SDK moved to `legacy/` for reference.
+
+### Fixed
+
+- TRON facilitator settle receipt polling switched from `trx.getTransaction` (fullNode preconfirm, which could transiently read `REVERT` on mainnet and cause false settle failures) to the fullNode `gettransactioninfobyid` endpoint, waiting for `blockNumber` + `receipt.result`. ~3-6s latency with authoritative results, mirroring tronpy's `get_transaction_info`.
+
+### Verified
+
+- BSC testnet USDT `exact` end-to-end settle: `0x477f00845964271d53cc36028756fa4ce260674ff6b103e6a86a47f2e79a9edd` (SUCCESS).
+- TRON mainnet USDT `exact` on-chain success: `604f51c8…0acc` (`contractRet: SUCCESS`); receipt-polling fix verified against this tx.
+
+
 ## [0.6.0] - 2026-05-13
 
 ### Added — TypeScript / Python facilitator parity
