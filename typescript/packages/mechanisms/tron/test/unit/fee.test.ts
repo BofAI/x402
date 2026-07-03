@@ -3,12 +3,7 @@ import {
   resolveBaseFee,
   isTokenAllowed,
   buildFeeInfo,
-  validateFee,
   readFeeFromExtra,
-  FEE_TOKEN_NOT_ALLOWED,
-  FEE_UNSUPPORTED_TOKEN,
-  FEE_AMOUNT_TOO_LOW,
-  FEE_TO_MISMATCH,
   type ExactTronFeeConfig,
 } from "../../src/shared/fee";
 
@@ -77,41 +72,6 @@ describe("buildFeeInfo", () => {
   });
 });
 
-describe("validateFee", () => {
-  it("accepts a fee meeting or exceeding the base fee", () => {
-    expect(validateFee(config, NETWORK, USDT, { feeTo: FEE_TO, feeAmount: "10000" })).toBeNull();
-    expect(validateFee(config, NETWORK, USDT, { feeTo: FEE_TO, feeAmount: "20000" })).toBeNull();
-  });
-
-  it("rejects a fee below the base fee", () => {
-    expect(validateFee(config, NETWORK, USDT, { feeTo: FEE_TO, feeAmount: "9999" })).toBe(
-      FEE_AMOUNT_TOO_LOW,
-    );
-  });
-
-  it("rejects a mismatched feeTo", () => {
-    expect(validateFee(config, NETWORK, USDT, { feeTo: "TWrong", feeAmount: "10000" })).toBe(
-      FEE_TO_MISMATCH,
-    );
-  });
-
-  it("rejects disallowed tokens and unsupported tokens", () => {
-    const allowOnlyUsdd: ExactTronFeeConfig = { ...config, allowedTokens: [USDD] };
-    expect(validateFee(allowOnlyUsdd, NETWORK, USDT, { feeTo: FEE_TO, feeAmount: "10000" })).toBe(
-      FEE_TOKEN_NOT_ALLOWED,
-    );
-    expect(validateFee(config, NETWORK, "TUnknown", { feeTo: FEE_TO, feeAmount: "1" })).toBe(
-      FEE_UNSUPPORTED_TOKEN,
-    );
-  });
-
-  it("uses a custom normalizer for feeTo comparison", () => {
-    const norm = (a: string) => a.toUpperCase();
-    expect(
-      validateFee(config, NETWORK, USDT, { feeTo: FEE_TO.toLowerCase(), feeAmount: "10000" }, norm),
-    ).toBeNull();
-  });
-});
 
 describe("readFeeFromExtra", () => {
   it("extracts a well-formed fee", () => {

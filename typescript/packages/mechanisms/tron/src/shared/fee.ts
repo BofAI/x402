@@ -7,9 +7,9 @@ import { findByAddress } from "./tokens";
  * On TRON, energy (gas) for a TRC-20 settlement costs real value, so a
  * facilitator must recoup it from the payment token — unlike Coinbase's Base
  * deployment where gas is negligible and the protocol carries no fee. This
- * module holds the fee data model and pure validation helpers shared by the
- * `exact` scheme (advisory advertisement) and `exact_gasfree` (where the
- * provider actually deducts `feeAmount` from the GasFree wallet).
+ * module holds the fee data model and helpers used by `exact_gasfree`, where the
+ * relayer actually deducts `feeAmount` from the GasFree wallet. The `exact` and
+ * `upto` schemes carry no fee (the proxy transfers exactly `amount`).
  */
 
 /**
@@ -27,11 +27,9 @@ export interface FeeInfo {
 /**
  * Facilitator-side fee configuration.
  *
- * The fee's effect differs by scheme: on `exact` / `exact_permit` it is
- * **advisory** — advertised via `getExtra` so clients and other schemes can
- * observe it, but the proxy transfers exactly `amount` and does NOT split a fee.
- * Only on `exact_gasfree` is it **enforced** — the relayer actually deducts
- * `feeAmount` from the GasFree wallet.
+ * The fee is **enforced** on `exact_gasfree` — the relayer actually deducts
+ * `feeAmount` from the GasFree wallet. The `exact` and `upto` schemes carry no
+ * fee (their proxies transfer exactly `amount` and do not split a fee).
  */
 export interface ExactTronFeeConfig {
   /** Address that collects the fee. Defaults to the facilitator signer address. */
@@ -111,49 +109,6 @@ export function buildFeeInfo(
   };
 }
 
-/** Fee validation error reasons. */
-export const FEE_TOKEN_NOT_ALLOWED = "fee_token_not_allowed";
-export const FEE_UNSUPPORTED_TOKEN = "fee_unsupported_token";
-export const FEE_AMOUNT_TOO_LOW = "fee_amount_too_low";
-export const FEE_TO_MISMATCH = "fee_to_mismatch";
-
-/**
- * Validate a presented {@link FeeInfo} against the facilitator's config.
- *
- * Pure (no I/O). Returns an error reason string on the first failure, or null
- * when the presented fee is acceptable.
- *
- * @param config - The facilitator fee configuration.
- * @param network - CAIP-2 network identifier.
- * @param asset - TRC-20 contract address being paid with.
- * @param presented - The fee terms carried by the payment payload/requirement.
- * @param normalize - Optional address normalizer for `feeTo` comparison
- *                    (defaults to lowercase). Pass an EVM-hex normalizer when
- *                    comparing TRON Base58 against hex.
- * @returns An error reason, or null if valid.
- */
-export function validateFee(
-  config: ExactTronFeeConfig,
-  network: Network,
-  asset: string,
-  presented: FeeInfo,
-  normalize: (addr: string) => string = a => a.toLowerCase(),
-): string | null {
-  if (!isTokenAllowed(config, asset)) {
-    return FEE_TOKEN_NOT_ALLOWED;
-  }
-  const baseFee = resolveBaseFee(config, network, asset);
-  if (baseFee === null) {
-    return FEE_UNSUPPORTED_TOKEN;
-  }
-  if (BigInt(presented.feeAmount) < baseFee) {
-    return FEE_AMOUNT_TOO_LOW;
-  }
-  if (config.feeTo && normalize(presented.feeTo) !== normalize(config.feeTo)) {
-    return FEE_TO_MISMATCH;
-  }
-  return null;
-}
 
 /**
  * Extract a {@link FeeInfo} from a requirement/supported-kind `extra` object.
