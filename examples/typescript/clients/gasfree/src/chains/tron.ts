@@ -16,7 +16,7 @@ import type { x402Client } from "@bankofai/x402-fetch";
 
 import { tryResolveTronWallet } from "../env.js";
 
-const TRON_NETWORK = "tron:nile";
+const TRON_NETWORK = "tron:0xcd8690dc";
 
 /**
  * Registers the TRON `exact_gasfree` client scheme, if a TRON wallet resolves.
@@ -43,7 +43,7 @@ export async function registerTronGasFree(client: x402Client): Promise<boolean> 
   registerExactGasFreeTronScheme(client, {
     signer,
     ...(process.env.GASFREE_API_URL
-      ? { schemeOptions: { apiBaseUrls: { "tron:nile": process.env.GASFREE_API_URL } } }
+      ? { schemeOptions: { apiBaseUrls: { "tron:0xcd8690dc": process.env.GASFREE_API_URL } } }
       : {}),
   });
   console.info(`[tron] client registered tron:* exact_gasfree (${signer.address})`);

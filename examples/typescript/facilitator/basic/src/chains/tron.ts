@@ -10,7 +10,7 @@ import type { x402Facilitator } from "@bankofai/x402-core/facilitator";
 import { tryResolveWallet } from "../env.js";
 
 /** TRON testnet + mainnet. */
-export const TRON_NETWORKS = ["tron:nile", "tron:mainnet"] as const;
+export const TRON_NETWORKS = ["tron:0xcd8690dc", "tron:0x2b6653dc"] as const;
 
 /**
  * Registers the TRON `exact` scheme on the facilitator, if a TRON wallet is

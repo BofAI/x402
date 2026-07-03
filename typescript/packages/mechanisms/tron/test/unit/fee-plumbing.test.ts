@@ -9,7 +9,7 @@ import type { PaymentRequirements } from "@bankofai/x402-core/types";
  * server's enhancePaymentRequirements turns it into per-asset extra.fee (F3).
  */
 
-const NETWORK = "tron:nile";
+const NETWORK = "tron:0xcd8690dc";
 const USDT = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf";
 const USDD = "TGjgvdTWWrybVLaVeFqSyVqJQWjxqRYbaK";
 const SIGNER_ADDR = "TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC";

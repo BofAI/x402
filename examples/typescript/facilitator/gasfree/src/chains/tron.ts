@@ -15,7 +15,7 @@ import type { x402Facilitator } from "@bankofai/x402-core/facilitator";
 import { tryResolveTronWallet } from "../env.js";
 
 /** CAIP-2 network this facilitator settles on. */
-export const TRON_NETWORK = "tron:nile";
+export const TRON_NETWORK = "tron:0xcd8690dc";
 
 /**
  * Registers the TRON `exact_gasfree` scheme on the facilitator, if a TRON wallet
@@ -44,7 +44,7 @@ export async function registerTronGasFree(facilitator: x402Facilitator): Promise
     signer,
     networks: TRON_NETWORK,
     ...(process.env.GASFREE_API_URL
-      ? { apiBaseUrls: { "tron:nile": process.env.GASFREE_API_URL } }
+      ? { apiBaseUrls: { "tron:0xcd8690dc": process.env.GASFREE_API_URL } }
       : {}),
   });
   console.info(`[tron] facilitator registered ${TRON_NETWORK} exact_gasfree (${address})`);

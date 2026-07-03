@@ -15,30 +15,30 @@ export const BATCH_SETTLEMENT_SCHEME = "batch-settlement" as const;
  * Deployed `x402BatchSettlement` contract addresses per TRON network (Base58Check).
  */
 export const BATCH_SETTLEMENT_ADDRESSES: Record<string, string> = {
-  "tron:mainnet": "TW9yNhTySkEHYfjnGQU2u4NAsdb1tW4fbm",
-  "tron:nile": "TWBwWHZWwH8TzrZnbxit1J645VGYY1K2fA",
+  "tron:0x2b6653dc": "TW9yNhTySkEHYfjnGQU2u4NAsdb1tW4fbm",
+  "tron:0xcd8690dc": "TWBwWHZWwH8TzrZnbxit1J645VGYY1K2fA",
 };
 
 /**
  * Deployed `ERC3009DepositCollector` contract addresses per TRON network.
  */
 export const ERC3009_DEPOSIT_COLLECTOR_ADDRESSES: Record<string, string> = {
-  "tron:mainnet": "TTWA7aWMdx4jfcbp8XRAS2JAd2sUhyF9qj",
-  "tron:nile": "TJUQ3BQt4YFg8EeevjiUa5LbfSGz5BxzRW",
+  "tron:0x2b6653dc": "TTWA7aWMdx4jfcbp8XRAS2JAd2sUhyF9qj",
+  "tron:0xcd8690dc": "TJUQ3BQt4YFg8EeevjiUa5LbfSGz5BxzRW",
 };
 
 /**
  * Deployed `Permit2DepositCollector` contract addresses per TRON network.
  */
 export const PERMIT2_DEPOSIT_COLLECTOR_ADDRESSES: Record<string, string> = {
-  "tron:mainnet": "TAg5qqp1K9x5KeSTWnRa8LT79B5HUjzSHY",
-  "tron:nile": "TEp6bCqSEKAr99sCiqANC84RtRwx7xGbA4",
+  "tron:0x2b6653dc": "TAg5qqp1K9x5KeSTWnRa8LT79B5HUjzSHY",
+  "tron:0xcd8690dc": "TEp6bCqSEKAr99sCiqANC84RtRwx7xGbA4",
 };
 
 /**
  * Resolve the `x402BatchSettlement` address for a network.
  *
- * @param network - CAIP-2 network identifier (e.g. `"tron:nile"`).
+ * @param network - CAIP-2 network identifier (e.g. `"tron:0xcd8690dc"`).
  * @returns The Base58Check contract address.
  * @throws When no contract is configured for the network.
  */

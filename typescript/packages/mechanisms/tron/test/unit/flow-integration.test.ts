@@ -34,7 +34,7 @@ vi.mock("../../src/rpc", () => ({ buildTronWeb: vi.fn() }));
  * stubbed, keeping the suite offline and deterministic.
  */
 
-const NETWORK = "tron:nile";
+const NETWORK = "tron:0xcd8690dc";
 const USDT = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf";
 const PAYER_PK = "da146374a75310b9666e834ee4ad0866d6f4035967bfc76217c5a495fff9f0d0";
 const FAC_PK = "b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291";

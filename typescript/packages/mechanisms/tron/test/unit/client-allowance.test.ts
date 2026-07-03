@@ -20,7 +20,7 @@ vi.mock("../../src/rpc", () => ({ buildTronWeb: vi.fn() }));
  * reads the allowance and broadcasts that approve when (and only when) needed.
  */
 
-const NETWORK = "tron:nile";
+const NETWORK = "tron:0xcd8690dc";
 const OWNER = "TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC";
 const TOKEN = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf"; // nile USDT
 const PERMIT2 = PERMIT2_ADDRESSES[NETWORK]!;

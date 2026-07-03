@@ -37,7 +37,7 @@ function tron(): TronWeb {
 /** Build a client signer with the given TronWeb routed through the mocked builder. */
 async function makeClient(tw: TronWeb, wallet: ClientTronWallet) {
   vi.mocked(buildTronWeb).mockReturnValue(tw);
-  return createClientTronSigner(wallet, { network: "tron:nile" });
+  return createClientTronSigner(wallet, { network: "tron:0xcd8690dc" });
 }
 
 describe("privateKeyTronWallet", () => {

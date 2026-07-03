@@ -73,10 +73,7 @@ export {
 } from "./shared/tokens";
 
 // Fee
-export {
-  type FeeInfo,
-  type ExactTronFeeConfig,
-} from "./shared/fee";
+export { type FeeInfo, type ExactTronFeeConfig } from "./shared/fee";
 
 // Token selection + balance-aware selection
 export {

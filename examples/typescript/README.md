@@ -91,8 +91,8 @@ amount and strips the header. BSC uses USDC, TRON Nile uses USDT — both Permit
 
 | Chain | Network | Token | Scheme | One-time approve | User pays gas? |
 |---|---|---|---|---|---|
-| TRON nile | `tron:nile` | USDT (6) | exact **permit2** | yes — client auto-broadcasts | only the approve (TRX) |
-| TRON nile | `tron:nile` | USDD (18) | exact **permit2** | yes — client auto-broadcasts | only the approve (TRX) |
+| TRON nile | `tron:0xcd8690dc` | USDT (6) | exact **permit2** | yes — client auto-broadcasts | only the approve (TRX) |
+| TRON nile | `tron:0xcd8690dc` | USDD (18) | exact **permit2** | yes — client auto-broadcasts | only the approve (TRX) |
 | BSC testnet | `eip155:97` | DHLU (6) | exact **eip3009** | none | **none (fully gasless)** |
 | BSC testnet | `eip155:97` | USDC (18) | exact **permit2 + gas-sponsoring** | yes — client signs, facilitator relays | only the approve (BNB) |
 
@@ -131,8 +131,8 @@ below). All verified on-chain; sources: the official
 | `eip155:56` (BSC) | USDC | `0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d` | 18 | permit2 |
 | `eip155:56` (BSC) | USDT | `0x55d398326f99059fF775485246999027B3197955` | 18 | permit2 |
 | `eip155:56` (BSC) | EPS | `0xA7f552078dcC247C2684336020c03648500C6d9F` | 18 | permit2 |
-| `tron:mainnet` | USDT | `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t` | 6 | permit2 |
-| `tron:mainnet` | USDD | `TXDk8mbtRbXeYuMNS83CfKPaYYT8XWv9Hz` | 18 | permit2 |
+| `tron:0x2b6653dc` | USDT | `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t` | 6 | permit2 |
+| `tron:0x2b6653dc` | USDD | `TXDk8mbtRbXeYuMNS83CfKPaYYT8XWv9Hz` | 18 | permit2 |
 
 > BSC mainnet has **no ERC-3009 token** (USDC/USDT/EPS are all plain BEP-20) — so
 > mainnet EVM payments all go permit2 + gas-sponsored approve. DHLU (eip3009) is

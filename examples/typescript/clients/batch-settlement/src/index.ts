@@ -10,7 +10,7 @@
  * target. This file imports no chain SDK directly.
  *
  * PAY_TARGETS — comma-separated, one burst (+refund) per entry, in order:
- *   <network>[@<token>]   network: "eip155:97"/"tron:nile" (or "eip155"/"tron");
+ *   <network>[@<token>]   network: "eip155:97"/"tron:0xcd8690dc" (or "eip155"/"tron");
  *   token: symbol or asset address; omit ⇒ the network's first advertised token.
  *   (`@` not `#` — dotenv treats `#` as a comment.)
  *   Unset ⇒ each configured chain once.
@@ -36,8 +36,8 @@ const opts: BatchClientOptions = {
 const TOKEN_ADDRESSES: Record<string, string> = {
   DHLU: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816", // eip155:97, ERC-3009
   USDC: "0x64544969ed7EBf5f083679233325356EbE738930", // eip155:97, permit2 (default)
-  USDT: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf", // tron:nile, permit2 (default)
-  USDD: "TGjgvdTWWrybVLaVeFqSyVqJQWjxqRYbaK", // tron:nile, permit2
+  USDT: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf", // tron:0xcd8690dc, permit2 (default)
+  USDD: "TGjgvdTWWrybVLaVeFqSyVqJQWjxqRYbaK", // tron:0xcd8690dc, permit2
 };
 
 /** A single payment target: a network prefix + optional asset address. */

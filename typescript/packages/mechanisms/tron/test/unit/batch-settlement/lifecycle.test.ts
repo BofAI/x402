@@ -18,7 +18,7 @@ import type { PaymentRequirements } from "@bankofai/x402-core/types";
  * and how the cumulative voucher ceiling advances across charges.
  */
 
-const NETWORK = "tron:nile";
+const NETWORK = "tron:0xcd8690dc";
 const PAYER_PK = "da146374a75310b9666e834ee4ad0866d6f4035967bfc76217c5a495fff9f0d0";
 const PAY_TO = "TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC";
 

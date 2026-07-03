@@ -14,7 +14,7 @@ import type { x402Facilitator } from "@bankofai/x402-core/facilitator";
 import { tryResolveWallet } from "../env.js";
 
 /** CAIP-2 network this facilitator settles on. */
-export const TRON_NETWORK = "tron:nile";
+export const TRON_NETWORK = "tron:0xcd8690dc";
 
 /**
  * Registers the TRON `upto` scheme on the facilitator, if a TRON wallet is

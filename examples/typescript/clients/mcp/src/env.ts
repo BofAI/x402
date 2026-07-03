@@ -21,7 +21,7 @@ export type SignerWallet = Wallet & {
  */
 const CAIP2_BY_FAMILY: Record<"evm" | "tron", string> = {
   evm: "eip155:97",
-  tron: "tron:nile",
+  tron: "tron:0xcd8690dc",
 };
 
 /**

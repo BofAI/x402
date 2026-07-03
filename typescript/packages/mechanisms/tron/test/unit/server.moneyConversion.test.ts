@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { ExactTronScheme } from "../../src/exact/server/scheme";
 import { UptoTronScheme } from "../../src/upto/server/scheme";
 
-// tron:nile USDT is 6 decimals
-const NILE = "tron:nile";
+// tron:0xcd8690dc USDT is 6 decimals
+const NILE = "tron:0xcd8690dc";
 
 describe("ExactTronScheme (Server) - money conversion", () => {
   const server = new ExactTronScheme();

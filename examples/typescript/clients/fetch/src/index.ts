@@ -10,10 +10,10 @@
  *
  * PAY_TARGETS — comma-separated, one payment per entry, in order:
  *   <network>[@<token>]
- *     <network>  matched by prefix: "eip155:97" / "tron:nile" (or "eip155" / "tron")
+ *     <network>  matched by prefix: "eip155:97" / "tron:0xcd8690dc" (or "eip155" / "tron")
  *     <token>    symbol (DHLU/USDC/USDT/USDD) or an asset address; omit ⇒ that
  *                network's first advertised token
- *   e.g. PAY_TARGETS=eip155:97@DHLU,tron:nile@USDT,tron:nile@USDD
+ *   e.g. PAY_TARGETS=eip155:97@DHLU,tron:0xcd8690dc@USDT,tron:0xcd8690dc@USDD
  *   (`@` not `#` — dotenv treats `#` as a comment.)
  *   Unset ⇒ each configured chain once, with its first advertised token.
  */
@@ -28,7 +28,7 @@ const RESOURCE_URL =
 // Friendly token symbol → asset address, mirroring what `servers/express`
 // advertises. Lets PAY_TARGETS name tokens by symbol instead of address.
 // Indexed by chain family so the same symbol can resolve differently per
-// network (e.g. USDT on eip155:97 vs tron:nile are different contracts).
+// network (e.g. USDT on eip155:97 vs tron:0xcd8690dc are different contracts).
 const TOKEN_ADDRESSES: Record<string, Record<string, string>> = {
   "eip155:97": {
     DHLU: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816", // eip155:97, ERC-3009
@@ -39,11 +39,11 @@ const TOKEN_ADDRESSES: Record<string, Record<string, string>> = {
     USDC: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
     USDT: "0x55d398326f99059fF775485246999027B3197955",
   },
-  "tron:nile": {
-    USDT: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf", // tron:nile, permit2
-    USDD: "TGjgvdTWWrybVLaVeFqSyVqJQWjxqRYbaK", // tron:nile, permit2
+  "tron:0xcd8690dc": {
+    USDT: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf", // tron:0xcd8690dc, permit2
+    USDD: "TGjgvdTWWrybVLaVeFqSyVqJQWjxqRYbaK", // tron:0xcd8690dc, permit2
   },
-  "tron:mainnet": {
+  "tron:0x2b6653dc": {
     USDT: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
     USDD: "TXDk8mbtRbXeYuMNS83CfKPaYYT8XWv9Hz",
   },

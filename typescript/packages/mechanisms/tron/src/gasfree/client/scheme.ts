@@ -36,7 +36,7 @@ export interface ExactGasFreeSchemeOptions {
  * @returns The min/max deltas in seconds.
  */
 function getDeadlineBounds(network: string): { minDelta: number; maxDelta: number } {
-  if (network === "tron:mainnet") {
+  if (network === "tron:0x2b6653dc") {
     return { minDelta: 55, maxDelta: 595 };
   }
   return { minDelta: 55, maxDelta: 3595 };
