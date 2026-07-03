@@ -25,9 +25,7 @@ export class UptoTronScheme implements SchemeNetworkFacilitator {
    *
    * @param signer - The TRON signer for facilitator operations
    */
-  constructor(
-    private readonly signer: FacilitatorTronSigner,
-  ) {}
+  constructor(private readonly signer: FacilitatorTronSigner) {}
 
   /**
    * Returns extra metadata for the upto scheme, including the facilitator address

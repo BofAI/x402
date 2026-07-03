@@ -109,7 +109,6 @@ export function buildFeeInfo(
   };
 }
 
-
 /**
  * Extract a {@link FeeInfo} from a requirement/supported-kind `extra` object.
  *

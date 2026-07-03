@@ -25,9 +25,7 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
    *
    * @param signer - The TRON signer for facilitator operations
    */
-  constructor(
-    private readonly signer: FacilitatorTronSigner,
-  ) {}
+  constructor(private readonly signer: FacilitatorTronSigner) {}
 
   /**
    * Gets extra configuration for the facilitator.

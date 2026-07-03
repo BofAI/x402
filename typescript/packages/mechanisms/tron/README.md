@@ -148,7 +148,7 @@ The suite is fully offline (no network, no keys):
 
 - `permit2-digest.test.ts` — reproduces the exact on-chain Permit2 digest and recovers the signer two independent ways (the facilitator verify path and a manual contract-style reconstruction), guaranteeing TIP-712 hashing matches the deployed proxy.
 - `gasfree-digest.test.ts` / `gasfree-flow.test.ts` — GasFree TIP-712 sign↔verify round-trip plus client/facilitator term-validation and settle flow against a mocked relayer.
-- `tokens.test.ts`, `fee.test.ts`, `fee-plumbing.test.ts`, `selection.test.ts`, `signer-wallet.test.ts` — token registry, fee policy, fee advertisement plumbing, token selection / balance filtering, and the AgentWallet abstraction.
+- `tokens.test.ts`, `fee.test.ts`, `selection.test.ts`, `signer-wallet.test.ts` — token registry, fee policy, token selection / balance filtering, and the AgentWallet abstraction.
 
 ## Notes & caveats
 
