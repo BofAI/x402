@@ -15,6 +15,13 @@ A full client → server → facilitator loop:
 | [`facilitator/basic`](facilitator/basic) | verifies + settles on-chain | 4022 | agent-wallet (EVM + TRON) |
 | [`servers/express`](servers/express) | sells `GET /weather` behind 402 | 4021 | none (keyless, payout address only) |
 | [`clients/fetch`](clients/fetch) | pays automatically via wrapped `fetch` | — | agent-wallet (EVM + TRON) |
+| [`servers/mcp`](servers/mcp) | sells the `get_weather` MCP tool behind 402 | 4023 | none (keyless, payout address only) |
+| [`clients/mcp`](clients/mcp) | pays automatically over MCP/SSE | — | agent-wallet (EVM + TRON) |
+
+The `mcp` pair is the same line over an **MCP transport** — it shares
+`facilitator/basic` and `.env-exact`, swapping the HTTP server/client for an MCP
+server (`pnpm dev:mcp-server`, :4023) and client (`pnpm dev:mcp-client`); `ping`
+is free, `get_weather` is paid.
 
 ## GasFree scenario (TRON `exact_gasfree`)
 
@@ -95,6 +102,7 @@ amount and strips the header. BSC uses USDC, TRON Nile uses USDT — both Permit
 | TRON nile | `tron:nile` | USDD (18) | exact **permit2** | yes — client auto-broadcasts | only the approve (TRX) |
 | BSC testnet | `eip155:97` | DHLU (6) | exact **eip3009** | none | **none (fully gasless)** |
 | BSC testnet | `eip155:97` | USDC (18) | exact **permit2 + gas-sponsoring** | yes — client signs, facilitator relays | only the approve (BNB) |
+| BSC testnet | `eip155:97` | USDT (18) | exact **permit2 + gas-sponsoring** | yes — client signs, facilitator relays | only the approve (BNB) |
 
 How each token settles on-chain:
 
@@ -106,8 +114,8 @@ How each token settles on-chain:
   `approve(Permit2)` (`ensureAllowance`, ~3s); the facilitator settles via
   `x402Permit2Proxy.settle`. TRON has no gas delegation, so that approve costs
   the user a little TRX.
-- **BSC USDC — permit2 + gas-sponsoring:** USDC is a plain BEP-20 (no
-  ERC-3009 / no EIP-2612), so it needs an on-chain `approve(Permit2)`. The
+- **BSC USDC/USDT — permit2 + gas-sponsoring:** both are plain BEP-20 (no
+  ERC-3009 / no EIP-2612), so each needs an on-chain `approve(Permit2)`. The
   client signs that approve **offline**; the facilitator broadcasts it bundled
   with settle (the `erc20ApprovalGasSponsoring` extension). This removes the
   separate manual approve step — but the approve's `from` is the user, so on a
@@ -119,22 +127,23 @@ authorizer/fee-payer split, so the **client** broadcasts it; EVM can decouple
 them, so the **facilitator** relays it (leaving the door open to real
 sponsorship).
 
-### Mainnet (commented-ready, real funds)
+### Mainnet (real funds)
 
-Production tokens are pre-listed as **commented** entries in the same tables, so
-enabling them is config-only — no logic changes (see "Adding a chain/token"
-below). All verified on-chain; sources: the official
+Mainnet networks (`eip155:56`, `tron:mainnet`) are registered alongside their
+testnet counterparts in the same tables — no uncommenting needed. Select mainnet
+by pointing the client's `PAY_TARGETS` and the server's payout addresses
+(`EVM_ADDRESS` / `TRON_ADDRESS`) at mainnet, and set a reliable `EVM_RPC_URL`
+for BSC. ⚠️ **REAL FUNDS.** All verified on-chain; sources: the official
 [Network & Token Support](https://docs.bankofai.io/x402/core-concepts/network-and-token-support/) docs.
 
 | Network | Token | Address | Dec | Method |
 |---|---|---|---|---|
 | `eip155:56` (BSC) | USDC | `0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d` | 18 | permit2 |
 | `eip155:56` (BSC) | USDT | `0x55d398326f99059fF775485246999027B3197955` | 18 | permit2 |
-| `eip155:56` (BSC) | EPS | `0xA7f552078dcC247C2684336020c03648500C6d9F` | 18 | permit2 |
 | `tron:mainnet` | USDT | `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t` | 6 | permit2 |
 | `tron:mainnet` | USDD | `TXDk8mbtRbXeYuMNS83CfKPaYYT8XWv9Hz` | 18 | permit2 |
 
-> BSC mainnet has **no ERC-3009 token** (USDC/USDT/EPS are all plain BEP-20) — so
+> BSC mainnet has **no ERC-3009 token** (USDC/USDT are plain BEP-20) — so
 > mainnet EVM payments all go permit2 + gas-sponsored approve. DHLU (eip3009) is
 > BSC-testnet-only.
 
@@ -169,11 +178,11 @@ chain reads and broadcast.
 ## Run
 
 Env is **split by business scenario** — one self-contained file per line, so the
-three lines run side by side and you only fill in what you run:
+four lines run side by side and you only fill in what you run:
 
 | Scenario | Template → fill | Loaded by |
 |---|---|---|
-| exact (main) | `.env-exact.example` → `.env-exact` | `clients/fetch`, `servers/express`, `facilitator/basic` |
+| exact (main) | `.env-exact.example` → `.env-exact` | `clients/fetch`, `servers/express`, `facilitator/basic`, `clients/mcp`, `servers/mcp` |
 | gasfree | `.env-gasfree.example` → `.env-gasfree` | `clients/gasfree`, `servers/gasfree`, `facilitator/gasfree` |
 | batch-settlement | `.env-batch.example` → `.env-batch` | `clients/batch-settlement`, `servers/batch-settlement`, `facilitator/batch-settlement` |
 | upto | `.env-upto.example` → `.env-upto` | `clients/upto`, `servers/upto`, `facilitator/upto` |

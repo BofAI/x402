@@ -8,13 +8,13 @@ HTTP layer (`src/index.ts`) is **chain-agnostic** and dispatches by the payment'
 
 The signer factories are **wallet-only**:
 
-- EVM: `createFacilitatorEvmSigner(publicClient, wallet)`
-- TRON: `createFacilitatorTronSigner(tronWeb, wallet)`
+- EVM: `createFacilitatorEvmSigner(wallet, { network, rpcUrl })`
+- TRON: `createFacilitatorTronSigner(wallet, { network, apiKey })`
 
 The `wallet` comes from `resolveWallet({ network })` in `@bankofai/agent-wallet`,
 which loads the secret out-of-band (env / keystore / Privy). **This example never
-reads a private key.** The viem `publicClient` / `TronWeb` carry no account — they
-only do chain reads and broadcast.
+reads a private key.** The factories build the viem `publicClient` / `TronWeb`
+internally and they carry no account — they only do chain reads and broadcast.
 
 A chain registers only if its wallet resolves, so you can run EVM-only,
 TRON-only, or both.
