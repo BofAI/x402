@@ -47,6 +47,9 @@ export { isPermit2Payload, isEIP3009Payload, isUptoPermit2Payload } from "./type
 
 // Constants
 export {
+  TRON_MAINNET,
+  TRON_NILE,
+  TRON_SHASTA,
   TRON_CHAIN_IDS,
   PERMIT2_ADDRESSES,
   X402_PERMIT2_PROXY_ADDRESSES,
