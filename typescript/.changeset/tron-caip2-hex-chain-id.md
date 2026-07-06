@@ -5,8 +5,8 @@
 **Breaking:** TRON CAIP-2 network identifiers now use the hex chain ID as the
 reference (e.g. `tron:0xcd8690dc` for Nile) instead of the human-readable name
 (`tron:nile` / `tron:shasta` / `tron:mainnet`). Passing the old string IDs to the
-signer factories (`createClientTronSigner`, `createFacilitatorTronSigner`,
-`createAuthorizerTronSigner`) or to `getTronChainId` / RPC resolution now throws
+signer factories (`createClientTronSigner`, `createFacilitatorTronSigner`)
+or to `getTronChainId` / RPC resolution now throws
 `Unknown TRON network` / `No TRON RPC configured`.
 
 To migrate:
