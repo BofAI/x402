@@ -130,10 +130,12 @@ sponsorship).
 ### Mainnet (real funds)
 
 Mainnet networks (`eip155:56`, `tron:mainnet`) are registered alongside their
-testnet counterparts in the same tables — no uncommenting needed. Select mainnet
-by pointing the client's `PAY_TARGETS` and the server's payout addresses
-(`EVM_ADDRESS` / `TRON_ADDRESS`) at mainnet, and set a reliable `EVM_RPC_URL`
-for BSC. ⚠️ **REAL FUNDS.** All verified on-chain; sources: the official
+testnet counterparts in the same tables — no uncommenting needed. The server
+advertises both networks, and the client selects which one to pay through
+`PAY_TARGETS`. The example uses one `EVM_ADDRESS` / `TRON_ADDRESS` payout address
+for both the testnet and mainnet entries; configure addresses that are valid for
+that shared setup, and set a reliable `EVM_RPC_URL` for BSC. ⚠️ **REAL FUNDS.**
+All verified on-chain; sources: the official
 [Network & Token Support](https://docs.bankofai.io/x402/core-concepts/network-and-token-support/) docs.
 
 | Network | Token | Address | Dec | Method |

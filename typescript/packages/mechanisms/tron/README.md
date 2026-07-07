@@ -18,6 +18,19 @@ This package provides the three x402 mechanism roles for TRON, mirroring `@banko
 
 It plugs into `@bankofai/x402-core` via the `tron:*` CAIP family — no core changes are required.
 
+### Fee behavior
+
+The `exact` and `upto` schemes do not advertise or collect a facilitator fee:
+their deployed proxies transfer exactly the payment amount. Facilitator fees are
+supported only by `exact_gasfree`, where the relayer deducts the configured fee
+from the GasFree wallet.
+
+When upgrading from the advisory-fee API, remove the `fee` property from
+`TronFacilitatorConfig` and stop passing a fee configuration as the second
+argument to the `exact` or `upto` facilitator scheme constructors. Pass the fee
+configuration only when registering or constructing an `exact_gasfree`
+facilitator.
+
 ## Two transfer paths (and why TRON is effectively Permit2)
 
 The exact scheme supports two `assetTransferMethod`s, selected via `extra.assetTransferMethod`:
@@ -131,10 +144,14 @@ The `permit2` path depends on three on-chain contracts. Addresses live in `src/c
 | Network | chainId (TIP-712) | Permit2 | x402ExactPermit2Proxy |
 | --- | --- | --- | --- |
 | `tron:nile` | 3448148188 | `TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h` | `TFGoaq2KjizijgjtkVxT7yjffW1A5T1j6F` |
-| `tron:mainnet` | 728126428 | *(placeholder — replace)* | *(placeholder — replace)* |
+| `tron:mainnet` | 728126428 | `TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9` | `TN49yaJmZMZoEdDCqjB4uPzQLHvYkGw95m` |
 | `tron:shasta` | 2494104990 | — (no Permit2 deployment) | — |
 
-> ⚠️ **Before mainnet:** deploy your own audited Permit2 + `x402ExactPermit2Proxy` and replace the addresses in `constants.ts`. Do not reuse placeholder/testnet addresses. The proxy `PERMIT2()` immutable must equal the configured Permit2 address, and its `WITNESS_TYPEHASH` must match the 2-field witness.
+> ⚠️ Mainnet uses real funds. The configured Permit2 and
+> `x402ExactPermit2Proxy` addresses are the deployed mainnet contracts; verify
+> them against the current release configuration before production use. The
+> proxy `PERMIT2()` immutable must equal the configured Permit2 address, and its
+> `WITNESS_TYPEHASH` must match the 2-field witness.
 
 ## Testing
 
