@@ -1,6 +1,6 @@
 /**
  * TRON setup for the MCP resource server — mirrors the EVM module. Keyless: just
- * the `exact` server scheme on `tron:nile` and `accepts` with the payout address.
+ * the `exact` server scheme on `tron:0xcd8690dc` and `accepts` with the payout address.
  *
  * Offers USDT and USDD (both permit2 tokens — no ERC-3009). The TRON client ships
  * an auto-approve that broadcasts the one-time Permit2 `approve`, so the server
@@ -11,9 +11,9 @@ import { ExactTronScheme } from "@bankofai/x402-tron/exact/server";
 import type { Network } from "@bankofai/x402-core/types";
 import type { ResourceConfig, x402ResourceServer } from "@bankofai/x402-core/server";
 
-/** CAIP-2 network this server accepts TRON payments on. Switch to "tron:mainnet"
+/** CAIP-2 network this server accepts TRON payments on. Switch to "tron:0x2b6653dc"
  *  for production (REAL FUNDS); USDT/USDD are registered there too. */
-export const TRON_NETWORK: Network = "tron:nile";
+export const TRON_NETWORK: Network = "tron:0xcd8690dc";
 
 /** TRON is enabled when a payout address is configured. */
 export function hasTron(): boolean {
@@ -21,7 +21,7 @@ export function hasTron(): boolean {
 }
 
 /**
- * Registers the TRON `exact` server scheme on `tron:nile`.
+ * Registers the TRON `exact` server scheme on `tron:0xcd8690dc`.
  *
  * @param resourceServer - The resource server to register on.
  */

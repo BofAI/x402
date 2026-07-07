@@ -14,7 +14,7 @@ vi.mock("../../src/rpc", () => ({ buildTronWeb: vi.fn() }));
  * from our ABI and pinned here to the known-correct canonical string.
  */
 
-const NETWORK = "tron:nile";
+const NETWORK = "tron:0xcd8690dc";
 const FAC_ADDR = "TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC";
 const PROXY = "TFGoaq2KjizijgjtkVxT7yjffW1A5T1j6F";
 const TOKEN = "0x" + "a".repeat(40);

@@ -134,7 +134,7 @@ registerExactTronScheme(server); // prices to the network's default stablecoin
 import { x402Facilitator } from "@bankofai/x402-core/facilitator";
 import { registerExactTronScheme } from "@bankofai/x402-tron/exact/facilitator";
 
-registerExactTronScheme(facilitator, { signer: facilitatorSigner, networks: "tron:nile" });
+registerExactTronScheme(facilitator, { signer: facilitatorSigner, networks: "tron:0xcd8690dc" });
 ```
 
 ## Networks & on-chain dependencies
@@ -143,9 +143,9 @@ The `permit2` path depends on three on-chain contracts. Addresses live in `src/c
 
 | Network | chainId (TIP-712) | Permit2 | x402ExactPermit2Proxy |
 | --- | --- | --- | --- |
-| `tron:nile` | 3448148188 | `TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h` | `TFGoaq2KjizijgjtkVxT7yjffW1A5T1j6F` |
-| `tron:mainnet` | 728126428 | `TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9` | `TN49yaJmZMZoEdDCqjB4uPzQLHvYkGw95m` |
-| `tron:shasta` | 2494104990 | — (no Permit2 deployment) | — |
+| `tron:0xcd8690dc` | 3448148188 | `TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h` | `TFGoaq2KjizijgjtkVxT7yjffW1A5T1j6F` |
+| `tron:0x2b6653dc` | 728126428 | `TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9` | `TN49yaJmZMZoEdDCqjB4uPzQLHvYkGw95m` |
+| `tron:0x94a9059e` | 2494104990 | — (no Permit2 deployment) | — |
 
 > ⚠️ Mainnet uses real funds. The configured Permit2 and
 > `x402ExactPermit2Proxy` addresses are the deployed mainnet contracts; verify

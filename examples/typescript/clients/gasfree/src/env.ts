@@ -18,13 +18,13 @@ export type SignerWallet = Wallet & {
  *
  * `@bankofai/agent-wallet` expects a **CAIP-2** network id. Key derivation is
  * chain-id-independent within a family, so any `tron:` id resolves the same
- * address; we use `tron:nile`.
+ * address; we use `tron:0xcd8690dc`.
  *
  * @returns The wallet, or `null` to skip TRON.
  */
 export async function tryResolveTronWallet(): Promise<SignerWallet | null> {
   try {
-    return (await resolveWallet({ network: "tron:nile" })) as SignerWallet;
+    return (await resolveWallet({ network: "tron:0xcd8690dc" })) as SignerWallet;
   } catch {
     return null;
   }

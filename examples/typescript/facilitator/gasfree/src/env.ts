@@ -20,7 +20,7 @@ export type SignerWallet = Wallet & {
  */
 export async function tryResolveTronWallet(): Promise<SignerWallet | null> {
   try {
-    return (await resolveWallet({ network: "tron:nile" })) as SignerWallet;
+    return (await resolveWallet({ network: "tron:0xcd8690dc" })) as SignerWallet;
   } catch {
     return null;
   }

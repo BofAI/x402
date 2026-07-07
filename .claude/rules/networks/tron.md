@@ -2,13 +2,13 @@
 
 Mechanisms: `typescript/packages/mechanisms/tron` (`@bankofai/x402-tron`). **In-house, no upstream** — edit directly.
 
-Identifier: `tron:<name>` where `<name>` ∈ {`mainnet`, `shasta`, `nile`}.
+Identifier: `tron:<hexChainId>` per CAIP-2 (hex chain id as the reference, not a human-readable name). Canonical constants: `TRON_MAINNET`, `TRON_NILE`, `TRON_SHASTA` exported from `@bankofai/x402-tron`.
 
-| Identifier | Chain ID (decimal) | Chain ID (hex) |
-|---|---|---|
-| `tron:mainnet` | 728126428 | 0x2b6653dc |
-| `tron:shasta` | 2494104990 | 0x94a9059e |
-| `tron:nile` | 3448148188 | 0xcd8690dc |
+| Constant | Identifier | Chain ID (decimal) | Chain ID (hex) |
+|---|---|---|---|
+| `TRON_MAINNET` | `tron:0x2b6653dc` | 728126428 | 0x2b6653dc |
+| `TRON_SHASTA` | `tron:0x94a9059e` | 2494104990 | 0x94a9059e |
+| `TRON_NILE` | `tron:0xcd8690dc` | 3448148188 | 0xcd8690dc |
 
 Chain id helper: `getTronChainId(network)` in `mechanisms/tron/src/utils.ts`.
 
@@ -17,7 +17,7 @@ Chain id helper: `getTronChainId(network)` in `mechanisms/tron/src/utils.ts`.
 - TIP-712 is TRON's EIP-712 analogue. Structurally identical; same struct-hash / domain-separator algorithm. Uses the in-tree TIP-712 signer — do not add a new lib.
 - **Every `address` field** — domain and message — must be **0x-prefixed EVM hex**. Passing Base58 produces a valid-looking but wrong signature.
 - Convert Base58 → hex via `tronAddressToEvm` / `normalizeAddressForSigning` (`mechanisms/tron/src/utils.ts`). Do not reimplement.
-- Signer factories: `createClientTronSigner` / `createFacilitatorTronSigner` / `createAuthorizerTronSigner` from `@bankofai/x402-tron`. Pass `{ network, apiKey? }`; the factory builds TronWeb internally.
+- Signer factories: `createClientTronSigner` / `createFacilitatorTronSigner` / `createAuthorizerTronSigner` from `@bankofai/x402-tron`. `createClientTronSigner` / `createFacilitatorTronSigner` take `{ network, apiKey? }` and build TronWeb internally; `createAuthorizerTronSigner` takes only a wallet (no network — it signs offline).
 
 ## Gas & fees
 

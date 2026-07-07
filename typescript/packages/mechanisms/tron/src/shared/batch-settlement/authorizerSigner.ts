@@ -13,7 +13,7 @@ import { computeChannelId, getBatchSettlementTip712Domain } from "./utils";
  *
  * @param signer - Authorizer signer holding the `receiverAuthorizer` key.
  * @param claims - Voucher claims to include in the batch.
- * @param network - CAIP-2 network identifier (e.g. `"tron:nile"`).
+ * @param network - CAIP-2 network identifier (e.g. `"tron:0xcd8690dc"`).
  * @returns TIP-712 signature over `ClaimBatch(ClaimEntry[] claims)`.
  */
 export async function signClaimBatch(
@@ -42,7 +42,7 @@ export async function signClaimBatch(
  * @param channelId - Channel to authorize refund for.
  * @param amount - Refund amount (capped to unclaimed escrow onchain).
  * @param nonce - Must match onchain `refundNonce(channelId)`.
- * @param network - CAIP-2 network identifier (e.g. `"tron:nile"`).
+ * @param network - CAIP-2 network identifier (e.g. `"tron:0xcd8690dc"`).
  * @returns TIP-712 signature over `Refund(channelId, nonce, amount)`.
  */
 export async function signRefund(

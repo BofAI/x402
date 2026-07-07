@@ -32,7 +32,7 @@ import type {
  * and the channel-bound Permit2 `DepositWitness`.
  */
 
-const NETWORK = "tron:nile";
+const NETWORK = "tron:0xcd8690dc";
 const PAYER_PK = "da146374a75310b9666e834ee4ad0866d6f4035967bfc76217c5a495fff9f0d0";
 const ASSET = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf";
 const PAY_TO = "TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC";
@@ -80,7 +80,9 @@ describe("batch-settlement deposit authorizations (TRON)", () => {
   beforeAll(async () => {
     const tronWeb = new TronWeb({ fullHost: "https://nile.trongrid.io", privateKey: PAYER_PK });
     vi.mocked(buildTronWeb).mockReturnValue(tronWeb);
-    signer = await createClientTronSigner(privateKeyTronWallet(tronWeb, PAYER_PK), { network: NETWORK });
+    signer = await createClientTronSigner(privateKeyTronWallet(tronWeb, PAYER_PK), {
+      network: NETWORK,
+    });
     payerHex = tronAddressToEvm(signer.address);
     config = {
       payer: normalizeAddressForSigning(signer.address),

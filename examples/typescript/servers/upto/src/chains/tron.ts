@@ -5,16 +5,16 @@
  * actual charge is decided per request in `index.ts` via a `Settlement-Overrides`
  * response header.
  *
- * `tron:nile` USDT is in the default-asset registry, so the price is given in
+ * `tron:0xcd8690dc` USDT is in the default-asset registry, so the price is given in
  * `"$"` form (the scheme maps it to USDT). USDT is a **Permit2** token, so the
  * client authorizes via Permit2 — the payer needs a one-time `approve(Permit2)`.
  */
 import { UptoTronScheme } from "@bankofai/x402-tron/upto/server";
 import type { x402ResourceServer } from "@bankofai/x402-express";
 
-// Switch to "tron:mainnet" for production (REAL FUNDS): USDT is registered there
+// Switch to "tron:0x2b6653dc" for production (REAL FUNDS): USDT is registered there
 // too — only the facilitator/client TronWeb `fullHost` must point at mainnet.
-export const TRON_NETWORK: `${string}:${string}` = "tron:nile";
+export const TRON_NETWORK: `${string}:${string}` = "tron:0xcd8690dc";
 
 /** TRON is enabled when a payout address is configured. */
 export function hasTron(): boolean {

@@ -15,7 +15,7 @@ import type { x402Client } from "@bankofai/x402-fetch";
 
 import { tryResolveWallet } from "../env.js";
 
-const TRON_NETWORKS = ["tron:nile", "tron:mainnet"] as const;
+const TRON_NETWORKS = ["tron:0xcd8690dc", "tron:0x2b6653dc"] as const;
 
 /**
  * Registers the TRON `exact` client scheme, if a TRON wallet is configured.

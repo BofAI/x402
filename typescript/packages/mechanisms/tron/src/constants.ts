@@ -1,3 +1,14 @@
+// --- CAIP-2 network identifiers ---
+// TRON uses hex chain IDs in the CAIP-2 reference (not human-readable names),
+// per upstream spec PR x402-foundation/x402#2076 review feedback.
+
+/** TRON mainnet CAIP-2 id (chain id 0x2b6653dc). */
+export const TRON_MAINNET = "tron:0x2b6653dc";
+/** TRON Nile testnet CAIP-2 id (chain id 0xcd8690dc). */
+export const TRON_NILE = "tron:0xcd8690dc";
+/** TRON Shasta testnet CAIP-2 id (chain id 0x94a9059e). */
+export const TRON_SHASTA = "tron:0x94a9059e";
+
 // --- TIP-712 (TransferWithAuthorization) constants ---
 
 /**
@@ -101,8 +112,8 @@ export const uptoPermit2WitnessTypes = {
  * Permit2 contract addresses per TRON network.
  */
 export const PERMIT2_ADDRESSES: Record<string, string> = {
-  "tron:mainnet": "TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9",
-  "tron:nile": "TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h",
+  "tron:0x2b6653dc": "TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9",
+  "tron:0xcd8690dc": "TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h",
 };
 
 /**
@@ -110,8 +121,8 @@ export const PERMIT2_ADDRESSES: Record<string, string> = {
  * Enforces that Permit2 transfers can only go to the witness.to address.
  */
 export const X402_PERMIT2_PROXY_ADDRESSES: Record<string, string> = {
-  "tron:mainnet": "TN49yaJmZMZoEdDCqjB4uPzQLHvYkGw95m",
-  "tron:nile": "TFGoaq2KjizijgjtkVxT7yjffW1A5T1j6F",
+  "tron:0x2b6653dc": "TN49yaJmZMZoEdDCqjB4uPzQLHvYkGw95m",
+  "tron:0xcd8690dc": "TFGoaq2KjizijgjtkVxT7yjffW1A5T1j6F",
 };
 
 /**
@@ -119,8 +130,8 @@ export const X402_PERMIT2_PROXY_ADDRESSES: Record<string, string> = {
  * Used by variable-amount settlement flows.
  */
 export const X402_UPTO_PERMIT2_PROXY_ADDRESSES: Record<string, string> = {
-  "tron:mainnet": "TBLeFPkfDiweBbYmAPqnakaFBPDt9p93sR",
-  "tron:nile": "TKvcqQ7S2bYyys5ZZNpjj9xGiPhiwzHq1K",
+  "tron:0x2b6653dc": "TBLeFPkfDiweBbYmAPqnakaFBPDt9p93sR",
+  "tron:0xcd8690dc": "TKvcqQ7S2bYyys5ZZNpjj9xGiPhiwzHq1K",
 };
 
 /**
@@ -246,9 +257,9 @@ export const erc20ApproveAbi = [
  * TRON chain IDs for TIP-712 signing.
  */
 export const TRON_CHAIN_IDS: Record<string, number> = {
-  "tron:mainnet": 728126428, // 0x2b6653dc
-  "tron:shasta": 2494104990, // 0x94a9059e
-  "tron:nile": 3448148188, // 0xcd8690dc
+  "tron:0x2b6653dc": 728126428, // 0x2b6653dc
+  "tron:0x94a9059e": 2494104990, // 0x94a9059e
+  "tron:0xcd8690dc": 3448148188, // 0xcd8690dc
 };
 
 /**

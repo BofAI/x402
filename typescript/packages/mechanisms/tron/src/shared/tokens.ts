@@ -37,13 +37,13 @@ export interface TokenInfo {
 /**
  * Built-in TRC-20 tokens indexed by CAIP-2 network and uppercased symbol.
  *
- * Note: `tron:mainnet` and `tron:nile` have Permit2 + x402Permit2Proxy
- * deployments, so their tokens default to `permit2`. `tron:shasta` has no
+ * Note: `tron:0x2b6653dc` and `tron:0xcd8690dc` have Permit2 + x402Permit2Proxy
+ * deployments, so their tokens default to `permit2`. `tron:0x94a9059e` has no
  * Permit2 deployment, so USDT there falls back to the TIP-712
  * TransferWithAuthorization (`eip3009`) path.
  */
 const TOKENS: Record<string, Record<string, TokenInfo>> = {
-  "tron:mainnet": {
+  "tron:0x2b6653dc": {
     USDT: {
       address: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
       decimals: 6,
@@ -61,7 +61,7 @@ const TOKENS: Record<string, Record<string, TokenInfo>> = {
       assetTransferMethod: "permit2",
     },
   },
-  "tron:nile": {
+  "tron:0xcd8690dc": {
     USDT: {
       address: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
       decimals: 6,
@@ -79,7 +79,7 @@ const TOKENS: Record<string, Record<string, TokenInfo>> = {
       assetTransferMethod: "permit2",
     },
   },
-  "tron:shasta": {
+  "tron:0x94a9059e": {
     USDT: {
       address: "TG3XXyExBkPp9nzdajDZsozEu4BkaSJozs",
       decimals: 6,
@@ -107,7 +107,7 @@ export function getDefaultAssetSymbol(): string {
 /**
  * Get token info by network and symbol (case-insensitive).
  *
- * @param network - CAIP-2 network identifier (e.g. "tron:nile").
+ * @param network - CAIP-2 network identifier (e.g. "tron:0xcd8690dc").
  * @param symbol - Token symbol (e.g. "USDT"); matched case-insensitively.
  * @returns The token info, or undefined if not registered.
  */
@@ -189,7 +189,7 @@ export function buildAssetExtra(token: TokenInfo): Record<string, unknown> {
  *
  * @param price - `"<decimal-amount> <symbol>"` (e.g. `"1.25 USDT"`).
  *                Whitespace-tolerant; symbol lookup is case-insensitive.
- * @param network - CAIP-2 network identifier (e.g. `"tron:nile"`).
+ * @param network - CAIP-2 network identifier (e.g. `"tron:0xcd8690dc"`).
  * @returns The asset amount in smallest units, with token metadata in `extra`.
  * @throws If the format is invalid, the amount is not a non-negative decimal,
  *         the token is not registered, or the amount has more decimal places

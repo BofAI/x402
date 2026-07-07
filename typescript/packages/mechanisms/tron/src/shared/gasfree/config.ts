@@ -12,16 +12,16 @@ import { getTronChainId, tronAddressToEvm } from "../../utils";
 
 /** GasFreeController contract addresses (Base58Check) per network. */
 export const GASFREE_CONTROLLER_ADDRESSES: Record<string, string> = {
-  "tron:mainnet": "TFFAMQLZybALaLb4uxHA9RBE7pxhUAjF3U",
-  "tron:shasta": "TQghdCeVDA6CnuNVTUhfaAyPfTetqZWNpm",
-  "tron:nile": "THQGuFzL87ZqhxkgqYEryRAd7gqFqL5rdc",
+  "tron:0x2b6653dc": "TFFAMQLZybALaLb4uxHA9RBE7pxhUAjF3U",
+  "tron:0x94a9059e": "TQghdCeVDA6CnuNVTUhfaAyPfTetqZWNpm",
+  "tron:0xcd8690dc": "THQGuFzL87ZqhxkgqYEryRAd7gqFqL5rdc",
 };
 
 /** GasFree beacon contract addresses (Base58Check) per network. */
 export const GASFREE_BEACON_ADDRESSES: Record<string, string> = {
-  "tron:mainnet": "TSP9UW6FQhT76XD2jWA6ipGMx3yGbjDffP",
-  "tron:shasta": "TQ1jvA3nLDMDNbJoMPLzTPoqAg8NvZ5CCW",
-  "tron:nile": "TLtCGmaxH3PbuaF6kbybwteZcHptEdgQGC",
+  "tron:0x2b6653dc": "TSP9UW6FQhT76XD2jWA6ipGMx3yGbjDffP",
+  "tron:0x94a9059e": "TQ1jvA3nLDMDNbJoMPLzTPoqAg8NvZ5CCW",
+  "tron:0xcd8690dc": "TLtCGmaxH3PbuaF6kbybwteZcHptEdgQGC",
 };
 
 /**
@@ -35,9 +35,9 @@ export const GASFREE_BEACON_ADDRESSES: Record<string, string> = {
  * client / registration config.
  */
 export const GASFREE_API_BASE_URLS: Record<string, string> = {
-  "tron:mainnet": "https://facilitator.bankofai.io/mainnet",
-  "tron:shasta": "https://facilitator.bankofai.io/shasta",
-  "tron:nile": "https://facilitator.bankofai.io/nile",
+  "tron:0x2b6653dc": "https://facilitator.bankofai.io/mainnet",
+  "tron:0x94a9059e": "https://facilitator.bankofai.io/shasta",
+  "tron:0xcd8690dc": "https://facilitator.bankofai.io/nile",
 };
 
 /**

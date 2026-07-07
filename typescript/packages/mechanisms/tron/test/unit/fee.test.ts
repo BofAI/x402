@@ -11,7 +11,7 @@ import {
  * Offline unit tests for the TRON facilitator fee layer (F3).
  */
 
-const NETWORK = "tron:nile";
+const NETWORK = "tron:0xcd8690dc";
 const USDT = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf";
 const USDD = "TGjgvdTWWrybVLaVeFqSyVqJQWjxqRYbaK";
 const FEE_TO = "TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC";

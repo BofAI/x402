@@ -38,8 +38,8 @@ Each component has its own `CLAUDE.md` (where present) with build/test commands 
 - **Addresses, selectors, event topics**: lowercase-normalized everywhere. TRON addresses are converted to **0x-prefixed EVM hex** before any EIP-712/TIP-712 signing — see [docs/solutions.md entry #1](docs/solutions.md).
 - **Payment ID**: 16 random bytes, encoded as `0x` + 32 hex chars, signed as `bytes16`.
 - **HTTP header encoding**: `Base64(UTF-8(JSON.stringify(object)))` for `PAYMENT-REQUIRED`, `PAYMENT-SIGNATURE`, `PAYMENT-RESPONSE`.
-- **Network identifiers**: CAIP-2 `eip155:<chainId>` for EVM; `tron:<name>` for TRON.
-- **Mechanism registration**: `tron:nile` (exact match, higher priority) beats `tron:*` (wildcard, lower priority).
+- **Network identifiers**: CAIP-2 `eip155:<chainId>` for EVM; `tron:<hexChainId>` for TRON (e.g. `tron:0xcd8690dc` for Nile).
+- **Mechanism registration**: `tron:0xcd8690dc` (exact match, higher priority) beats `tron:*` (wildcard, lower priority).
 - **Commit messages**: `<type>(<scope>): <description>` — e.g. `fix(tron): preserve raw_data_hex in tron approvals`.
 
 ## AI-native development
