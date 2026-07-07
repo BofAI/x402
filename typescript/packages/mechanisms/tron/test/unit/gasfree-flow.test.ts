@@ -13,7 +13,7 @@ import type { GasFreeAddressInfo, GasFreeProvider } from "../../src/shared/gasfr
  */
 
 const addr = (pk: string) => TronWeb.address.fromPrivateKey(pk) as string;
-const NETWORK = "tron:nile";
+const NETWORK = "tron:0xcd8690dc";
 const USER = addr("0000000000000000000000000000000000000000000000000000000000000001");
 const PAY_TO = "TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC";
 const ASSET = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf"; // Nile USDT (6 decimals)
@@ -176,7 +176,7 @@ describe("GasFree client createPaymentPayload", () => {
       extensions: { skipBalanceCheck: true },
     });
     const p = result.payload as ExactGasFreePayload;
-    // tron:nile max window = 3595s
+    // tron:0xcd8690dc max window = 3595s
     const deadline = Number(p.gasfree.deadline);
     expect(deadline).toBeGreaterThanOrEqual(before + 3590);
     expect(deadline).toBeLessThanOrEqual(before + 3595 + 2);

@@ -4,7 +4,7 @@ import { TRON_CHAIN_IDS } from "./constants";
 /**
  * Get the numeric chain ID for a TRON network identifier.
  *
- * @param network - The network identifier in CAIP-2 format (e.g., "tron:nile")
+ * @param network - The network identifier in CAIP-2 format (e.g., "tron:0xcd8690dc")
  * @returns The numeric chain ID
  * @throws Error if the network is not a recognized TRON network
  */

@@ -14,7 +14,7 @@ import type { FacilitatorTronSigner } from "../../src/signer";
  * provider list (mirroring the Python facilitator's `fee_quote`).
  */
 
-const NETWORK = "tron:nile";
+const NETWORK = "tron:0xcd8690dc";
 const SIGNER_ADDR = "TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC"; // facilitator wallet (NOT a provider)
 const PROVIDER = "TKtWbdzEq5ss9vTS9kwRhBp5mXmBfBns3E"; // a registered relayer provider
 

@@ -9,9 +9,9 @@
 import { registerExactGasFreeTronScheme } from "@bankofai/x402-tron/gasfree/server";
 import type { x402ResourceServer } from "@bankofai/x402-express";
 
-// Switch to "tron:mainnet" for production (REAL FUNDS); only the client and
+// Switch to "tron:0x2b6653dc" for production (REAL FUNDS); only the client and
 // facilitator TronWeb/relayer endpoints change, this module is unchanged.
-export const TRON_NETWORK: `${string}:${string}` = "tron:nile";
+export const TRON_NETWORK: `${string}:${string}` = "tron:0xcd8690dc";
 
 /** TRON GasFree is enabled when a payout address is configured. */
 export function hasTron(): boolean {

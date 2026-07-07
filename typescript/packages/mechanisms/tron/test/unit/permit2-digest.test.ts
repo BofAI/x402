@@ -24,7 +24,7 @@ import type { ExactPermit2Payload } from "../../src/types";
  * contract, these assertions fail before any gas is spent.
  */
 
-const NETWORK = "tron:nile";
+const NETWORK = "tron:0xcd8690dc";
 // Fixed test key → deterministic payer address (no network, no randomness).
 const PAYER_PK = "da146374a75310b9666e834ee4ad0866d6f4035967bfc76217c5a495fff9f0d0";
 const PAY_TO = "TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC";

@@ -15,7 +15,7 @@ import {
  * No core changes: selection is a sync selector, affordability is async helpers.
  */
 
-const NETWORK = "tron:nile";
+const NETWORK = "tron:0xcd8690dc";
 const USDT = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf"; // 6 decimals
 const USDD = "TGjgvdTWWrybVLaVeFqSyVqJQWjxqRYbaK"; // 18 decimals
 

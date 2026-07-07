@@ -11,7 +11,7 @@ import type { Network, SchemeNetworkClient } from "@bankofai/x402-core/types";
 import { tryResolveWallet } from "../env.js";
 
 /** CAIP-2 network this client pays on. */
-export const TRON_NETWORK: Network = "tron:nile";
+export const TRON_NETWORK: Network = "tron:0xcd8690dc";
 
 /**
  * Builds the TRON `exact` client scheme registration, if a TRON wallet resolves.

@@ -4,7 +4,7 @@
  * the address and re-adds the `0x` prefix agent-wallet strips. The TronWeb
  * instance carries no private key.
  *
- * On `tron:nile` the server advertises USDT, a **Permit2** token — the upto
+ * On `tron:0xcd8690dc` the server advertises USDT, a **Permit2** token — the upto
  * payment is a Permit2 `PermitWitnessTransferFrom` signed for up to the
  * advertised maximum, and needs a one-time `approve(Permit2)` from the payer.
  * `signTransaction` lets the signer auto-broadcast that approve.
@@ -15,7 +15,7 @@ import type { x402Client } from "@bankofai/x402-fetch";
 
 import { tryResolveWallet } from "../env.js";
 
-const TRON_NETWORK = "tron:nile";
+const TRON_NETWORK = "tron:0xcd8690dc";
 
 /**
  * Registers the TRON `upto` client scheme, if a TRON wallet is configured.

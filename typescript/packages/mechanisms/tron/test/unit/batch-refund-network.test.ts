@@ -14,7 +14,7 @@ import type { PaymentRequired, PaymentRequirements } from "@bankofai/x402-core/t
  *
  * We drive scheme.refund() with a mocked 402 whose accepts list an EVM option
  * FIRST, and a signer whose readContract throws a sentinel. Reaching the sentinel
- * proves the TRON requirement was selected (computeChannelId(tron:nile) ran and
+ * proves the TRON requirement was selected (computeChannelId(tron:0xcd8690dc) ran and
  * the flow got to the on-chain channel read); a regression would throw the
  * eip155 network error before that.
  */
@@ -40,7 +40,7 @@ function evmAccept(): PaymentRequirements {
 function tronAccept(): PaymentRequirements {
   return {
     scheme: "batch-settlement",
-    network: "tron:nile",
+    network: "tron:0xcd8690dc",
     asset: TRON_ASSET,
     amount: "1000000",
     payTo: TRON_PAYTO,
@@ -75,7 +75,7 @@ describe("TRON batch-settlement refund — multi-network route", () => {
     const scheme = new BatchSettlementTronScheme(mockSigner());
     const fetchImpl = vi.fn().mockResolvedValue(multiNetwork402());
 
-    // Reaching the on-chain read (sentinel) proves computeChannelId(tron:nile)
+    // Reaching the on-chain read (sentinel) proves computeChannelId(tron:0xcd8690dc)
     // ran. A regression would throw "Unsupported network format: eip155:97".
     await expect(scheme.refund(URL, { fetch: fetchImpl })).rejects.toThrow("READCONTRACT_REACHED");
   });

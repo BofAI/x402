@@ -4,7 +4,7 @@ Verifies and settles TRON **GasFree** payments. Unlike the `exact` facilitator i
 does **not** broadcast a raw TRON transaction — it forwards the signed TIP-712
 permit to the **GasFree relayer API**, which pays the on-chain energy and submits.
 
-- Scheme: `exact_gasfree` on `tron:nile`.
+- Scheme: `exact_gasfree` on `tron:0xcd8690dc`.
 - Port `4032`.
 - Key custody in `@bankofai/agent-wallet`; the TronWeb instance holds no key.
 

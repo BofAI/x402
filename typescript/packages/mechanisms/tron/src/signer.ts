@@ -214,7 +214,7 @@ export function toFacilitatorTronSigner(
 
 /** Options for {@link createClientTronSigner}. */
 export interface CreateClientTronSignerOptions {
-  /** CAIP-2 network, e.g. `"tron:nile"`. The TronWeb client is built from it. */
+  /** CAIP-2 network, e.g. `"tron:0xcd8690dc"`. The TronWeb client is built from it. */
   network: string;
   /** RPC fullHost override; falls back to the network's default. */
   rpcUrl?: string;
@@ -245,7 +245,7 @@ export interface CreateClientTronSignerOptions {
  *
  * @example
  * ```typescript
- * const signer = await createClientTronSigner(wallet, { network: "tron:nile" });
+ * const signer = await createClientTronSigner(wallet, { network: "tron:0xcd8690dc" });
  * client.register("tron:*", new ExactTronScheme(signer));
  * ```
  */
@@ -337,7 +337,7 @@ export type FacilitatorTronWallet = FacilitatorWallet;
 
 /** Options for {@link createFacilitatorTronSigner}. */
 export interface FacilitatorTronSignerOptions {
-  /** CAIP-2 network, e.g. `"tron:nile"`. The TronWeb client is built from it. */
+  /** CAIP-2 network, e.g. `"tron:0xcd8690dc"`. The TronWeb client is built from it. */
   network: string;
   /** RPC fullHost override; falls back to the network's default. */
   rpcUrl?: string;
@@ -583,9 +583,11 @@ async function pollTransactionPacked(tronWeb: TronWeb, hash: string): Promise<{ 
     await new Promise(resolve => setTimeout(resolve, delayMs));
     let info: TronTxInfo | null = null;
     try {
-      info = (await tronWeb.fullNode.request("wallet/gettransactioninfobyid", { value: hash }, "post")) as
-        | TronTxInfo
-        | null;
+      info = (await tronWeb.fullNode.request(
+        "wallet/gettransactioninfobyid",
+        { value: hash },
+        "post",
+      )) as TronTxInfo | null;
     } catch {
       // Not yet confirmed / transient node or rate-limit error — keep polling.
     }
@@ -706,8 +708,8 @@ async function ensurePermit2Allowance(
  *
  * @example
  * ```typescript
- * const signer = await createFacilitatorTronSigner(wallet, { network: "tron:nile" });
- * facilitator.register("tron:nile", new ExactTronScheme(signer));
+ * const signer = await createFacilitatorTronSigner(wallet, { network: "tron:0xcd8690dc" });
+ * facilitator.register("tron:0xcd8690dc", new ExactTronScheme(signer));
  * ```
  */
 export async function createFacilitatorTronSigner(

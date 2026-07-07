@@ -41,7 +41,7 @@ server. Endpoints: `POST /verify`, `POST /settle`, `GET /supported`.
 | Chain | CAIP-2 | Contract | Token (advertised by server) |
 |---|---|---|---|
 | BSC testnet | `eip155:97` | deterministic singleton `0x4020…0003` | USDC (Permit2) |
-| TRON Nile | `tron:nile` | `TWBwWHZWwH8TzrZnbxit1J645VGYY1K2fA` | USDT (Permit2) |
+| TRON Nile | `tron:0xcd8690dc` | `TWBwWHZWwH8TzrZnbxit1J645VGYY1K2fA` | USDT (Permit2) |
 
 Add a chain by extending `EVM_NETWORKS` in [`src/chains/evm.ts`](src/chains/evm.ts)
 or adapting [`src/chains/tron.ts`](src/chains/tron.ts).

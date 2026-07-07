@@ -10,7 +10,7 @@ import type { PaymentRequired, PaymentRequirements } from "@bankofai/x402-core/t
  * (e.g. TRON + EVM), the refund probe must pick THIS package's chain family.
  *
  * Previously it took the first scheme match; when a non-eip155 accept came first
- * the EVM refund would feed e.g. tron:nile into computeChannelId. The fix filters
+ * the EVM refund would feed e.g. a tron:* network into computeChannelId. The fix filters
  * to eip155:*.
  *
  * We drive scheme.refund() with a mocked 402 whose accepts list a TRON option
@@ -29,7 +29,7 @@ const EVM_AUTHORIZER = "0x1111111111111111111111111111111111111111";
 function tronAccept(): PaymentRequirements {
   return {
     scheme: "batch-settlement",
-    network: "tron:nile",
+    network: "tron:0xcd8690dc",
     asset: "TGjgvdTWWrybVLaVeFqSyVqJQWjxqRYbaK",
     amount: "1000000",
     payTo: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",

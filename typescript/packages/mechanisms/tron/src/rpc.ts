@@ -1,7 +1,7 @@
 /**
  * TRON RPC resolution — builds a `TronWeb` instance for a CAIP-2 network.
  *
- * Centralizes the `tron:<name>` → fullHost mapping so the client/facilitator
+ * Centralizes the `tron:<hexChainId>` → fullHost mapping so the client/facilitator
  * factories take a `network` instead of a caller-built `TronWeb` (mirrors EVM's
  * `adapters/chains.ts`). Isolated in its own module so unit tests can `vi.mock`
  * it and inject a fake TronWeb without touching the network.
@@ -11,9 +11,9 @@ import { log } from "@bankofai/x402-core";
 
 /** CAIP-2 network → default TronGrid fullHost (used when an API key is supplied). */
 const TRON_RPC: Record<string, string> = {
-  "tron:mainnet": "https://api.trongrid.io",
-  "tron:shasta": "https://api.shasta.trongrid.io",
-  "tron:nile": "https://nile.trongrid.io",
+  "tron:0x2b6653dc": "https://api.trongrid.io",
+  "tron:0x94a9059e": "https://api.shasta.trongrid.io",
+  "tron:0xcd8690dc": "https://nile.trongrid.io",
 };
 
 /**
@@ -24,11 +24,11 @@ const TRON_RPC: Record<string, string> = {
  * the Python/legacy `TRON_FALLBACK_RPC_URLS` (commit 8a893b8).
  */
 const TRON_FALLBACK_RPC: Record<string, string> = {
-  "tron:mainnet": "https://hptg.bankofai.io",
+  "tron:0x2b6653dc": "https://hptg.bankofai.io",
   // nileex is the official Nile endpoint and works without a TronGrid key
   // (the default nile.trongrid.io host gets rate-limited unkeyed).
-  "tron:nile": "https://api.nileex.io",
-  "tron:shasta": "https://api.shasta.trongrid.io",
+  "tron:0xcd8690dc": "https://api.nileex.io",
+  "tron:0x94a9059e": "https://api.shasta.trongrid.io",
 };
 
 /** Networks already warned about a missing API key (warn once per process). */
@@ -48,7 +48,7 @@ export interface BuildTronWebOptions {
  * Precedence: explicit `rpcUrl` → keyed TronGrid default (when `apiKey` is set)
  * → key-less fallback endpoint → TronGrid default. Exported for unit testing.
  *
- * @param network - CAIP-2 id, e.g. `"tron:nile"`.
+ * @param network - CAIP-2 id, e.g. `"tron:0xcd8690dc"`.
  * @param opts - Optional RPC override / API key.
  * @returns The resolved fullHost.
  * @throws When the network is unknown and no `rpcUrl` is supplied.
@@ -80,7 +80,7 @@ export function resolveTronRpcUrl(network: string, opts: BuildTronWebOptions = {
 /**
  * Builds a `TronWeb` for a CAIP-2 network (contract reads + broadcast).
  *
- * @param network - CAIP-2 id, e.g. `"tron:nile"`.
+ * @param network - CAIP-2 id, e.g. `"tron:0xcd8690dc"`.
  * @param opts - Optional RPC override / API key.
  * @returns A TronWeb instance.
  */

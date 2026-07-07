@@ -66,7 +66,7 @@ function toExactAssetInfo(token: TokenInfo): ExactDefaultAssetInfo {
  *
  * Resolves the network's default symbol (USDT) against the token registry.
  *
- * @param network - The CAIP-2 network identifier (e.g., "tron:nile").
+ * @param network - The CAIP-2 network identifier (e.g., "tron:0xcd8690dc").
  * @returns The default asset configuration for the network.
  * @throws Error if no default asset is configured for the network.
  */

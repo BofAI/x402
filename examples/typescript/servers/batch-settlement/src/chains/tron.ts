@@ -5,7 +5,7 @@
  * and runs a `BatchSettlementChannelManager` that claims + settles to `payTo`.
  * The `receiverAuthorizer` comes from the facilitator (`/supported`).
  *
- * `tron:nile` USDT IS in the default-asset registry, so the channel manager is
+ * `tron:0xcd8690dc` USDT IS in the default-asset registry, so the channel manager is
  * built via `scheme.createChannelManager()` (it resolves the token) and the price
  * is given in `"$"` form (the scheme maps it to the default asset). USDT is a
  * Permit2 token (no ERC-3009), so the client deposits via Permit2 — the payer
@@ -17,9 +17,9 @@ import type { x402ResourceServer } from "@bankofai/x402-express";
 
 import type { StoppableManager } from "./evm.js";
 
-// Switch to "tron:mainnet" for production (REAL FUNDS): USDT is registered there
+// Switch to "tron:0x2b6653dc" for production (REAL FUNDS): USDT is registered there
 // too — only the facilitator/client TronWeb `fullHost` must point at mainnet.
-export const TRON_NETWORK: `${string}:${string}` = "tron:nile";
+export const TRON_NETWORK: `${string}:${string}` = "tron:0xcd8690dc";
 
 /** TRON is enabled when a payout address is configured. */
 export function hasTron(): boolean {
