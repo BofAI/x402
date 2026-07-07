@@ -129,7 +129,7 @@ sponsorship).
 
 ### Mainnet (real funds)
 
-Mainnet networks (`eip155:56`, `tron:mainnet`) are registered alongside their
+Mainnet networks (`eip155:56`, `tron:0x2b6653dc`) are registered alongside their
 testnet counterparts in the same tables — no uncommenting needed. The server
 advertises both networks, and the client selects which one to pay through
 `PAY_TARGETS`. The example uses one `EVM_ADDRESS` / `TRON_ADDRESS` payout address

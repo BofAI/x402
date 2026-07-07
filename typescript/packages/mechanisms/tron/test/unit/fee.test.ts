@@ -72,7 +72,6 @@ describe("buildFeeInfo", () => {
   });
 });
 
-
 describe("readFeeFromExtra", () => {
   it("extracts a well-formed fee", () => {
     expect(readFeeFromExtra({ fee: { feeTo: FEE_TO, feeAmount: "100", caller: "TC" } })).toEqual({
