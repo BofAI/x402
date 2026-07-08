@@ -19,7 +19,8 @@
     "dev:upto-client": "pnpm --filter @bankofai/x402-example-upto-client dev",
     "dev:mcp-server": "pnpm --filter @bankofai/x402-example-mcp-server dev",
     "dev:mcp-client": "pnpm --filter @bankofai/x402-example-mcp-client dev",
-    "dev:logging": "pnpm --filter @bankofai/x402-example-logging dev"
+    "dev:logging": "pnpm --filter @bankofai/x402-example-logging dev",
+    "dev:multi-scheme-server": "pnpm --filter @bankofai/x402-example-server-multi-scheme dev"
   },
   "engines": {
     "node": ">=20"
