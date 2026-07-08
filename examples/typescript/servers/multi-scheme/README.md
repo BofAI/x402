@@ -3,7 +3,7 @@
 Protects `GET /weather` behind x402 payment and accepts **both TRON schemes on the
 same network** — `exact` (permit2, payer pays TRX energy) and `exact_gasfree`
 (relayer pays energy, payer needs no TRX) — alongside EVM `exact`. The resource
-server is keyless: it advertises `accepts` and delegates verify/settle to two
+server is keyless: it advertises `accepts` and delegates verify/settle to
 facilitators over HTTP, routing each payment by `(network, scheme)`.
 
 ## Why two schemes on one server
@@ -13,9 +13,10 @@ and `exact_gasfree` coexist on `tron:0xcd8690dc` without conflict. The client
 chooses which scheme to pay by honoring one of the advertised `accepts` entries
 in the 402 challenge.
 
-## Two facilitators
+## Facilitators
 
-This server wires **two** existing facilitators (run both first):
+`FACILITATOR_URL` accepts a comma-separated list. Typically two facilitators are
+wired (run both first):
 
 - **basic** (`:4022`) — settles `exact` (EVM + TRON permit2). See `../../facilitator/basic`.
 - **gasfree** (`:4032`) — settles `exact_gasfree` (TRON relayer). See `../../facilitator/gasfree`.
@@ -53,6 +54,5 @@ via the gas-sponsoring extension; DHLU (ERC-3009) and GasFree need none.
 |---|---|
 | `EVM_ADDRESS` | EVM payout address; omit to disable EVM |
 | `TRON_ADDRESS` | TRON payout address (`T...`); omit to disable TRON |
-| `EXACT_FACILITATOR_URL` | basic facilitator (defaults `http://localhost:4022`) |
-| `GASFREE_FACILITATOR_URL` | gasfree facilitator (defaults `http://localhost:4032`) |
+| `FACILITATOR_URL` | comma-separated facilitator URLs (defaults `http://localhost:4022,http://localhost:4032`) |
 | `SERVER_PORT` | defaults to `4061` |

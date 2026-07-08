@@ -7,10 +7,10 @@
  * is keyless: it advertises `accepts` and delegates verify/settle to facilitators
  * over HTTP, routing each payment by `(network, scheme)`.
  *
- * Two facilitators are wired:
- * - basic  (:4022)  — settles `exact` (EVM + TRON permit2).
- * - gasfree (:4032) — settles `exact_gasfree` (TRON relayer).
- * The resource server fetches `/supported` from each and dispatches accordingly.
+ * One or more facilitators are wired via `FACILITATOR_URL` (comma-separated).
+ * Typically two: basic (:4022, settles `exact`) and gasfree (:4032, settles
+ * `exact_gasfree`). The resource server fetches `/supported` from each and
+ * dispatches accordingly.
  */
 import express from "express";
 import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
@@ -27,10 +27,14 @@ import { ResourceStrippingFacilitatorClient } from "./resourceStrippingFacilitat
 // Dedicated env vars (set in .env-multi-scheme) so this scenario keeps its own
 // :4061, independent of the other scenarios.
 const PORT = parseInt(process.env.SERVER_PORT || "4061", 10);
-// Two facilitators: basic settles `exact`, gasfree settles `exact_gasfree`.
-const EXACT_FACILITATOR_URL =
-  process.env.EXACT_FACILITATOR_URL || process.env.FACILITATOR_URL || "http://localhost:4022";
-const GASFREE_FACILITATOR_URL = process.env.GASFREE_FACILITATOR_URL || "http://localhost:4032";
+// Comma-separated facilitator URLs. Order matters only on overlap: earlier
+// facilitators win a `(network, scheme)` slot. `exact` and `exact_gasfree` are
+// distinct schemes, so there is no clash — basic handles `exact`, gasfree handles
+// `exact_gasfree`.
+const FACILITATOR_URLS = (process.env.FACILITATOR_URL || "http://localhost:4022,http://localhost:4032")
+  .split(",")
+  .map(url => url.trim())
+  .filter(Boolean);
 // Opt-in: drop `paymentPayload.resource` (a localhost URL when running locally)
 // before verify/settle, to dodge edge WAFs that flag it as SSRF. See
 // resourceStrippingFacilitator.ts. Off by default — wire payload stays untouched.
@@ -59,10 +63,7 @@ function wrap(client: HTTPFacilitatorClient): HTTPFacilitatorClient | ResourceSt
   return STRIP_RESOURCE_URL ? new ResourceStrippingFacilitatorClient(client) : client;
 }
 
-// Order matters only on overlap: earlier facilitators win a `(network, scheme)`
-// slot. `exact` and `exact_gasfree` are distinct schemes, so there is no clash —
-// basic handles `exact`, gasfree handles `exact_gasfree`.
-const facilitatorClients = [wrap(makeFacilitator(EXACT_FACILITATOR_URL)), wrap(makeFacilitator(GASFREE_FACILITATOR_URL))];
+const facilitatorClients = FACILITATOR_URLS.map(url => wrap(makeFacilitator(url)));
 // createResourceServer pre-attaches verify/settle logging (see express example).
 const resourceServer = createResourceServer(facilitatorClients);
 
@@ -103,6 +104,6 @@ app.get("/weather", (_req, res) => {
 
 app.listen(PORT, () => {
   console.log(
-    `🌤️  Multi-scheme resource server on http://localhost:${PORT}  (evm=${hasEvm()}, tron=${hasTron()}) → exact ${EXACT_FACILITATOR_URL}, gasfree ${GASFREE_FACILITATOR_URL}${STRIP_RESOURCE_URL ? " [resource.url stripped]" : ""}${FACILITATOR_API_KEY ? " [api key]" : ""}`,
+    `🌤️  Multi-scheme resource server on http://localhost:${PORT}  (evm=${hasEvm()}, tron=${hasTron()}) → facilitators ${FACILITATOR_URLS.join(", ")}${STRIP_RESOURCE_URL ? " [resource.url stripped]" : ""}${FACILITATOR_API_KEY ? " [api key]" : ""}`,
   );
 });
