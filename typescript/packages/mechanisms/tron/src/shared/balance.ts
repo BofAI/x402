@@ -1,6 +1,6 @@
 import type { PaymentRequirements } from "@bankofai/x402-core/types";
-import { readFeeFromExtra } from "./fee";
 import { CheapestTokenSelectionStrategy, type TokenSelectionStrategy } from "./tokenSelection";
+import { readFeeFromExtra } from "./fee";
 
 /**
  * Balance-aware payment selection for TRON.
@@ -23,10 +23,12 @@ export interface BalanceCheckable {
 }
 
 /**
- * Filter out requirements the payer cannot afford (amount + fee).
+ * Filter out requirements the payer cannot afford.
  *
  * Requirements whose balance cannot be determined are kept, deferring the
- * decision to createPaymentPayload. Fee is read from `extra.fee` when present.
+ * decision to createPaymentPayload. Only `exact_gasfree` adds its enforced
+ * relayer fee to the required amount; `exact` and `upto` proxies transfer
+ * exactly `amount` and carry no fee, so stale `extra.fee` metadata is ignored.
  *
  * @param scheme - A client scheme exposing checkBalance.
  * @param accepts - The candidate payment requirements.
@@ -47,9 +49,11 @@ export async function filterAffordableRequirements(
       continue;
     }
     let needed = BigInt(req.amount);
-    const fee = readFeeFromExtra(req.extra);
-    if (fee) {
-      needed += BigInt(fee.feeAmount);
+    if (req.scheme === "exact_gasfree") {
+      const fee = readFeeFromExtra(req.extra);
+      if (fee) {
+        needed += BigInt(fee.feeAmount);
+      }
     }
     if (balance >= needed) {
       affordable.push(req);

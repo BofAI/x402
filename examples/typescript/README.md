@@ -142,7 +142,6 @@ All verified on-chain; sources: the official
 |---|---|---|---|---|
 | `eip155:56` (BSC) | USDC | `0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d` | 18 | permit2 |
 | `eip155:56` (BSC) | USDT | `0x55d398326f99059fF775485246999027B3197955` | 18 | permit2 |
-| `eip155:56` (BSC) | EPS | `0xA7f552078dcC247C2684336020c03648500C6d9F` | 18 | permit2 |
 | `tron:0x2b6653dc` | USDT | `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t` | 6 | permit2 |
 | `tron:0x2b6653dc` | USDD | `TXDk8mbtRbXeYuMNS83CfKPaYYT8XWv9Hz` | 18 | permit2 |
 

@@ -49,6 +49,13 @@ export interface ExactTronFeeConfig {
 }
 
 /**
+ * Alias reflecting the current semantics: this config drives the enforced
+ * relayer fee on `exact_gasfree` only. `ExactTronFeeConfig` is retained for
+ * backward compatibility.
+ */
+export type GasFreeTronFeeConfig = ExactTronFeeConfig;
+
+/**
  * Resolve the configured base fee for an asset on a network.
  *
  * @param config - The facilitator fee configuration.

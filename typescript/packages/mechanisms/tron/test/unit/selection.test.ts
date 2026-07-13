@@ -25,13 +25,24 @@ function req(
   extra: Record<string, unknown> = {},
 ): PaymentRequirements {
   return {
-    scheme: "exact",
+    scheme: "exact" as string,
     network: NETWORK,
     asset,
     amount,
     payTo: "TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC",
     maxTimeoutSeconds: 60,
     extra,
+  } as unknown as PaymentRequirements;
+}
+
+function gasfreeReq(
+  asset: string,
+  amount: string,
+  extra: Record<string, unknown> = {},
+): PaymentRequirements {
+  return {
+    ...req(asset, amount, extra),
+    scheme: "exact_gasfree",
   } as unknown as PaymentRequirements;
 }
 
@@ -62,24 +73,43 @@ describe("createCheapestTokenSelector", () => {
 });
 
 describe("filterAffordableRequirements", () => {
-  it("keeps only options the payer can afford (incl. fee)", async () => {
+  it("ignores stale extra.fee for exact scheme — only amount matters", async () => {
     const scheme: BalanceCheckable = {
       checkBalance: vi.fn(async (asset: string) => (asset === USDT ? 1_500_000n : 0n)),
     };
     const accepts = [
-      req(USDT, "1000000", { fee: { feeTo: "T", feeAmount: "100000" } }), // need 1.1 USDT, have 1.5 → ok
+      req(USDT, "1000000", { fee: { feeTo: "T", feeAmount: "100000" } }), // stale fee ignored; need 1.0, have 1.5 → ok
       req(USDD, "1000000000000000000"), // have 0 → out
     ];
     const out = await filterAffordableRequirements(scheme, accepts);
     expect(out.map(r => r.asset)).toEqual([USDT]);
   });
 
-  it("excludes when balance is below amount + fee", async () => {
+  it("keeps an exact option when balance covers amount but not stale fee", async () => {
     const scheme: BalanceCheckable = { checkBalance: vi.fn(async () => 1_050_000n) };
     const out = await filterAffordableRequirements(scheme, [
       req(USDT, "1000000", { fee: { feeTo: "T", feeAmount: "100000" } }), // need 1.1, have 1.05
     ]);
+    // exact ignores the stale fee: 1.05 >= 1.0 → affordable
+    expect(out.map(r => r.asset)).toEqual([USDT]);
+  });
+
+  it("includes fee for exact_gasfree — enforced relayer fee", async () => {
+    const scheme: BalanceCheckable = { checkBalance: vi.fn(async () => 1_050_000n) };
+    // GasFree enforces fee: need 1.1, have 1.05 → excluded
+    const out = await filterAffordableRequirements(scheme, [
+      gasfreeReq(USDT, "1000000", { fee: { feeTo: "T", feeAmount: "100000" } }),
+    ]);
     expect(out).toEqual([]);
+  });
+
+  it("keeps exact_gasfree when balance covers amount + fee", async () => {
+    const scheme: BalanceCheckable = { checkBalance: vi.fn(async () => 1_200_000n) };
+    // GasFree: need 1.1, have 1.2 → ok
+    const out = await filterAffordableRequirements(scheme, [
+      gasfreeReq(USDT, "1000000", { fee: { feeTo: "T", feeAmount: "100000" } }),
+    ]);
+    expect(out.map(r => r.asset)).toEqual([USDT]);
   });
 
   it("keeps a requirement when checkBalance throws", async () => {
