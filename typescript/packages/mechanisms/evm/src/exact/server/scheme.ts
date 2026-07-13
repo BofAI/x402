@@ -6,7 +6,11 @@ import {
   SchemeNetworkServer,
   MoneyParser,
 } from "@bankofai/x402-core/types";
-import { convertToTokenAmount, numberToDecimalString, parseMoneyString } from "@bankofai/x402-core/utils";
+import {
+  convertToTokenAmount,
+  numberToDecimalString,
+  parseMoneyString,
+} from "@bankofai/x402-core/utils";
 import { getDefaultAsset, type ExactDefaultAssetInfo } from "../../shared/defaultAssets";
 
 /**
