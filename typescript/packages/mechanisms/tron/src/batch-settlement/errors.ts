@@ -34,6 +34,7 @@ export const ErrReceiverAuthorizerMismatch =
 export const ErrWithdrawDelayMismatch = "invalid_batch_settlement_tron_withdraw_delay_mismatch";
 export const ErrAuthorizerAddressMismatch =
   "invalid_batch_settlement_tron_authorizer_address_mismatch";
+export const ErrAuthorizerNotConfigured = "invalid_batch_settlement_tron_authorizer_not_configured";
 export const ErrDepositSimulationFailed = "invalid_batch_settlement_tron_deposit_simulation_failed";
 export const ErrClaimSimulationFailed = "invalid_batch_settlement_tron_claim_simulation_failed";
 export const ErrSettleSimulationFailed = "invalid_batch_settlement_tron_settle_simulation_failed";

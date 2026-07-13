@@ -37,23 +37,28 @@ export class BatchSettlementTronScheme implements SchemeNetworkFacilitator {
   /**
    * Creates a facilitator scheme for verifying and settling batch-settlement payments.
    *
-   * @param signer - Facilitator TRON signer used for tx submission and onchain reads.
-   * @param authorizerSigner - Dedicated key that provides TIP-712 signatures for
-   *   `claimWithSignature` / `refundWithSignature` when the server omits them.
+  * @param signer - Facilitator TRON signer used for tx submission and onchain reads.
+   * @param authorizerSigner - Optional dedicated key that provides TIP-712 signatures for
+   *   `claimWithSignature` / `refundWithSignature` when the server omits them. When omitted,
+   *   no `receiverAuthorizer` is advertised and servers must supply their own signatures.
    */
   constructor(
     private readonly signer: FacilitatorTronSigner,
-    private readonly authorizerSigner: TronAuthorizerSigner,
+    private readonly authorizerSigner?: TronAuthorizerSigner,
   ) {}
 
   /**
    * Returns facilitator-specific extra fields to be merged into payment requirements.
+   * Returns `undefined` when no authorizer signer is configured.
    *
    * @param _ - Network identifier (unused).
-   * @returns Extra fields containing `receiverAuthorizer`.
+   * @returns Extra fields containing `receiverAuthorizer`, or `undefined`.
    */
   getExtra(_: string): { receiverAuthorizer: string } | undefined {
     void _;
+    if (!this.authorizerSigner) {
+      return undefined;
+    }
     return { receiverAuthorizer: this.authorizerSigner.address };
   }
 

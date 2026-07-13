@@ -46,7 +46,7 @@ export class ExactEvmSchemeV1 implements SchemeNetworkClient {
       from: this.signer.address,
       to: getAddress(selectedV1.payTo),
       value: selectedV1.maxAmountRequired,
-      validAfter: (now - 600).toString(), // 10 minutes before
+      validAfter: "0",
       validBefore: (now + selectedV1.maxTimeoutSeconds).toString(),
       nonce,
     };

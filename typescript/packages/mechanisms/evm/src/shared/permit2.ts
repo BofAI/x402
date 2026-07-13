@@ -632,7 +632,7 @@ export async function createPermit2PayloadForProxy(
   const nonce = createPermit2Nonce();
 
   // Lower time bound - allow some clock skew
-  const validAfter = (now - 600).toString();
+  const validAfter = "0";
   // Upper time bound is enforced by Permit2's deadline field
   const deadline = (now + paymentRequirements.maxTimeoutSeconds).toString();
 

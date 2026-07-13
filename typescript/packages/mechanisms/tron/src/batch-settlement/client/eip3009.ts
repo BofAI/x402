@@ -47,7 +47,7 @@ export async function createBatchSettlementEIP3009DepositPayload(
   const erc3009Nonce = buildErc3009DepositNonce(channelId, salt);
 
   const collector = getErc3009DepositCollectorAddress(paymentRequirements.network);
-  const validAfter = (now - 600).toString();
+  const validAfter = "0";
   const validBefore = (now + paymentRequirements.maxTimeoutSeconds).toString();
 
   const signature = await signer.signTypedData({

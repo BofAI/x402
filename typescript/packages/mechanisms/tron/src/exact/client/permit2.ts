@@ -38,7 +38,7 @@ export async function createPermit2Payload(
     throw new Error(`No x402Permit2Proxy contract address configured for network ${network}`);
   }
 
-  const validAfter = (now - 600).toString();
+  const validAfter = "0";
   const deadline = (now + paymentRequirements.maxTimeoutSeconds).toString();
 
   const fromAddress = normalizeAddressForSigning(signer.address);

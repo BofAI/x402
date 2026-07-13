@@ -50,7 +50,7 @@ export async function createUptoPermit2Payload(
     );
   }
 
-  const validAfter = (now - 600).toString();
+  const validAfter = "0";
   const deadline = (now + paymentRequirements.maxTimeoutSeconds).toString();
 
   if (BigInt(deadline) <= BigInt(validAfter)) {

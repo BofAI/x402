@@ -5,14 +5,18 @@ import {
   VerifyResponse,
   SettleResponse,
 } from "@bankofai/x402-core/types";
-import { getAddress } from "viem";
+import { getAddress, encodeFunctionData } from "viem";
+import { parseErc6492Signature, isAddressEqual } from "viem";
 import { FacilitatorEvmSigner } from "../../signer";
+import { verifyTypedDataSignature } from "../../shared/verifySignature";
+import type { Erc3009CounterfactualDeployment } from "./deposit-eip3009";
 import type { TransactionRequest } from "../../exact/extensions";
 import { BatchSettlementAssetTransferMethod, BatchSettlementDepositPayload } from "../types";
 import { batchSettlementABI, erc20BalanceOfABI } from "../abi";
 import { BATCH_SETTLEMENT_ADDRESS } from "../constants";
 import { getEvmChainId } from "../../utils";
 import { multicall } from "../../multicall";
+import { isContractRevert } from "../../shared/revert";
 import * as Errors from "../errors";
 import {
   readChannelState,
@@ -56,6 +60,7 @@ export async function verifyDeposit(
   payload: BatchSettlementDepositPayload,
   requirements: PaymentRequirements,
   context?: FacilitatorContext,
+  allowedFactories: string[] = [],
 ): Promise<VerifyResponse> {
   const payer = payload.channelConfig.payer;
   const chainId = getEvmChainId(requirements.network);
@@ -73,20 +78,34 @@ export async function verifyDeposit(
     return { isValid: false, invalidReason: Errors.ErrInvalidPayloadType, payer };
   }
 
-  const methodErr =
-    transferMethod === "permit2"
-      ? await verifyPermit2DepositAuthorization(
-          signer,
-          payment,
-          payload,
-          requirements,
-          chainId,
-          context,
-        )
-      : await verifyEip3009DepositAuthorization(signer, payload, requirements, chainId);
-
-  if (methodErr) {
-    return methodErr;
+  // erc3009Counterfactual is non-null when the ERC-3009 deposit is from an undeployed
+  // ERC-6492 wallet with an allowlisted factory; its inner signature is validated by the
+  // deploy+deposit simulation below rather than a direct (no-code) signature check.
+  let erc3009Counterfactual: Erc3009CounterfactualDeployment | null = null;
+  if (transferMethod === "permit2") {
+    const methodErr = await verifyPermit2DepositAuthorization(
+      signer,
+      payment,
+      payload,
+      requirements,
+      chainId,
+      context,
+    );
+    if (methodErr) {
+      return methodErr;
+    }
+  } else {
+    const result = await verifyEip3009DepositAuthorization(
+      signer,
+      payload,
+      requirements,
+      chainId,
+      allowedFactories,
+    );
+    if (result.response) {
+      return result.response;
+    }
+    erc3009Counterfactual = result.counterfactual;
   }
 
   const shared = await verifySharedDepositState(signer, payload, requirements);
@@ -101,7 +120,22 @@ export async function verifyDeposit(
     return execution;
   }
 
-  if (!execution.skipDirectSimulation) {
+  if (erc3009Counterfactual) {
+    // Counterfactual ERC-6492 wallet: the payer has no code yet, so a plain deposit()
+    // eth_call would revert (no code → isValidSignature reverts). Simulate factory-deploy +
+    // deposit atomically in one Multicall3 eth_call so the inner signature is validated
+    // against the just-deployed wallet — mirroring how settle deploys then deposits.
+    const simulationSucceeded = await simulateCounterfactualErc3009Deposit(
+      signer,
+      erc3009Counterfactual,
+      payload,
+      depositAmount,
+      execution,
+    );
+    if (!simulationSucceeded) {
+      return { isValid: false, invalidReason: Errors.ErrDepositSimulationFailed, payer };
+    }
+  } else if (!execution.skipDirectSimulation) {
     try {
       await signer.readContract({
         address: getAddress(BATCH_SETTLEMENT_ADDRESS),
@@ -293,12 +327,20 @@ export async function settleDeposit(
   requirements: PaymentRequirements,
   context?: FacilitatorContext,
   dataSuffix?: `0x${string}`,
+  allowedFactories: string[] = [],
 ): Promise<SettleResponse> {
   const { deposit, voucher } = payload;
   const config = payload.channelConfig;
   const payer = config.payer;
 
-  const verified = await verifyDeposit(signer, payment, payload, requirements, context);
+  const verified = await verifyDeposit(
+    signer,
+    payment,
+    payload,
+    requirements,
+    context,
+    allowedFactories,
+  );
   if (!verified.isValid) {
     const reason = verified.invalidReason ?? Errors.ErrInvalidPayloadType;
     return {
@@ -319,7 +361,7 @@ export async function settleDeposit(
       requirements,
       context,
     );
-    if ("isValid" in execution) {
+   if ("isValid" in execution) {
       const reason = execution.invalidReason ?? Errors.ErrInvalidPayloadType;
       return {
         success: false,
@@ -329,6 +371,19 @@ export async function settleDeposit(
         network: requirements.network,
         payer: execution.payer,
       };
+    }
+
+    // ERC-6492 counterfactual deposit: deploy the undeployed wallet (gated by the factory
+    // allowlist) before the deposit, then simulate with the inner signature to catch wallets
+    // whose validator is installed lazily.
+    const deployResult = await tryDeployCounterfactualErc3009Deposit(
+      signer,
+      payload,
+      requirements,
+      allowedFactories,
+    );
+    if (deployResult) {
+      return deployResult;
     }
 
     const depositTx = buildDepositTransaction(payload, execution.collectorData, dataSuffix);
@@ -506,4 +561,126 @@ function resolveDepositTransferMethod(
     return hinted;
   }
   return payload.deposit.authorization.permit2Authorization ? "permit2" : "eip3009";
+}
+
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
+
+/**
+ * Simulates a counterfactual ERC-6492 deposit: factory-deploy + deposit atomically in one
+ * Multicall3 eth_call so the inner signature is validated against the just-deployed wallet.
+ *
+ * @param signer - Facilitator signer for onchain reads.
+ * @param counterfactual - Factory deployment info for the undeployed wallet.
+ * @param payload - Deposit payload.
+ * @param depositAmount - Amount to deposit.
+ * @param execution - Resolved deposit execution (collector + collectorData).
+ * @returns `true` when the simulation succeeds, `false` on revert or transport failure.
+ */
+async function simulateCounterfactualErc3009Deposit(
+  signer: FacilitatorEvmSigner,
+  counterfactual: Erc3009CounterfactualDeployment,
+  payload: BatchSettlementDepositPayload,
+  depositAmount: bigint,
+  execution: { collector: `0x${string}`; collectorData: `0x${string}` },
+): Promise<boolean> {
+  try {
+    const depositCallData = encodeFunctionData({
+      abi: batchSettlementABI,
+      functionName: "deposit",
+      args: [
+        toContractChannelConfig(payload.channelConfig),
+        depositAmount,
+        execution.collector,
+        execution.collectorData,
+      ],
+    });
+    await multicall(signer.readContract.bind(signer), [
+      {
+        address: counterfactual.factory,
+        callData: counterfactual.factoryCalldata,
+      },
+      {
+        address: getAddress(BATCH_SETTLEMENT_ADDRESS),
+        callData: depositCallData,
+      },
+    ]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Deploys an undeployed ERC-6492 counterfactual smart wallet before the deposit transaction.
+ * Gated by the factory allowlist. Returns a failure response on error, or `null` when the
+ * wallet is already deployed or was successfully deployed (or has no ERC-6492 wrapper).
+ *
+ * @param signer - Facilitator signer for tx submission and onchain reads.
+ * @param payload - Deposit payload.
+ * @param requirements - Payment requirements.
+ * @param allowedFactories - Allowlisted ERC-6492 factory addresses.
+ * @returns A failure response, or `null` to proceed with the standard deposit.
+ */
+async function tryDeployCounterfactualErc3009Deposit(
+  signer: FacilitatorEvmSigner,
+  payload: BatchSettlementDepositPayload,
+  requirements: PaymentRequirements,
+  allowedFactories: string[],
+): Promise<SettleResponse | null> {
+  const config = payload.channelConfig;
+  const payer = config.payer;
+  const auth = payload.deposit.authorization.erc3009Authorization;
+  if (!auth) {
+    return null;
+  }
+
+  const { address: factory, data: factoryCalldata } = parseErc6492Signature(auth.signature);
+  const hasDeploymentInfo = !!(
+    factory &&
+    factoryCalldata &&
+    !isAddressEqual(factory, ZERO_ADDRESS)
+  );
+  if (!hasDeploymentInfo) {
+    return null;
+  }
+
+  let code: `0x${string}` | undefined;
+  try {
+    code = await signer.getCode({ address: payer });
+  } catch {
+    code = undefined;
+  }
+  if (code && code !== "0x") {
+    // Already deployed — nothing to do; proceed with the standard deposit.
+    return null;
+  }
+
+  const normalizedFactory = factory.toLowerCase();
+  if (!allowedFactories.some(a => a.trim().toLowerCase() === normalizedFactory)) {
+    return {
+      success: false,
+      errorReason: Errors.ErrFactoryNotAllowed,
+      errorMessage: "factory not in eip6492AllowedFactories allowlist",
+      transaction: "",
+      network: requirements.network,
+      payer,
+    };
+  }
+
+  const deployTx = await signer.sendTransaction({
+    to: factory,
+    data: factoryCalldata as `0x${string}`,
+  });
+  const deployReceipt = await signer.waitForTransactionReceipt({ hash: deployTx });
+  if (deployReceipt.status !== "success") {
+    return {
+      success: false,
+      errorReason: Errors.ErrSmartWalletDeploymentFailed,
+      transaction: "",
+      network: requirements.network,
+      payer,
+    };
+  }
+
+  return null;
 }

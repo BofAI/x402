@@ -5,6 +5,7 @@ import {
   SettleResponse,
   VerifyResponse,
 } from "@bankofai/x402-core/types";
+import { verifyTypedDataSignature } from "../../shared/verifySignature";
 import {
   extractEip2612GasSponsoringInfo,
   extractErc20ApprovalGasSponsoringInfo,
@@ -204,34 +205,21 @@ export async function verifyUptoPermit2(
     },
   };
 
-  // Verify signature
-  // Note: verifyTypedData is implementation-dependent and pluggable on FacilitatorEvmSigner
-  // Some implementations only do EOA-style ECDSA recovery (e.g. viem/utils verifyTypedData, ethers.verifyTypedData)
-  // Viem's publicClient.verifyTypedData supports EOA and Smart Contract Account (ERC-1271 / ERC-6492) signature verification
-  let signatureValid = false;
-  try {
-    signatureValid = await signer.verifyTypedData({
-      address: payer,
-      ...permit2TypedData,
-      signature: permit2Payload.signature,
-    });
-  } catch {
-    signatureValid = false;
-  }
+  // Verify signature using a strict primitive that mirrors Permit2's
+  // on-chain SignatureVerification: ecrecover when no code, strict EIP-1271
+  // isValidSignature when code is present. No ECDSA fallback for code addresses.
+  const signatureValid = await verifyTypedDataSignature(signer, {
+    address: payer,
+    ...permit2TypedData,
+    signature: permit2Payload.signature,
+  });
 
   if (!signatureValid) {
-    // Check if the payer is a deployed smart contract (ERC-1271 / ERC-6492)
-    const bytecode = await signer.getCode({ address: payer });
-    const isDeployedContract = bytecode && bytecode !== "0x";
-
-    if (!isDeployedContract) {
-      return {
-        isValid: false,
-        invalidReason: "invalid_permit2_signature",
-        payer,
-      };
-    }
-    // Deployed smart contract: fall through to simulation
+    return {
+      isValid: false,
+      invalidReason: "invalid_permit2_signature",
+      payer,
+    };
   }
 
   // If simulation is disabled, return early

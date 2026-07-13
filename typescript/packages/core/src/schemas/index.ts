@@ -69,11 +69,31 @@ const PRINTABLE_ASCII_REGEX = /^[\x20-\x7e]+$/;
 
 export const ResourceInfoSchema = z.object({
   url: NonEmptyString,
-  description: z.string().optional(),
-  mimeType: z.string().optional(),
-  serviceName: z.string().min(1).max(32).regex(PRINTABLE_ASCII_REGEX).optional(),
-  tags: z.array(z.string().min(1).max(32).regex(PRINTABLE_ASCII_REGEX)).max(5).optional(),
-  iconUrl: z.string().max(2048).optional(),
+  description: z
+    .string()
+    .nullish()
+    .transform(v => v ?? undefined),
+  mimeType: z
+    .string()
+    .nullish()
+    .transform(v => v ?? undefined),
+  serviceName: z
+    .string()
+    .min(1)
+    .max(32)
+    .regex(PRINTABLE_ASCII_REGEX)
+    .nullish()
+    .transform(v => v ?? undefined),
+  tags: z
+    .array(z.string().min(1).max(32).regex(PRINTABLE_ASCII_REGEX))
+    .max(5)
+    .nullish()
+    .transform(v => v ?? undefined),
+  iconUrl: z
+    .string()
+    .max(2048)
+    .nullish()
+    .transform(v => v ?? undefined),
 });
 export type ResourceInfo = z.infer<typeof ResourceInfoSchema>;
 
@@ -148,7 +168,10 @@ export type PaymentRequirementsV2 = z.infer<typeof PaymentRequirementsV2Schema>;
  */
 export const PaymentRequiredV2Schema = z.object({
   x402Version: z.literal(2),
-  error: z.string().optional(),
+  error: z
+    .string()
+    .nullish()
+    .transform(v => v ?? undefined),
   resource: ResourceInfoSchema,
   accepts: z.array(PaymentRequirementsV2Schema).min(1),
   extensions: OptionalAny,
@@ -161,7 +184,7 @@ export type PaymentRequiredV2 = z.infer<typeof PaymentRequiredV2Schema>;
  */
 export const PaymentPayloadV2Schema = z.object({
   x402Version: z.literal(2),
-  resource: ResourceInfoSchema.optional(),
+  resource: ResourceInfoSchema.nullish().transform(v => v ?? undefined),
   accepted: PaymentRequirementsV2Schema,
   payload: Any,
   extensions: OptionalAny,

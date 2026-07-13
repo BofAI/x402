@@ -233,7 +233,24 @@ export interface SchemeNetworkServer {
    */
   enhancePaymentRequirements(
     paymentRequirements: PaymentRequirements,
+   supportedKind: SupportedKind,
+   facilitatorExtensions: string[],
+ ): Promise<PaymentRequirements>;
+
+  /**
+   * Optional: validate that the facilitator's advertised capabilities for this
+   * scheme/network are sufficient given the scheme's own configuration. Invoked
+   * during initialize(), only when the facilitator supports the scheme.
+   *
+   * @param network - The network identifier being validated
+   * @param supportedKind - The facilitator's advertised kind for this scheme/network
+   * @param facilitatorExtensions - Extensions advertised by the facilitator
+   * @returns A human-readable problem message when the configuration cannot be
+   *   fulfilled, or void/undefined when valid.
+   */
+  validateFacilitatorSupport?(
+    network: Network,
     supportedKind: SupportedKind,
     facilitatorExtensions: string[],
-  ): Promise<PaymentRequirements>;
+  ): string | void;
 }

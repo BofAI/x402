@@ -104,14 +104,15 @@ function buildRefundExtra(
  * @param signer - Facilitator signer used to submit the onchain transaction.
  * @param payload - Refund payload with optional signatures, amount, and nonce.
  * @param requirements - Payment requirements for network identification.
- * @param authorizerSigner - Dedicated key for producing TIP-712 signatures.
- * @returns A {@link SettleResponse} with the transaction hash on success.
- */
+* @param authorizerSigner - Dedicated key for producing TIP-712 signatures.
+ *   When omitted, the payload must already carry the required authorizer signatures.
+* @returns A {@link SettleResponse} with the transaction hash on success.
+*/
 export async function executeRefundWithSignature(
   signer: FacilitatorTronSigner,
   payload: BatchSettlementEnrichedRefundPayload,
   requirements: PaymentRequirements,
-  authorizerSigner: TronAuthorizerSigner,
+  authorizerSigner: TronAuthorizerSigner | undefined,
 ): Promise<SettleResponse> {
   const network = requirements.network;
   const address = getBatchSettlementAddress(network);
@@ -132,9 +133,20 @@ export async function executeRefundWithSignature(
     }
 
     const hasClientSig = payload.refundAuthorizerSignature !== undefined;
-    const authorizerMismatch =
-      normalizeAddressForSigning(payload.channelConfig.receiverAuthorizer) !==
-      normalizeAddressForSigning(authorizerSigner.address);
+    const authorizerMismatch = authorizerSigner
+      ? normalizeAddressForSigning(payload.channelConfig.receiverAuthorizer) !==
+        normalizeAddressForSigning(authorizerSigner.address)
+      : false;
+
+    if (!hasClientSig && !authorizerSigner) {
+      return {
+        success: false,
+        errorReason: Errors.ErrAuthorizerNotConfigured,
+        transaction: "",
+        network,
+      };
+    }
+
     if (!hasClientSig && authorizerMismatch) {
       return {
         success: false,
@@ -146,7 +158,9 @@ export async function executeRefundWithSignature(
 
     const refundSig =
       payload.refundAuthorizerSignature ??
-      (await signRefund(authorizerSigner, channelId, payload.amount, payload.refundNonce, network));
+      (authorizerSigner
+        ? await signRefund(authorizerSigner, channelId, payload.amount, payload.refundNonce, network)
+        : undefined);
 
     const contractConfig = toContractChannelConfig(payload.channelConfig);
     const refundArgs = [
@@ -160,7 +174,17 @@ export async function executeRefundWithSignature(
     if (payload.claims.length > 0) {
       const claimSig =
         payload.claimAuthorizerSignature ??
-        (await signClaimBatch(authorizerSigner, payload.claims, network));
+        (authorizerSigner
+          ? await signClaimBatch(authorizerSigner, payload.claims, network)
+          : undefined);
+      if (!claimSig) {
+        return {
+          success: false,
+          errorReason: Errors.ErrAuthorizerNotConfigured,
+          transaction: "",
+          network,
+        };
+      }
 
       const claimCalldata = encodeFunctionData(abi, "claimWithSignature", [
         buildVoucherClaimArgs(payload.claims),

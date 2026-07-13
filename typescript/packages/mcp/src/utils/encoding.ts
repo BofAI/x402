@@ -1,4 +1,5 @@
 import type { PaymentPayload, PaymentRequired, SettleResponse } from "@bankofai/x402-core/types";
+import { parsePaymentRequired } from "@bankofai/x402-core/schemas";
 import {
   MCP_PAYMENT_META_KEY,
   MCP_PAYMENT_REQUIRED_CODE,
@@ -214,7 +215,9 @@ export function extractPaymentRequiredFromError(error: unknown): PaymentRequired
     return null;
   }
 
-  return data;
+  // parsePaymentRequired yields the schema (V1 | V2) union; cast to the transport PaymentRequired type
+  const result = parsePaymentRequired(data);
+  return result.success ? (result.data as PaymentRequired) : null;
 }
 
 /**

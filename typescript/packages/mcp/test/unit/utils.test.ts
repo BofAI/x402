@@ -49,7 +49,7 @@ const mockPaymentRequired: PaymentRequired = {
       amount: "1000",
       asset: "0xtoken",
       payTo: "0xrecipient",
-      maxAmountRequired: "1000",
+      maxTimeoutSeconds: 60,
       extra: {},
     },
   ],
