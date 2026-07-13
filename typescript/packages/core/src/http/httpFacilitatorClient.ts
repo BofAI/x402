@@ -80,8 +80,8 @@ export function computeRetryDelay(retryAfter: string | null, attempt: number): n
   let delay: number | null = null;
 
   if (retryAfter !== null) {
-   const trimmedRetryAfter = retryAfter.trim();
-   if (/^\d+$/.test(trimmedRetryAfter)) {
+    const trimmedRetryAfter = retryAfter.trim();
+    if (/^\d+$/.test(trimmedRetryAfter)) {
       // delta-seconds form
       delay = Number(trimmedRetryAfter) * 1000;
     } else {

@@ -313,8 +313,8 @@ describe("x402ResourceServer", () => {
 
       // Mappings should be re-built
       expect(mockClient1.getSupportedCalls).toBe(2);
-   });
- });
+    });
+  });
 
   describe("initialize - validateFacilitatorSupport", () => {
     class ValidatingScheme extends MockSchemeNetworkServer {

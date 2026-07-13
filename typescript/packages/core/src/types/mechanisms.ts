@@ -233,9 +233,9 @@ export interface SchemeNetworkServer {
    */
   enhancePaymentRequirements(
     paymentRequirements: PaymentRequirements,
-   supportedKind: SupportedKind,
-   facilitatorExtensions: string[],
- ): Promise<PaymentRequirements>;
+    supportedKind: SupportedKind,
+    facilitatorExtensions: string[],
+  ): Promise<PaymentRequirements>;
 
   /**
    * Optional: validate that the facilitator's advertised capabilities for this

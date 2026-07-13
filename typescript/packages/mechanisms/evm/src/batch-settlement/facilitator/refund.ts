@@ -187,11 +187,11 @@ function buildRefundExtraFromPostState(
  * @param signer - Facilitator signer used to submit the onchain transactions.
  * @param payload - Refund payload with optional signatures, amount, and nonce.
  * @param requirements - Payment requirements for network identification.
-* @param authorizerSigner - Dedicated key for producing EIP-712 signatures.
+ * @param authorizerSigner - Dedicated key for producing EIP-712 signatures.
  *   When omitted, the payload must already carry the required authorizer signatures.
-* @param dataSuffix - Optional hex suffix appended to the refund transaction.
-* @returns A {@link SettleResponse} with the transaction hash on success.
-*/
+ * @param dataSuffix - Optional hex suffix appended to the refund transaction.
+ * @returns A {@link SettleResponse} with the transaction hash on success.
+ */
 export async function executeRefundWithSignature(
   signer: FacilitatorEvmSigner,
   payload: BatchSettlementEnrichedRefundPayload,
@@ -219,7 +219,8 @@ export async function executeRefundWithSignature(
 
     const hasClientSig = payload.refundAuthorizerSignature !== undefined;
     const authorizerMismatch = authorizerSigner
-      ? getAddress(payload.channelConfig.receiverAuthorizer) !== getAddress(authorizerSigner.address)
+      ? getAddress(payload.channelConfig.receiverAuthorizer) !==
+        getAddress(authorizerSigner.address)
       : false;
 
     if (!hasClientSig && !authorizerSigner) {
@@ -243,7 +244,13 @@ export async function executeRefundWithSignature(
     const refundSig =
       payload.refundAuthorizerSignature ??
       (authorizerSigner
-        ? await signRefund(authorizerSigner, channelId, payload.amount, payload.refundNonce, network)
+        ? await signRefund(
+            authorizerSigner,
+            channelId,
+            payload.amount,
+            payload.refundNonce,
+            network,
+          )
         : undefined);
 
     const refundCalldata = encodeFunctionData({

@@ -618,13 +618,13 @@ export class x402ResourceServer {
               cause: lastError,
             },
           )
-       : new Error(
-           "Failed to initialize: no supported payment kinds loaded from any facilitator.",
-         );
-   }
+        : new Error(
+            "Failed to initialize: no supported payment kinds loaded from any facilitator.",
+          );
+    }
 
     this.validateFacilitatorCapabilities();
- }
+  }
 
   /**
    * Get supported kind for a specific version, network, and scheme
@@ -1338,8 +1338,8 @@ export class x402ResourceServer {
         throw new Error(
           `Unsupported x402 version: ${(paymentPayload as PaymentPayload).x402Version}`,
         );
-   }
- }
+    }
+  }
 
   /**
    * Validates that each registered scheme's configuration is compatible with the

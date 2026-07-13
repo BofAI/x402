@@ -37,10 +37,10 @@ export function buildVoucherClaimArgs(claims: BatchSettlementClaimPayload["claim
  * @param signer - Facilitator signer used to submit the claim transaction.
  * @param payload - Claim payload containing voucher claims and optional authorizer signature.
  * @param requirements - Payment requirements for network identification.
-* @param authorizerSigner - Dedicated key for producing `ClaimBatch` TIP-712 signatures.
+ * @param authorizerSigner - Dedicated key for producing `ClaimBatch` TIP-712 signatures.
  *   When omitted, the payload must already carry a `claimAuthorizerSignature`.
-* @returns A {@link SettleResponse} with the transaction hash on success.
-*/
+ * @returns A {@link SettleResponse} with the transaction hash on success.
+ */
 export async function executeClaimWithSignature(
   signer: FacilitatorTronSigner,
   payload: BatchSettlementClaimPayload,

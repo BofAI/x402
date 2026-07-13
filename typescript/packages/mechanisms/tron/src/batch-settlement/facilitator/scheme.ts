@@ -37,7 +37,7 @@ export class BatchSettlementTronScheme implements SchemeNetworkFacilitator {
   /**
    * Creates a facilitator scheme for verifying and settling batch-settlement payments.
    *
-  * @param signer - Facilitator TRON signer used for tx submission and onchain reads.
+   * @param signer - Facilitator TRON signer used for tx submission and onchain reads.
    * @param authorizerSigner - Optional dedicated key that provides TIP-712 signatures for
    *   `claimWithSignature` / `refundWithSignature` when the server omits them. When omitted,
    *   no `receiverAuthorizer` is advertised and servers must supply their own signatures.

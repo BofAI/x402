@@ -26,8 +26,8 @@ export type Erc3009CounterfactualDeployment = {
  * - both null: a deployed wallet / plain EOA signature is valid.
  */
 export type Erc3009DepositVerifyResult = {
- response: VerifyResponse | null;
- counterfactual: Erc3009CounterfactualDeployment | null;
+  response: VerifyResponse | null;
+  counterfactual: Erc3009CounterfactualDeployment | null;
 };
 
 /**
@@ -60,10 +60,10 @@ export function buildEip3009DepositCollectorData(
 /**
  * Verifies the ERC-3009 authorization fields and typed-data signature.
  *
-* @param signer - Facilitator signer for typed-data verification.
-* @param payload - Deposit payload to verify.
-* @param requirements - Payment requirements containing token domain metadata.
-* @param chainId - EVM chain id.
+ * @param signer - Facilitator signer for typed-data verification.
+ * @param payload - Deposit payload to verify.
+ * @param requirements - Payment requirements containing token domain metadata.
+ * @param chainId - EVM chain id.
  * @param allowedFactories - Allowlisted ERC-6492 factory addresses for counterfactual deposits.
  * @returns The verification result (rejection, valid, or counterfactual-deferred).
  */
@@ -79,19 +79,28 @@ export async function verifyEip3009DepositAuthorization(
   const auth = deposit.authorization.erc3009Authorization;
 
   if (!auth) {
-    return { response: { isValid: false, invalidReason: Errors.ErrErc3009AuthorizationRequired, payer }, counterfactual: null };
+    return {
+      response: { isValid: false, invalidReason: Errors.ErrErc3009AuthorizationRequired, payer },
+      counterfactual: null,
+    };
   }
 
   const extra = requirements.extra as { name?: string; version?: string } | undefined;
   if (!extra?.name || !extra?.version) {
-    return { response: { isValid: false, invalidReason: Errors.ErrMissingEip712Domain, payer }, counterfactual: null };
+    return {
+      response: { isValid: false, invalidReason: Errors.ErrMissingEip712Domain, payer },
+      counterfactual: null,
+    };
   }
 
   const validAfter = BigInt(auth.validAfter);
   const validBefore = BigInt(auth.validBefore);
   const timeInvalid = erc3009AuthorizationTimeInvalidReason(validAfter, validBefore);
   if (timeInvalid) {
-    return { response: { isValid: false, invalidReason: timeInvalid, payer }, counterfactual: null };
+    return {
+      response: { isValid: false, invalidReason: timeInvalid, payer },
+      counterfactual: null,
+    };
   }
 
   // Parse the ERC-6492 wrapper (a no-op for unwrapped signatures, which return the signature
@@ -120,7 +129,10 @@ export async function verifyEip3009DepositAuthorization(
       const normalizedFactory = factory.toLowerCase();
       const isAllowed = allowedFactories.some(a => a.trim().toLowerCase() === normalizedFactory);
       if (!isAllowed) {
-        return { response: { isValid: false, invalidReason: Errors.ErrFactoryNotAllowed, payer }, counterfactual: null };
+        return {
+          response: { isValid: false, invalidReason: Errors.ErrFactoryNotAllowed, payer },
+          counterfactual: null,
+        };
       }
       // Counterfactual + allowlisted: defer signature validation to the deploy+deposit
       // simulation performed by the caller.
@@ -147,7 +159,14 @@ export async function verifyEip3009DepositAuthorization(
   });
 
   if (!receiveAuthOk) {
-    return { response: { isValid: false, invalidReason: Errors.ErrInvalidReceiveAuthorizationSignature, payer }, counterfactual: null };
+    return {
+      response: {
+        isValid: false,
+        invalidReason: Errors.ErrInvalidReceiveAuthorizationSignature,
+        payer,
+      },
+      counterfactual: null,
+    };
   }
 
   return { response: null, counterfactual: null };

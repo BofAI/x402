@@ -29,8 +29,8 @@ import * as Errors from "../errors";
  * Facilitator-side implementation of the `batch-settlement` scheme for EVM networks.
  *
  * Routes incoming verify/settle requests to the appropriate handler based on payload
-* type (deposit, voucher, claim, settle, refund).
-*/
+ * type (deposit, voucher, claim, settle, refund).
+ */
 export interface BatchSettlementEvmSchemeConfig {
   /**
    * Allowlist of factory contract addresses (hex strings, case-insensitive) the facilitator
@@ -52,7 +52,7 @@ export class BatchSettlementEvmScheme implements SchemeNetworkFacilitator {
   /**
    * Creates a facilitator scheme for verifying and settling batch-settlement payments.
    *
-  * @param signer - Facilitator EVM signer(s) used for tx submission and onchain reads.
+   * @param signer - Facilitator EVM signer(s) used for tx submission and onchain reads.
    * @param authorizerSigner - Optional dedicated key that provides EIP-712 signatures for
    *   `claimWithSignature` / `refundWithSignature`. When provided, the facilitator advertises
    *   its address as `receiverAuthorizer` in `/supported` and signs missing authorizer
@@ -60,8 +60,8 @@ export class BatchSettlementEvmScheme implements SchemeNetworkFacilitator {
    *   `receiverAuthorizer` for servers to delegate to must authenticate refund requests (see the
    *   spec); when no such mechanism exists, omit this signer so no `receiverAuthorizer` is
    *   advertised and servers supply their own signatures.
-  * @param config - Optional configuration (e.g. ERC-6492 factory allowlist).
-  */
+   * @param config - Optional configuration (e.g. ERC-6492 factory allowlist).
+   */
   constructor(
     private readonly signer: FacilitatorEvmSigner,
     private readonly authorizerSigner?: AuthorizerSigner,
@@ -73,15 +73,15 @@ export class BatchSettlementEvmScheme implements SchemeNetworkFacilitator {
   }
 
   /**
-  * Returns facilitator-specific extra fields to be merged into payment requirements.
-  *
-  * Exposes the configured `receiverAuthorizer` address so the server and client can
+   * Returns facilitator-specific extra fields to be merged into payment requirements.
+   *
+   * Exposes the configured `receiverAuthorizer` address so the server and client can
    * embed it in `ChannelConfig`. Returns `undefined` when no authorizer signer is
    * configured, signalling that servers must supply their own authorizer signatures.
-  *
-  * @param _ - Network identifier (unused).
+   *
+   * @param _ - Network identifier (unused).
    * @returns Extra fields containing `receiverAuthorizer`, or `undefined`.
-  */
+   */
   getExtra(_: string): { receiverAuthorizer: `0x${string}` } | undefined {
     if (!this.authorizerSigner) {
       return undefined;
@@ -127,7 +127,7 @@ export class BatchSettlementEvmScheme implements SchemeNetworkFacilitator {
       return { isValid: false, invalidReason: Errors.ErrNetworkMismatch };
     }
 
-   if (isBatchSettlementDepositPayload(rawPayload)) {
+    if (isBatchSettlementDepositPayload(rawPayload)) {
       return verifyDeposit(
         this.signer,
         payload,
@@ -136,7 +136,7 @@ export class BatchSettlementEvmScheme implements SchemeNetworkFacilitator {
         context,
         this.config.eip6492AllowedFactories,
       );
-   }
+    }
 
     if (isBatchSettlementVoucherPayload(rawPayload)) {
       return verifyVoucher(this.signer, rawPayload, requirements, rawPayload.channelConfig);
@@ -175,7 +175,7 @@ export class BatchSettlementEvmScheme implements SchemeNetworkFacilitator {
       paymentRequirements: requirements,
     });
 
-   if (isBatchSettlementDepositPayload(rawPayload)) {
+    if (isBatchSettlementDepositPayload(rawPayload)) {
       return settleDeposit(
         this.signer,
         payload,
@@ -185,7 +185,7 @@ export class BatchSettlementEvmScheme implements SchemeNetworkFacilitator {
         dataSuffix,
         this.config.eip6492AllowedFactories,
       );
-   }
+    }
 
     if (isBatchSettlementClaimPayload(rawPayload)) {
       return executeClaimWithSignature(

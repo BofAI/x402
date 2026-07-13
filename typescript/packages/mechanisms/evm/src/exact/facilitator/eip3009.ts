@@ -219,7 +219,7 @@ export async function verifyEIP3009(
   }
 
   // Transaction simulation
- if (options?.simulate !== false) {
+  if (options?.simulate !== false) {
     const { ok, error: simError } = await simulateEip3009TransferResult(
       signer,
       erc20Address,

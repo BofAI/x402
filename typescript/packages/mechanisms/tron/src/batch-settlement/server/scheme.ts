@@ -361,8 +361,7 @@ export class BatchSettlementTronScheme implements SchemeNetworkServer {
 
     const advertised = supportedKind.extra?.receiverAuthorizer;
     const hasValid =
-      typeof advertised === "string" &&
-      normalizeAddressForSigning(advertised) !== ZERO_ADDRESS;
+      typeof advertised === "string" && normalizeAddressForSigning(advertised) !== ZERO_ADDRESS;
 
     if (!hasValid) {
       return (

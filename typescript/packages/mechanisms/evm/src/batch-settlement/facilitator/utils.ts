@@ -108,7 +108,7 @@ export async function verifyBatchSettlementVoucherTypedData(
 
   const zeroAddress = "0x0000000000000000000000000000000000000000";
 
- if (params.payerAuthorizer !== zeroAddress) {
+  if (params.payerAuthorizer !== zeroAddress) {
     // on-chain x402BatchSettlement uses ECDSA.recoverCalldata — pure ecrecover,
     // no code check, no EIP-1271. Use recoverAddress directly so there is no
     // ambiguity: this path never issues an RPC call regardless of address state.

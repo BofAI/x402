@@ -361,7 +361,7 @@ export async function settleDeposit(
       requirements,
       context,
     );
-   if ("isValid" in execution) {
+    if ("isValid" in execution) {
       const reason = execution.invalidReason ?? Errors.ErrInvalidPayloadType;
       return {
         success: false,
