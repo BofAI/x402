@@ -8,11 +8,12 @@ Wraps `fetch` so HTTP `402 Payment Required` challenges are paid automatically.
 
 Both chains sign via `@bankofai/agent-wallet` (`resolveWallet({ network })`):
 
-- EVM: `createClientEvmSigner(wallet, publicClient)` — adapts the wallet
-  (async address + `0x`-normalized signatures) and wires `readContract` for
-  permit2 enrichment.
-- TRON: `createClientTronSigner(tronWeb, agentWallet)` — the SDK takes its
-  `AgentWallet` shape, so `chains/tron.ts` adapts the raw wallet inline.
+- EVM: `createClientEvmSigner(wallet, { network, rpcUrl })` — adapts the wallet
+  (async address + `0x`-normalized signatures); the factory builds the viem
+  `publicClient` internally and wires `readContract` for permit2 enrichment.
+- TRON: `createClientTronSigner(wallet, { network, apiKey })` — the factory
+  builds TronWeb internally from the network and auto-broadcasts the one-time
+  Permit2 approve for USDT/USDD.
 
 A chain registers only if its wallet resolves, so you can pay from EVM-only,
 TRON-only, or both.

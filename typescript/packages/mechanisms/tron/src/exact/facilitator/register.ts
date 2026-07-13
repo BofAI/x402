@@ -1,7 +1,6 @@
 import { x402Facilitator } from "@bankofai/x402-core/facilitator";
 import { Network } from "@bankofai/x402-core/types";
 import { FacilitatorTronSigner } from "../../signer";
-import { ExactTronFeeConfig } from "../../shared/fee";
 import { ExactTronScheme } from "./scheme";
 
 /**
@@ -10,8 +9,6 @@ import { ExactTronScheme } from "./scheme";
 export interface TronFacilitatorConfig {
   signer: FacilitatorTronSigner;
   networks: Network | Network[];
-  /** Optional facilitator fee configuration (advertised via getExtra). */
-  fee?: ExactTronFeeConfig;
 }
 
 /**
@@ -25,6 +22,6 @@ export function registerExactTronScheme(
   facilitator: x402Facilitator,
   config: TronFacilitatorConfig,
 ): x402Facilitator {
-  facilitator.register(config.networks, new ExactTronScheme(config.signer, config.fee));
+  facilitator.register(config.networks, new ExactTronScheme(config.signer));
   return facilitator;
 }

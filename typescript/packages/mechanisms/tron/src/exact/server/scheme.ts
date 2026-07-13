@@ -13,7 +13,6 @@ import {
 } from "@bankofai/x402-core/utils";
 import { ExactDefaultAssetInfo, getDefaultAsset } from "../../shared/defaultAssets";
 import { getDecimals, parsePrice as parseTokenPrice } from "../../shared/tokens";
-import { buildFeeInfo, type ExactTronFeeConfig } from "../../shared/fee";
 
 /**
  * TRON server implementation for the Exact payment scheme.
@@ -115,6 +114,10 @@ export class ExactTronScheme implements SchemeNetworkServer {
   ): Promise<PaymentRequirements> {
     void extensionKeys;
 
+    const extra = { ...paymentRequirements.extra };
+    delete extra.fee;
+    const requirementsWithoutFee = { ...paymentRequirements, extra };
+
     const supportedMethods = supportedKind.extra?.supportedAssetTransferMethods as
       | string[]
       | undefined;
@@ -128,35 +131,19 @@ export class ExactTronScheme implements SchemeNetworkServer {
         : undefined);
 
     if (!method) {
-      return Promise.resolve(paymentRequirements);
+      return Promise.resolve(requirementsWithoutFee);
     }
 
     const permit2FacilitatorAddress =
       (paymentRequirements.extra?.permit2FacilitatorAddress as string | undefined) ??
       (supportedKind.extra?.permit2FacilitatorAddress as string | undefined);
 
-    // Attach per-asset fee terms from the facilitator's advertised fee config,
-    // unless a fee was already set upstream.
-    const feeConfig = supportedKind.extra?.feeConfig as ExactTronFeeConfig | undefined;
-    const existingFee = paymentRequirements.extra?.fee;
-    const fee =
-      existingFee ??
-      (feeConfig
-        ? buildFeeInfo(
-            feeConfig,
-            supportedKind.network,
-            paymentRequirements.asset,
-            feeConfig.feeTo ?? "",
-          )
-        : undefined);
-
     return Promise.resolve({
-      ...paymentRequirements,
+      ...requirementsWithoutFee,
       extra: {
-        ...paymentRequirements.extra,
+        ...extra,
         assetTransferMethod: method,
         ...(method === "permit2" && permit2FacilitatorAddress ? { permit2FacilitatorAddress } : {}),
-        ...(fee ? { fee } : {}),
       },
     });
   }

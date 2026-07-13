@@ -172,7 +172,7 @@ describe("ClientTronSigner.ensureAllowance", () => {
 });
 
 describe("createPermit2Payload — allowance injection", () => {
-  it("calls ensureAllowance with token, amount+fee, and network before signing", async () => {
+  it("calls ensureAllowance with token, amount, and network before signing", async () => {
     const calls: string[] = [];
     const signer: ClientTronSigner = {
       address: OWNER,
@@ -194,14 +194,14 @@ describe("createPermit2Payload — allowance injection", () => {
       amount: "1000000",
       payTo: OWNER,
       maxTimeoutSeconds: 600,
-      extra: { assetTransferMethod: "permit2", fee: { feeTo: OWNER, feeAmount: "5000" } },
+      extra: { assetTransferMethod: "permit2" },
     };
 
     await new ExactTronScheme(signer).createPaymentPayload(2, requirements as never);
 
     expect(signer.ensureAllowance).toHaveBeenCalledWith({
       token: TOKEN,
-      amount: 1_005_000n, // amount + fee
+      amount: 1_000_000n, // amount only
       network: NETWORK,
     });
     // Allowance is ensured before the witness signature is produced.

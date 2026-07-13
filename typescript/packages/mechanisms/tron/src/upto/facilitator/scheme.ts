@@ -9,7 +9,6 @@ import {
 import { FacilitatorTronSigner } from "../../signer";
 import { UptoPermit2Payload, isUptoPermit2Payload } from "../../types";
 import { X402_UPTO_PERMIT2_PROXY_ADDRESSES } from "../../constants";
-import { ExactTronFeeConfig } from "../../shared/fee";
 import { verifyUptoPermit2, settleUptoPermit2 } from "./permit2";
 import * as errors from "./errors";
 
@@ -25,12 +24,8 @@ export class UptoTronScheme implements SchemeNetworkFacilitator {
    * Creates a new UptoTronScheme facilitator instance.
    *
    * @param signer - The TRON signer for facilitator operations
-   * @param feeConfig - Optional facilitator fee configuration (advertised via getExtra).
    */
-  constructor(
-    private readonly signer: FacilitatorTronSigner,
-    private readonly feeConfig: ExactTronFeeConfig = {},
-  ) {}
+  constructor(private readonly signer: FacilitatorTronSigner) {}
 
   /**
    * Returns extra metadata for the upto scheme, including the facilitator address
@@ -52,18 +47,6 @@ export class UptoTronScheme implements SchemeNetworkFacilitator {
       assetTransferMethod: "permit2",
       facilitatorAddress,
       permit2FacilitatorAddress: facilitatorAddress,
-      ...(this.feeConfig.baseFee
-        ? {
-            feeConfig: {
-              feeTo: this.feeConfig.feeTo ?? signers[0],
-              ...(this.feeConfig.caller ? { caller: this.feeConfig.caller } : {}),
-              baseFee: this.feeConfig.baseFee,
-              ...(this.feeConfig.allowedTokens
-                ? { allowedTokens: this.feeConfig.allowedTokens }
-                : {}),
-            },
-          }
-        : {}),
     };
   }
 

@@ -9,7 +9,6 @@ import {
 import { FacilitatorTronSigner } from "../../signer";
 import { ExactEIP3009Payload, ExactTronPayload, isPermit2Payload } from "../../types";
 import { X402_PERMIT2_PROXY_ADDRESSES } from "../../constants";
-import { ExactTronFeeConfig } from "../../shared/fee";
 import { verifyEIP3009, settleEIP3009 } from "./eip3009";
 import { verifyPermit2, settlePermit2 } from "./permit2";
 
@@ -25,15 +24,8 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
    * Creates a new ExactTronScheme facilitator instance.
    *
    * @param signer - The TRON signer for facilitator operations
-   * @param feeConfig - Optional facilitator fee configuration. On the deployed
-   *   exact/permit2 proxy the fee is advisory only (the proxy transfers exactly
-   *   `amount` and does not split a fee); it is advertised so clients and other
-   *   schemes (e.g. GasFree) can observe and enforce it.
    */
-  constructor(
-    private readonly signer: FacilitatorTronSigner,
-    private readonly feeConfig: ExactTronFeeConfig = {},
-  ) {}
+  constructor(private readonly signer: FacilitatorTronSigner) {}
 
   /**
    * Gets extra configuration for the facilitator.
@@ -54,21 +46,6 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
       // requires the client to sign over the settling facilitator's address.
       ...(signers.length > 0 && X402_PERMIT2_PROXY_ADDRESSES[network]
         ? { permit2FacilitatorAddress: signers[0] }
-        : {}),
-      // Advertise the fee configuration so the server can attach per-asset fee
-      // terms to requirements (extra.fee) and clients/other schemes can observe
-      // it. Only emitted when a baseFee is configured.
-      ...(this.feeConfig.baseFee
-        ? {
-            feeConfig: {
-              feeTo: this.feeConfig.feeTo ?? signers[0],
-              ...(this.feeConfig.caller ? { caller: this.feeConfig.caller } : {}),
-              baseFee: this.feeConfig.baseFee,
-              ...(this.feeConfig.allowedTokens
-                ? { allowedTokens: this.feeConfig.allowedTokens }
-                : {}),
-            },
-          }
         : {}),
     };
   }
