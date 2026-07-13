@@ -1,0 +1,24 @@
+{
+  "name": "@bankofai/x402-example-server-multi-scheme",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx --env-file=../../.env-multi-scheme src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bankofai/x402-core": "workspace:*",
+    "@bankofai/x402-express": "workspace:*",
+    "@bankofai/x402-evm": "workspace:*",
+    "@bankofai/x402-extensions": "workspace:*",
+    "@bankofai/x402-tron": "workspace:*",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.0"
+  }
+}

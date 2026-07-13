@@ -5,10 +5,12 @@
 #   gasfree  → .env-gasfree    (clients/gasfree, servers/gasfree, facilitator/gasfree)
 #   batch    → .env-batch      (clients/*, servers/*, facilitator/batch-settlement)
 #   upto     → .env-upto       (clients/upto, servers/upto, facilitator/upto)
+#   multi    → .env-multi-scheme (servers/multi-scheme; reuses basic + gasfree facilitators)
 .env-exact
 .env-gasfree
 .env-batch
 .env-upto
+.env-multi-scheme
 .env
 
 node_modules/
