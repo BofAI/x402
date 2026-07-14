@@ -9,6 +9,7 @@
  */
 import { TRON_NILE, TRON_MAINNET, TRON_SHASTA } from "@bankofai/x402-tron";
 import { ExactTronScheme } from "@bankofai/x402-tron/exact/server";
+import { getNetworkTokens } from "@bankofai/x402-tron";
 import type { Network } from "@bankofai/x402-core/types";
 import type {
   ResourceConfig,
@@ -41,13 +42,10 @@ export function registerTron(resourceServer: x402ResourceServer): void {
  */
 export function tronAccepts(): ResourceConfig[] {
   const payTo = process.env.TRON_ADDRESS as string;
-  return ["0.001 USDT", "0.001 USDD"].map(
-    (price) =>
-      ({
-        scheme: "exact",
-        network: TRON_NETWORK,
-        payTo,
-        price,
-      }) as ResourceConfig,
-  );
+  return Object.keys(getNetworkTokens(TRON_NETWORK)).map((symbol) => ({
+    scheme: "exact",
+    network: TRON_NETWORK,
+    payTo,
+    price: `0.001 ${symbol}`,
+  }) as ResourceConfig);
 }
