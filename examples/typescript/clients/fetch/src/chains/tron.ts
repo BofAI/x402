@@ -9,13 +9,18 @@
  * that USDT/USDD (no ERC-3009) need before their first payment — parity with the
  * Python client.
  */
-import { createClientTronSigner } from "@bankofai/x402-tron";
+import {
+  createClientTronSigner,
+  TRON_NILE,
+  TRON_MAINNET,
+  TRON_SHASTA,
+} from "@bankofai/x402-tron";
 import { ExactTronScheme } from "@bankofai/x402-tron/exact/client";
 import type { x402Client } from "@bankofai/x402-fetch";
 
 import { tryResolveWallet } from "../env.js";
 
-const TRON_NETWORKS = ["tron:0xcd8690dc", "tron:0x2b6653dc"] as const;
+const TRON_NETWORKS = [TRON_NILE, TRON_SHASTA, TRON_MAINNET] as const;
 
 /**
  * Registers the TRON `exact` client scheme, if a TRON wallet is configured.

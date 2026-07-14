@@ -42,10 +42,10 @@ describe("token registry lookups", () => {
     expect(getNetworkTokens("tron:unknown")).toEqual({});
   });
 
-  it("mainnet and nile USDT default to permit2, shasta USDT does not", () => {
+  it("mainnet, nile, and shasta USDT all default to permit2", () => {
     expect(getToken("tron:0x2b6653dc", "USDT")?.assetTransferMethod).toBe("permit2");
     expect(getToken("tron:0xcd8690dc", "USDT")?.assetTransferMethod).toBe("permit2");
-    expect(getToken("tron:0x94a9059e", "USDT")?.assetTransferMethod).toBeUndefined();
+    expect(getToken("tron:0x94a9059e", "USDT")?.assetTransferMethod).toBe("permit2");
   });
 });
 
@@ -67,10 +67,10 @@ describe("buildAssetExtra", () => {
     expect(extra).toEqual({ assetTransferMethod: "permit2" });
   });
 
-  it("includes name/version for eip3009 tokens (no transfer method)", () => {
+  it("shasta USDT is permit2 (name/version omitted)", () => {
     const shasta = getToken("tron:0x94a9059e", "USDT")!;
     const extra = buildAssetExtra(shasta);
-    expect(extra).toEqual({ name: "Tether USD", version: "1" });
+    expect(extra).toEqual({ assetTransferMethod: "permit2" });
   });
 
   it("includes name/version for eip2612-capable permit2 tokens", () => {

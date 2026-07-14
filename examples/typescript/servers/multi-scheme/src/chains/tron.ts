@@ -5,16 +5,18 @@
  * side by side. Keyless in both cases: only the payout address is advertised.
  *
  * The resource server keys registered schemes by `(network, scheme)`, so the two
- * schemes coexist on `tron:0xcd8690dc` without conflict — the client picks one via
+ * schemes coexist on `TRON_NILE` without conflict — the client picks one via
  * the `accepts` entry it honors in the 402 challenge.
  */
+import { TRON_NILE, TRON_MAINNET, TRON_SHASTA } from "@bankofai/x402-tron";
 import { ExactTronScheme } from "@bankofai/x402-tron/exact/server";
 import { registerExactGasFreeTronScheme } from "@bankofai/x402-tron/gasfree/server";
 import type { x402ResourceServer } from "@bankofai/x402-express";
 
-// Switch to "tron:0x2b6653dc" for production (REAL FUNDS); only the client and
+// Switch to TRON_MAINNET for production (REAL FUNDS); only the client and
 // facilitator TronWeb/relayer endpoints change, this module is unchanged.
-export const TRON_NETWORK: `${string}:${string}` = "tron:0xcd8690dc";
+export const TRON_NETWORK: `${string}:${string}` = (process.env.TRON_NETWORK ??
+  TRON_NILE) as `${string}:${string}`;
 
 /** TRON is enabled when a payout address is configured. */
 export function hasTron(): boolean {
@@ -52,6 +54,11 @@ export function tronAccepts() {
     })),
     // exact_gasfree: relayer pays energy; GasFree maps "$" to the network's
     // default asset (USDT). Funds come from the payer's GasFree custodial wallet.
-    { scheme: "exact_gasfree" as const, network: TRON_NETWORK, payTo, price: "$0.001" },
+    {
+      scheme: "exact_gasfree" as const,
+      network: TRON_NETWORK,
+      payTo,
+      price: "$0.001",
+    },
   ];
 }

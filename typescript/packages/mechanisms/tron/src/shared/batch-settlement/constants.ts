@@ -17,6 +17,7 @@ export const BATCH_SETTLEMENT_SCHEME = "batch-settlement" as const;
 export const BATCH_SETTLEMENT_ADDRESSES: Record<string, string> = {
   "tron:0x2b6653dc": "TW9yNhTySkEHYfjnGQU2u4NAsdb1tW4fbm",
   "tron:0xcd8690dc": "TWBwWHZWwH8TzrZnbxit1J645VGYY1K2fA",
+  "tron:0x94a9059e": "TA3MZHMLsgi8JMU1DL8H4gKp1YjJKATibf",
 };
 
 /**
@@ -25,6 +26,7 @@ export const BATCH_SETTLEMENT_ADDRESSES: Record<string, string> = {
 export const ERC3009_DEPOSIT_COLLECTOR_ADDRESSES: Record<string, string> = {
   "tron:0x2b6653dc": "TTWA7aWMdx4jfcbp8XRAS2JAd2sUhyF9qj",
   "tron:0xcd8690dc": "TJUQ3BQt4YFg8EeevjiUa5LbfSGz5BxzRW",
+  "tron:0x94a9059e": "TRd1KBfy1iUs6R45oZrtbLUjtcSKzXAvPG",
 };
 
 /**
@@ -33,6 +35,7 @@ export const ERC3009_DEPOSIT_COLLECTOR_ADDRESSES: Record<string, string> = {
 export const PERMIT2_DEPOSIT_COLLECTOR_ADDRESSES: Record<string, string> = {
   "tron:0x2b6653dc": "TAg5qqp1K9x5KeSTWnRa8LT79B5HUjzSHY",
   "tron:0xcd8690dc": "TEp6bCqSEKAr99sCiqANC84RtRwx7xGbA4",
+  "tron:0x94a9059e": "TNmfrxbKCHqPUTj9zHVfg4Dq8WNZXPyf1x",
 };
 
 /**

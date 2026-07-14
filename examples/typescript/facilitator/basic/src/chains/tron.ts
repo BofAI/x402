@@ -3,14 +3,19 @@
  * in `@bankofai/agent-wallet`, and `createFacilitatorTronSigner` sets the
  * issuer address from the wallet (the TronWeb instance carries no private key).
  */
-import { createFacilitatorTronSigner } from "@bankofai/x402-tron";
+import {
+  createFacilitatorTronSigner,
+  TRON_NILE,
+  TRON_MAINNET,
+  TRON_SHASTA,
+} from "@bankofai/x402-tron";
 import { ExactTronScheme } from "@bankofai/x402-tron/exact/facilitator";
 import type { x402Facilitator } from "@bankofai/x402-core/facilitator";
 
 import { tryResolveWallet } from "../env.js";
 
-/** TRON testnet + mainnet. */
-export const TRON_NETWORKS = ["tron:0xcd8690dc", "tron:0x2b6653dc"] as const;
+/** TRON testnets + mainnet. */
+export const TRON_NETWORKS = [TRON_NILE, TRON_SHASTA, TRON_MAINNET] as const;
 
 /**
  * Registers the TRON `exact` scheme on the facilitator, if a TRON wallet is

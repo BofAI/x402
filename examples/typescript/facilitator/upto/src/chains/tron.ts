@@ -7,14 +7,19 @@
  * the server's `Settlement-Overrides` and must be <= the authorized maximum bound
  * in the client's Permit2 witness.
  */
-import { createFacilitatorTronSigner } from "@bankofai/x402-tron";
+import {
+  createFacilitatorTronSigner,
+  TRON_NILE,
+  TRON_MAINNET,
+} from "@bankofai/x402-tron";
 import { UptoTronScheme } from "@bankofai/x402-tron/upto/facilitator";
 import type { x402Facilitator } from "@bankofai/x402-core/facilitator";
 
 import { tryResolveWallet } from "../env.js";
 
 /** CAIP-2 network this facilitator settles on. */
-export const TRON_NETWORK = "tron:0xcd8690dc";
+export const TRON_NETWORK = (process.env.TRON_NETWORK ??
+  TRON_NILE) as `${string}:${string}`;
 
 /**
  * Registers the TRON `upto` scheme on the facilitator, if a TRON wallet is
@@ -23,7 +28,9 @@ export const TRON_NETWORK = "tron:0xcd8690dc";
  * @param facilitator - The facilitator to register the scheme on.
  * @returns `true` if registered, `false` if no TRON wallet was configured.
  */
-export async function registerTron(facilitator: x402Facilitator): Promise<boolean> {
+export async function registerTron(
+  facilitator: x402Facilitator,
+): Promise<boolean> {
   const wallet = await tryResolveWallet("tron");
   if (!wallet) {
     return false;
@@ -38,6 +45,8 @@ export async function registerTron(facilitator: x402Facilitator): Promise<boolea
   });
 
   facilitator.register(TRON_NETWORK, new UptoTronScheme(signer));
-  console.info(`[tron] facilitator registered ${TRON_NETWORK} upto (${address})`);
+  console.info(
+    `[tron] facilitator registered ${TRON_NETWORK} upto (${address})`,
+  );
   return true;
 }

@@ -2,6 +2,7 @@
  * Wallet resolution via `@bankofai/agent-wallet` — the example never touches a
  * private key. The facilitator registers TRON only when a TRON wallet resolves.
  */
+import { TRON_NILE, TRON_MAINNET } from "@bankofai/x402-tron";
 import { resolveWallet, type Wallet } from "@bankofai/agent-wallet";
 
 /**
@@ -10,7 +11,10 @@ import { resolveWallet, type Wallet } from "@bankofai/agent-wallet";
  * the `signTypedData` capability here.
  */
 export type SignerWallet = Wallet & {
-  signTypedData(data: Record<string, unknown>, options?: unknown): Promise<string>;
+  signTypedData(
+    data: Record<string, unknown>,
+    options?: unknown,
+  ): Promise<string>;
 };
 
 /**
@@ -20,7 +24,7 @@ export type SignerWallet = Wallet & {
  */
 export async function tryResolveTronWallet(): Promise<SignerWallet | null> {
   try {
-    return (await resolveWallet({ network: "tron:0xcd8690dc" })) as SignerWallet;
+    return (await resolveWallet({ network: TRON_NILE })) as SignerWallet;
   } catch {
     return null;
   }

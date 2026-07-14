@@ -6,12 +6,14 @@
  *
  * GasFree is TRON-only — there is no EVM counterpart.
  */
+import { TRON_NILE, TRON_MAINNET, TRON_SHASTA } from "@bankofai/x402-tron";
 import { registerExactGasFreeTronScheme } from "@bankofai/x402-tron/gasfree/server";
 import type { x402ResourceServer } from "@bankofai/x402-express";
 
-// Switch to "tron:0x2b6653dc" for production (REAL FUNDS); only the client and
+// Switch to TRON_MAINNET for production (REAL FUNDS); only the client and
 // facilitator TronWeb/relayer endpoints change, this module is unchanged.
-export const TRON_NETWORK: `${string}:${string}` = "tron:0xcd8690dc";
+export const TRON_NETWORK: `${string}:${string}` = (process.env.TRON_NETWORK ??
+  TRON_NILE) as `${string}:${string}`;
 
 /** TRON GasFree is enabled when a payout address is configured. */
 export function hasTron(): boolean {
@@ -35,5 +37,7 @@ export function registerTron(resourceServer: x402ResourceServer): void {
  */
 export function tronAccepts() {
   const payTo = process.env.TRON_ADDRESS as string;
-  return [{ scheme: "exact_gasfree", network: TRON_NETWORK, payTo, price: "$0.001" }];
+  return [
+    { scheme: "exact_gasfree", network: TRON_NETWORK, payTo, price: "$0.001" },
+  ];
 }
