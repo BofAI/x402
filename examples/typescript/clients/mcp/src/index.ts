@@ -10,9 +10,10 @@
  * lives in `src/chains/`.
  *
  * PAY_TARGETS — comma-separated, one paid call per entry, in order:
- *   <network>[@<token>]   network: "eip155:97"/TRON_NILE (or "eip155"/"tron");
- *   token: symbol (DHLU on EVM; USDT/USDD on TRON) or an asset address; omit ⇒
- *   the network's first advertised token.
+ *   <network>[@<token>]   network: full CAIP-2 ("eip155:97", TRON_NILE) or a
+ *   family prefix ("eip155"/"tron") when no token is specified;
+ *   token: symbol (DHLU on EVM; USDT/USDD on TRON) or an asset address (requires
+ *   a full CAIP-2 network to resolve); omit ⇒ the network's first advertised token.
  *   (`@` not `#` — dotenv treats `#` as a comment.)
  *   Unset ⇒ each configured chain once.
  *
@@ -56,7 +57,21 @@ interface PayTarget {
 
 /** Resolve a token tag (symbol or address) to an asset address. */
 function resolveToken(prefix: string, token: string): string {
-  return TOKEN_ADDRESSES[prefix]?.[token.toUpperCase()] ?? token;
+  const entry = TOKEN_ADDRESSES[prefix];
+  if (!entry) {
+    throw new Error(
+      `Cannot resolve token "${token}": "${prefix}" is a family prefix. ` +
+        `Use a full CAIP-2 network (e.g. ${TRON_NILE}) when specifying a token.`,
+    );
+  }
+  const addr = entry[token.toUpperCase()];
+  if (!addr) {
+    throw new Error(
+      `Unknown token symbol "${token}" for network "${prefix}". ` +
+        `Use an asset address or a known symbol.`,
+    );
+  }
+  return addr;
 }
 
 /** Parse the PAY_TARGETS env var into targets (empty when unset). */

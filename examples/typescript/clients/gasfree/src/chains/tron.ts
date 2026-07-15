@@ -52,7 +52,7 @@ export async function registerTronGasFree(
     ...(process.env.GASFREE_API_URL
       ? {
           schemeOptions: {
-            apiBaseUrls: { [TRON_NILE]: process.env.GASFREE_API_URL },
+            apiBaseUrls: { [TRON_NETWORK]: process.env.GASFREE_API_URL },
           },
         }
       : {}),

@@ -10,7 +10,8 @@
  *
  * PAY_TARGETS — comma-separated, one payment per entry, in order:
  *   <network>[@<token>]
- *     <network>  matched by prefix: "eip155:97" / TRON_NILE (or "eip155" / "tron")
+ *     <network>  matched by prefix: "eip155:97" / TRON_NILE (or "eip155" / "tron"
+ *                when no token is specified)
  *     <token>    symbol (DHLU/USDC/USDT/USDD) or an asset address; omit ⇒ that
  *                network's first advertised token
  *   e.g. PAY_TARGETS=eip155:97@DHLU,TRON_NILE@USDT,TRON_NILE@USDD
@@ -62,7 +63,21 @@ interface PayTarget {
 
 /** Resolve a token tag (symbol or address) to an asset address. */
 function resolveToken(prefix: string, token: string): string {
-  return TOKEN_ADDRESSES[prefix]?.[token.toUpperCase()] ?? token;
+  const entry = TOKEN_ADDRESSES[prefix];
+  if (!entry) {
+    throw new Error(
+      `Cannot resolve token "${token}": "${prefix}" is a family prefix. ` +
+        `Use a full CAIP-2 network (e.g. ${TRON_NILE}) when specifying a token.`,
+    );
+  }
+  const addr = entry[token.toUpperCase()];
+  if (!addr) {
+    throw new Error(
+      `Unknown token symbol "${token}" for network "${prefix}". ` +
+        `Use an asset address or a known symbol.`,
+    );
+  }
+  return addr;
 }
 
 /** Parse the PAY_TARGETS env var into targets (empty when unset). */

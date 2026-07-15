@@ -51,7 +51,7 @@ export async function registerTronGasFree(
     signer,
     networks: TRON_NETWORK,
     ...(process.env.GASFREE_API_URL
-      ? { apiBaseUrls: { [TRON_NILE]: process.env.GASFREE_API_URL } }
+      ? { apiBaseUrls: { [TRON_NETWORK]: process.env.GASFREE_API_URL } }
       : {}),
   });
   console.info(

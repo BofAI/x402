@@ -8,7 +8,6 @@ import {
 import { getAddress, encodeFunctionData } from "viem";
 import { parseErc6492Signature, isAddressEqual } from "viem";
 import { FacilitatorEvmSigner } from "../../signer";
-import { verifyTypedDataSignature } from "../../shared/verifySignature";
 import type { Erc3009CounterfactualDeployment } from "./deposit-eip3009";
 import type { TransactionRequest } from "../../exact/extensions";
 import { BatchSettlementAssetTransferMethod, BatchSettlementDepositPayload } from "../types";
@@ -16,7 +15,6 @@ import { batchSettlementABI, erc20BalanceOfABI } from "../abi";
 import { BATCH_SETTLEMENT_ADDRESS } from "../constants";
 import { getEvmChainId } from "../../utils";
 import { multicall } from "../../multicall";
-import { isContractRevert } from "../../shared/revert";
 import * as Errors from "../errors";
 import {
   readChannelState,
@@ -594,7 +592,7 @@ async function simulateCounterfactualErc3009Deposit(
         execution.collectorData,
       ],
     });
-    await multicall(signer.readContract.bind(signer), [
+    const results = await multicall(signer.readContract.bind(signer), [
       {
         address: counterfactual.factory,
         callData: counterfactual.factoryCalldata,
@@ -604,7 +602,7 @@ async function simulateCounterfactualErc3009Deposit(
         callData: depositCallData,
       },
     ]);
-    return true;
+    return results.every(r => r.status === "success");
   } catch {
     return false;
   }
