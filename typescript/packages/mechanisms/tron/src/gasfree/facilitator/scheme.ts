@@ -217,7 +217,10 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
     }
 
     // The serviceProvider must be an active relayer provider.
-    const providerError = await this.validateServiceProvider(m.serviceProvider, requirements.network);
+    const providerError = await this.validateServiceProvider(
+      m.serviceProvider,
+      requirements.network,
+    );
     if (providerError) return providerError;
 
     const now = Math.floor(Date.now() / 1000);
@@ -234,7 +237,10 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
    * @param network - CAIP-2 network identifier.
    * @returns An error reason string, or null when valid.
    */
-  private async validateServiceProvider(serviceProvider: string, network: string): Promise<string | null> {
+  private async validateServiceProvider(
+    serviceProvider: string,
+    network: string,
+  ): Promise<string | null> {
     const norm = (a: string) => normalizeAddressForSigning(a);
     try {
       const providers = await this.getApiClient(network).getProviders();

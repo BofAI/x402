@@ -97,6 +97,23 @@ export class ExactGasFreeTronScheme implements SchemeNetworkClient {
   }
 
   /**
+   * Estimate the total deduction for a GasFree payment: amount + maxFee
+   * (transferFee, plus activateFee when the account is inactive). Used by
+   * filterAffordableRequirements so options whose amount alone is affordable
+   * but whose amount + provider fee is not are excluded before selection.
+   *
+   * @param requirements - The payment requirements.
+   * @returns The estimated total cost (amount + maxFee) in smallest units.
+   */
+  async estimateCost(requirements: PaymentRequirements): Promise<bigint> {
+    const api = this.getApiClient(requirements.network);
+    const accountInfo = await api.getAddressInfo(this.signer.address);
+    const asset = accountInfo.assets.find(a => a.tokenAddress === requirements.asset);
+    const maxFee = this.computeMaxFee(requirements, accountInfo, asset);
+    return BigInt(requirements.amount) + maxFee;
+  }
+
+  /**
    * Create the `exact_gasfree` payment payload.
    *
    * @param x402Version - The x402 protocol version.

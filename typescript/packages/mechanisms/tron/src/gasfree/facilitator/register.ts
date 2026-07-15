@@ -30,9 +30,6 @@ export function registerExactGasFreeTronScheme(
 ): x402Facilitator {
   const apiClients =
     config.apiClients ?? createGasFreeApiClients(config.apiBaseUrls ?? GASFREE_API_BASE_URLS);
-  facilitator.register(
-    config.networks,
-    new ExactGasFreeTronScheme(config.signer, apiClients),
-  );
+  facilitator.register(config.networks, new ExactGasFreeTronScheme(config.signer, apiClients));
   return facilitator;
 }

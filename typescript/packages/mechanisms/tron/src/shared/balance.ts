@@ -19,6 +19,17 @@ export interface BalanceCheckable {
    * @returns The balance in smallest units.
    */
   checkBalance(asset: string, network: string): Promise<bigint>;
+
+  /**
+   * Estimate the total deduction required to fulfill a requirement,
+   * including scheme-specific fees (e.g. GasFree transferFee/activateFee).
+   *
+   * When omitted, the cost defaults to req.amount (no extra fees).
+   *
+   * @param req - The payment requirement.
+   * @returns The estimated total cost in smallest units.
+   */
+  estimateCost?(req: PaymentRequirements): Promise<bigint>;
 }
 
 /**
@@ -27,7 +38,8 @@ export interface BalanceCheckable {
  * Requirements whose balance cannot be determined are kept, deferring the
  * decision to createPaymentPayload.
  *
- * @param scheme - A client scheme exposing checkBalance.
+ * @param scheme - A client scheme exposing checkBalance (and optionally
+ *   estimateCost for schemes with extra on-chain fees, e.g. GasFree).
  * @param accepts - The candidate payment requirements.
  * @returns The affordable subset (possibly empty).
  */
@@ -46,6 +58,15 @@ export async function filterAffordableRequirements(
       continue;
     }
     let needed = BigInt(req.amount);
+    if (scheme.estimateCost) {
+      try {
+        needed = await scheme.estimateCost(req);
+      } catch {
+        // Cannot estimate scheme-specific cost; defer to createPaymentPayload.
+        affordable.push(req);
+        continue;
+      }
+    }
     if (balance >= needed) {
       affordable.push(req);
     }

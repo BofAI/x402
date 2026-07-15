@@ -101,10 +101,9 @@ describe("GasFree TIP-712 digest round-trip", () => {
     };
     vi.mocked(buildTronWeb).mockReturnValue(tronWeb);
     const facSigner = await createFacilitatorTronSigner(facWallet, { network: NETWORK });
-    facilitator = new FacilitatorScheme(
-      facSigner,
-      { [NETWORK]: mockApi(account, providers) as never },
-    );
+    facilitator = new FacilitatorScheme(facSigner, {
+      [NETWORK]: mockApi(account, providers) as never,
+    });
   });
 
   it("produces a self-contained GasFree message", () => {

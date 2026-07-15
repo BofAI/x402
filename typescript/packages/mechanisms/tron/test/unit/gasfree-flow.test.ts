@@ -5,6 +5,7 @@ import { ExactGasFreeTronScheme as FacilitatorScheme } from "../../src/gasfree/f
 import type { ClientTronSigner, FacilitatorTronSigner } from "../../src/signer";
 import type { ExactGasFreePayload } from "../../src/types";
 import type { GasFreeAddressInfo, GasFreeProvider } from "../../src/shared/gasfree/api";
+import { filterAffordableRequirements } from "../../src/shared/balance";
 
 /**
  * GasFree client/facilitator behavior with mocked signers and relayer (F1).
@@ -90,11 +91,9 @@ describe("GasFree client createPaymentPayload", () => {
   it("picks a provider from the relayer list and uses transferFee as maxFee", async () => {
     const a = api(account());
     const client = new ClientScheme(clientSigner(), { apiClients: { [NETWORK]: a as never } });
-    const result = await client.createPaymentPayload(
-      2,
-      requirements(),
-      { extensions: { skipBalanceCheck: true } },
-    );
+    const result = await client.createPaymentPayload(2, requirements(), {
+      extensions: { skipBalanceCheck: true },
+    });
     const p = result.payload as ExactGasFreePayload;
     expect(p.gasfree.serviceProvider).toBe(PROVIDER);
     // transferFee 10000
@@ -133,11 +132,9 @@ describe("GasFree client createPaymentPayload", () => {
     const client = new ClientScheme(clientSigner(), {
       apiClients: { [NETWORK]: api(acct) as never },
     });
-    const result = await client.createPaymentPayload(
-      2,
-      requirements(),
-      { extensions: { skipBalanceCheck: true } },
-    );
+    const result = await client.createPaymentPayload(2, requirements(), {
+      extensions: { skipBalanceCheck: true },
+    });
     const p = result.payload as ExactGasFreePayload;
     expect(p.gasfree.maxFee).toBe("15000"); // 10000 + 5000 activate
   });
@@ -147,24 +144,16 @@ describe("GasFree client createPaymentPayload", () => {
     const client = new ClientScheme(clientSigner(), {
       apiClients: { [NETWORK]: api(acct) as never },
     });
-    await expect(
-      client.createPaymentPayload(
-        2,
-        requirements(),
-      ),
-    ).rejects.toThrow(/not activated/);
+    await expect(client.createPaymentPayload(2, requirements())).rejects.toThrow(/not activated/);
   });
 
   it("throws on insufficient GasFree wallet balance", async () => {
     const client = new ClientScheme(clientSigner(500n), {
       apiClients: { [NETWORK]: api(account()) as never },
     });
-    await expect(
-      client.createPaymentPayload(
-        2,
-        requirements(),
-      ),
-    ).rejects.toThrow(/Insufficient balance/);
+    await expect(client.createPaymentPayload(2, requirements())).rejects.toThrow(
+      /Insufficient balance/,
+    );
   });
 
   it("uses the maximum window deadline when none is requested", async () => {
@@ -253,10 +242,7 @@ describe("GasFree facilitator verify term validation", () => {
   }
 
   const fac = () =>
-    new FacilitatorScheme(
-      facilitatorSigner(),
-      { [NETWORK]: api(account()) as never },
-    );
+    new FacilitatorScheme(facilitatorSigner(), { [NETWORK]: api(account()) as never });
 
   it("accepts a well-formed payload", async () => {
     const p = payload();
@@ -310,10 +296,7 @@ describe("GasFree facilitator settle", () => {
 
   it("submits to the relayer and returns the tx hash", async () => {
     const a = api(account());
-    const fac = new FacilitatorScheme(
-      facilitatorSigner(),
-      { [NETWORK]: a as never },
-    );
+    const fac = new FacilitatorScheme(facilitatorSigner(), { [NETWORK]: a as never });
     const r = await fac.settle(
       { accepted: requirements(), payload: goodPayload() } as never,
       requirements(),
@@ -324,10 +307,9 @@ describe("GasFree facilitator settle", () => {
   });
 
   it("fails settle when verification fails", async () => {
-    const fac = new FacilitatorScheme(
-      facilitatorSigner({ verify: false }),
-      { [NETWORK]: api(account()) as never },
-    );
+    const fac = new FacilitatorScheme(facilitatorSigner({ verify: false }), {
+      [NETWORK]: api(account()) as never,
+    });
     const r = await fac.settle(
       { accepted: requirements(), payload: goodPayload() } as never,
       requirements(),
@@ -337,15 +319,56 @@ describe("GasFree facilitator settle", () => {
   });
 
   it("fails settle on insufficient GasFree wallet balance", async () => {
-    const fac = new FacilitatorScheme(
-      facilitatorSigner({ balance: 100n }),
-      { [NETWORK]: api(account()) as never },
-    );
+    const fac = new FacilitatorScheme(facilitatorSigner({ balance: 100n }), {
+      [NETWORK]: api(account()) as never,
+    });
     const r = await fac.settle(
       { accepted: requirements(), payload: goodPayload() } as never,
       requirements(),
     );
     expect(r.success).toBe(false);
     expect(r.errorReason).toBe("insufficient_funds");
+  });
+});
+
+describe("GasFree estimateCost and affordability", () => {
+  it("estimateCost returns amount + transferFee for an active account", async () => {
+    const a = api(account());
+    const client = new ClientScheme(clientSigner(), { apiClients: { [NETWORK]: a as never } });
+    // amount 1000 + transferFee 10000 = 11000
+    const cost = await client.estimateCost(requirements() as never);
+    expect(cost).toBe(11000n);
+  });
+
+  it("estimateCost includes activateFee when the account is inactive", async () => {
+    const acct = account({
+      active: false,
+      assets: [{ ...account().assets[0]!, activateFee: "5000" }],
+    });
+    const a = api(acct);
+    const client = new ClientScheme(clientSigner(), { apiClients: { [NETWORK]: a as never } });
+    // amount 1000 + transferFee 10000 + activateFee 5000 = 16000
+    const cost = await client.estimateCost(requirements() as never);
+    expect(cost).toBe(16000n);
+  });
+
+  it("filterAffordableRequirements excludes borderline GasFree option via estimateCost", async () => {
+    // balance 10999 < amount(1000) + transferFee(10000) = 11000 → excluded
+    const a = api(account());
+    const client = new ClientScheme(clientSigner(10_999n), {
+      apiClients: { [NETWORK]: a as never },
+    });
+    const out = await filterAffordableRequirements(client, [requirements() as never]);
+    expect(out).toEqual([]);
+  });
+
+  it("filterAffordableRequirements keeps when balance covers amount + transferFee", async () => {
+    // balance 11000 >= amount(1000) + transferFee(10000) = 11000 → kept
+    const a = api(account());
+    const client = new ClientScheme(clientSigner(11_000n), {
+      apiClients: { [NETWORK]: a as never },
+    });
+    const out = await filterAffordableRequirements(client, [requirements() as never]);
+    expect(out).toHaveLength(1);
   });
 });

@@ -111,3 +111,36 @@ describe("selectAffordableRequirement", () => {
     expect(chosen).toBeUndefined();
   });
 });
+
+describe("filterAffordableRequirements with estimateCost", () => {
+  it("excludes when balance covers amount but not amount + fee", async () => {
+    const scheme: BalanceCheckable = {
+      checkBalance: vi.fn(async () => 1_050_000n),
+      estimateCost: vi.fn(async r => BigInt(r.amount) + 100_000n),
+    };
+    // balance 1.05M < cost 1.1M (1.0M + 0.1M fee) → excluded
+    const out = await filterAffordableRequirements(scheme, [req(USDT, "1000000")]);
+    expect(out).toEqual([]);
+    expect(scheme.estimateCost).toHaveBeenCalledWith(expect.objectContaining({ asset: USDT }));
+  });
+
+  it("keeps when balance covers the estimated cost", async () => {
+    const scheme: BalanceCheckable = {
+      checkBalance: vi.fn(async () => 1_200_000n),
+      estimateCost: vi.fn(async r => BigInt(r.amount) + 100_000n),
+    };
+    const out = await filterAffordableRequirements(scheme, [req(USDT, "1000000")]);
+    expect(out.map(r => r.asset)).toEqual([USDT]);
+  });
+
+  it("defers to createPaymentPayload when estimateCost throws", async () => {
+    const scheme: BalanceCheckable = {
+      checkBalance: vi.fn(async () => 1_500_000n),
+      estimateCost: vi.fn(async () => {
+        throw new Error("relayer unavailable");
+      }),
+    };
+    const out = await filterAffordableRequirements(scheme, [req(USDT, "1000000")]);
+    expect(out.map(r => r.asset)).toEqual([USDT]);
+  });
+});
