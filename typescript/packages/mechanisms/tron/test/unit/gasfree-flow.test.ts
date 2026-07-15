@@ -273,6 +273,22 @@ describe("GasFree facilitator verify term validation", () => {
     const r = await fac().verify({ accepted: requirements(), payload: p } as never, requirements());
     expect(r.invalidReason).toBe("gasfree_fee_to_mismatch");
   });
+
+  it("rejects when the relayer returns an empty provider list", async () => {
+    const a = api(account(), { getProviders: vi.fn(async () => []) });
+    const fac = new FacilitatorScheme(facilitatorSigner(), { [NETWORK]: a as never });
+    const r = await fac.verify({ accepted: requirements(), payload: payload() } as never, requirements());
+    expect(r.isValid).toBe(false);
+    expect(r.invalidReason).toBe("gasfree_provider_list_unavailable");
+  });
+
+  it("rejects when the relayer API is unreachable", async () => {
+    const a = api(account(), { getProviders: vi.fn(async () => { throw new Error("network timeout"); }) });
+    const fac = new FacilitatorScheme(facilitatorSigner(), { [NETWORK]: a as never });
+    const r = await fac.verify({ accepted: requirements(), payload: payload() } as never, requirements());
+    expect(r.isValid).toBe(false);
+    expect(r.invalidReason).toBe("gasfree_provider_list_unavailable");
+  });
 });
 
 describe("GasFree facilitator settle", () => {

@@ -10,11 +10,7 @@
  *
  * GasFree is TRON-only — there is no EVM counterpart.
  */
-import {
-  createClientTronSigner,
-  TRON_NILE,
-  TRON_MAINNET,
-} from "@bankofai/x402-tron";
+import { createClientTronSigner, TRON_NILE } from "@bankofai/x402-tron";
 import { registerExactGasFreeTronScheme } from "@bankofai/x402-tron/gasfree/client";
 import type { x402Client } from "@bankofai/x402-fetch";
 

@@ -8,11 +8,7 @@
  * custody stays in `@bankofai/agent-wallet`, and the TronWeb instance carries no
  * private key.
  */
-import {
-  createFacilitatorTronSigner,
-  TRON_NILE,
-  TRON_MAINNET,
-} from "@bankofai/x402-tron";
+import { createFacilitatorTronSigner, TRON_NILE } from "@bankofai/x402-tron";
 import { registerExactGasFreeTronScheme } from "@bankofai/x402-tron/gasfree/facilitator";
 import type { x402Facilitator } from "@bankofai/x402-core/facilitator";
 

@@ -233,6 +233,12 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
   /**
    * Validate the serviceProvider: must be an active relayer provider.
    *
+   * Fail-closed: when the relayer API is unreachable or returns an empty provider
+   * list, the serviceProvider cannot be verified and the payment is rejected with
+   * `PROVIDER_LIST_UNAVAILABLE`. This preserves verify/settle consistency — verify
+   * must predict settle, and an unverified provider may be rejected by the relayer
+   * at settlement time.
+   *
    * @param serviceProvider - The relayer provider address.
    * @param network - CAIP-2 network identifier.
    * @returns An error reason string, or null when valid.
@@ -244,14 +250,15 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
     const norm = (a: string) => normalizeAddressForSigning(a);
     try {
       const providers = await this.getApiClient(network).getProviders();
-      if (providers.length > 0) {
-        const allowed = new Set(providers.map(p => norm(p.address)));
-        return allowed.has(norm(serviceProvider)) ? null : errors.FEE_TO_MISMATCH;
+      if (providers.length === 0) {
+        return errors.PROVIDER_LIST_UNAVAILABLE;
       }
+      const allowed = new Set(providers.map(p => norm(p.address)));
+      return allowed.has(norm(serviceProvider)) ? null : errors.FEE_TO_MISMATCH;
     } catch {
-      // Provider list unavailable — cannot validate.
+      // Relayer API unreachable — cannot validate, fail-closed.
+      return errors.PROVIDER_LIST_UNAVAILABLE;
     }
-    return null;
   }
 
   /**

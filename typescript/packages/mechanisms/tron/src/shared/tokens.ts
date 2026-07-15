@@ -37,8 +37,8 @@ export interface TokenInfo {
 /**
  * Built-in TRC-20 tokens indexed by CAIP-2 network and uppercased symbol.
  *
- * Note: `tron:0x2b6653dc` and `tron:0xcd8690dc` have Permit2 + x402Permit2Proxy
- * deployments, so their tokens default to `permit2`.
+ * Note: `tron:0x2b6653dc`, `tron:0xcd8690dc`, and `tron:0x94a9059e` have Permit2 +
+ * x402Permit2Proxy deployments, so their tokens default to `permit2`.
  */
 const TOKENS: Record<string, Record<string, TokenInfo>> = {
   "tron:0x2b6653dc": {
