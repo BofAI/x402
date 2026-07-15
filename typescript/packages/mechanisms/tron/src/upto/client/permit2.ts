@@ -40,8 +40,9 @@ export async function createUptoPermit2Payload(
     throw new Error(`No x402UptoPermit2Proxy contract address configured for network ${network}`);
   }
 
-  const facilitatorAddress = (paymentRequirements.extra?.permit2FacilitatorAddress ??
-    paymentRequirements.extra?.facilitatorAddress) as string | undefined;
+  const facilitatorAddress = paymentRequirements.extra?.permit2FacilitatorAddress as
+    | string
+    | undefined;
   if (!facilitatorAddress) {
     throw new Error(
       "upto scheme requires permit2FacilitatorAddress in paymentRequirements.extra. " +

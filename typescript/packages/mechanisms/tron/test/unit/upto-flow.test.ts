@@ -135,7 +135,7 @@ describe("upto Permit2 end-to-end (in-process)", () => {
 
     const req = await negotiate(server, facilitator);
     expect(req.extra?.assetTransferMethod).toBe("permit2");
-    expect(req.extra?.facilitatorAddress).toBe(addr(FAC_PK));
+    expect(req.extra?.permit2FacilitatorAddress).toBe(addr(FAC_PK));
 
     const payload = await pay(client, req);
     const p = payload.payload as UptoPermit2Payload;
@@ -235,7 +235,6 @@ describe("upto Permit2 end-to-end (in-process)", () => {
       ...req,
       extra: {
         ...req.extra,
-        facilitatorAddress: OTHER_ADDR,
         permit2FacilitatorAddress: OTHER_ADDR,
       },
     } as PaymentRequirements;

@@ -99,20 +99,16 @@ export class UptoTronScheme implements SchemeNetworkServer {
   ): Promise<PaymentRequirements> {
     void extensionKeys;
 
-    const facilitatorAddress =
+    const permit2FacilitatorAddress =
       (paymentRequirements.extra?.permit2FacilitatorAddress as string | undefined) ??
-      (paymentRequirements.extra?.facilitatorAddress as string | undefined) ??
-      (supportedKind.extra?.permit2FacilitatorAddress as string | undefined) ??
-      (supportedKind.extra?.facilitatorAddress as string | undefined);
+      (supportedKind.extra?.permit2FacilitatorAddress as string | undefined);
 
     return Promise.resolve({
       ...paymentRequirements,
       extra: {
         ...paymentRequirements.extra,
         assetTransferMethod: "permit2",
-        ...(facilitatorAddress
-          ? { facilitatorAddress, permit2FacilitatorAddress: facilitatorAddress }
-          : {}),
+        ...(permit2FacilitatorAddress ? { permit2FacilitatorAddress } : {}),
       },
     });
   }
