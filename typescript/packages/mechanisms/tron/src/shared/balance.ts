@@ -1,5 +1,4 @@
 import type { PaymentRequirements } from "@bankofai/x402-core/types";
-import { readFeeFromExtra } from "./fee";
 import { CheapestTokenSelectionStrategy, type TokenSelectionStrategy } from "./tokenSelection";
 
 /**
@@ -23,10 +22,10 @@ export interface BalanceCheckable {
 }
 
 /**
- * Filter out requirements the payer cannot afford (amount + fee).
+ * Filter out requirements the payer cannot afford.
  *
  * Requirements whose balance cannot be determined are kept, deferring the
- * decision to createPaymentPayload. Fee is read from `extra.fee` when present.
+ * decision to createPaymentPayload.
  *
  * @param scheme - A client scheme exposing checkBalance.
  * @param accepts - The candidate payment requirements.
@@ -47,10 +46,6 @@ export async function filterAffordableRequirements(
       continue;
     }
     let needed = BigInt(req.amount);
-    const fee = readFeeFromExtra(req.extra);
-    if (fee) {
-      needed += BigInt(fee.feeAmount);
-    }
     if (balance >= needed) {
       affordable.push(req);
     }

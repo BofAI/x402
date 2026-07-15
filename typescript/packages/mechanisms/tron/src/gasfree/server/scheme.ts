@@ -12,7 +12,6 @@ import {
   findByAddress,
   parsePrice as parseTokenPrice,
 } from "../../shared/tokens";
-import { buildFeeInfo, type ExactTronFeeConfig } from "../../shared/fee";
 
 /**
  * TRON server implementation for the `exact_gasfree` scheme.
@@ -66,7 +65,7 @@ export class ExactGasFreeTronScheme implements SchemeNetworkServer {
    * @param supportedKind.x402Version - The x402 version.
    * @param supportedKind.scheme - The payment scheme.
    * @param supportedKind.network - The network identifier.
-   * @param supportedKind.extra - Optional facilitator extra (feeConfig).
+   * @param supportedKind.extra - Optional facilitator extra.
    * @param extensionKeys - Facilitator extension keys (unused).
    * @returns The enhanced payment requirements.
    */
@@ -83,18 +82,6 @@ export class ExactGasFreeTronScheme implements SchemeNetworkServer {
     void extensionKeys;
 
     const token = findByAddress(supportedKind.network, paymentRequirements.asset);
-    const feeConfig = supportedKind.extra?.feeConfig as ExactTronFeeConfig | undefined;
-    const existingFee = paymentRequirements.extra?.fee;
-    const fee =
-      existingFee ??
-      (feeConfig
-        ? buildFeeInfo(
-            feeConfig,
-            supportedKind.network,
-            paymentRequirements.asset,
-            feeConfig.feeTo ?? "",
-          )
-        : undefined);
 
     return Promise.resolve({
       ...paymentRequirements,
@@ -103,7 +90,6 @@ export class ExactGasFreeTronScheme implements SchemeNetworkServer {
         ...(token
           ? { name: token.name, ...(token.version ? { version: token.version } : {}) }
           : {}),
-        ...(fee ? { fee } : {}),
       },
     });
   }

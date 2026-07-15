@@ -13,7 +13,6 @@ import {
 } from "@bankofai/x402-core/utils";
 import { ExactDefaultAssetInfo, getDefaultAsset } from "../../shared/defaultAssets";
 import { getDecimals, parsePrice as parseTokenPrice } from "../../shared/tokens";
-import { buildFeeInfo, type ExactTronFeeConfig } from "../../shared/fee";
 
 /**
  * TRON server implementation for the Upto payment scheme.
@@ -106,19 +105,6 @@ export class UptoTronScheme implements SchemeNetworkServer {
       (supportedKind.extra?.permit2FacilitatorAddress as string | undefined) ??
       (supportedKind.extra?.facilitatorAddress as string | undefined);
 
-    const feeConfig = supportedKind.extra?.feeConfig as ExactTronFeeConfig | undefined;
-    const existingFee = paymentRequirements.extra?.fee;
-    const fee =
-      existingFee ??
-      (feeConfig
-        ? buildFeeInfo(
-            feeConfig,
-            supportedKind.network,
-            paymentRequirements.asset,
-            feeConfig.feeTo ?? "",
-          )
-        : undefined);
-
     return Promise.resolve({
       ...paymentRequirements,
       extra: {
@@ -127,7 +113,6 @@ export class UptoTronScheme implements SchemeNetworkServer {
         ...(facilitatorAddress
           ? { facilitatorAddress, permit2FacilitatorAddress: facilitatorAddress }
           : {}),
-        ...(fee ? { fee } : {}),
       },
     });
   }

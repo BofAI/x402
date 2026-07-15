@@ -8,7 +8,6 @@ import { ClientTronSigner } from "../../signer";
 import { ExactGasFreePayload, GasFreeMessage } from "../../types";
 import { getDecimals } from "../../shared/tokens";
 import { log } from "@bankofai/x402-core";
-import { readFeeFromExtra, type FeeInfo } from "../../shared/fee";
 import { transferWithAuthorizationABI } from "../../constants";
 import {
   GasFreeAPIClient,
@@ -124,11 +123,10 @@ export class ExactGasFreeTronScheme implements SchemeNetworkClient {
       throw new Error(`GasFree account for ${user} (${gasfreeAddress}) is not activated.`);
     }
 
-    const fee = readFeeFromExtra(requirements.extra);
-    const serviceProvider = await this.resolveProvider(api, fee);
+    const serviceProvider = await this.resolveProvider(api);
 
     const asset = accountInfo.assets.find(a => a.tokenAddress === requirements.asset);
-    const maxFee = this.computeMaxFee(requirements, accountInfo, asset, fee);
+    const maxFee = this.computeMaxFee(requirements, accountInfo, asset);
 
     const skipBalanceCheck = (context?.extensions?.skipBalanceCheck as boolean) ?? false;
     if (!skipBalanceCheck) {
@@ -207,16 +205,12 @@ export class ExactGasFreeTronScheme implements SchemeNetworkClient {
   }
 
   /**
-   * Resolve the service provider: the requirement's fee.feeTo, or a relayer pick.
+   * Resolve the service provider by picking from the relayer's provider list.
    *
    * @param api - The GasFree relayer client.
-   * @param fee - The fee terms from the requirement, if any.
    * @returns The selected service provider address.
    */
-  private async resolveProvider(api: GasFreeAPIClient, fee: FeeInfo | undefined): Promise<string> {
-    if (fee?.feeTo) {
-      return fee.feeTo;
-    }
+  private async resolveProvider(api: GasFreeAPIClient): Promise<string> {
     const providers = await api.getProviders();
     if (!providers || providers.length === 0) {
       throw new Error("No GasFree service providers available");
@@ -225,29 +219,26 @@ export class ExactGasFreeTronScheme implements SchemeNetworkClient {
   }
 
   /**
-   * Compute the maxFee: max(account transferFee, facilitator fee), plus
-   * activateFee when inactive, falling back to one token when nothing is known.
+   * Compute the maxFee: account transferFee, plus activateFee when inactive,
+   * falling back to one token when nothing is known.
    *
    * @param requirements - The payment requirements.
    * @param accountInfo - The GasFree account info.
    * @param asset - The GasFree per-token fee entry, if present.
-   * @param fee - The fee terms from the requirement, if any.
    * @returns The computed maxFee in smallest units.
    */
   private computeMaxFee(
     requirements: PaymentRequirements,
     accountInfo: GasFreeAddressInfo,
     asset: GasFreeAsset | undefined,
-    fee: FeeInfo | undefined,
   ): bigint {
     const transferFee = BigInt(asset?.transferFee ?? "0");
     const activateFee = BigInt(asset?.activateFee ?? "0");
-    const facilitatorFee = BigInt(fee?.feeAmount ?? "0");
 
-    let maxFee = transferFee > facilitatorFee ? transferFee : facilitatorFee;
+    let maxFee = transferFee;
 
-    // Fallback: nothing known and no facilitator fee → default to 1 token.
-    if (maxFee === 0n && !fee) {
+    // Fallback: nothing known → default to 1 token.
+    if (maxFee === 0n) {
       const decimals = getDecimals(requirements.network, requirements.asset);
       maxFee = BigInt(10) ** BigInt(decimals);
     }

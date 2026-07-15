@@ -13,7 +13,6 @@ import {
 } from "@bankofai/x402-core/utils";
 import { ExactDefaultAssetInfo, getDefaultAsset } from "../../shared/defaultAssets";
 import { getDecimals, parsePrice as parseTokenPrice } from "../../shared/tokens";
-import { buildFeeInfo, type ExactTronFeeConfig } from "../../shared/fee";
 
 /**
  * TRON server implementation for the Exact payment scheme.
@@ -135,28 +134,12 @@ export class ExactTronScheme implements SchemeNetworkServer {
       (paymentRequirements.extra?.permit2FacilitatorAddress as string | undefined) ??
       (supportedKind.extra?.permit2FacilitatorAddress as string | undefined);
 
-    // Attach per-asset fee terms from the facilitator's advertised fee config,
-    // unless a fee was already set upstream.
-    const feeConfig = supportedKind.extra?.feeConfig as ExactTronFeeConfig | undefined;
-    const existingFee = paymentRequirements.extra?.fee;
-    const fee =
-      existingFee ??
-      (feeConfig
-        ? buildFeeInfo(
-            feeConfig,
-            supportedKind.network,
-            paymentRequirements.asset,
-            feeConfig.feeTo ?? "",
-          )
-        : undefined);
-
     return Promise.resolve({
       ...paymentRequirements,
       extra: {
         ...paymentRequirements.extra,
         assetTransferMethod: method,
         ...(method === "permit2" && permit2FacilitatorAddress ? { permit2FacilitatorAddress } : {}),
-        ...(fee ? { fee } : {}),
       },
     });
   }

@@ -1,7 +1,6 @@
 import { x402Facilitator } from "@bankofai/x402-core/facilitator";
 import { Network } from "@bankofai/x402-core/types";
 import { FacilitatorTronSigner } from "../../signer";
-import { ExactTronFeeConfig } from "../../shared/fee";
 import { GasFreeAPIClient, createGasFreeApiClients } from "../../shared/gasfree/api";
 import { GASFREE_API_BASE_URLS } from "../../shared/gasfree/config";
 import { ExactGasFreeTronScheme } from "./scheme";
@@ -16,8 +15,6 @@ export interface TronGasFreeFacilitatorConfig {
   apiClients?: Record<string, GasFreeAPIClient>;
   /** GasFree relayer base URLs keyed by network (used when apiClients omitted). */
   apiBaseUrls?: Record<string, string>;
-  /** Optional facilitator fee policy. */
-  fee?: ExactTronFeeConfig;
 }
 
 /**
@@ -35,7 +32,7 @@ export function registerExactGasFreeTronScheme(
     config.apiClients ?? createGasFreeApiClients(config.apiBaseUrls ?? GASFREE_API_BASE_URLS);
   facilitator.register(
     config.networks,
-    new ExactGasFreeTronScheme(config.signer, apiClients, config.fee),
+    new ExactGasFreeTronScheme(config.signer, apiClients),
   );
   return facilitator;
 }

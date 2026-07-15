@@ -87,22 +87,22 @@ function requirements(extra: Record<string, unknown> = {}) {
 }
 
 describe("GasFree client createPaymentPayload", () => {
-  it("uses fee.feeTo as provider and fee.feeAmount as maxFee floor", async () => {
+  it("picks a provider from the relayer list and uses transferFee as maxFee", async () => {
     const a = api(account());
     const client = new ClientScheme(clientSigner(), { apiClients: { [NETWORK]: a as never } });
     const result = await client.createPaymentPayload(
       2,
-      requirements({ fee: { feeTo: PROVIDER, feeAmount: "20000" } }),
+      requirements(),
       { extensions: { skipBalanceCheck: true } },
     );
     const p = result.payload as ExactGasFreePayload;
     expect(p.gasfree.serviceProvider).toBe(PROVIDER);
-    // max(transferFee 10000, facilitatorFee 20000) = 20000
-    expect(p.gasfree.maxFee).toBe("20000");
-    expect(a.getProviders).not.toHaveBeenCalled();
+    // transferFee 10000
+    expect(p.gasfree.maxFee).toBe("10000");
+    expect(a.getProviders).toHaveBeenCalled();
   });
 
-  it("falls back to a relayer provider when no fee is present", async () => {
+  it("defaults maxFee to 1 token when transferFee is unknown", async () => {
     const a = api(account({ assets: [] }));
     const client = new ClientScheme(clientSigner(), { apiClients: { [NETWORK]: a as never } });
     const result = await client.createPaymentPayload(2, requirements(), {
@@ -110,7 +110,7 @@ describe("GasFree client createPaymentPayload", () => {
     });
     const p = result.payload as ExactGasFreePayload;
     expect(p.gasfree.serviceProvider).toBe(PROVIDER);
-    // no transferFee, no facilitator fee → default 1 token (10^6)
+    // no transferFee → default 1 token (10^6)
     expect(p.gasfree.maxFee).toBe("1000000");
     expect(a.getProviders).toHaveBeenCalled();
   });
@@ -135,7 +135,7 @@ describe("GasFree client createPaymentPayload", () => {
     });
     const result = await client.createPaymentPayload(
       2,
-      requirements({ fee: { feeTo: PROVIDER, feeAmount: "10000" } }),
+      requirements(),
       { extensions: { skipBalanceCheck: true } },
     );
     const p = result.payload as ExactGasFreePayload;
@@ -150,7 +150,7 @@ describe("GasFree client createPaymentPayload", () => {
     await expect(
       client.createPaymentPayload(
         2,
-        requirements({ fee: { feeTo: PROVIDER, feeAmount: "10000" } }),
+        requirements(),
       ),
     ).rejects.toThrow(/not activated/);
   });
@@ -162,7 +162,7 @@ describe("GasFree client createPaymentPayload", () => {
     await expect(
       client.createPaymentPayload(
         2,
-        requirements({ fee: { feeTo: PROVIDER, feeAmount: "10000" } }),
+        requirements(),
       ),
     ).rejects.toThrow(/Insufficient balance/);
   });
@@ -256,10 +256,6 @@ describe("GasFree facilitator verify term validation", () => {
     new FacilitatorScheme(
       facilitatorSigner(),
       { [NETWORK]: api(account()) as never },
-      {
-        feeTo: PROVIDER,
-        baseFee: { USDT: "10000" },
-      },
     );
 
   it("accepts a well-formed payload", async () => {
@@ -278,12 +274,6 @@ describe("GasFree facilitator verify term validation", () => {
     const p = payload({ receiver: GASFREE_ADDR });
     const r = await fac().verify({ accepted: requirements(), payload: p } as never, requirements());
     expect(r.invalidReason).toBe("gasfree_payto_mismatch");
-  });
-
-  it("rejects fee below base fee", async () => {
-    const p = payload({ maxFee: "9999" });
-    const r = await fac().verify({ accepted: requirements(), payload: p } as never, requirements());
-    expect(r.invalidReason).toBe("gasfree_fee_amount_too_low");
   });
 
   it("rejects an expired permit", async () => {
@@ -323,10 +313,6 @@ describe("GasFree facilitator settle", () => {
     const fac = new FacilitatorScheme(
       facilitatorSigner(),
       { [NETWORK]: a as never },
-      {
-        feeTo: PROVIDER,
-        baseFee: { USDT: "10000" },
-      },
     );
     const r = await fac.settle(
       { accepted: requirements(), payload: goodPayload() } as never,
@@ -341,7 +327,6 @@ describe("GasFree facilitator settle", () => {
     const fac = new FacilitatorScheme(
       facilitatorSigner({ verify: false }),
       { [NETWORK]: api(account()) as never },
-      { feeTo: PROVIDER, baseFee: { USDT: "10000" } },
     );
     const r = await fac.settle(
       { accepted: requirements(), payload: goodPayload() } as never,
@@ -355,7 +340,6 @@ describe("GasFree facilitator settle", () => {
     const fac = new FacilitatorScheme(
       facilitatorSigner({ balance: 100n }),
       { [NETWORK]: api(account()) as never },
-      { feeTo: PROVIDER, baseFee: { USDT: "10000" } },
     );
     const r = await fac.settle(
       { accepted: requirements(), payload: goodPayload() } as never,
