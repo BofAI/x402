@@ -114,6 +114,10 @@ export class ExactTronScheme implements SchemeNetworkServer {
   ): Promise<PaymentRequirements> {
     void extensionKeys;
 
+    const extra = { ...paymentRequirements.extra };
+    delete extra.fee;
+    const requirementsWithoutFee = { ...paymentRequirements, extra };
+
     const supportedMethods = supportedKind.extra?.supportedAssetTransferMethods as
       | string[]
       | undefined;
@@ -127,7 +131,7 @@ export class ExactTronScheme implements SchemeNetworkServer {
         : undefined);
 
     if (!method) {
-      return Promise.resolve(paymentRequirements);
+      return Promise.resolve(requirementsWithoutFee);
     }
 
     const permit2FacilitatorAddress =
@@ -135,9 +139,9 @@ export class ExactTronScheme implements SchemeNetworkServer {
       (supportedKind.extra?.permit2FacilitatorAddress as string | undefined);
 
     return Promise.resolve({
-      ...paymentRequirements,
+      ...requirementsWithoutFee,
       extra: {
-        ...paymentRequirements.extra,
+        ...extra,
         assetTransferMethod: method,
         ...(method === "permit2" && permit2FacilitatorAddress ? { permit2FacilitatorAddress } : {}),
       },

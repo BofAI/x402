@@ -9,10 +9,10 @@ import { privateKeyTronWallet } from "./helpers";
 vi.mock("../../src/rpc", () => ({ buildTronWeb: vi.fn() }));
 
 /**
- * Offline tests for the AgentWallet abstraction (F5).
+ * Offline tests for the ClientTronWallet abstraction (F5).
  *
  * `createClientTronSigner` is wallet-only: the private key never enters the SDK.
- * A raw key is just one AgentWallet implementation (via privateKeyTronWallet);
+ * A raw key is just one ClientTronWallet implementation (via privateKeyTronWallet);
  * arbitrary wallets (hosted, hardware) drive the signer via structural typing.
  */
 
