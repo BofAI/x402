@@ -247,7 +247,7 @@ export async function verifyERC1271(
       args: [digest, signature],
     })) as `0x${string}` | undefined;
     if (typeof result !== "string") return false;
-    return result.toLowerCase().startsWith(ERC1271_MAGIC_VALUE);
+    return result.toLowerCase() === ERC1271_MAGIC_VALUE;
   } catch {
     return false;
   }

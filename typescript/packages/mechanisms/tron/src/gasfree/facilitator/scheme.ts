@@ -57,7 +57,7 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
   }
 
   /**
-   * Verify a GasFree payload against the requirements and fee policy.
+   * Verify a GasFree payload against the requirements.
    *
    * @param payload - The payment payload.
    * @param requirements - The payment requirements.
@@ -124,7 +124,21 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
     }
 
     const payer = gf.gasfree.user;
-    const api = this.getApiClient(requirements.network);
+
+    // Resolve the relayer client — may throw if the network is not configured.
+    // verify() normally catches this earlier, but guard defensively.
+    let api: GasFreeAPIClient;
+    try {
+      api = this.getApiClient(requirements.network);
+    } catch (err) {
+      return {
+        success: false,
+        errorReason: err instanceof Error ? err.message : String(err),
+        transaction: "",
+        network: requirements.network,
+        payer,
+      };
+    }
 
     // Best-effort balance preflight against the GasFree wallet.
     try {
@@ -140,7 +154,7 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
         };
       }
     } catch {
-      // Submission can still fail with the relayer's exact reason.
+      // Balance read failed — continue; the relayer will return the exact reason.
     }
 
     try {
@@ -193,7 +207,7 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
   }
 
   /**
-   * Validate the GasFree permit terms against the requirements and fee policy.
+   * Validate the GasFree permit terms against the requirements.
    *
    * @param gf - The GasFree payload.
    * @param requirements - The payment requirements.
@@ -209,6 +223,11 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
     if (norm(m.token) !== norm(requirements.asset)) {
       return errors.TOKEN_MISMATCH;
     }
+    // Reject short payments only (value >= amount). GasFree's maxFee is a separate
+    // signed field, so the fee does not factor into the amount check. Allowing
+    // value > amount lets the client cover a fee_quote that slightly exceeds the
+    // listed price; the payer cannot be charged more than they signed. Mirrors the
+    // Python facilitator's `value >= required amount` semantics.
     if (BigInt(m.value) < BigInt(requirements.amount)) {
       return errors.AMOUNT_MISMATCH;
     }

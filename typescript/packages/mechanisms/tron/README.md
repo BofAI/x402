@@ -151,7 +151,7 @@ The `permit2` path depends on three on-chain contracts. Addresses live in `src/c
 | --- | --- | --- | --- |
 | `tron:0xcd8690dc` | 3448148188 | `TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h` | `TFGoaq2KjizijgjtkVxT7yjffW1A5T1j6F` |
 | `tron:0x2b6653dc` | 728126428 | `TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9` | `TN49yaJmZMZoEdDCqjB4uPzQLHvYkGw95m` |
-| `tron:0x94a9059e` | 2494104990 | — (no Permit2 deployment) | — |
+| `tron:0x94a9059e` | 2494104990 | `TJMkP7a3ucTMkvi17p7ChhTCw6zriFX3tg` | `TGZkC38n14f2GpBWPMQLF2BpmcpWW3QNhg` |
 
 > ⚠️ Mainnet uses real funds. The configured Permit2 and
 > `x402ExactPermit2Proxy` addresses are the deployed mainnet contracts; verify

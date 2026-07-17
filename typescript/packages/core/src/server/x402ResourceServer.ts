@@ -14,7 +14,7 @@ import {
 import { SchemeNetworkServer, SchemePaymentRequiredContext } from "../types/mechanisms";
 import { Price, Network, ResourceServerExtension, ResourceServerExtensionHooks } from "../types";
 import type { DeepReadonly } from "../types/readonly";
-import { deepEqual, findByNetworkAndScheme } from "../utils";
+import { deepEqual, findByNetworkAndScheme, findSchemesByNetwork } from "../utils";
 import { log } from "../observability/logger";
 import {
   assertAcceptsAllowlistedAfterExtensionEnrich,
@@ -1351,21 +1351,31 @@ export class x402ResourceServer {
   private validateFacilitatorCapabilities(): void {
     const configErrors: string[] = [];
 
-    for (const [network, schemeMap] of this.registeredServerSchemes) {
-      for (const [scheme, server] of schemeMap) {
-        if (!server.validateFacilitatorSupport) continue;
-
-        for (const x402Version of this.supportedResponsesMap.keys()) {
-          const supportedKind = this.getSupportedKind(x402Version, network as Network, scheme);
-          if (!supportedKind) continue;
-
-          const extensions = this.getFacilitatorExtensions(x402Version, network as Network, scheme);
-          const problem = server.validateFacilitatorSupport(
-            network as Network,
-            supportedKind,
-            extensions,
+    for (const [x402Version, versionMap] of this.supportedResponsesMap) {
+      for (const [concreteNetwork, schemeMap] of versionMap) {
+        for (const [scheme, supported] of schemeMap) {
+          const kind = supported.kinds.find(
+            k =>
+              k.x402Version === x402Version && k.network === concreteNetwork && k.scheme === scheme,
           );
-          if (problem) configErrors.push(`${scheme} on ${network}: ${problem}`);
+          if (!kind) continue;
+
+          // Find the registered server scheme via pattern matching so wildcard
+          // registrations (e.g. "eip155:*") match concrete facilitator networks.
+          const serverScheme = findSchemesByNetwork(
+            this.registeredServerSchemes,
+            concreteNetwork as Network,
+          )?.get(scheme);
+          if (!serverScheme?.validateFacilitatorSupport) continue;
+
+          const problem = serverScheme.validateFacilitatorSupport(
+            concreteNetwork as Network,
+            kind,
+            supported.extensions,
+          );
+          if (problem) {
+            configErrors.push(`${scheme} on ${concreteNetwork}: ${problem}`);
+          }
         }
       }
     }
@@ -1644,7 +1654,7 @@ function getExtensionInfo(value: unknown): unknown {
  * @param fields - Field names regenerated per response that must not be compared.
  * @returns The value unchanged when no fields apply; otherwise a copy without them.
  */
-function omitFields(value: unknown, fields?: string[]): unknown {
+function omitFields(value: unknown, fields?: readonly string[]): unknown {
   if (!fields || fields.length === 0) {
     return value;
   }

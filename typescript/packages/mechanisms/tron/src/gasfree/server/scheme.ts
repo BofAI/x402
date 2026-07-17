@@ -17,8 +17,8 @@ import {
  * TRON server implementation for the `exact_gasfree` scheme.
  *
  * GasFree is TRON-only (no EVM counterpart). Price parsing and decimals come
- * from the token registry; fee terms come from the facilitator's advertised
- * fee config.
+ * from the token registry. Relayer fees (transferFee/activateFee) are inherent
+ * to the GasFree protocol and are not carried in payment requirements.
  */
 export class ExactGasFreeTronScheme implements SchemeNetworkServer {
   readonly scheme = "exact_gasfree";
@@ -81,12 +81,17 @@ export class ExactGasFreeTronScheme implements SchemeNetworkServer {
   ): Promise<PaymentRequirements> {
     void extensionKeys;
 
-    const token = findByAddress(supportedKind.network, paymentRequirements.asset);
+    const extra = { ...paymentRequirements.extra };
+    // Remove stale fee metadata left over from the removed advisory-fee API.
+    // GasFree fees (transferFee/activateFee) are relayer-side and never carried in extra.
+    delete extra.fee;
+    const requirementsWithoutFee = { ...paymentRequirements, extra };
 
+    const token = findByAddress(supportedKind.network, paymentRequirements.asset);
     return Promise.resolve({
-      ...paymentRequirements,
+      ...requirementsWithoutFee,
       extra: {
-        ...paymentRequirements.extra,
+        ...extra,
         ...(token
           ? { name: token.name, ...(token.version ? { version: token.version } : {}) }
           : {}),

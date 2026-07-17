@@ -8,7 +8,7 @@
  * schemes coexist on `TRON_NILE` without conflict — the client picks one via
  * the `accepts` entry it honors in the 402 challenge.
  */
-import { TRON_NILE, TRON_MAINNET, TRON_SHASTA } from "@bankofai/x402-tron";
+import { TRON_NILE, TRON_MAINNET, TRON_SHASTA, getNetworkTokens } from "@bankofai/x402-tron";
 import { ExactTronScheme } from "@bankofai/x402-tron/exact/server";
 import { registerExactGasFreeTronScheme } from "@bankofai/x402-tron/gasfree/server";
 import type { x402ResourceServer } from "@bankofai/x402-express";
@@ -36,22 +36,27 @@ export function registerTron(resourceServer: x402ResourceServer): void {
 }
 
 /**
- * Builds the `accepts` entries advertised for TRON payments — USDT/USDD via
- * `exact`, plus USDT via `exact_gasfree`. The client chooses which scheme to pay.
+ * Builds the `accepts` entries advertised for TRON payments — all registered
+ * tokens via `exact`, plus USDT via `exact_gasfree`. The client chooses which
+ * scheme to pay.
  *
  * @returns Payment-requirements accept entries.
  */
 export function tronAccepts() {
   const payTo = process.env.TRON_ADDRESS as string;
+
+  // Derive exact accept entries from the token registry so only tokens that
+  // are actually registered for the configured network are advertised.
+  const tokens = getNetworkTokens(TRON_NETWORK);
+  const exactAccepts = Object.keys(tokens).map((symbol) => ({
+    scheme: "exact" as const,
+    network: TRON_NETWORK,
+    payTo,
+    price: `0.001 ${symbol}`,
+  }));
+
   return [
-    // exact: permit2, payer pays TRX energy. USDT and USDD both resolve from the
-    // scheme's token registry via the "<amount> <symbol>" price form.
-    ...["0.001 USDT", "0.001 USDD"].map((price) => ({
-      scheme: "exact" as const,
-      network: TRON_NETWORK,
-      payTo,
-      price,
-    })),
+    ...exactAccepts,
     // exact_gasfree: relayer pays energy; GasFree maps "$" to the network's
     // default asset (USDT). Funds come from the payer's GasFree custodial wallet.
     {

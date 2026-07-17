@@ -75,7 +75,7 @@ export interface ResourceServerExtension {
    * static committed terms. Dynamic fields are excluded from client echo
    * validation. Defaults to none (all info fields treated as static / strict).
    */
-  dynamicInfoFields?: string[];
+  dynamicInfoFields?: readonly string[];
   enrichDeclaration?: (declaration: unknown, transportContext: unknown) => unknown;
   /**
    * Return value merges into `extensions[key]`. In-place edits to `accepts` are allowlisted only

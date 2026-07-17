@@ -84,14 +84,16 @@ export async function createUptoPermit2Payload(
 
   // Ensure the one-time Permit2 allowance before signing (mirrors the exact
   // client). No-op when the signer can't broadcast (sign-only wallet) or when
-  // the allowance already covers the authorized maximum + fee. TRON's mainstream
+  // the allowance already covers the authorized maximum. TRON's mainstream
   // tokens (USDT/USDD) lack ERC-3009, so this approve is required on first use.
   // `permitted.amount` is the upto ceiling — approve at least that much, since
   // the facilitator may settle for any amount up to it.
-  const totalRequired = BigInt(paymentRequirements.amount);
+  // Note: the facilitator advisory fee was removed; allowance covers only the
+  // payment amount. GasFree relayer fees (transferFee/activateFee) are deducted
+  // from the GasFree wallet, not via Permit2 allowance.
   await signer.ensureAllowance?.({
     token: paymentRequirements.asset,
-    amount: totalRequired,
+    amount: BigInt(paymentRequirements.amount),
     network,
   });
 

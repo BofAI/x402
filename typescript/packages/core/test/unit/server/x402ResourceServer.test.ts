@@ -369,6 +369,22 @@ describe("x402ResourceServer", () => {
       await expect(server.initialize()).resolves.not.toThrow();
       expect(scheme.validateCalls).toBe(0);
     });
+
+    it("invokes the hook when the server registers a wildcard and the facilitator advertises a concrete network", async () => {
+      const server = new x402ResourceServer(buildExactFacilitator());
+      const scheme = new ValidatingScheme("exact", undefined);
+      server.register("eip155:*" as Network, scheme);
+
+      await expect(server.initialize()).resolves.not.toThrow();
+      expect(scheme.validateCalls).toBe(1);
+    });
+
+    it("rejects when a wildcard-registered scheme reports a capability problem", async () => {
+      const server = new x402ResourceServer(buildExactFacilitator());
+      server.register("eip155:*" as Network, new ValidatingScheme("exact", "needs a signer"));
+
+      await expect(server.initialize()).rejects.toThrow(/exact on eip155:8453: needs a signer/);
+    });
   });
 
   describe("buildPaymentRequirements", () => {

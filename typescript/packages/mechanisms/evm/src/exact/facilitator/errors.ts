@@ -75,3 +75,4 @@ export const ErrUnsupportedPayloadType = "unsupported_payload_type";
 export const ErrInvalidTransactionState = "invalid_transaction_state";
 export const ErrFactoryNotAllowed = "eip6492_factory_not_allowed";
 export const ErrSmartWalletDeploymentFailed = "smart_wallet_deployment_failed";
+export const ErrUnexpectedVerificationError = "invalid_exact_evm_unexpected_error";

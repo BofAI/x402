@@ -66,6 +66,48 @@ export async function verifyEIP3009(
   options?: VerifyEIP3009Options,
   allowedFactories: string[] = [],
 ): Promise<VerifyResponse> {
+  try {
+    return await verifyEIP3009Inner(
+      signer,
+      payload,
+      requirements,
+      eip3009Payload,
+      options,
+      allowedFactories,
+    );
+  } catch (error) {
+    // Map any uncaught exception (malformed payload, RPC failure, invalid address/number)
+    // to a stable VerifyResponse instead of letting it propagate as an unhandled rejection.
+    return {
+      isValid: false,
+      invalidReason: Errors.ErrUnexpectedVerificationError,
+      invalidMessage: error instanceof Error ? error.message : String(error),
+      payer: eip3009Payload?.authorization?.from,
+    };
+  }
+}
+
+/**
+ * Internal implementation of {@link verifyEIP3009}. Wrapped by the public function so that
+ * any unexpected throw (malformed payload, RPC timeout, invalid address/number) is caught
+ * and mapped to a stable VerifyResponse.
+ *
+ * @param signer - The facilitator signer for contract reads
+ * @param payload - The payment payload to verify
+ * @param requirements - The payment requirements
+ * @param eip3009Payload - The EIP-3009 specific payload
+ * @param options - Optional verification options
+ * @param allowedFactories - Allowlisted ERC-6492 factory addresses
+ * @returns Promise resolving to verification response
+ */
+async function verifyEIP3009Inner(
+  signer: FacilitatorEvmSigner,
+  payload: PaymentPayload,
+  requirements: PaymentRequirements,
+  eip3009Payload: ExactEIP3009Payload,
+  options?: VerifyEIP3009Options,
+  allowedFactories: string[] = [],
+): Promise<VerifyResponse> {
   const payer = eip3009Payload.authorization.from;
   let eip6492Deployment:
     | { factoryAddress: `0x${string}`; factoryCalldata: `0x${string}` }

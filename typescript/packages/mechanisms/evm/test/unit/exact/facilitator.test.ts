@@ -8,6 +8,7 @@ import { ERC20_APPROVAL_GAS_SPONSORING_KEY } from "../../../src/exact/extensions
 import { MULTICALL3_ADDRESS } from "../../../src/multicall";
 import { concat, encodeAbiParameters } from "viem";
 import * as Errors from "../../../src/exact/facilitator/errors";
+import { verifyEIP3009 } from "../../../src/exact/facilitator/eip3009";
 
 // Mock viem's transaction parsing utilities for ERC-20 approval tests
 // Uses importOriginal to preserve all other viem exports (getAddress, etc.)
@@ -691,6 +692,35 @@ describe("ExactEvmScheme (Facilitator)", () => {
 
       // Signature validation handles checksummed addresses
       expect(result).toBeDefined();
+    });
+
+    it("returns stable VerifyResponse when payload has no authorization", async () => {
+      const requirements: PaymentRequirements = {
+        scheme: "exact",
+        network: "eip155:84532",
+        amount: "1000000",
+        asset: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+        payTo: "0x742D35CC6634c0532925A3b844BC9E7595F0BEb0",
+        maxTimeoutSeconds: 300,
+        extra: { name: "USDC", version: "2" },
+      };
+
+      const payload: PaymentPayload = {
+        x402Version: 2,
+        payload: {} as never,
+        accepted: requirements,
+        resource: { url: "", description: "", mimeType: "" },
+      };
+
+      const result = await verifyEIP3009(
+        mockFacilitatorSigner,
+        payload,
+        requirements,
+        payload.payload as never,
+      );
+
+      expect(result.isValid).toBe(false);
+      expect(result.invalidReason).toBe(Errors.ErrUnexpectedVerificationError);
     });
   });
 
