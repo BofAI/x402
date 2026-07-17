@@ -19,6 +19,18 @@ export const Any = z.record(z.unknown());
 export type Any = z.infer<typeof Any>;
 
 /**
+ * Wraps a schema so that `null` (sent by Python/Go SDKs) is accepted and
+ * normalized to `undefined`, matching the optional-field semantics used
+ * throughout the x402 TypeScript types.
+ *
+ * @param schema - The Zod schema to wrap.
+ * @returns A schema that accepts `null`/`undefined` and outputs `undefined` for both.
+ */
+function nullishToUndefined<T extends z.ZodType>(schema: T) {
+  return schema.nullish().transform(v => v ?? undefined);
+}
+
+/**
  * Optional any record schema - an optional object with unknown keys and values.
  * Used for optional extension fields like `extra` and `extensions`.
  */
@@ -69,11 +81,11 @@ const PRINTABLE_ASCII_REGEX = /^[\x20-\x7e]+$/;
 
 export const ResourceInfoSchema = z.object({
   url: NonEmptyString,
-  description: z.string().optional(),
-  mimeType: z.string().optional(),
-  serviceName: z.string().min(1).max(32).regex(PRINTABLE_ASCII_REGEX).optional(),
-  tags: z.array(z.string().min(1).max(32).regex(PRINTABLE_ASCII_REGEX)).max(5).optional(),
-  iconUrl: z.string().max(2048).optional(),
+  description: nullishToUndefined(z.string()),
+  mimeType: nullishToUndefined(z.string()),
+  serviceName: nullishToUndefined(z.string().min(1).max(32).regex(PRINTABLE_ASCII_REGEX)),
+  tags: nullishToUndefined(z.array(z.string().min(1).max(32).regex(PRINTABLE_ASCII_REGEX)).max(5)),
+  iconUrl: nullishToUndefined(z.string().max(2048)),
 });
 export type ResourceInfo = z.infer<typeof ResourceInfoSchema>;
 
@@ -148,7 +160,7 @@ export type PaymentRequirementsV2 = z.infer<typeof PaymentRequirementsV2Schema>;
  */
 export const PaymentRequiredV2Schema = z.object({
   x402Version: z.literal(2),
-  error: z.string().optional(),
+  error: nullishToUndefined(z.string()),
   resource: ResourceInfoSchema,
   accepts: z.array(PaymentRequirementsV2Schema).min(1),
   extensions: OptionalAny,
@@ -161,7 +173,7 @@ export type PaymentRequiredV2 = z.infer<typeof PaymentRequiredV2Schema>;
  */
 export const PaymentPayloadV2Schema = z.object({
   x402Version: z.literal(2),
-  resource: ResourceInfoSchema.optional(),
+  resource: nullishToUndefined(ResourceInfoSchema),
   accepted: PaymentRequirementsV2Schema,
   payload: Any,
   extensions: OptionalAny,

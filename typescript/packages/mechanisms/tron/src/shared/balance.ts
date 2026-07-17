@@ -1,6 +1,5 @@
 import type { PaymentRequirements } from "@bankofai/x402-core/types";
 import { CheapestTokenSelectionStrategy, type TokenSelectionStrategy } from "./tokenSelection";
-import { readFeeFromExtra } from "./fee";
 
 /**
  * Balance-aware payment selection for TRON.
@@ -20,17 +19,27 @@ export interface BalanceCheckable {
    * @returns The balance in smallest units.
    */
   checkBalance(asset: string, network: string): Promise<bigint>;
+
+  /**
+   * Estimate the total deduction required to fulfill a requirement,
+   * including scheme-specific fees (e.g. GasFree transferFee/activateFee).
+   *
+   * When omitted, the cost defaults to req.amount (no extra fees).
+   *
+   * @param req - The payment requirement.
+   * @returns The estimated total cost in smallest units.
+   */
+  estimateCost?(req: PaymentRequirements): Promise<bigint>;
 }
 
 /**
  * Filter out requirements the payer cannot afford.
  *
  * Requirements whose balance cannot be determined are kept, deferring the
- * decision to createPaymentPayload. Only `exact_gasfree` adds its enforced
- * relayer fee to the required amount; `exact` and `upto` proxies transfer
- * exactly `amount` and carry no fee, so stale `extra.fee` metadata is ignored.
+ * decision to createPaymentPayload.
  *
- * @param scheme - A client scheme exposing checkBalance.
+ * @param scheme - A client scheme exposing checkBalance (and optionally
+ *   estimateCost for schemes with extra on-chain fees, e.g. GasFree).
  * @param accepts - The candidate payment requirements.
  * @returns The affordable subset (possibly empty).
  */
@@ -49,10 +58,13 @@ export async function filterAffordableRequirements(
       continue;
     }
     let needed = BigInt(req.amount);
-    if (req.scheme === "exact_gasfree") {
-      const fee = readFeeFromExtra(req.extra);
-      if (fee) {
-        needed += BigInt(fee.feeAmount);
+    if (scheme.estimateCost) {
+      try {
+        needed = await scheme.estimateCost(req);
+      } catch {
+        // Cannot estimate scheme-specific cost; defer to createPaymentPayload.
+        affordable.push(req);
+        continue;
       }
     }
     if (balance >= needed) {

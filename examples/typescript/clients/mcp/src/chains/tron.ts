@@ -4,14 +4,20 @@
  * address and auto-broadcasts the one-time Permit2 `approve` that USDT/USDD need.
  * Returns the scheme entries for `createx402MCPClient({ schemes })`.
  */
-import { createClientTronSigner } from "@bankofai/x402-tron";
+import {
+  createClientTronSigner,
+  TRON_NILE,
+  TRON_MAINNET,
+  TRON_SHASTA,
+} from "@bankofai/x402-tron";
 import { ExactTronScheme } from "@bankofai/x402-tron/exact/client";
 import type { Network, SchemeNetworkClient } from "@bankofai/x402-core/types";
 
 import { tryResolveWallet } from "../env.js";
 
 /** CAIP-2 network this client pays on. */
-export const TRON_NETWORK: Network = "tron:0xcd8690dc";
+export const TRON_NETWORK: Network = (process.env.TRON_NETWORK ??
+  TRON_NILE) as Network;
 
 /**
  * Builds the TRON `exact` client scheme registration, if a TRON wallet resolves.

@@ -20,16 +20,11 @@ It plugs into `@bankofai/x402-core` via the `tron:*` CAIP family — no core cha
 
 ### Fee behavior
 
-The `exact` and `upto` schemes do not advertise or collect a facilitator fee:
-their deployed proxies transfer exactly the payment amount. Facilitator fees are
-supported only by `exact_gasfree`, where the relayer deducts the configured fee
-from the GasFree wallet.
-
-When upgrading from the advisory-fee API, remove the `fee` property from
-`TronFacilitatorConfig` and stop passing a fee configuration as the second
-argument to the `exact` or `upto` facilitator scheme constructors. Pass the fee
-configuration only when registering or constructing an `exact_gasfree`
-facilitator.
+None of the TRON schemes (`exact`, `upto`, `exact_gasfree`) advertise or collect
+a facilitator service fee via the SDK public API. The deployed proxies transfer
+exactly the payment amount. GasFree provider-driven fees (`transferFee`,
+`activateFee`) are inherent to the relayer protocol and remain unchanged — they
+are read from the relayer API, not configured via the SDK.
 
 ## Two transfer paths (and why TRON is effectively Permit2)
 
@@ -156,7 +151,7 @@ The `permit2` path depends on three on-chain contracts. Addresses live in `src/c
 | --- | --- | --- | --- |
 | `tron:0xcd8690dc` | 3448148188 | `TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h` | `TFGoaq2KjizijgjtkVxT7yjffW1A5T1j6F` |
 | `tron:0x2b6653dc` | 728126428 | `TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9` | `TN49yaJmZMZoEdDCqjB4uPzQLHvYkGw95m` |
-| `tron:0x94a9059e` | 2494104990 | — (no Permit2 deployment) | — |
+| `tron:0x94a9059e` | 2494104990 | `TJMkP7a3ucTMkvi17p7ChhTCw6zriFX3tg` | `TGZkC38n14f2GpBWPMQLF2BpmcpWW3QNhg` |
 
 > ⚠️ Mainnet uses real funds. The configured Permit2 and
 > `x402ExactPermit2Proxy` addresses are the deployed mainnet contracts; verify
@@ -176,7 +171,7 @@ The suite is fully offline (no network, no keys):
 
 - `permit2-digest.test.ts` — reproduces the exact on-chain Permit2 digest and recovers the signer two independent ways (the facilitator verify path and a manual contract-style reconstruction), guaranteeing TIP-712 hashing matches the deployed proxy.
 - `gasfree-digest.test.ts` / `gasfree-flow.test.ts` — GasFree TIP-712 sign↔verify round-trip plus client/facilitator term-validation and settle flow against a mocked relayer.
-- `tokens.test.ts`, `fee.test.ts`, `selection.test.ts`, `signer-wallet.test.ts` — token registry, fee policy, token selection / balance filtering, and the ClientTronWallet abstraction.
+- `tokens.test.ts`, `selection.test.ts`, `signer-wallet.test.ts` — token registry, token selection / balance filtering, and the ClientTronWallet abstraction.
 
 ## Notes & caveats
 

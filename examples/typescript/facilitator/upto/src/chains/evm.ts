@@ -19,6 +19,14 @@ import { tryResolveWallet } from "../env.js";
 /** CAIP-2 networks to settle upto payments on. Add an id here (e.g. "eip155:8453"). */
 const EVM_NETWORKS = ["eip155:97"] as const;
 
+// Optional RPC override. The default BSC testnet endpoint selected by viem is
+// frequently unreachable, so use the same override as the exact facilitator.
+const EVM_RPC_URL = process.env.EVM_RPC_URL?.trim() || undefined;
+const EVM_RPC_NETWORK =
+  process.env.PAY_TARGETS?.split(",")
+    .map((target) => target.trim().split("@", 1)[0])
+    .find((network) => network?.startsWith("eip155:")) || "eip155:97";
+
 /**
  * Registers the EVM `upto` scheme on the facilitator for every configured
  * network, if an EVM wallet is configured in agent-wallet.
@@ -33,7 +41,10 @@ export async function registerEvm(facilitator: x402Facilitator): Promise<boolean
   }
 
   for (const network of EVM_NETWORKS) {
-    const signer = await createFacilitatorEvmSigner(wallet, { network });
+    const signer = await createFacilitatorEvmSigner(wallet, {
+      network,
+      rpcUrl: network === EVM_RPC_NETWORK ? EVM_RPC_URL : undefined,
+    });
     facilitator.register(network, new UptoEvmScheme(signer));
     console.info(`[evm] facilitator registered ${network} upto`);
   }

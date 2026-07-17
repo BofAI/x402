@@ -2,6 +2,7 @@
  * Wallet resolution via `@bankofai/agent-wallet` — the example never touches a
  * private key. The TRON scheme registers only when a TRON wallet resolves.
  */
+import { TRON_NILE, TRON_MAINNET } from "@bankofai/x402-tron";
 import { resolveWallet, type Wallet } from "@bankofai/agent-wallet";
 
 /**
@@ -10,7 +11,10 @@ import { resolveWallet, type Wallet } from "@bankofai/agent-wallet";
  * `TronSigner` (`Eip712Capable`), so we surface that here.
  */
 export type SignerWallet = Wallet & {
-  signTypedData(data: Record<string, unknown>, options?: unknown): Promise<string>;
+  signTypedData(
+    data: Record<string, unknown>,
+    options?: unknown,
+  ): Promise<string>;
 };
 
 /**
@@ -18,13 +22,13 @@ export type SignerWallet = Wallet & {
  *
  * `@bankofai/agent-wallet` expects a **CAIP-2** network id. Key derivation is
  * chain-id-independent within a family, so any `tron:` id resolves the same
- * address; we use `tron:0xcd8690dc`.
+ * address; we use `TRON_NILE`.
  *
  * @returns The wallet, or `null` to skip TRON.
  */
 export async function tryResolveTronWallet(): Promise<SignerWallet | null> {
   try {
-    return (await resolveWallet({ network: "tron:0xcd8690dc" })) as SignerWallet;
+    return (await resolveWallet({ network: TRON_NILE })) as SignerWallet;
   } catch {
     return null;
   }

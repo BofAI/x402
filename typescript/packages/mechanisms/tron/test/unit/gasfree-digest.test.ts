@@ -87,7 +87,7 @@ describe("GasFree TIP-712 digest round-trip", () => {
       amount: "1000",
       payTo: PAY_TO,
       maxTimeoutSeconds: 600,
-      extra: { fee: { feeTo: PROVIDER, feeAmount: "10000" } },
+      extra: {},
     } as never;
 
     const result = await client.createPaymentPayload(2, requirements, {
@@ -101,14 +101,9 @@ describe("GasFree TIP-712 digest round-trip", () => {
     };
     vi.mocked(buildTronWeb).mockReturnValue(tronWeb);
     const facSigner = await createFacilitatorTronSigner(facWallet, { network: NETWORK });
-    facilitator = new FacilitatorScheme(
-      facSigner,
-      { [NETWORK]: mockApi(account, providers) as never },
-      {
-        feeTo: PROVIDER,
-        baseFee: { USDT: "10000" },
-      },
-    );
+    facilitator = new FacilitatorScheme(facSigner, {
+      [NETWORK]: mockApi(account, providers) as never,
+    });
   });
 
   it("produces a self-contained GasFree message", () => {

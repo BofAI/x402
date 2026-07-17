@@ -38,19 +38,28 @@ export function buildVoucherClaimArgs(claims: BatchSettlementClaimPayload["claim
  * @param payload - Claim payload containing voucher claims and optional authorizer signature.
  * @param requirements - Payment requirements for network identification.
  * @param authorizerSigner - Dedicated key for producing `ClaimBatch` TIP-712 signatures.
+ *   When omitted, the payload must already carry a `claimAuthorizerSignature`.
  * @returns A {@link SettleResponse} with the transaction hash on success.
  */
 export async function executeClaimWithSignature(
   signer: FacilitatorTronSigner,
   payload: BatchSettlementClaimPayload,
   requirements: PaymentRequirements,
-  authorizerSigner: TronAuthorizerSigner,
+  authorizerSigner: TronAuthorizerSigner | undefined,
 ): Promise<SettleResponse> {
   const network = requirements.network;
   const claimArgs = buildVoucherClaimArgs(payload.claims);
 
   let sig = payload.claimAuthorizerSignature;
   if (!sig) {
+    if (!authorizerSigner) {
+      return {
+        success: false,
+        errorReason: Errors.ErrAuthorizerNotConfigured,
+        transaction: "",
+        network,
+      };
+    }
     for (const claim of payload.claims) {
       if (
         normalizeAddressForSigning(claim.voucher.channel.receiverAuthorizer) !==

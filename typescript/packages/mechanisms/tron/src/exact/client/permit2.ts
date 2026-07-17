@@ -37,7 +37,7 @@ export async function createPermit2Payload(
     throw new Error(`No x402Permit2Proxy contract address configured for network ${network}`);
   }
 
-  const validAfter = (now - 600).toString();
+  const validAfter = "0";
   const deadline = (now + paymentRequirements.maxTimeoutSeconds).toString();
 
   const fromAddress = normalizeAddressForSigning(signer.address);
@@ -62,8 +62,11 @@ export async function createPermit2Payload(
 
   // Ensure the one-time Permit2 allowance before signing (mirrors the Python
   // client). No-op when the signer can't broadcast (sign-only wallet) or when
-  // the allowance already covers the payment. TRON's mainstream tokens
+  // the allowance already covers the payment amount. TRON's mainstream tokens
   // (USDT/USDD) lack ERC-3009, so this approve is required on first use.
+  // Note: the facilitator advisory fee was removed; allowance covers only the
+  // payment amount. GasFree relayer fees (transferFee/activateFee) are deducted
+  // from the GasFree wallet, not via Permit2 allowance.
   await signer.ensureAllowance?.({
     token: paymentRequirements.asset,
     amount: BigInt(paymentRequirements.amount),

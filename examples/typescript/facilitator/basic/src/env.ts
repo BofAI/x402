@@ -5,6 +5,7 @@
  * wallet for it resolves, so the facilitator can run EVM-only, TRON-only, or
  * both.
  */
+import { TRON_NILE, TRON_MAINNET } from "@bankofai/x402-tron";
 import { resolveWallet, type Wallet } from "@bankofai/agent-wallet";
 
 /**
@@ -13,7 +14,10 @@ import { resolveWallet, type Wallet } from "@bankofai/agent-wallet";
  * `EvmSigner`/`TronSigner` (both `Eip712Capable`), so we surface that here.
  */
 export type SignerWallet = Wallet & {
-  signTypedData(data: Record<string, unknown>, options?: unknown): Promise<string>;
+  signTypedData(
+    data: Record<string, unknown>,
+    options?: unknown,
+  ): Promise<string>;
 };
 
 /**
@@ -24,7 +28,7 @@ export type SignerWallet = Wallet & {
  */
 const CAIP2_BY_FAMILY: Record<"evm" | "tron", string> = {
   evm: "eip155:97",
-  tron: "tron:0xcd8690dc",
+  tron: TRON_NILE,
 };
 
 /**
@@ -33,9 +37,13 @@ const CAIP2_BY_FAMILY: Record<"evm" | "tron", string> = {
  * @param family - `"evm"` or `"tron"`.
  * @returns The wallet, or `null` to skip that chain.
  */
-export async function tryResolveWallet(family: "evm" | "tron"): Promise<SignerWallet | null> {
+export async function tryResolveWallet(
+  family: "evm" | "tron",
+): Promise<SignerWallet | null> {
   try {
-    return (await resolveWallet({ network: CAIP2_BY_FAMILY[family] })) as SignerWallet;
+    return (await resolveWallet({
+      network: CAIP2_BY_FAMILY[family],
+    })) as SignerWallet;
   } catch {
     return null;
   }

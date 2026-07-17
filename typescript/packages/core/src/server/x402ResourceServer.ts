@@ -14,7 +14,7 @@ import {
 import { SchemeNetworkServer, SchemePaymentRequiredContext } from "../types/mechanisms";
 import { Price, Network, ResourceServerExtension, ResourceServerExtensionHooks } from "../types";
 import type { DeepReadonly } from "../types/readonly";
-import { deepEqual, findByNetworkAndScheme } from "../utils";
+import { deepEqual, findByNetworkAndScheme, findSchemesByNetwork } from "../utils";
 import { log } from "../observability/logger";
 import {
   assertAcceptsAllowlistedAfterExtensionEnrich,
@@ -622,6 +622,8 @@ export class x402ResourceServer {
             "Failed to initialize: no supported payment kinds loaded from any facilitator.",
           );
     }
+
+    this.validateFacilitatorCapabilities();
   }
 
   /**
@@ -1288,7 +1290,14 @@ export class x402ResourceServer {
 
       const advertisedInfo = getExtensionInfo(serverExtensions[key]);
       const echoedInfo = getExtensionInfo(echoedValue);
-      if (!extensionInfoMatchesAdvertised(advertisedInfo, echoedInfo)) {
+
+      const dynamicFields = this.registeredExtensions.get(key)?.dynamicInfoFields;
+      if (
+        !extensionInfoMatchesAdvertised(
+          omitFields(advertisedInfo, dynamicFields),
+          omitFields(echoedInfo, dynamicFields),
+        )
+      ) {
         return {
           valid: false,
           invalidReason: "extension_echo_mismatch",
@@ -1329,6 +1338,52 @@ export class x402ResourceServer {
         throw new Error(
           `Unsupported x402 version: ${(paymentPayload as PaymentPayload).x402Version}`,
         );
+    }
+  }
+
+  /**
+   * Validates that each registered scheme's configuration is compatible with the
+   * facilitator capabilities advertised for the scheme/network combinations it
+   * supports. Only schemes the facilitator actually supports are validated.
+   *
+   * @throws Error listing every capability problem when one or more schemes report one.
+   */
+  private validateFacilitatorCapabilities(): void {
+    const configErrors: string[] = [];
+
+    for (const [x402Version, versionMap] of this.supportedResponsesMap) {
+      for (const [concreteNetwork, schemeMap] of versionMap) {
+        for (const [scheme, supported] of schemeMap) {
+          const kind = supported.kinds.find(
+            k =>
+              k.x402Version === x402Version && k.network === concreteNetwork && k.scheme === scheme,
+          );
+          if (!kind) continue;
+
+          // Find the registered server scheme via pattern matching so wildcard
+          // registrations (e.g. "eip155:*") match concrete facilitator networks.
+          const serverScheme = findSchemesByNetwork(
+            this.registeredServerSchemes,
+            concreteNetwork as Network,
+          )?.get(scheme);
+          if (!serverScheme?.validateFacilitatorSupport) continue;
+
+          const problem = serverScheme.validateFacilitatorSupport(
+            concreteNetwork as Network,
+            kind,
+            supported.extensions,
+          );
+          if (problem) {
+            configErrors.push(`${scheme} on ${concreteNetwork}: ${problem}`);
+          }
+        }
+      }
+    }
+
+    if (configErrors.length > 0) {
+      throw new Error(
+        `x402 facilitator capability errors:\n${configErrors.map(e => `  - ${e}`).join("\n")}`,
+      );
     }
   }
 
@@ -1590,6 +1645,27 @@ function getExtensionInfo(value: unknown): unknown {
     return (value as Record<string, unknown>).info;
   }
   return value;
+}
+
+/**
+ * Returns a copy of an extension info object without the named dynamic fields.
+ *
+ * @param value - Extension info payload to filter.
+ * @param fields - Field names regenerated per response that must not be compared.
+ * @returns The value unchanged when no fields apply; otherwise a copy without them.
+ */
+function omitFields(value: unknown, fields?: readonly string[]): unknown {
+  if (!fields || fields.length === 0) {
+    return value;
+  }
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return value;
+  }
+  const copy = { ...(value as Record<string, unknown>) };
+  for (const field of fields) {
+    delete copy[field];
+  }
+  return copy;
 }
 
 /**

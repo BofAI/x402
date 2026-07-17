@@ -4,19 +4,28 @@
  * the address and re-adds the `0x` prefix agent-wallet strips. The TronWeb
  * instance carries no private key.
  *
- * On `tron:0xcd8690dc` the server advertises USDT, a Permit2 token — the first request
+ * On `TRON_NILE` the server advertises USDT, a Permit2 token — the first request
  * opens the channel via a **Permit2 deposit**, which needs a one-time
  * `approve(Permit2)` from the payer. `signTransaction` lets the signer
  * auto-broadcast that approve (parity with the `exact` TRON client). Later
  * requests are voucher-only.
  */
-import { createClientTronSigner } from "@bankofai/x402-tron";
+import {
+  createClientTronSigner,
+  TRON_NILE,
+  TRON_MAINNET,
+} from "@bankofai/x402-tron";
 import { BatchSettlementTronScheme } from "@bankofai/x402-tron/batch-settlement/client";
 import type { x402Client } from "@bankofai/x402-fetch";
 
-import { tryResolveWallet, type BatchClientOptions, type RefundableScheme } from "../env.js";
+import {
+  tryResolveWallet,
+  type BatchClientOptions,
+  type RefundableScheme,
+} from "../env.js";
 
-const TRON_NETWORK = "tron:0xcd8690dc";
+const TRON_NETWORK = (process.env.TRON_NETWORK ??
+  TRON_NILE) as `${string}:${string}`;
 
 /**
  * Registers the TRON `batch-settlement` client scheme, if a TRON wallet is
@@ -47,6 +56,8 @@ export async function registerTron(
     depositPolicy: { depositMultiplier: opts.depositMultiplier },
   });
   client.register(TRON_NETWORK, scheme);
-  console.info(`[tron] client registered ${TRON_NETWORK} batch-settlement (${signer.address})`);
+  console.info(
+    `[tron] client registered ${TRON_NETWORK} batch-settlement (${signer.address})`,
+  );
   return [{ label: TRON_NETWORK, refund: (url, o) => scheme.refund(url, o) }];
 }

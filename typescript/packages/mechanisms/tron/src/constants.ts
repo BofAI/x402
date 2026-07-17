@@ -114,6 +114,7 @@ export const uptoPermit2WitnessTypes = {
 export const PERMIT2_ADDRESSES: Record<string, string> = {
   "tron:0x2b6653dc": "TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9",
   "tron:0xcd8690dc": "TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h",
+  "tron:0x94a9059e": "TJMkP7a3ucTMkvi17p7ChhTCw6zriFX3tg",
 };
 
 /**
@@ -123,6 +124,7 @@ export const PERMIT2_ADDRESSES: Record<string, string> = {
 export const X402_PERMIT2_PROXY_ADDRESSES: Record<string, string> = {
   "tron:0x2b6653dc": "TN49yaJmZMZoEdDCqjB4uPzQLHvYkGw95m",
   "tron:0xcd8690dc": "TFGoaq2KjizijgjtkVxT7yjffW1A5T1j6F",
+  "tron:0x94a9059e": "TGZkC38n14f2GpBWPMQLF2BpmcpWW3QNhg",
 };
 
 /**
@@ -132,6 +134,7 @@ export const X402_PERMIT2_PROXY_ADDRESSES: Record<string, string> = {
 export const X402_UPTO_PERMIT2_PROXY_ADDRESSES: Record<string, string> = {
   "tron:0x2b6653dc": "TBLeFPkfDiweBbYmAPqnakaFBPDt9p93sR",
   "tron:0xcd8690dc": "TKvcqQ7S2bYyys5ZZNpjj9xGiPhiwzHq1K",
+  "tron:0x94a9059e": "TMxpieW75DQiA9QaoTB1ifJWeQpuppSB1g",
 };
 
 /**

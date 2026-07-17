@@ -7,6 +7,7 @@ import {
   SchemeNetworkServer,
   SchemeServerHooks,
   MoneyParser,
+  SupportedKind,
 } from "@bankofai/x402-core/types";
 import type { DeepReadonly } from "@bankofai/x402-core/types";
 import type { SettleContext, SettleResultContext } from "@bankofai/x402-core/server";
@@ -340,6 +341,35 @@ export class BatchSettlementTronScheme implements SchemeNetworkServer {
    */
   getReceiverAuthorizerSigner(): TronAuthorizerSigner | undefined {
     return this.receiverAuthorizerSigner;
+  }
+
+  /**
+   * Fails server startup when this scheme delegates the receiver-authorizer role
+   * but the facilitator does not advertise a usable `receiverAuthorizer`.
+   *
+   * @param network - The network identifier being validated.
+   * @param supportedKind - The facilitator's advertised kind for this scheme/network.
+   * @param _ - Extensions advertised by the facilitator (unused).
+   * @returns A problem message when delegation is impossible, or void when valid.
+   */
+  validateFacilitatorSupport(
+    network: Network,
+    supportedKind: SupportedKind,
+    _: string[],
+  ): string | void {
+    if (this.receiverAuthorizerSigner) return;
+
+    const advertised = supportedKind.extra?.receiverAuthorizer;
+    const hasValid =
+      typeof advertised === "string" && normalizeAddressForSigning(advertised) !== ZERO_ADDRESS;
+
+    if (!hasValid) {
+      return (
+        `no receiverAuthorizerSigner is configured and the facilitator does not advertise a ` +
+        `receiverAuthorizer on ${network}. Configure a receiverAuthorizerSigner or use a ` +
+        `facilitator that advertises one.`
+      );
+    }
   }
 
   /**

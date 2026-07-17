@@ -9,7 +9,6 @@ import {
 import { FacilitatorTronSigner } from "../../signer";
 import { ExactGasFreePayload } from "../../types";
 import { normalizeAddressForSigning } from "../../utils";
-import { resolveBaseFee, isTokenAllowed, type ExactTronFeeConfig } from "../../shared/fee";
 import { GasFreeAPIClient } from "../../shared/gasfree/api";
 import { assembleGasFreeTransaction } from "../../shared/gasfree/assemble";
 import * as errors from "./errors";
@@ -29,40 +28,21 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
    *
    * @param signer - The TRON facilitator signer (verify + balance reads).
    * @param apiClients - GasFree relayer clients keyed by CAIP-2 network.
-   * @param feeConfig - Optional fee policy (base fees, token allowlist, feeTo).
    */
   constructor(
     private readonly signer: FacilitatorTronSigner,
     private readonly apiClients: Record<string, GasFreeAPIClient>,
-    private readonly feeConfig: ExactTronFeeConfig = {},
   ) {}
 
   /**
-   * Advertise the fee configuration so the server can attach fee terms.
+   * Returns undefined — the GasFree facilitator advertises no extra config.
    *
    * @param _network - The network identifier (unused).
-   * @returns Extra data, or undefined when no fee is configured.
+   * @returns undefined.
    */
   getExtra(_network: string): Record<string, unknown> | undefined {
     void _network;
-    if (!this.feeConfig.baseFee) return undefined;
-    return {
-      feeConfig: {
-        // GasFree feeTo MUST be a registered relayer provider — verify rejects
-        // anything else with `gasfree_fee_to_mismatch`. NEVER default to the
-        // facilitator's own address (it is not a provider; that produced the
-        // mismatch in production). Advertise feeTo only when explicitly
-        // configured to a real provider; otherwise omit it so the client picks
-        // one from the relayer's provider list. This mirrors the Python
-        // facilitator's `fee_quote`, which selects a provider rather than the
-        // facilitator address. (`exact` differs: there the facilitator IS the
-        // fee recipient, so its scheme keeps the self-address default.)
-        ...(this.feeConfig.feeTo ? { feeTo: this.feeConfig.feeTo } : {}),
-        ...(this.feeConfig.caller ? { caller: this.feeConfig.caller } : {}),
-        baseFee: this.feeConfig.baseFee,
-        ...(this.feeConfig.allowedTokens ? { allowedTokens: this.feeConfig.allowedTokens } : {}),
-      },
-    };
+    return undefined;
   }
 
   /**
@@ -77,7 +57,7 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
   }
 
   /**
-   * Verify a GasFree payload against the requirements and fee policy.
+   * Verify a GasFree payload against the requirements.
    *
    * @param payload - The payment payload.
    * @param requirements - The payment requirements.
@@ -144,7 +124,21 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
     }
 
     const payer = gf.gasfree.user;
-    const api = this.getApiClient(requirements.network);
+
+    // Resolve the relayer client — may throw if the network is not configured.
+    // verify() normally catches this earlier, but guard defensively.
+    let api: GasFreeAPIClient;
+    try {
+      api = this.getApiClient(requirements.network);
+    } catch (err) {
+      return {
+        success: false,
+        errorReason: err instanceof Error ? err.message : String(err),
+        transaction: "",
+        network: requirements.network,
+        payer,
+      };
+    }
 
     // Best-effort balance preflight against the GasFree wallet.
     try {
@@ -160,7 +154,7 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
         };
       }
     } catch {
-      // Submission can still fail with the relayer's exact reason.
+      // Balance read failed — continue; the relayer will return the exact reason.
     }
 
     try {
@@ -213,7 +207,7 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
   }
 
   /**
-   * Validate the GasFree permit terms against the requirements and fee policy.
+   * Validate the GasFree permit terms against the requirements.
    *
    * @param gf - The GasFree payload.
    * @param requirements - The payment requirements.
@@ -226,12 +220,14 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
     const norm = (a: string) => normalizeAddressForSigning(a);
     const m = gf.gasfree;
 
-    if (!isTokenAllowed(this.feeConfig, m.token)) {
-      return errors.TOKEN_NOT_ALLOWED;
-    }
     if (norm(m.token) !== norm(requirements.asset)) {
       return errors.TOKEN_MISMATCH;
     }
+    // Reject short payments only (value >= amount). GasFree's maxFee is a separate
+    // signed field, so the fee does not factor into the amount check. Allowing
+    // value > amount lets the client cover a fee_quote that slightly exceeds the
+    // listed price; the payer cannot be charged more than they signed. Mirrors the
+    // Python facilitator's `value >= required amount` semantics.
     if (BigInt(m.value) < BigInt(requirements.amount)) {
       return errors.AMOUNT_MISMATCH;
     }
@@ -239,14 +235,12 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
       return errors.PAYTO_MISMATCH;
     }
 
-    // Fee policy: feeTo must be an active provider, or match configured feeTo.
-    const feeToError = await this.validateFeeTo(m.serviceProvider, requirements.network);
-    if (feeToError) return feeToError;
-
-    const baseFee = resolveBaseFee(this.feeConfig, requirements.network, m.token);
-    if (baseFee !== null && BigInt(m.maxFee) < baseFee) {
-      return errors.FEE_AMOUNT_TOO_LOW;
-    }
+    // The serviceProvider must be an active relayer provider.
+    const providerError = await this.validateServiceProvider(
+      m.serviceProvider,
+      requirements.network,
+    );
+    if (providerError) return providerError;
 
     const now = Math.floor(Date.now() / 1000);
     if (BigInt(m.deadline) < BigInt(now)) {
@@ -256,28 +250,34 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
   }
 
   /**
-   * Validate the fee collector: must be an active relayer provider, or match
-   * the configured feeTo when the provider list is unavailable.
+   * Validate the serviceProvider: must be an active relayer provider.
    *
-   * @param serviceProvider - The fee collector / provider address.
+   * Fail-closed: when the relayer API is unreachable or returns an empty provider
+   * list, the serviceProvider cannot be verified and the payment is rejected with
+   * `PROVIDER_LIST_UNAVAILABLE`. This preserves verify/settle consistency — verify
+   * must predict settle, and an unverified provider may be rejected by the relayer
+   * at settlement time.
+   *
+   * @param serviceProvider - The relayer provider address.
    * @param network - CAIP-2 network identifier.
    * @returns An error reason string, or null when valid.
    */
-  private async validateFeeTo(serviceProvider: string, network: string): Promise<string | null> {
+  private async validateServiceProvider(
+    serviceProvider: string,
+    network: string,
+  ): Promise<string | null> {
     const norm = (a: string) => normalizeAddressForSigning(a);
     try {
       const providers = await this.getApiClient(network).getProviders();
-      if (providers.length > 0) {
-        const allowed = new Set(providers.map(p => norm(p.address)));
-        return allowed.has(norm(serviceProvider)) ? null : errors.FEE_TO_MISMATCH;
+      if (providers.length === 0) {
+        return errors.PROVIDER_LIST_UNAVAILABLE;
       }
+      const allowed = new Set(providers.map(p => norm(p.address)));
+      return allowed.has(norm(serviceProvider)) ? null : errors.FEE_TO_MISMATCH;
     } catch {
-      // Fall back to configured feeTo when the provider list is unavailable.
+      // Relayer API unreachable — cannot validate, fail-closed.
+      return errors.PROVIDER_LIST_UNAVAILABLE;
     }
-    if (this.feeConfig.feeTo && norm(serviceProvider) !== norm(this.feeConfig.feeTo)) {
-      return errors.FEE_TO_MISMATCH;
-    }
-    return null;
   }
 
   /**

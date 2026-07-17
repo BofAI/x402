@@ -596,6 +596,40 @@ describe("x402MCPClient response format interoperability", () => {
       expect(mockPaymentClient.createPaymentPayload).toHaveBeenCalledWith(mockPaymentRequired);
     });
 
+    it("should auto-pay when structuredContent has null optional resource fields", async () => {
+      // Other SDKs may serialize unset optional fields as explicit null. Before
+      // the schema normalization, strict parsing rejected these and the 402 was
+      // returned as ordinary tool data instead of triggering payment.
+      const paymentRequiredWithNulls = {
+        ...mockPaymentRequired,
+        error: null,
+        resource: {
+          url: "mcp://tool/test",
+          description: null,
+          mimeType: null,
+          serviceName: null,
+          tags: null,
+          iconUrl: null,
+        },
+      };
+
+      mockMcpClient.callTool
+        .mockResolvedValueOnce(
+          createStructuredContentDirectPaymentError(
+            paymentRequiredWithNulls as unknown as PaymentRequired,
+          ),
+        )
+        .mockResolvedValueOnce({
+          content: [{ type: "text", text: "success" }],
+          _meta: { "x402/payment-response": mockSettleResponse },
+        });
+
+      const result = await client.callTool("paid_tool");
+
+      expect(result.paymentMade).toBe(true);
+      expect(mockMcpClient.callTool).toHaveBeenCalledTimes(2);
+    });
+
     it("should parse structuredContent with direct PaymentRequired V1 (ethanniser/x402-mcp style)", async () => {
       mockMcpClient.callTool
         .mockResolvedValueOnce(createStructuredContentDirectPaymentError(mockPaymentRequiredV1))

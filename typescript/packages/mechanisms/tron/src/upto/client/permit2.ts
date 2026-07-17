@@ -40,8 +40,9 @@ export async function createUptoPermit2Payload(
     throw new Error(`No x402UptoPermit2Proxy contract address configured for network ${network}`);
   }
 
-  const facilitatorAddress = (paymentRequirements.extra?.permit2FacilitatorAddress ??
-    paymentRequirements.extra?.facilitatorAddress) as string | undefined;
+  const facilitatorAddress = paymentRequirements.extra?.permit2FacilitatorAddress as
+    | string
+    | undefined;
   if (!facilitatorAddress) {
     throw new Error(
       "upto scheme requires permit2FacilitatorAddress in paymentRequirements.extra. " +
@@ -49,7 +50,7 @@ export async function createUptoPermit2Payload(
     );
   }
 
-  const validAfter = (now - 600).toString();
+  const validAfter = "0";
   const deadline = (now + paymentRequirements.maxTimeoutSeconds).toString();
 
   if (BigInt(deadline) <= BigInt(validAfter)) {
@@ -87,6 +88,9 @@ export async function createUptoPermit2Payload(
   // tokens (USDT/USDD) lack ERC-3009, so this approve is required on first use.
   // `permitted.amount` is the upto ceiling — approve at least that much, since
   // the facilitator may settle for any amount up to it.
+  // Note: the facilitator advisory fee was removed; allowance covers only the
+  // payment amount. GasFree relayer fees (transferFee/activateFee) are deducted
+  // from the GasFree wallet, not via Permit2 allowance.
   await signer.ensureAllowance?.({
     token: paymentRequirements.asset,
     amount: BigInt(paymentRequirements.amount),

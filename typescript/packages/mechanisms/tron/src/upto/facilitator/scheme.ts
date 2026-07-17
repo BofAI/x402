@@ -42,11 +42,10 @@ export class UptoTronScheme implements SchemeNetworkFacilitator {
     if (signers.length === 0) {
       return undefined;
     }
-    const facilitatorAddress = signers[Math.floor(Math.random() * signers.length)];
+    const permit2FacilitatorAddress = signers[Math.floor(Math.random() * signers.length)];
     return {
       assetTransferMethod: "permit2",
-      facilitatorAddress,
-      permit2FacilitatorAddress: facilitatorAddress,
+      permit2FacilitatorAddress,
     };
   }
 

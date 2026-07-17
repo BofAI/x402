@@ -8,14 +8,15 @@
  * custody stays in `@bankofai/agent-wallet`, and the TronWeb instance carries no
  * private key.
  */
-import { createFacilitatorTronSigner } from "@bankofai/x402-tron";
+import { createFacilitatorTronSigner, TRON_NILE } from "@bankofai/x402-tron";
 import { registerExactGasFreeTronScheme } from "@bankofai/x402-tron/gasfree/facilitator";
 import type { x402Facilitator } from "@bankofai/x402-core/facilitator";
 
 import { tryResolveTronWallet } from "../env.js";
 
 /** CAIP-2 network this facilitator settles on. */
-export const TRON_NETWORK = "tron:0xcd8690dc";
+export const TRON_NETWORK = (process.env.TRON_NETWORK ??
+  TRON_NILE) as `${string}:${string}`;
 
 /**
  * Registers the TRON `exact_gasfree` scheme on the facilitator, if a TRON wallet
@@ -24,7 +25,9 @@ export const TRON_NETWORK = "tron:0xcd8690dc";
  * @param facilitator - The facilitator to register the scheme on.
  * @returns `true` if registered, `false` when no TRON wallet was configured.
  */
-export async function registerTronGasFree(facilitator: x402Facilitator): Promise<boolean> {
+export async function registerTronGasFree(
+  facilitator: x402Facilitator,
+): Promise<boolean> {
   const wallet = await tryResolveTronWallet();
   if (!wallet) {
     return false;
@@ -44,9 +47,11 @@ export async function registerTronGasFree(facilitator: x402Facilitator): Promise
     signer,
     networks: TRON_NETWORK,
     ...(process.env.GASFREE_API_URL
-      ? { apiBaseUrls: { "tron:0xcd8690dc": process.env.GASFREE_API_URL } }
+      ? { apiBaseUrls: { [TRON_NETWORK]: process.env.GASFREE_API_URL } }
       : {}),
   });
-  console.info(`[tron] facilitator registered ${TRON_NETWORK} exact_gasfree (${address})`);
+  console.info(
+    `[tron] facilitator registered ${TRON_NETWORK} exact_gasfree (${address})`,
+  );
   return true;
 }

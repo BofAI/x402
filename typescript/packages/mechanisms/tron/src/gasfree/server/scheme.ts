@@ -12,14 +12,13 @@ import {
   findByAddress,
   parsePrice as parseTokenPrice,
 } from "../../shared/tokens";
-import { buildFeeInfo, type ExactTronFeeConfig } from "../../shared/fee";
 
 /**
  * TRON server implementation for the `exact_gasfree` scheme.
  *
  * GasFree is TRON-only (no EVM counterpart). Price parsing and decimals come
- * from the token registry; fee terms come from the facilitator's advertised
- * fee config.
+ * from the token registry. Relayer fees (transferFee/activateFee) are inherent
+ * to the GasFree protocol and are not carried in payment requirements.
  */
 export class ExactGasFreeTronScheme implements SchemeNetworkServer {
   readonly scheme = "exact_gasfree";
@@ -66,7 +65,7 @@ export class ExactGasFreeTronScheme implements SchemeNetworkServer {
    * @param supportedKind.x402Version - The x402 version.
    * @param supportedKind.scheme - The payment scheme.
    * @param supportedKind.network - The network identifier.
-   * @param supportedKind.extra - Optional facilitator extra (feeConfig).
+   * @param supportedKind.extra - Optional facilitator extra.
    * @param extensionKeys - Facilitator extension keys (unused).
    * @returns The enhanced payment requirements.
    */
@@ -82,28 +81,20 @@ export class ExactGasFreeTronScheme implements SchemeNetworkServer {
   ): Promise<PaymentRequirements> {
     void extensionKeys;
 
-    const token = findByAddress(supportedKind.network, paymentRequirements.asset);
-    const feeConfig = supportedKind.extra?.feeConfig as ExactTronFeeConfig | undefined;
-    const existingFee = paymentRequirements.extra?.fee;
-    const fee =
-      existingFee ??
-      (feeConfig
-        ? buildFeeInfo(
-            feeConfig,
-            supportedKind.network,
-            paymentRequirements.asset,
-            feeConfig.feeTo ?? "",
-          )
-        : undefined);
+    const extra = { ...paymentRequirements.extra };
+    // Remove stale fee metadata left over from the removed advisory-fee API.
+    // GasFree fees (transferFee/activateFee) are relayer-side and never carried in extra.
+    delete extra.fee;
+    const requirementsWithoutFee = { ...paymentRequirements, extra };
 
+    const token = findByAddress(supportedKind.network, paymentRequirements.asset);
     return Promise.resolve({
-      ...paymentRequirements,
+      ...requirementsWithoutFee,
       extra: {
-        ...paymentRequirements.extra,
+        ...extra,
         ...(token
           ? { name: token.name, ...(token.version ? { version: token.version } : {}) }
           : {}),
-        ...(fee ? { fee } : {}),
       },
     });
   }

@@ -5,7 +5,7 @@ import type {
   Network,
   SchemeNetworkClient,
 } from "@bankofai/x402-core/types";
-import { isPaymentRequired } from "@bankofai/x402-core/schemas";
+import { parsePaymentRequired } from "@bankofai/x402-core/schemas";
 import { x402Client } from "@bankofai/x402-core/client";
 import type { x402ClientConfig } from "@bankofai/x402-core/client";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -17,11 +17,7 @@ import type {
   PaymentRequiredHook,
   PaymentRequiredContext,
 } from "../types";
-import {
-  MCP_PAYMENT_REQUIRED_CODE,
-  MCP_PAYMENT_META_KEY,
-  isPaymentRequiredError,
-} from "../types";
+import { MCP_PAYMENT_REQUIRED_CODE, MCP_PAYMENT_META_KEY, isPaymentRequiredError } from "../types";
 import { extractPaymentResponseFromMeta } from "../utils";
 
 // ============================================================================
@@ -179,11 +175,7 @@ export class x402MCPClient {
    * @param paymentClient - The x402 client for creating payment payloads
    * @param options - Configuration options
    */
-  constructor(
-    mcpClient: Client,
-    paymentClient: x402Client,
-    options: x402MCPClientOptions = {},
-  ) {
+  constructor(mcpClient: Client, paymentClient: x402Client, options: x402MCPClientOptions = {}) {
     this.mcpClient = mcpClient;
     this._paymentClient = paymentClient;
     this.options = {
@@ -279,7 +271,9 @@ export class x402MCPClient {
    * @param args - Arguments for readResource method
    * @returns Promise resolving to the resource content
    */
-  async readResource(...args: Parameters<Client["readResource"]>): ReturnType<Client["readResource"]> {
+  async readResource(
+    ...args: Parameters<Client["readResource"]>
+  ): ReturnType<Client["readResource"]> {
     return this.mcpClient.readResource(...args);
   }
 
@@ -290,7 +284,9 @@ export class x402MCPClient {
    * @param args - Arguments for listResourceTemplates method
    * @returns Promise resolving to the list of resource templates
    */
-  async listResourceTemplates(...args: Parameters<Client["listResourceTemplates"]>): ReturnType<Client["listResourceTemplates"]> {
+  async listResourceTemplates(
+    ...args: Parameters<Client["listResourceTemplates"]>
+  ): ReturnType<Client["listResourceTemplates"]> {
     return this.mcpClient.listResourceTemplates(...args);
   }
 
@@ -301,7 +297,9 @@ export class x402MCPClient {
    * @param args - Arguments for subscribeResource method
    * @returns Promise resolving when subscribed
    */
-  async subscribeResource(...args: Parameters<Client["subscribeResource"]>): ReturnType<Client["subscribeResource"]> {
+  async subscribeResource(
+    ...args: Parameters<Client["subscribeResource"]>
+  ): ReturnType<Client["subscribeResource"]> {
     return this.mcpClient.subscribeResource(...args);
   }
 
@@ -312,7 +310,9 @@ export class x402MCPClient {
    * @param args - Arguments for unsubscribeResource method
    * @returns Promise resolving when unsubscribed
    */
-  async unsubscribeResource(...args: Parameters<Client["unsubscribeResource"]>): ReturnType<Client["unsubscribeResource"]> {
+  async unsubscribeResource(
+    ...args: Parameters<Client["unsubscribeResource"]>
+  ): ReturnType<Client["unsubscribeResource"]> {
     return this.mcpClient.unsubscribeResource(...args);
   }
 
@@ -345,7 +345,9 @@ export class x402MCPClient {
    * @param args - Arguments for setLoggingLevel method
    * @returns Promise resolving when level is set
    */
-  async setLoggingLevel(...args: Parameters<Client["setLoggingLevel"]>): ReturnType<Client["setLoggingLevel"]> {
+  async setLoggingLevel(
+    ...args: Parameters<Client["setLoggingLevel"]>
+  ): ReturnType<Client["setLoggingLevel"]> {
     return this.mcpClient.setLoggingLevel(...args);
   }
 
@@ -787,9 +789,7 @@ export class x402MCPClient {
     try {
       const parsed: unknown = JSON.parse(firstItem.text);
       if (typeof parsed === "object" && parsed !== null) {
-        const extracted = this.extractPaymentRequiredFromObject(
-          parsed as Record<string, unknown>,
-        );
+        const extracted = this.extractPaymentRequiredFromObject(parsed as Record<string, unknown>);
         if (extracted) {
           return extracted;
         }
@@ -809,11 +809,9 @@ export class x402MCPClient {
    * @returns PaymentRequired if found, null otherwise
    */
   private extractPaymentRequiredFromObject(obj: Record<string, unknown>): PaymentRequired | null {
-    if (isPaymentRequired(obj)) {
-      return obj as PaymentRequired;
-    }
-
-    return null;
+    // parsePaymentRequired yields the schema (V1 | V2) union; cast to the transport PaymentRequired type
+    const result = parsePaymentRequired(obj);
+    return result.success ? (result.data as PaymentRequired) : null;
   }
 
   /**
@@ -832,9 +830,10 @@ export class x402MCPClient {
       return null;
     }
 
-    return "x402" in error.data ? error.data.x402 : error.data;
+    const data = "x402" in error.data ? error.data.x402 : error.data;
+    const result = parsePaymentRequired(data);
+    return result.success ? (result.data as PaymentRequired) : null;
   }
-
 }
 
 /**

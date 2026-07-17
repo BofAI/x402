@@ -1,19 +1,25 @@
 /**
  * TRON setup for the MCP resource server — mirrors the EVM module. Keyless: just
- * the `exact` server scheme on `tron:0xcd8690dc` and `accepts` with the payout address.
+ * the `exact` server scheme on `TRON_NILE` and `accepts` with the payout address.
  *
  * Offers USDT and USDD (both permit2 tokens — no ERC-3009). The TRON client ships
  * an auto-approve that broadcasts the one-time Permit2 `approve`, so the server
  * needs no gas-sponsoring extension. Prices use the `"<amount> <symbol>"` form so
  * the TRON scheme resolves each token from its registry.
  */
+import { TRON_NILE, TRON_MAINNET, TRON_SHASTA } from "@bankofai/x402-tron";
 import { ExactTronScheme } from "@bankofai/x402-tron/exact/server";
+import { getNetworkTokens } from "@bankofai/x402-tron";
 import type { Network } from "@bankofai/x402-core/types";
-import type { ResourceConfig, x402ResourceServer } from "@bankofai/x402-core/server";
+import type {
+  ResourceConfig,
+  x402ResourceServer,
+} from "@bankofai/x402-core/server";
 
-/** CAIP-2 network this server accepts TRON payments on. Switch to "tron:0x2b6653dc"
+/** CAIP-2 network this server accepts TRON payments on. Switch to TRON_MAINNET
  *  for production (REAL FUNDS); USDT/USDD are registered there too. */
-export const TRON_NETWORK: Network = "tron:0xcd8690dc";
+export const TRON_NETWORK: Network = (process.env.TRON_NETWORK ??
+  TRON_NILE) as Network;
 
 /** TRON is enabled when a payout address is configured. */
 export function hasTron(): boolean {
@@ -21,7 +27,7 @@ export function hasTron(): boolean {
 }
 
 /**
- * Registers the TRON `exact` server scheme on `tron:0xcd8690dc`.
+ * Registers the TRON `exact` server scheme on `TRON_NILE`.
  *
  * @param resourceServer - The resource server to register on.
  */
@@ -36,7 +42,10 @@ export function registerTron(resourceServer: x402ResourceServer): void {
  */
 export function tronAccepts(): ResourceConfig[] {
   const payTo = process.env.TRON_ADDRESS as string;
-  return ["0.001 USDT", "0.001 USDD"].map(
-    price => ({ scheme: "exact", network: TRON_NETWORK, payTo, price }) as ResourceConfig,
-  );
+  return Object.keys(getNetworkTokens(TRON_NETWORK)).map((symbol) => ({
+    scheme: "exact",
+    network: TRON_NETWORK,
+    payTo,
+    price: `0.001 ${symbol}`,
+  }) as ResourceConfig);
 }

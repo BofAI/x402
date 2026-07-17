@@ -103,20 +103,16 @@ export class UptoTronScheme implements SchemeNetworkServer {
     delete extra.fee;
     const requirementsWithoutFee = { ...paymentRequirements, extra };
 
-    const facilitatorAddress =
+    const permit2FacilitatorAddress =
       (paymentRequirements.extra?.permit2FacilitatorAddress as string | undefined) ??
-      (paymentRequirements.extra?.facilitatorAddress as string | undefined) ??
-      (supportedKind.extra?.permit2FacilitatorAddress as string | undefined) ??
-      (supportedKind.extra?.facilitatorAddress as string | undefined);
+      (supportedKind.extra?.permit2FacilitatorAddress as string | undefined);
 
     return Promise.resolve({
       ...requirementsWithoutFee,
       extra: {
         ...extra,
         assetTransferMethod: "permit2",
-        ...(facilitatorAddress
-          ? { facilitatorAddress, permit2FacilitatorAddress: facilitatorAddress }
-          : {}),
+        ...(permit2FacilitatorAddress ? { permit2FacilitatorAddress } : {}),
       },
     });
   }

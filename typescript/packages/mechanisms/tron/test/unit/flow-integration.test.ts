@@ -167,23 +167,20 @@ async function pay(
 }
 
 describe("GasFree end-to-end (in-process)", () => {
-  const feeConfig = { feeTo: PROVIDER, baseFee: { USDT: "10000" } };
-
   async function wire(chain: Chain) {
     const api = { [NETWORK]: relayer() as never };
     return {
       server: new GasFreeServer(),
-      facilitator: new GasFreeFacilitator(await facilitatorSigner(chain), api, feeConfig),
+      facilitator: new GasFreeFacilitator(await facilitatorSigner(chain), api),
       client: new GasFreeClient(await clientSigner(chain), { apiClients: api }),
     };
   }
 
-  it("negotiates fee, signs, verifies, and settles", async () => {
+  it("negotiates, signs, verifies, and settles", async () => {
     const chain: Chain = { balance: 10_000_000n, allowance: 0n };
     const { server, facilitator, client } = await wire(chain);
 
     const req = await negotiate(server, facilitator, "exact_gasfree");
-    expect((req.extra?.fee as { feeTo: string }).feeTo).toBe(PROVIDER);
     expect(req.extra?.name).toBe("Tether USD"); // server injects token metadata
 
     const payload = await pay(client, req);

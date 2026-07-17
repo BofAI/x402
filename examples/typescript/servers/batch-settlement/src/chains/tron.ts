@@ -5,21 +5,23 @@
  * and runs a `BatchSettlementChannelManager` that claims + settles to `payTo`.
  * The `receiverAuthorizer` comes from the facilitator (`/supported`).
  *
- * `tron:0xcd8690dc` USDT IS in the default-asset registry, so the channel manager is
+ * `TRON_NILE` USDT IS in the default-asset registry, so the channel manager is
  * built via `scheme.createChannelManager()` (it resolves the token) and the price
  * is given in `"$"` form (the scheme maps it to the default asset). USDT is a
  * Permit2 token (no ERC-3009), so the client deposits via Permit2 — the payer
  * needs a one-time `approve(Permit2)` (the shipped client auto-broadcasts it).
  */
+import { TRON_NILE, TRON_MAINNET, TRON_SHASTA } from "@bankofai/x402-tron";
 import { BatchSettlementTronScheme } from "@bankofai/x402-tron/batch-settlement/server";
 import type { FacilitatorClient } from "@bankofai/x402-core/server";
 import type { x402ResourceServer } from "@bankofai/x402-express";
 
 import type { StoppableManager } from "./evm.js";
 
-// Switch to "tron:0x2b6653dc" for production (REAL FUNDS): USDT is registered there
+// Switch to TRON_MAINNET for production (REAL FUNDS): USDT is registered there
 // too — only the facilitator/client TronWeb `fullHost` must point at mainnet.
-export const TRON_NETWORK: `${string}:${string}` = "tron:0xcd8690dc";
+export const TRON_NETWORK: `${string}:${string}` = (process.env.TRON_NETWORK ??
+  TRON_NILE) as `${string}:${string}`;
 
 /** TRON is enabled when a payout address is configured. */
 export function hasTron(): boolean {
@@ -49,17 +51,28 @@ export function registerTron(
     refundIntervalSecs: 180,
     maxClaimsPerBatch: 100,
     selectRefundChannels: (channels, context) =>
-      channels.filter(channel => {
+      channels.filter((channel) => {
         if (BigInt(channel.balance) === 0n) return false;
-        if (channel.pendingRequest && channel.pendingRequest.expiresAt > context.now) return false;
+        if (
+          channel.pendingRequest &&
+          channel.pendingRequest.expiresAt > context.now
+        )
+          return false;
         return context.now - channel.lastRequestTimestamp >= 180_000;
       }),
-    onClaim: r => console.log(`[tron] claimed ${r.vouchers} vouchers (tx ${r.transaction})`),
-    onSettle: r => console.log(`[tron] settled to ${payTo} (tx ${r.transaction})`),
-    onRefund: r => console.log(`[tron] refunded channel ${r.channel} (tx ${r.transaction})`),
-    onError: e => console.error("[tron] settlement error:", e),
+    onClaim: (r) =>
+      console.log(
+        `[tron] claimed ${r.vouchers} vouchers (tx ${r.transaction})`,
+      ),
+    onSettle: (r) =>
+      console.log(`[tron] settled to ${payTo} (tx ${r.transaction})`),
+    onRefund: (r) =>
+      console.log(`[tron] refunded channel ${r.channel} (tx ${r.transaction})`),
+    onError: (e) => console.error("[tron] settlement error:", e),
   });
-  console.info(`[tron] server registered ${TRON_NETWORK} batch-settlement (payTo ${payTo})`);
+  console.info(
+    `[tron] server registered ${TRON_NETWORK} batch-settlement (payTo ${payTo})`,
+  );
   return [manager];
 }
 
