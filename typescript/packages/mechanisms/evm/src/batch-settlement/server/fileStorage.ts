@@ -2,7 +2,8 @@ import { mkdir, open, readdir, readFile, unlink } from "node:fs/promises";
 import { constants } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { isNodeEnoent, readJsonFile, writeJsonAtomic } from "../storage-utils";
+import { isNodeEnoent, readJsonFile, resolveWithinDir, writeJsonAtomic } from "../storage-utils";
+import { normalizeChannelId } from "../utils";
 import type { FileChannelStorageOptions } from "../types";
 import type { ChannelStorage, Channel, ChannelUpdateResult } from "./storage";
 
@@ -119,7 +120,8 @@ export class FileChannelStorage implements ChannelStorage {
    * @returns Filesystem path under `{root}/server/...`.
    */
   private filePath(channelId: string): string {
-    return join(this.root, "server", `${channelId.toLowerCase()}.json`);
+    const id = normalizeChannelId(channelId);
+    return resolveWithinDir(join(this.root, "server"), `${id}.json`);
   }
 
   /**

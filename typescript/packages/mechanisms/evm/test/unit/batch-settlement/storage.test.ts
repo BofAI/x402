@@ -12,6 +12,7 @@ import {
   type BatchSettlementClientContext,
 } from "../../../src/batch-settlement/client/storage";
 import type { ChannelConfig } from "../../../src/batch-settlement/types";
+import { ErrInvalidChannelId } from "../../../src/batch-settlement/errors";
 
 const CHANNEL_CONFIG: ChannelConfig = {
   payer: "0x1234567890123456789012345678901234567890",
@@ -24,6 +25,8 @@ const CHANNEL_CONFIG: ChannelConfig = {
 };
 
 const CHANNEL_ID = "0xabc1230000000000000000000000000000000000000000000000000000000001";
+const MIXED_CASE_ID = "0xABC1230000000000000000000000000000000000000000000000000000000001";
+const MALFORMED_IDS = ["../../../etc/passwd", "/etc/passwd", "0x1234", ""];
 
 const buildSession = (overrides: Partial<Channel> = {}): Channel => ({
   channelId: CHANNEL_ID,
@@ -59,8 +62,15 @@ describe("InMemoryChannelStorage", () => {
 
     it("treats channelId case-insensitively", async () => {
       const session = buildSession({ chargedCumulativeAmount: "500" });
-      await storage.updateChannel(CHANNEL_ID.toUpperCase(), () => session);
-      expect(await storage.get(CHANNEL_ID.toLowerCase())).toEqual(session);
+      await storage.updateChannel(MIXED_CASE_ID, () => session);
+      expect(await storage.get(CHANNEL_ID)).toEqual(session);
+    });
+
+    it.each(MALFORMED_IDS)("rejects malformed id %j", async id => {
+      await expect(storage.get(id)).rejects.toThrow(ErrInvalidChannelId);
+      await expect(storage.updateChannel(id, () => buildSession())).rejects.toThrow(
+        ErrInvalidChannelId,
+      );
     });
 
     it("overwrites a session on subsequent update", async () => {
@@ -305,8 +315,13 @@ describe("RedisChannelStorage", () => {
 
   it("treats channelId case-insensitively", async () => {
     const channel = buildSession({ chargedCumulativeAmount: "500" });
-    await storage.updateChannel(CHANNEL_ID.toUpperCase(), () => channel);
-    expect(await storage.get(CHANNEL_ID.toLowerCase())).toEqual(channel);
+    await storage.updateChannel(MIXED_CASE_ID, () => channel);
+    expect(await storage.get(CHANNEL_ID)).toEqual(channel);
+  });
+
+  it.each(MALFORMED_IDS)("rejects malformed id %j", async id => {
+    await expect(storage.get(id)).rejects.toThrow(ErrInvalidChannelId);
+    await expect(storage.updateChannel(id, () => buildSession())).rejects.toThrow(ErrInvalidChannelId);
   });
 
   it("lists stored channels sorted by channelId", async () => {
@@ -421,9 +436,17 @@ describe("InMemoryClientChannelStorage", () => {
     await expect(storage.delete(CHANNEL_ID)).resolves.toBeUndefined();
   });
 
-  it("uses keys verbatim (no normalization)", async () => {
-    await storage.set(CHANNEL_ID.toUpperCase(), { chargedCumulativeAmount: "1" });
-    expect(await storage.get(CHANNEL_ID.toLowerCase())).toBeUndefined();
-    expect(await storage.get(CHANNEL_ID.toUpperCase())).toEqual({ chargedCumulativeAmount: "1" });
+  it("normalizes keys to lowercase canonical channel ids", async () => {
+    await storage.set(MIXED_CASE_ID, { chargedCumulativeAmount: "1" });
+    expect(await storage.get(CHANNEL_ID)).toEqual({ chargedCumulativeAmount: "1" });
+    expect(await storage.get(MIXED_CASE_ID)).toEqual({ chargedCumulativeAmount: "1" });
+  });
+
+  it.each(MALFORMED_IDS)("rejects malformed key %j", async id => {
+    await expect(storage.get(id)).rejects.toThrow(ErrInvalidChannelId);
+    await expect(storage.set(id, { chargedCumulativeAmount: "1" })).rejects.toThrow(
+      ErrInvalidChannelId,
+    );
+    await expect(storage.delete(id)).rejects.toThrow(ErrInvalidChannelId);
   });
 });

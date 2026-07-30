@@ -33,7 +33,7 @@ export class InMemoryClientChannelStorage implements ClientChannelStorage {
    * @returns Persisted context or undefined.
    */
   async get(key: string): Promise<BatchSettlementClientContext | undefined> {
-    return this.channels.get(key);
+    return this.channels.get(normalizeChannelId(key));
   }
 
   /**
@@ -44,7 +44,7 @@ export class InMemoryClientChannelStorage implements ClientChannelStorage {
    * @returns Resolves when stored.
    */
   async set(key: string, context: BatchSettlementClientContext): Promise<void> {
-    this.channels.set(key, context);
+    this.channels.set(normalizeChannelId(key), context);
   }
 
   /**
@@ -54,6 +54,7 @@ export class InMemoryClientChannelStorage implements ClientChannelStorage {
    * @returns Resolves when removed.
    */
   async delete(key: string): Promise<void> {
-    this.channels.delete(key);
+    this.channels.delete(normalizeChannelId(key));
   }
 }
+import { normalizeChannelId } from "../utils";

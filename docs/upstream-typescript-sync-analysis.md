@@ -55,6 +55,24 @@ f4530e2766c822a9c7f880e2a86484dd98257fb1  2026-07-08  fix(python/flask): use syn
 7be420af0bd4a72f34f2290b42abc4ac1c5660ec  2026-07-07  Deprecate website (#2794)
 ```
 
+## Latest upstream review
+
+Fetched upstream `origin/main` on 2026-07-30. This review extends the previous reviewed upstream end commit to:
+
+| Repository | Path | Commit | Date |
+| --- | --- | --- | --- |
+| Upstream source | `/Users/roger/Project/develop/foundation-x402/x402` | Previous end, exclusive: `ea2cd8177d0b694945fcd3c69e962ad880e8cab0` | 2026-07-13 |
+| Upstream source | `/Users/roger/Project/develop/foundation-x402/x402` | Latest reviewed end, inclusive: `183b2706953e5d730f268360ca20bddd58ba19a1` | 2026-07-30 |
+| Target fork | `/Users/roger/Project/develop/x402` | HEAD examined: `76368cf104a70d0387843e49cd087b0f01a0fdcf` | 2026-07-17 |
+
+Review range:
+
+```text
+ea2cd8177d0b694945fcd3c69e962ad880e8cab0..183b2706953e5d730f268360ca20bddd58ba19a1
+```
+
+The range contains 52 commits, 388 changed files, 18,252 insertions, and 2,837 deletions. Of the 151 changed TypeScript files (9,169 insertions, 964 deletions), the reusable work is concentrated in SIWx, HTTP clients, the Fetch wrapper, Builder Code, and EVM Batch Settlement. XRPL, SVM, Aptos, AVM, Stellar, and other unsupported-chain work remains out of scope.
+
 ## Repository relationship
 
 The target is not a Git branch of upstream. It has an independent history and has been reorganized as a TypeScript-only fork with `@bankofai` package names, TRON support, network-driven wallet adapters, and other local API changes. Upstream commits should therefore be ported manually and tested; they should not be blindly cherry-picked.
@@ -96,6 +114,36 @@ The target is not a Git branch of upstream. It has an independent history and ha
    - Port only if BankofAI wants to advertise Igra EVM support. The upstream asset is USDC at `0xA5b8BF902b2844dA17d4506cc827F7F1681735E7`, decimals `6`, `assetTransferMethod: "permit2"`, and no EIP-2612 support flag.
    - This is a small registry/doc change, not a behavioral compatibility fix.
 
+### 2026-07-30 review — Required
+
+10. `21b0745acdd62fea7ed555be7766ddb75088df9c` — bind SIWx validation and challenge issuance to a configured public origin.
+   - ✅ **Ported locally** (2026-07-30). Added required `origin`, strict origin normalization, request-path rebasing for challenges, and validation against the configured public origin. Extensions 477 tests pass before the structured-results follow-up below.
+
+11. `c72cfeeee215b51f0d5552d821dc8accf2d8f276` — harden EVM Batch Settlement channel storage and verification lifecycle.
+   - ✅ **Ported locally** (2026-07-30). Added canonical channel-ID validation/normalization, file-storage traversal protection, fail-closed verification state handling, two-phase reservations, and `after_verify_aborted` cleanup. EVM 771 tests pass.
+
+12. `27fadeb3c63f0f057359da0eb1ca9481715972bc` — preserve `Request` bodies in Fetch recovery retries.
+   - ✅ **Ported locally** (2026-07-30). Paid attempts clone the request and recovery retries reuse the preserved clone, retaining streamed/one-shot request bodies.
+
+13. `e5c50518a0553258ffa859b6dc0390de93e752ed` — honor caller-supplied EVM Batch Settlement assets outside `DEFAULT_STABLECOINS`.
+   - ✅ **Ported locally** (2026-07-30). EVM preserves caller-supplied asset metadata and `createChannelManager` accepts an explicit token; TRON behavior remains unchanged.
+
+14. `4453a929bea3122e7f86448435df158b82c30f50` — reject malformed `createAuthHeaders` callback results.
+   - ✅ **Ported locally** (2026-07-30). Path entries are optional and flat header objects now raise a descriptive error instead of silently dropping authentication.
+
+15. `183b2706953e5d730f268360ca20bddd58ba19a1` — timeout HTTP facilitator requests and guard eager middleware initialization rejection.
+   - ✅ **Ported locally** (2026-07-30). Added validated 30-second default `timeoutMs`, `FacilitatorTimeoutError`, per-attempt abort signals, and eager-init rejection guards for Express/Fastify/Hono/Next. Core build passes; one existing core test requires DNS access to `x402.org`.
+
+### 2026-07-30 review — High priority
+
+16. `b7bfa69fcbd1505950acbac3bd913b7c10a09aba` — cap Builder Code service codes (`s`) at five.
+   - ✅ **Ported locally** (2026-07-30). Added `MAX_SERVICE_CODES = 5`, schema `maxItems: 5`, and facilitator-side truncation.
+
+### 2026-07-30 review — Conditional
+
+17. `c1f2d90c157a0a3985f05c2a06bcee93ff805dd8` — SIWx structured failure results.
+   - ✅ **Ported locally** (2026-07-30). Replaced the public `{ valid, error?, address? }` shapes with discriminated `{ isValid, invalidReason, invalidMessage, payer }` results. Extensions 488 tests pass.
+
 ## Already represented in the target
 
 No additional port is currently required for:
@@ -124,13 +172,17 @@ Go/Python-only changes, upstream release commits, Mintlify/site changes, upstrea
 
 The 2026-07-13 supplement also excludes the upstream website deprecation (`7be420af`), Python HTTP middleware fixes (`f4530e27`, `765990cc`, `f5070b98`), Go/Python release commits (`2aa22d3e`, `79bad652`), Casper-only specs (`8b1abaea`), facilitator-list/docs-only updates (`07bd44dc`, `ea2cd817`), and upstream site/docs cleanup.
 
+The 2026-07-30 review also excludes XRPL (`08a3b46d` and related site/e2e/docs changes), SVM (`1e9f6501`, `32464a26`), Aptos (`60af28ed`), AVM/Algorand (`61349dea`), Stellar (`c4d2de65`), Python/Go-only changes, release/version bookkeeping, and example/site/docs-only commits. These do not map to the target's EVM/TRON TypeScript scope.
+
 ## Suggested implementation order
 
 ```text
-04860337 -> a3ad102b -> 59ac597d -> 4cba2622 -> f4c532e8 -> 8f22db34 -> 266b19d2
+21b0745a -> c72cfeee -> 27fadeb3 -> e5c50518 -> 4453a929 -> 183b2706 -> b7bfa69f
 ```
 
 Items `04860337` (authorization_value_mismatch), `a3ad102b` (MCP interop), `59ac597d` (dynamicInfoFields), `f4c532e8` (validAfter), `8f22db34` (Retry-After), `4cba2622` (wallet compatibility), and `266b19d2` (validateFacilitatorSupport) have been ported on branch `sync/upstream-2026-07`. If Igra support is desired, `d9bd02d1` can be handled independently because it is a registry-only EVM asset addition.
+
+The 2026-07-30 required ports (`21b0745a`, `c72cfeee`, `27fadeb3`, `e5c50518`, `4453a929`, and `183b2706`), the Builder Code cap (`b7bfa69f`), and SIWx structured results (`c1f2d90c`) have now been ported locally.
 
 ## Next comparison
 
@@ -138,7 +190,7 @@ For the next upstream review, use this upstream range:
 
 ```bash
 git -C /Users/roger/Project/develop/foundation-x402/x402 log \
-  ea2cd8177d0b694945fcd3c69e962ad880e8cab0..HEAD \
+  183b2706953e5d730f268360ca20bddd58ba19a1..HEAD \
   --date=short --pretty=format:'%H%x09%ad%x09%s'
 ```
 

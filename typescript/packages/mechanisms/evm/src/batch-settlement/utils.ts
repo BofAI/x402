@@ -1,7 +1,36 @@
 import { getAddress, hashTypedData } from "viem";
 import { BATCH_SETTLEMENT_ADDRESS, BATCH_SETTLEMENT_DOMAIN, channelConfigTypes } from "./constants";
+import { ErrChannelIdMismatch, ErrInvalidChannelId } from "./errors";
 import type { ChannelConfig } from "./types";
 import { getEvmChainId } from "../utils";
+
+/** Canonical `bytes32` channel id: `0x` followed by exactly 64 hex digits. */
+const CHANNEL_ID_RE = /^0x[0-9a-fA-F]{64}$/;
+
+export function isCanonicalChannelId(value: unknown): value is `0x${string}` {
+  return typeof value === "string" && CHANNEL_ID_RE.test(value);
+}
+
+/** Validates a channel id and normalizes it for all storage backends. */
+export function normalizeChannelId(channelId: string): `0x${string}` {
+  if (!isCanonicalChannelId(channelId)) {
+    throw new Error(ErrInvalidChannelId);
+  }
+  return channelId.toLowerCase() as `0x${string}`;
+}
+
+/** Returns an error code unless a claimed id matches its immutable channel config. */
+export function channelIdBindingError(
+  config: ChannelConfig,
+  claimedChannelId: string,
+  networkOrChainId: string | number,
+): string | undefined {
+  if (!isCanonicalChannelId(claimedChannelId)) return ErrInvalidChannelId;
+  if (computeChannelId(config, networkOrChainId).toLowerCase() !== claimedChannelId.toLowerCase()) {
+    return ErrChannelIdMismatch;
+  }
+  return undefined;
+}
 
 /**
  * Computes the chain-bound channel id from a {@link ChannelConfig} struct.
