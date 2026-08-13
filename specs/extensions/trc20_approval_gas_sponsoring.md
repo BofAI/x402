@@ -247,6 +247,10 @@ payment. It MUST apply an idempotent, bounded sponsorship policy before creating
 The policy may use authenticated tenant credit or a capped platform subsidy; this extension does not
 define a new authentication, credit, or billing wire protocol.
 
+`(network, approvalTxID)` MUST identify at most one sponsorship operation. Concurrent and retried
+`/settle` calls for the same Approval MUST return or resume that operation and MUST NOT create an
+additional delegation.
+
 ### Resource sizing
 
 Energy MUST be estimated against the actual payer, token, spender, and amount near settlement.
@@ -316,6 +320,9 @@ After successful admission, the facilitator:
 6. waits for successful execution and independently observes the expected allowance;
 7. immediately submits one matching `UnDelegateResource` action per delegated resource type; and
 8. continues Permit2 settlement and tracks both payment finality and resource recovery.
+
+The facilitator MUST NOT broadcast the Approval until the required resources are actually visible
+and sufficient. Version `1` MUST NOT deliberately rely on burning the payer's TRX as a fallback.
 
 Approval broadcast acceptance alone is not enough to reclaim. Reclamation begins after successful
 execution and visible allowance state. Delegate, Approval, settlement, and undelegate are separate
