@@ -1,4 +1,4 @@
-# Extension: `trc20ApprovalGasSponsoring`
+# Extension: `trc20ApprovalResourceSponsoring`
 
 > **Status:** Draft
 >
@@ -8,7 +8,7 @@
 
 ## Summary
 
-`trc20ApprovalGasSponsoring` enables the first `exact + Permit2` payment from an activated TRON
+`trc20ApprovalResourceSponsoring` enables the first `exact + Permit2` payment from an activated TRON
 externally owned account (EOA) that has no TRX and no existing TRC-20 allowance to Permit2. The
 client constructs and signs, but does not broadcast, a transaction calling
 `token.approve(canonicalPermit2, MaxUint256)`. The facilitator strictly validates that transaction,
@@ -49,7 +49,7 @@ A Resource Server advertises the extension in `PaymentRequired.extensions`:
 
 ```json
 {
-  "trc20ApprovalGasSponsoring": {
+  "trc20ApprovalResourceSponsoring": {
     "info": {
       "description": "The facilitator sponsors TRON Energy and Bandwidth for a pre-signed TRC-20 approve transaction.",
       "version": "1"
@@ -132,7 +132,7 @@ without allowing the client to replace the declared `description` or `version`:
 ```json
 {
   "extensions": {
-    "trc20ApprovalGasSponsoring": {
+    "trc20ApprovalResourceSponsoring": {
       "info": {
         "from": "TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC",
         "asset": "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
