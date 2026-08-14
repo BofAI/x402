@@ -36,8 +36,8 @@ Version `1` is limited to:
 
 Version `1` does not define a new scheme, a general resource-rental API, reset-to-zero handling,
 smart-contract or multisignature payers, a user Sponsor Fee or collateral transfer, GasFree-account
-settlement, or an external Energy-provider protocol. A non-zero but insufficient allowance fails
-with `approval_reset_required`.
+settlement, an external Energy-provider protocol, or a provider-bound `SponsorIntent`. A non-zero but
+insufficient allowance fails with `approval_reset_required`.
 
 TRON resource delegation is account-scoped, not transaction-scoped. The extension cannot
 cryptographically reserve delegated resources for the Approval transaction. Its controls bound this
@@ -199,14 +199,23 @@ The decoded transaction MUST have:
 
 - exactly one contract of type `TriggerSmartContract`;
 - `owner_address` equal to the payer;
-- `contract_address` equal to `PaymentRequirements.asset` and an allowlisted TRC-20 contract;
+- `contract_address` equal to `PaymentRequirements.asset` and an entry in the facilitator-controlled
+  hard allowlist for the selected network;
 - calldata length exactly 68 bytes, selector `0x095ea7b3`, canonical Permit2 as spender, and
   `MaxUint256` as amount;
 - no native or TRC-10 value, memo, additional contract, custom permission, or additional signature;
 - an on-chain owner permission with threshold `1` that authorizes the recovered signer;
 - valid TAPOS and timestamp fields;
-- an expiration that leaves enough time to delegate and broadcast; and
+- an expiration that satisfies the quantified admission rule in
+  [Expiration admission](#expiration-admission); and
 - a `fee_limit` no higher than facilitator policy and sufficient for the current call estimate.
+
+The effective Token allowlist MUST be the facilitator's global `(network, token)` hard allowlist
+intersected with any seller-specific allowlist. `PaymentRequirements`, extension fields, and seller
+registration may select from that intersection but MUST NOT expand it. The Token's current code
+identity, including any configured proxy implementation identity, MUST match the facilitator's local
+admission record. Simulation MUST use the exact Client-signed calldata and owner represented by
+`raw_data_hex`.
 
 The Permit2 payment MUST independently bind and validate:
 
@@ -235,10 +244,18 @@ transactions. It checks that:
 deadline, TAPOS, expiration, simulation, resource availability, and sponsorship policy. Any RPC,
 decoding, simulation, or policy error on this sponsored path fails closed.
 
+A production deployment that offers non-disposable seller or tenant sponsorship SHOULD authenticate
+both sponsored `/verify` and `/settle` requests. It MUST authenticate `/settle` before consuming such
+a budget and bind the authenticated principal to a stable seller identity, authorized `payTo` and
+network values, a Token-allowlist subset, quotas, cost attribution, and audit records. The
+authentication mechanism is outside this extension. An anonymous tier MAY exist only under an
+explicitly configured, disposable subsidy with small payer, rate, and global hard caps.
+
 Recommended stable failure categories include `approval_extension_invalid`,
 `approval_txid_mismatch`, `approval_signature_invalid`, `approval_semantics_invalid`,
 `approval_payment_binding_mismatch`, `approval_not_required`, `approval_reset_required`,
-`sponsor_policy_denied`, `resource_unavailable`, and `unknown_chain_state`.
+`approval_transaction_expiring`, `sponsor_operation_in_progress`, `sponsor_policy_denied`,
+`resource_unavailable`, and `unknown_chain_state`.
 
 ## Settlement and resource sponsorship
 
@@ -247,9 +264,21 @@ payment. It MUST apply an idempotent, bounded sponsorship policy before creating
 The policy may use authenticated tenant credit or a capped platform subsidy; this extension does not
 define a new authentication, credit, or billing wire protocol.
 
+Before the first chain-side effect, the facilitator MUST atomically reserve all required Energy and
+Bandwidth capacity and charge or reserve a specific facilitator-controlled sponsorship-policy
+budget. Request fields MUST NOT create or expand that budget. Reserved, delegated, and recovering
+capacity MUST continue counting against it until clean usable capacity is observed again.
+
 `(network, approvalTxID)` MUST identify at most one sponsorship operation. Concurrent and retried
 `/settle` calls for the same Approval MUST return or resume that operation and MUST NOT create an
 additional delegation.
+
+Across all instances in one sponsorship deployment, the facilitator MUST serialize admission for
+`(network, payer)`. At most one sponsorship for that key may hold reserved or delegated resources
+until every resource leg is known not to have succeeded or has been confirmed undelegated. Mutations
+for `(network, resourceOwner, payer, resourceType)` MUST also be serialized. Admission, capacity, and
+resource-leg state MUST be shared across the deployment; process-local synchronization is not
+sufficient.
 
 ### Resource sizing
 
@@ -306,13 +335,33 @@ resources after delegation becomes visible.
 
 A `DelegateResource` transaction selects one resource type. If both Energy and Bandwidth are needed,
 the facilitator submits separate delegation actions and later separate matching reclamation actions.
-It must also retain enough Resource Owner Bandwidth to execute every required reclamation.
+It MUST also retain enough Resource Owner Bandwidth to execute every required reclamation.
+
+### Expiration admission
+
+"Enough time" MUST be a calculated deployment policy rather than a qualitative check. At every
+checkpoint the facilitator computes:
+
+```text
+minimumRemainingLifetime =
+  worstCaseVisibilityTime(all uncompleted delegation legs)
+  + approvalSubmissionAndInclusionTimeout
+  + configuredSafetyMargin
+```
+
+`approval.expiration - currentChainTime` MUST be at least `minimumRemainingLifetime` before capacity
+reservation, immediately before broadcasting each `DelegateResource` leg, and immediately before
+broadcasting the Approval. At the final checkpoint the remaining-delegation term is zero. The
+configured bounds MUST account for the execution strategy, current network behavior, clock skew,
+and RPC skew. Failure after any successful delegation creates a reclamation obligation.
+Post-inclusion solidification is governed by the separate finality and recovery policy because
+transaction expiration controls inclusion, not later solidification.
 
 ### Execution order
 
 After successful admission, the facilitator:
 
-1. persists the immutable Approval and one action per required resource type;
+1. durably persists the immutable Approval and one action per required resource type;
 2. broadcasts each `DelegateResource` action with `lock = false`;
 3. confirms the required Energy and Bandwidth are visible on the payer;
 4. rechecks mutable validation conditions;
@@ -324,23 +373,47 @@ After successful admission, the facilitator:
 The facilitator MUST NOT broadcast the Approval until the required resources are actually visible
 and sufficient. Version `1` MUST NOT deliberately rely on burning the payer's TRX as a fallback.
 
-Approval broadcast acceptance alone is not enough to reclaim. Reclamation begins after successful
-execution and visible allowance state. Delegate, Approval, settlement, and undelegate are separate
-TRON transactions; atomic or same-block execution is not guaranteed.
+If allowance becomes sufficient before any resource leg is broadcast, the facilitator MUST skip
+sponsorship and MAY continue normal Permit2 settlement. If it becomes sufficient after a successful
+delegation but before Approval broadcast, the facilitator MUST reclaim every successful resource leg
+and MAY continue settlement while recovery proceeds.
+
+Approval broadcast acceptance establishes neither successful execution nor terminal failure. The
+facilitator MUST reconcile the original Approval transaction ID until successful execution and the
+expected allowance are observed, or a terminal failure is known. After success, and after every known
+terminal failure following a successful delegation, it MUST submit and confirm a matching
+`UnDelegateResource` action for every successful resource leg.
+
+Partial delegation, post-delegation validation failure, expiration, TAPOS or payment-nonce failure,
+confirmed Approval failure, caller timeout, and caller disconnection MUST NOT strand a successful
+resource leg. An unknown chain state MUST stop dependent side effects and be reconciled through the
+original transaction ID; it MUST NOT cause a replacement side effect. Reconciliation and recovery
+continue independently of the request lifecycle.
+
+Delegate, Approval, settlement, and undelegate are separate TRON transactions; atomic or same-block
+execution is not guaranteed.
 
 The payer-signed Approval is immutable and cannot be rebuilt after expiration. Facilitator-owned
 actions may receive a new signed attempt only after the prior attempt is conclusively expired and
 cannot still be included. RPC timeout or unknown chain state alone is not sufficient.
 
 Undelegation returns the delegated stake share but does not immediately restore resources consumed
-by the Approval. Unrecovered usage continues through TRON's recovery window. Implementations must
-therefore distinguish clean available, reserved, delegated, and recovering capacity. Payment may be
-final while resource recovery remains in progress.
+by the Approval. Unrecovered usage continues through TRON's recovery window. Implementations MUST
+distinguish clean available, reserved, delegated, and recovering capacity. Reserved capacity MUST
+remain unavailable until each leg is known not to have succeeded or its matching undelegation is
+confirmed. Undelegated but consumed resources MUST NOT become clean available until the Resource
+Owner's actual usable capacity is observed again. Payment may be final while recovery remains in
+progress.
 
-Production implementations SHOULD persist action bytes and transaction IDs before broadcast,
-prevent duplicate active operations for `(network, approvalTxID)`, reconcile unknown chain state,
-and keep recovery processing available when new sponsorship is disabled. The specific database,
-outbox, lease, and worker design is implementation-defined.
+Before broadcast or submission network I/O for every chain action, the facilitator MUST durably
+persist, atomically with the state transition that makes the attempt broadcastable, its immutable
+signed transaction bytes, transaction ID, sponsorship and logical-action (including resource-leg)
+identity, state, and attempt number. It MUST broadcast those exact bytes. An indeterminate broadcast
+MUST be reconciled by the persisted transaction ID and MUST NOT create a replacement side effect.
+Where lease-based workers are used, their coordination state MUST include a fencing generation and
+stale workers MUST be prevented from advancing or broadcasting an attempt. Recovery processing MUST
+remain available when new sponsorship is disabled. The specific database, outbox, lease, and worker
+design is implementation-defined.
 
 ## Security considerations
 
@@ -355,11 +428,27 @@ Implementations SHOULD bound the exposure by obtaining the final signed Approval
 delegating only the minimum amount, broadcasting immediately after visibility, using short
 expiration, allowing one active sponsorship per payer, and enforcing payer and global loss limits.
 
+### Cross-facilitator replay
+
+The Resource Server can observe and rebroadcast the signed Approval. It can also submit the same
+Approval and Permit2 authorization to independent facilitators. `(network, approvalTxID)` idempotency
+protects only facilitators that share one sponsorship state domain; it does not prevent two
+independent facilitators from separately delegating resources before either observes the allowance.
+
+Version `1` accepts this as a residual risk because it does not include a Client-signed,
+provider-bound `SponsorIntent`. Deployments SHOULD route a sponsorship through one selected
+facilitator domain and MUST enforce payer, seller or subsidy-tier, and global hard exposure limits
+without assuming that other facilitator domains share state. Those limits bound only this
+deployment's contribution to cross-provider loss. A future hardened version may bind `approvalTxID`
+to a verifiable facilitator domain or encrypt delivery to the selected facilitator.
+
 ### Economic exhaustion
 
 A valid Approval and a future Permit2 payment do not guarantee recovery of the sponsorship cost.
 Attackers can use many EOAs, or make settlement fail after Approval. Before delegation, each request
 MUST be covered by a bounded sponsor policy such as funded tenant credit or a capped platform subsidy.
+Payer, seller or subsidy-tier, Token, time-window, and global quotas MUST count reserved, delegated,
+and recovering capacity until that capacity becomes clean again.
 
 Version `1` does not charge a user fee inside `approve`: standard TRC-20 `approve` changes allowance
 and cannot simultaneously transfer a Sponsor Fee. A user collateral or split-payment format requires
@@ -370,7 +459,9 @@ a separate protocol extension.
 Production deployments SHOULD separate Resource Owner, settlement, and treasury wallets; restrict
 the online Resource Owner permission to delegation transaction types; enforce receiver, amount, and
 rate policy in the signing service; avoid logging broadcastable signed Approvals; and distinguish
-packed state from solidified finality.
+packed state from solidified finality. They SHOULD monitor allowlisted Token bytecode, proxy
+implementation identity, and allowlist-policy version; a code identity that no longer matches the
+local admission record MUST be removed from sponsorship until it is reviewed and re-admitted.
 
 ## References
 
