@@ -82,29 +82,12 @@ A Resource Server advertises the extension in `PaymentRequired.extensions`:
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
       "properties": {
-        "from": {
-          "type": "string",
-          "pattern": "^T[1-9A-HJ-NP-Za-km-z]{33}$"
-        },
-        "asset": {
-          "type": "string",
-          "pattern": "^T[1-9A-HJ-NP-Za-km-z]{33}$"
-        },
-        "spender": {
-          "type": "string",
-          "pattern": "^T[1-9A-HJ-NP-Za-km-z]{33}$"
-        },
-        "amount": {
-          "const": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
-        },
-        "signedTransaction": {
-          "type": "string",
-          "pattern": "^(?:[0-9a-f]{2})+$",
-          "maxLength": 16384
-        },
-        "version": {
-          "const": "1"
-        }
+        "from": { "type": "string", "pattern": "^T[1-9A-HJ-NP-Za-km-z]{33}$" },
+        "asset": { "type": "string", "pattern": "^T[1-9A-HJ-NP-Za-km-z]{33}$" },
+        "spender": { "type": "string", "pattern": "^T[1-9A-HJ-NP-Za-km-z]{33}$" },
+        "amount": { "const": "115792089237316195423570985008687907853269984665640564039457584007913129639935" },
+        "signedTransaction": { "type": "string", "pattern": "^(?:[0-9a-f]{2})+$", "maxLength": 16384 },
+        "version": { "const": "1" }
       },
       "required": ["from", "asset", "spender", "amount", "signedTransaction", "version"]
     }
