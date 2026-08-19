@@ -56,6 +56,26 @@ export const DEFAULT_ASSETS: DefaultAssetTable<ExactDefaultAssetInfo> = {
       symbol: "USDC",
     },
   ], // Base Sepolia USDC
+  "eip155:97": [
+    {
+      asset: "0x64544969ed7EBf5f083679233325356EbE738930",
+      name: "USD Coin",
+      version: "1",
+      decimals: 18,
+      symbol: "USDC",
+      assetTransferMethod: "permit2",
+    },
+  ], // BSC testnet USDC (plain BEP-20, no EIP-3009)
+  "eip155:56": [
+    {
+      asset: "0x55d398326f99059fF775485246999027B3197955",
+      name: "Tether USD",
+      version: "1",
+      decimals: 18,
+      symbol: "USDT",
+      assetTransferMethod: "permit2",
+    },
+  ], // BSC mainnet USDT (plain BEP-20, no EIP-3009)
   "eip155:4326": [
     {
       asset: "0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7",

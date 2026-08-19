@@ -57,14 +57,6 @@ const TOKEN_ADDRESSES: Record<string, Record<string, string>> = {
   },
 };
 
-const EXAMPLE_SPEND_CONTROL_ASSETS = [
-  {
-    network: "eip155:97" as const,
-    asset: TOKEN_ADDRESSES["eip155:97"]!.USDC!,
-    maxAmountPerPayment: "1000000000000000",
-  },
-];
-
 /** A single payment target: a network prefix + optional asset address. */
 interface PayTarget {
   raw: string;
@@ -123,7 +115,7 @@ const client = new x402Client((_x402Version, accepts) => {
     throw new Error(`server offered no payment option matching "${t.raw}"`);
   }
   return match;
-}).setSpendControls({ allowedAssets: EXAMPLE_SPEND_CONTROL_ASSETS });
+});
 
 const evmSchemes = await registerEvm(client, opts);
 const tronSchemes = await registerTron(client, opts);

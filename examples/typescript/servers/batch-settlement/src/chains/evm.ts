@@ -7,8 +7,8 @@
  * is supplied by the facilitator (fetched via `/supported`), so the server holds
  * no signing key.
  *
- * BSC testnet has no SDK default asset, so this example declares USDC explicitly.
- * It is a **Permit2** token → the client deposits via Permit2 (needs a one-time
+ * This example declares the BSC testnet default USDC explicitly to keep its
+ * Permit2 path visible. The client deposits via Permit2 (needs a one-time
  * `approve(Permit2)`). Note: batch deposits sign `ReceiveWithAuthorization`, so
  * an eip3009 token must implement `receiveWithAuthorization` (BSC's DHLU only
  * has `transferWithAuthorization`, so it can't be used here).

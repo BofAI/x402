@@ -73,22 +73,12 @@ const EXAMPLE_SPEND_CONTROL_ASSETS: Array<{
   },
   {
     network: "eip155:97" as const,
-    asset: TOKEN_ADDRESSES["eip155:97"]!.USDC!,
-    maxAmountPerPayment: "1000000000000000",
-  },
-  {
-    network: "eip155:97" as const,
     asset: TOKEN_ADDRESSES["eip155:97"]!.USDT!,
     maxAmountPerPayment: "1000000000000000",
   },
   {
     network: "eip155:56" as const,
     asset: TOKEN_ADDRESSES["eip155:56"]!.USDC!,
-    maxAmountPerPayment: "1000000000000000",
-  },
-  {
-    network: "eip155:56" as const,
-    asset: TOKEN_ADDRESSES["eip155:56"]!.USDT!,
     maxAmountPerPayment: "1000000000000000",
   },
   {

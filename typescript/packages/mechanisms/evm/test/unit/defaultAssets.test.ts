@@ -4,6 +4,8 @@ import { ExactEvmScheme } from "../../src/exact/server/scheme";
 import { DEFAULT_ASSETS, findDefaultAsset, getDefaultAsset } from "../../src/defaultAssets";
 
 const BASE_USDC = DEFAULT_ASSETS["eip155:8453"]![0]!;
+const BSC_MAINNET_USDT = DEFAULT_ASSETS["eip155:56"]![0]!;
+const BSC_TESTNET_USDC = DEFAULT_ASSETS["eip155:97"]![0]!;
 const MEZO_TESTNET_MUSD = DEFAULT_ASSETS["eip155:31611"]![0]!;
 
 describe("defaultAssets (EVM)", () => {
@@ -25,6 +27,12 @@ describe("defaultAssets (EVM)", () => {
       expect(MEZO_TESTNET_MUSD.decimals).toBe(18);
     });
 
+    it("finds BSC defaults only on their configured network", () => {
+      expect(findDefaultAsset(BSC_MAINNET_USDT.asset, "eip155:56")).toEqual(BSC_MAINNET_USDT);
+      expect(findDefaultAsset(BSC_TESTNET_USDC.asset, "eip155:97")).toEqual(BSC_TESTNET_USDC);
+      expect(findDefaultAsset(BSC_MAINNET_USDT.asset, "eip155:97")).toBeUndefined();
+    });
+
     it("returns undefined for an unknown asset", () => {
       expect(
         findDefaultAsset("0x0000000000000000000000000000000000000001", "eip155:8453"),
@@ -36,6 +44,13 @@ describe("defaultAssets (EVM)", () => {
     it("returns the first list entry as the network default", () => {
       expect(getDefaultAsset("eip155:8453")).toEqual(BASE_USDC);
       expect(getDefaultAsset("base")).toEqual(BASE_USDC);
+    });
+
+    it("returns USDT for BSC mainnet and USDC for BSC testnet", () => {
+      expect(getDefaultAsset("eip155:56")).toEqual(BSC_MAINNET_USDT);
+      expect(getDefaultAsset("eip155:97")).toEqual(BSC_TESTNET_USDC);
+      expect(BSC_MAINNET_USDT.symbol).toBe("USDT");
+      expect(BSC_TESTNET_USDC.symbol).toBe("USDC");
     });
 
     it("throws when requesting a symbol that is not configured on the network", () => {

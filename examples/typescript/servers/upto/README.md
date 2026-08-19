@@ -46,7 +46,7 @@ the whole point of `upto`, and over-settling is rejected.
 
 ## Notes
 
-- BSC testnet has no SDK default asset, so the server converts `MAX_PRICE` to an
-  explicit 18-decimal USDC atomic amount. TRON keeps the `"$"` price form and
-  resolves its default USDT from the token registry.
+- BSC testnet USDC is an SDK default asset; the server still converts `MAX_PRICE`
+  to an explicit 18-decimal atomic amount to make the token choice visible. TRON
+  keeps the `"$"` price form and resolves its default USDT from the token registry.
 - The server holds no signing key — only payout addresses.

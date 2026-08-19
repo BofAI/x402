@@ -6,9 +6,10 @@
  * `index.ts` via a `Settlement-Overrides` response header — the scheme/facilitator
  * settle only that amount (<= the advertised price).
  *
- * BSC testnet has no SDK default asset, so this example converts its configured
- * maximum to an explicit USDC amount. USDC is a **Permit2** token → the client
- * authorizes via Permit2 (needs a one-time `approve(Permit2)`).
+ * This example converts its configured maximum to an explicit USDC amount so
+ * the token choice remains visible even though USDC is the SDK default. USDC is
+ * a **Permit2** token → the client authorizes via Permit2 (needs a one-time
+ * `approve(Permit2)`).
  */
 import { UptoEvmScheme } from "@bankofai/x402-evm/upto/server";
 import type { Network } from "@bankofai/x402-core/types";
