@@ -1,5 +1,9 @@
 # Upstream TypeScript Sync Analysis
 
+> **Archived:** this file preserves sync history through 2026-07-30. Starting with the
+> 2026-08-19 review, all checkpoints, findings, decisions, and validation results are
+> maintained in [`upstream-global-gap-analysis-2026-08-19.md`](./upstream-global-gap-analysis-2026-08-19.md).
+
 ## Comparison checkpoint
 
 This document records the checkpoint used to compare `x402-foundation/x402` with the BankofAI TypeScript fork. Future reviews should start after the recorded upstream end commit and compare against the then-current target HEAD.
@@ -72,34 +76,6 @@ ea2cd8177d0b694945fcd3c69e962ad880e8cab0..183b2706953e5d730f268360ca20bddd58ba19
 ```
 
 The range contains 52 commits, 388 changed files, 18,252 insertions, and 2,837 deletions. Of the 151 changed TypeScript files (9,169 insertions, 964 deletions), the reusable work is concentrated in SIWx, HTTP clients, the Fetch wrapper, Builder Code, and EVM Batch Settlement. XRPL, SVM, Aptos, AVM, Stellar, and other unsupported-chain work remains out of scope.
-
-## 2026-08-19 upstream review and sync
-
-Fetched upstream `origin/main` on 2026-08-19 and reviewed the range below against target branch `sync/upstream-typescript-2026-07-30` at `418afc0d` plus the resulting working-tree port.
-
-```text
-183b2706953e5d730f268360ca20bddd58ba19a1..75b519d0a3a7
-```
-
-The range contains 67 commits. Twenty-five commits touch the supported TypeScript SDK, HTTP adapters, MCP package, EVM mechanism, or shared specifications. Release/version commits and unsupported-chain work were not ported.
-
-Ported changes:
-
-- Payment-flow handlers, cancellation settlement, and the `settlement_pending` state (`db5da2e6`, `6dba93ed`). TRON schemes were adapted to declare their authorization flows without replacing the fork's own facilitator logic.
-- Client spend controls and MCP policy propagation/re-approval (`4f587236`, `08e84ab0`, `c4274251`). TRON clients expose their default assets so the same controls work for TRON payments.
-- HTTP route hardening for encoded separators, backslashes, and line terminators (`16019420`, `37412e7c`, `5192e50f`), plus cache-control behavior (`ee1b148d`).
-- Bazaar external-reference rejection (`6b04d5e8`), SIWx request-origin binding (`c2612d31`), and Builder Code merge/budget behavior (`e805616f`, `e335d4fc`).
-- EVM settlement receipt verification, pending-result handling, default-asset updates, and missing-`accepted` handling (`dea7937b`, `6dba93ed`, `76bda78e`, `242d6e97`, `db9dabd0`, `ab1a31ab`).
-- Current shared specifications for exact, upto, batch settlement, Bazaar, Builder Code, and SIWx.
-
-Fork-specific decisions retained:
-
-- `registerExactEvmScheme` still does not auto-register protocol v1 networks.
-- Package names remain under `@bankofai`; upstream version and changelog bumps were excluded.
-- TRON address/signing, GasFree, Permit2, batch-settlement, and sub-token-precision rejection remain fork-owned behavior.
-- SVM and other unsupported mechanisms remain out of scope.
-
-Validation after the port: core 647 tests, extensions 517, EVM 828, TRON 139, MCP 113, Fetch 20, Axios 23, Express 72, Fastify 54, Hono 62, and Next 66 all pass. The affected packages also build successfully, and the synced files pass lint. Full-package lint still reports pre-existing issues in unchanged files, including TRON signer JSDoc declarations, EVM test unused variables, and formatting in Extension/MCP entry files.
 
 ## Repository relationship
 
@@ -224,15 +200,3 @@ The 2026-07-30 review also excludes XRPL (`08a3b46d` and related site/e2e/docs c
 Items `04860337` (authorization_value_mismatch), `a3ad102b` (MCP interop), `59ac597d` (dynamicInfoFields), `f4c532e8` (validAfter), `8f22db34` (Retry-After), `4cba2622` (wallet compatibility), and `266b19d2` (validateFacilitatorSupport) have been ported on branch `sync/upstream-2026-07`. If Igra support is desired, `d9bd02d1` can be handled independently because it is a registry-only EVM asset addition.
 
 The 2026-07-30 required ports (`21b0745a`, `c72cfeee`, `27fadeb3`, `e5c50518`, `4453a929`, and `183b2706`), the Builder Code cap (`b7bfa69f`), and SIWx structured results (`c1f2d90c`) have now been ported locally.
-
-## Next comparison
-
-For the next upstream review, use this upstream range:
-
-```bash
-git -C /Users/roger/Project/develop/foundation-x402/x402 log \
-  75b519d0a3a7..HEAD \
-  --date=short --pretty=format:'%H%x09%ad%x09%s'
-```
-
-Before relying on this checkpoint, verify that the 2026-08-19 working-tree port has been committed to the target and record that target commit.
