@@ -98,29 +98,9 @@ A Resource Server advertises the extension in `PaymentRequired.extensions`:
           "const": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
         },
         "signedTransaction": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "txID": {
-              "type": "string",
-              "pattern": "^[0-9a-f]{64}$"
-            },
-            "raw_data_hex": {
-              "type": "string",
-              "pattern": "^(?:[0-9a-f]{2})+$",
-              "maxLength": 16384
-            },
-            "signature": {
-              "type": "array",
-              "minItems": 1,
-              "maxItems": 1,
-              "items": {
-                "type": "string",
-                "pattern": "^[0-9a-f]{130}$"
-              }
-            }
-          },
-          "required": ["txID", "raw_data_hex", "signature"]
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{2})+$",
+          "maxLength": 16384
         },
         "version": {
           "const": "1"
@@ -133,8 +113,9 @@ A Resource Server advertises the extension in `PaymentRequired.extensions`:
 ```
 
 The Base58Check `from`, `asset`, and `spender` fields and decimal `amount` are redundant display and
-routing fields. The signed `raw_data_hex` bytes are authoritative, and each redundant field MUST
-match the independently decoded transaction.
+routing fields. `signedTransaction` is the lowercase hexadecimal encoding, without a `0x` prefix, of
+the complete signed TRON `Transaction` protobuf. Its exact bytes are authoritative, and each
+redundant field MUST match the independently decoded transaction.
 
 Human-readable `description` text is Server-controlled declaration metadata and MAY be localized
 without changing the extension version. Version `"1"` is echoed by the Client and validated by the
@@ -173,13 +154,7 @@ Server declaration without allowing the Client to replace Server-controlled decl
         "asset": "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
         "spender": "TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h",
         "amount": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-        "signedTransaction": {
-          "txID": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-          "raw_data_hex": "0a02abcd",
-          "signature": [
-            "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-          ]
-        },
+        "signedTransaction": "0a...",
         "version": "1"
       }
     }
@@ -187,8 +162,8 @@ Server declaration without allowing the Client to replace Server-controlled decl
 }
 ```
 
-The hexadecimal values above show the Client enrichment wire shape and are not a broadcastable test
-vector.
+The abbreviated hexadecimal value above shows the Client enrichment wire shape and is not a
+broadcastable test vector.
 
 Before signing, the client MUST construct and inspect one `TriggerSmartContract` transaction with:
 
@@ -201,10 +176,11 @@ Before signing, the client MUST construct and inspect one `TriggerSmartContract`
 - a short expiration; and
 - a `fee_limit` within the client's safety policy.
 
-The client computes `txID = SHA-256(raw_data protobuf bytes)`, signs that digest, and supplies the
-unchanged raw bytes and signature. The client MUST NOT broadcast the Approval when using this
-extension. The separate Permit2 signature remains the authority for token, exact payment amount,
-proxy spender, recipient witness, nonce, and deadline.
+The client computes `txID = SHA-256(raw_data protobuf bytes)`, signs that digest, serializes the
+complete `Transaction` containing the unchanged `raw_data` and exactly one signature, and supplies
+those serialized bytes as `signedTransaction`. The client MUST NOT broadcast the Approval when using
+this extension. The separate Permit2 signature remains the authority for token, exact payment
+amount, proxy spender, recipient witness, nonce, and deadline.
 
 ## Facilitator verification
 
@@ -218,19 +194,20 @@ The facilitator MUST:
 1. require extension version exactly `"1"` and validate merged `info` with a locally compiled,
    canonical version `1` schema selected by extension key and version;
 2. enforce input-size limits, exactly one signature, and no unknown JSON fields;
-3. parse the exact `raw_data_hex` as TRON `Transaction.raw` protobuf under the restricted encoding
-   profile below;
+3. parse the exact `signedTransaction` bytes as a TRON `Transaction` protobuf under the restricted
+   encoding profile below;
 4. reject malformed wire types, truncated or overlong encodings, non-minimal varints, fields out of
    profile order, unknown fields, duplicate singular fields, and fields outside that profile;
-5. recompute `SHA-256(raw_data_hex)` and match `signedTransaction.txID`;
+5. extract the exact encoded `raw_data` message bytes and compute
+   `approvalTxID = SHA-256(raw_data)`;
 6. validate the 65-byte java-tron-compatible secp256k1 `r || s || recovery-id` signature and recover
    its signer; and
 7. require signer, `owner_address`, extension `from`, and Permit2 payer to identify the same EOA.
 
 The exact supplied bytes are authoritative for the transaction ID and signature. The facilitator
-MUST NOT regenerate `raw_data_hex` from JSON or change TAPOS, timestamp, expiration, or `fee_limit`.
-It may wrap the unchanged raw bytes and signature in the outer signed `Transaction` protobuf and use
-TRON's `broadcasthex` API. The node-returned transaction ID MUST match the expected `txID`.
+MUST NOT regenerate the transaction from JSON or change TAPOS, timestamp, expiration, `fee_limit`,
+or signature. It broadcasts the unchanged `signedTransaction` through TRON's `broadcasthex` API.
+The node-returned transaction ID MUST match the computed `approvalTxID`.
 
 A request-carried `schema`, if present, is never a validation authority. The Facilitator either
 ignores it or requires byte-for-byte equality with its locally pinned schema. It independently
@@ -246,6 +223,8 @@ therefore defines a restricted java-tron-compatible profile rather than relying 
 - tags, integer values, and lengths use their shortest valid varint encoding;
 - fields appear in ascending field-number order;
 - unknown fields and duplicate singular fields are forbidden;
+- the outer `Transaction` contains only exactly one `raw_data` field followed by exactly one
+  65-byte signature; `ret` and every other field are absent;
 - `Transaction.raw` contains only `ref_block_bytes`, `ref_block_hash`, `expiration`, exactly one
   `contract`, `timestamp`, and `fee_limit`; `ref_block_num`, `auths`, memo `data`, `scripts`, and all
   other fields are absent;
@@ -256,7 +235,7 @@ therefore defines a restricted java-tron-compatible profile rather than relying 
   `call_token_value`, `token_id`, and unknown fields are absent.
 
 After parsing, the Facilitator MUST deterministically re-encode this restricted profile with the
-same official schema and require byte-for-byte equality with `raw_data_hex`. This rule rejects
+same official schema and require byte-for-byte equality with `signedTransaction`. This rule rejects
 alternate encodings before any resource reservation or delegation; it does not claim that arbitrary
 protobuf messages have a canonical form.
 
@@ -320,7 +299,7 @@ intersected with any seller-specific allowlist. `PaymentRequirements`, extension
 registration may select from that intersection but MUST NOT expand it. The Token's current code
 identity, including any configured proxy implementation identity, MUST match the facilitator's local
 admission record. Simulation MUST use the exact Client-signed calldata and owner represented by
-`raw_data_hex`.
+`signedTransaction`.
 
 The Permit2 payment MUST independently bind and validate:
 
@@ -386,7 +365,6 @@ the code in `invalidReason`; `/settle` places it in `errorReason` and returns an
 | Code | Phase | Retry contract |
 | --- | --- | --- |
 | `approval_extension_invalid` | verify, settle | Terminal for this payload; reconstruct it. |
-| `approval_txid_mismatch` | verify, settle | Terminal for this payload; reconstruct and re-sign it. |
 | `approval_signature_invalid` | verify, settle | Terminal for this payload; re-sign it. |
 | `approval_semantics_invalid` | verify, settle | Terminal for this Approval; construct a conforming Approval. |
 | `approval_payment_binding_mismatch` | verify, settle | Terminal for this Approval/Payment pair. |
@@ -457,7 +435,7 @@ new sponsorship fails closed.
 For one signature, the pre-broadcast Bandwidth estimate follows the TRON transaction-size rule:
 
 ```text
-requiredBandwidth = raw_data_hex.length / 2 + 3 + 67 + 64
+requiredBandwidth = signedTransaction.length / 2 + 64
 
 stakedAvailable = max(NetLimit - NetUsed, 0)
 freeAvailable = max(freeNetLimit - freeNetUsed, 0)
