@@ -1,11 +1,5 @@
 # Extension: `trc20ApprovalResourceSponsoring`
 
-> **Status:** Draft
->
-> **Target:** BANK OF AI TypeScript SDK 1.1.0
->
-> **Extension version:** `1`
-
 ## Summary
 
 `trc20ApprovalResourceSponsoring` enables the first `exact + Permit2` payment from an activated TRON
