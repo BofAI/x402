@@ -76,33 +76,12 @@ A Resource Server advertises the extension in `PaymentRequired.extensions`:
   "trc20ApprovalResourceSponsoring": {
     "info": {
       "description": "The facilitator sponsors TRON Energy and Bandwidth for a pre-signed TRC-20 approve transaction.",
-      "version": "1",
-      "minApprovalLifetimeSeconds": 120,
-      "maxApprovalLifetimeSeconds": 600,
-      "maxFeeLimitSun": "20000000"
+      "version": "1"
     },
     "schema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
-      "additionalProperties": false,
       "properties": {
-        "description": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 256
-        },
-        "minApprovalLifetimeSeconds": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "maxApprovalLifetimeSeconds": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "maxFeeLimitSun": {
-          "type": "string",
-          "pattern": "^[0-9]+$"
-        },
         "from": {
           "type": "string",
           "pattern": "^T[1-9A-HJ-NP-Za-km-z]{33}$"
@@ -147,18 +126,7 @@ A Resource Server advertises the extension in `PaymentRequired.extensions`:
           "const": "1"
         }
       },
-      "required": [
-        "description",
-        "from",
-        "asset",
-        "spender",
-        "amount",
-        "signedTransaction",
-        "version",
-        "minApprovalLifetimeSeconds",
-        "maxApprovalLifetimeSeconds",
-        "maxFeeLimitSun"
-      ]
+      "required": ["from", "asset", "spender", "amount", "signedTransaction", "version"]
     }
   }
 }
@@ -168,15 +136,15 @@ The Base58Check `from`, `asset`, and `spender` fields and decimal `amount` are r
 routing fields. The signed `raw_data_hex` bytes are authoritative, and each redundant field MUST
 match the independently decoded transaction.
 
-The lifetime and fee values above are illustrative deployment policy, not network constants. The
-minimum lifetime MUST be no greater than the maximum. A Client uses the declaration as an early
-safety bound. For a new operation, the Facilitator reloads its authoritative current policy during
-`/verify` and `/settle` and rejects a declaration echo outside that policy. An existing operation
-instead compares the echo with its stored declaration and admission snapshot and reuses that snapshot.
-A hard safety revocation MAY block its next not-yet-submitted payment side effect, but policy change
-MUST NOT block reconciliation by original transaction ID, undelegation, recovery, or retrieval of a
-stored terminal result. Human-readable `description` text is not a protocol constant and MAY be
-localized without changing the extension version.
+Human-readable `description` text is Server-controlled declaration metadata and MAY be localized
+without changing the extension version. Version `"1"` is echoed by the Client and validated by the
+Facilitator. Approval lifetime and `fee_limit` bounds are deployment policy, not Extension wire
+fields. A Client applies its own transaction-safety policy before signing, and the Facilitator
+applies its authoritative current policy during `/verify` and admission of a new `/settle`
+operation. An existing operation reuses its stored admission snapshot. A hard safety revocation MAY
+block its next not-yet-submitted payment side effect, but policy changes MUST NOT block
+reconciliation by original transaction ID, undelegation, recovery, or retrieval of a stored terminal
+result.
 
 ## Client payload
 
@@ -194,9 +162,7 @@ self-funded Approval flow or choose another payment requirement. A non-zero but 
 allowance MUST fail with `approval_reset_required`; it MUST NOT be overwritten automatically.
 
 The following object is the Client enrichment fragment before Core merge. Core merges it with the
-Server declaration without allowing the Client to replace Server-controlled policy fields. The final
-wire object therefore also contains the declaration's `description`, lifetime bounds, and
-`maxFeeLimitSun`:
+Server declaration without allowing the Client to replace Server-controlled declaration metadata:
 
 ```json
 {
@@ -267,8 +233,8 @@ It may wrap the unchanged raw bytes and signature in the outer signed `Transacti
 TRON's `broadcasthex` API. The node-returned transaction ID MUST match the expected `txID`.
 
 A request-carried `schema`, if present, is never a validation authority. The Facilitator either
-ignores it or requires byte-for-byte equality with its locally pinned schema. It independently checks
-the echoed lifetime and fee-policy fields against its authoritative local policy.
+ignores it or requires byte-for-byte equality with its locally pinned schema. It independently
+applies its local lifetime and `fee_limit` policy to the signed transaction.
 
 #### Restricted transaction encoding
 
@@ -323,9 +289,10 @@ Clients SHOULD derive TAPOS from the latest solidified block available to them. 
 independently validate the referenced block against the selected network's recent 65,536-block TAPOS
 window and MUST fail closed when its validation node exceeds the configured head-lag limit.
 
-The Approval lifetime `expiration - timestamp` MUST fall within the declared minimum and maximum.
-Independently, at `/verify`, `/settle`, and immediately before Approval broadcast, java-tron network
-validity requires `currentHeadBlockTime < expiration` and
+The Approval lifetime `expiration - timestamp` MUST fall within the Client's local signing policy and
+the Facilitator's authoritative local admission policy. At `/verify`, `/settle`, and immediately
+before Approval broadcast, java-tron network validity requires
+`currentHeadBlockTime < expiration` and
 `expiration <= currentHeadBlockTime + MAXIMUM_TIME_UNTIL_EXPIRATION` (currently 24 hours). The
 Approval must also satisfy the remaining-lifetime checkpoints below. The Facilitator computes the fee
 bounds using the current Energy estimate and live chain parameters:
@@ -334,13 +301,12 @@ bounds using the current Energy estimate and live chain parameters:
 requiredFeeLimitSun =
   requiredCallerEnergyIncludingMargin * liveEnergyFeeSunPerUnit
 
-maximumFeeLimitSun = min(
-  declared maxFeeLimitSun,
+maximumAllowedFeeLimitSun = min(
   facilitator local policy limit,
   current network getMaxFeeLimit
 )
 
-requiredFeeLimitSun <= signed fee_limit <= maximumFeeLimitSun
+requiredFeeLimitSun <= signed fee_limit <= maximumAllowedFeeLimitSun
 ```
 
 The Client MUST additionally apply its own local hard cap before signing. Unless a Token deployer's
