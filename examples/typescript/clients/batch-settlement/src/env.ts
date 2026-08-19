@@ -53,8 +53,13 @@ export interface BatchClientOptions {
   depositMultiplier: number;
 }
 
+/** Minimal refund outcome shared by the EVM and TRON schemes. */
+export interface RefundResult {
+  success: boolean;
+}
+
 /** A registered scheme that can refund the channel for a URL. */
 export interface RefundableScheme {
   label: string;
-  refund(url: string, options?: { amount?: string }): Promise<unknown>;
+  refund(url: string, options?: { amount?: string }): Promise<RefundResult>;
 }

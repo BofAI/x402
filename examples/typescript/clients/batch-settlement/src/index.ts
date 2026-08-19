@@ -192,12 +192,7 @@ for (const t of targets) {
         REFUND_AMOUNT ? { amount: REFUND_AMOUNT } : {},
       );
       console.log(JSON.stringify(result, null, 2));
-      if (
-        typeof result !== "object" ||
-        result === null ||
-        !("success" in result) ||
-        result.success !== true
-      ) {
+      if (!result.success) {
         throw new Error(`refund on ${scheme.label} failed`);
       }
     }
