@@ -20,7 +20,7 @@ import {
   declareSIWxExtension,
   createSIWxResourceServerExtension,
   InMemorySIWxStorage,
-} from '@bankofai/x402-extensions/sign-in-with-x';
+} from "@bankofai/x402-extensions/sign-in-with-x";
 
 // Storage for tracking paid addresses
 const storage = new InMemorySIWxStorage();
@@ -33,32 +33,34 @@ const resourceServer = new x402ResourceServer(facilitatorClient)
 // Declare SIWX support in routes
 const routes = {
   "GET /data": {
-    accepts: [{scheme: "exact", price: "$0.01", network: "eip155:8453", payTo}],
+    accepts: [{ scheme: "exact", price: "$0.01", network: "eip155:8453", payTo }],
     extensions: declareSIWxExtension({
-      statement: 'Sign in to access your purchased content',
+      statement: "Sign in to access your purchased content",
     }),
   },
   "GET /profile": {
     accepts: [],
     extensions: declareSIWxExtension({
       network: ["eip155:8453", "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1"],
-      statement: 'Sign in to view your profile',
+      statement: "Sign in to view your profile",
       expirationSeconds: 300,
     }),
   },
 };
 
 // Optional: Enable smart wallet support (EIP-1271/EIP-6492)
-import { createPublicClient, http } from 'viem';
-import { base } from 'viem/chains';
+import { createPublicClient, http } from "viem";
+import { base } from "viem/chains";
 
 const publicClient = createPublicClient({ chain: base, transport: http() });
 const resourceServerWithSmartWallets = new x402ResourceServer(facilitatorClient)
   .register(NETWORK, new ExactEvmScheme())
-  .registerExtension(createSIWxResourceServerExtension({
-    storage,
-    verifyOptions: { evmVerifier: publicClient.verifyMessage },
-  }));
+  .registerExtension(
+    createSIWxResourceServerExtension({
+      storage,
+      verifyOptions: { evmVerifier: publicClient.verifyMessage },
+    }),
+  );
 ```
 
 The server extension derives challenge fields from request context, records successful payments, and validates SIWX proofs for declared HTTP routes.
@@ -71,29 +73,26 @@ import {
   parseSIWxHeader,
   validateSIWxMessage,
   verifySIWxSignature,
-} from '@bankofai/x402-extensions/sign-in-with-x';
+} from "@bankofai/x402-extensions/sign-in-with-x";
 
 // 1. Declare in PaymentRequired response
 const extensions = declareSIWxExtension({
-  domain: 'api.example.com',
-  resourceUri: 'https://api.example.com/data',
-  network: 'eip155:8453',
-  statement: 'Sign in to access your purchased content',
+  domain: "api.example.com",
+  resourceUri: "https://api.example.com/data",
+  network: "eip155:8453",
+  statement: "Sign in to access your purchased content",
 });
 
 // 2. Verify incoming proof
 async function handleRequest(request: Request) {
-  const header = request.headers.get('SIGN-IN-WITH-X');
+  const header = request.headers.get("SIGN-IN-WITH-X");
   if (!header) return; // No auth provided
 
   // Parse the header
   const payload = parseSIWxHeader(header);
 
   // Validate message fields (expiry, nonce, domain, etc.)
-  const validation = await validateSIWxMessage(
-    payload,
-    'https://api.example.com/data'
-  );
+  const validation = await validateSIWxMessage(payload, "https://api.example.com/data");
   if (!validation.valid) {
     return { error: validation.error };
   }
@@ -105,7 +104,7 @@ async function handleRequest(request: Request) {
   }
 
   // verification.address is the verified wallet
-  if (await isAuthOnlyRoute(request) || await checkPaymentHistory(verification.address)) {
+  if ((await isAuthOnlyRoute(request)) || (await checkPaymentHistory(verification.address))) {
     // Grant access
   }
 }
@@ -116,8 +115,8 @@ async function handleRequest(request: Request) {
 ### Recommended: Client Extension
 
 ```typescript
-import { createSIWxClientExtension } from '@bankofai/x402-extensions/sign-in-with-x';
-import { x402HTTPClient } from '@bankofai/x402-fetch';
+import { createSIWxClientExtension } from "@bankofai/x402-extensions/sign-in-with-x";
+import { x402HTTPClient } from "@bankofai/x402-fetch";
 
 client.registerExtension(createSIWxClientExtension({ signers: [signer] }));
 const httpClient = new x402HTTPClient(client);
@@ -127,22 +126,21 @@ const response = await httpClient.fetch(url);
 ```
 
 The client extension automatically:
+
 - Detects SIWX support in 402 responses
 - Matches your wallet's chain with server's `supportedChains`
+- Verifies the challenge is bound to the 402 response origin before signing
 - Signs and sends the authentication proof
-- Falls back to payment if SIWX auth fails
+- Falls back to payment if SIWX auth fails or the challenge is not origin-bound
 
 ### Manual Usage (Advanced)
 
 ```typescript
-import {
-  createSIWxPayload,
-  encodeSIWxHeader,
-} from '@bankofai/x402-extensions/sign-in-with-x';
+import { createSIWxPayload, encodeSIWxHeader } from "@bankofai/x402-extensions/sign-in-with-x";
 
 // 1. Get extension and network from 402 response
 const paymentRequired = await response.json();
-const extension = paymentRequired.extensions['sign-in-with-x'];
+const extension = paymentRequired.extensions["sign-in-with-x"];
 const paymentNetwork = paymentRequired.accepts[0]?.network; // undefined for auth-only routes
 
 // 2. Find matching chain in supportedChains
@@ -152,7 +150,7 @@ const matchingChain = paymentNetwork
 
 if (!matchingChain) {
   // No chain supported by this signer / route combination
-  throw new Error('Chain not supported');
+  throw new Error("Chain not supported");
 }
 
 // 3. Build complete info with selected chain
@@ -162,13 +160,13 @@ const completeInfo = {
   type: matchingChain.type,
 };
 
-// 4. Create signed payload
-const payload = await createSIWxPayload(completeInfo, signer);
+// 4. Create signed payload (requestUrl must match challenge domain/uri origin)
+const payload = await createSIWxPayload(completeInfo, signer, response.url);
 
 // 5. Encode and send
 const header = encodeSIWxHeader(payload);
 const response = await fetch(url, {
-  headers: { 'SIGN-IN-WITH-X': header }
+  headers: { "SIGN-IN-WITH-X": header },
 });
 ```
 
@@ -191,6 +189,7 @@ declareSIWxExtension({
 ```
 
 **Automatic derivation:** When using `createSIWxResourceServerExtension`, omitted fields are derived:
+
 - `network` → from `accepts[].network` in route config
 - `resourceUri` → from request URL
 - `domain` → parsed from resourceUri
@@ -239,12 +238,12 @@ verifySIWxSignature(payload, {
 By default, only EOA (Externally Owned Account) signatures are verified. To support smart contract wallets (like Coinbase Smart Wallet, Safe, etc.), pass `publicClient.verifyMessage` from viem:
 
 ```typescript
-import { createPublicClient, http } from 'viem';
-import { base } from 'viem/chains';
+import { createPublicClient, http } from "viem";
+import { base } from "viem/chains";
 
 const publicClient = createPublicClient({
   chain: base,
-  transport: http()
+  transport: http(),
 });
 
 // In your request hook
@@ -254,14 +253,19 @@ const result = await verifySIWxSignature(payload, {
 ```
 
 This enables:
+
 - **EIP-1271**: Verification of deployed smart contract wallets
 - **EIP-6492**: Verification of counterfactual (not-yet-deployed) wallets
 
 Note: Smart wallet verification requires RPC calls, while EOA verification is purely local.
 
-### `createSIWxPayload(serverInfo, signer)`
+### `createSIWxPayload(serverInfo, signer, requestUrl)`
 
-Client helper that creates and signs a complete payload.
+Client helper that verifies origin binding and creates a signed payload. `requestUrl` must be the final URL of the 402 response (after redirects). Signing is refused when the challenge `domain` or `uri` origin does not match that URL's origin. EIP-4361 `resources` may be cross-origin and are not checked.
+
+### `assertSIWxChallengeBoundToOrigin(info, responseUrl)`
+
+Throws when a SIWX challenge is not bound to the origin of the 402 response URL. Used internally by `createSIWxPayload`; exposed for manual integrations.
 
 ### `encodeSIWxHeader(payload)`
 
@@ -273,12 +277,12 @@ Extension identifier constant (`"sign-in-with-x"`).
 
 ## Supported Signature Schemes
 
-| Scheme | Description |
-|--------|-------------|
-| `eip191` | personal_sign (default for EVM EOAs) |
-| `eip1271` | Smart contract wallet verification |
+| Scheme    | Description                              |
+| --------- | ---------------------------------------- |
+| `eip191`  | personal_sign (default for EVM EOAs)     |
+| `eip1271` | Smart contract wallet verification       |
 | `eip6492` | Counterfactual smart wallet verification |
-| `siws` | Sign-In-With-Solana |
+| `siws`    | Sign-In-With-Solana                      |
 
 ## Troubleshooting
 

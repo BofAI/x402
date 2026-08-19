@@ -1,8 +1,17 @@
 import { x402Version } from "..";
 import { SchemeNetworkClient } from "../types/mechanisms";
 import { PaymentPayload, PaymentRequirements } from "../types/payments";
-import { Network, PaymentRequired, SettleResponse } from "../types";
-import { findByNetworkAndScheme, findSchemesByNetwork } from "../utils";
+import { Money, Network, PaymentRequired, PaymentRequirementsV1, SettleResponse } from "../types";
+import {
+  ADDITIVE_ARRAY_INFO_FIELDS,
+  convertToTokenAmount,
+  deepEqual,
+  findByNetworkAndScheme,
+  findSchemesByNetwork,
+  networkMatchesPattern,
+  parseMoney,
+  toComparableArray,
+} from "../utils";
 
 /**
  * Client Hook Context Interfaces
@@ -60,7 +69,10 @@ export type OnPaymentResponseHook = (
   ctx: PaymentResponseContext,
 ) => Promise<void | { recovered: true }>;
 
-export type SelectPaymentRequirements = (x402Version: number, paymentRequirements: PaymentRequirements[]) => PaymentRequirements;
+export type SelectPaymentRequirements = (
+  x402Version: number,
+  paymentRequirements: PaymentRequirements[],
+) => PaymentRequirements;
 
 type ClientHookAdapterHandles = {
   beforePaymentCreation?: BeforePaymentCreationHook;
@@ -76,10 +88,7 @@ export interface ClientExtensionHooks {
     declaration: unknown,
     context: PaymentCreationContext,
   ) => Promise<void | { abort: true; reason: string }>;
-  onAfterPaymentCreation?: (
-    declaration: unknown,
-    context: PaymentCreatedContext,
-  ) => Promise<void>;
+  onAfterPaymentCreation?: (declaration: unknown, context: PaymentCreatedContext) => Promise<void>;
   onPaymentCreationFailure?: (
     declaration: unknown,
     context: PaymentCreationFailureContext,
@@ -109,9 +118,10 @@ export interface ClientExtension {
   key: string;
 
   /**
-   * Called after payload creation when the extension key is present in
-   * paymentRequired.extensions. Allows the extension to enrich the payload
-   * with extension-specific data (e.g., signing an EIP-2612 permit).
+   * Called after payload creation for every registered extension. Allows the
+   * extension to enrich the payload with extension-specific data. Extensions
+   * that require a server declaration must no-op internally when the server
+   * did not advertise them in paymentRequired.extensions.
    *
    * @param paymentPayload - The payment payload to enrich
    * @param paymentRequired - The original PaymentRequired response
@@ -134,8 +144,50 @@ export interface ClientExtension {
  * @param paymentRequirements - Array of payment requirements to filter/transform
  * @returns Filtered array of payment requirements
  */
-export type PaymentPolicy = (x402Version: number, paymentRequirements: PaymentRequirements[]) => PaymentRequirements[];
+export type PaymentPolicy = (
+  x402Version: number,
+  paymentRequirements: PaymentRequirements[],
+) => PaymentRequirements[];
 
+/** Default USD cap for recognized default assets. Override via {@link SpendControls}. */
+export const DEFAULT_MAX_AMOUNT_PER_PAYMENT: Money = "$1";
+
+/**
+ * Opt-in asset for {@link SpendControls.allowedAssets}.
+ * Default assets are always allowed; list non-default tokens here (and optional atomic caps).
+ */
+export interface SpendControlAsset {
+  network: Network;
+  /** On-chain asset id, or a default-asset symbol (e.g. `"PYUSD"`). */
+  asset: string;
+  /** Optional integer atomic per-payment cap (e.g. `"2000000"`), not `"$1"`. Omit to allow uncapped. */
+  maxAmountPerPayment?: string;
+}
+
+/**
+ * Client spend controls (enforced before policies).
+ * Network scoping is scheme registration, not a control here.
+ *
+ * By default only assets `findDefaultAsset` recognizes are allowed, capped at
+ * {@link DEFAULT_MAX_AMOUNT_PER_PAYMENT}. Pass `spendControls: false` to disable
+ * all spend controls (any asset, no caps).
+ */
+export interface SpendControls {
+  /**
+   * Per-payment USD cap on assets `findDefaultAsset` recognizes.
+   * `false` disables. Override per asset with `allowedAssets[].maxAmountPerPayment`.
+   *
+   * @default "$1"
+   */
+  maxAmountPerPayment?: Money | false;
+  /**
+   * Opt-in non-default assets.
+   * - omit: default assets only
+   * - `true`: allow any asset (USD cap still applies to defaults)
+   * - list: defaults plus listed entries; optional integer atomic `maxAmountPerPayment` per entry
+   */
+  allowedAssets?: true | SpendControlAsset[];
+}
 
 /**
  * Configuration for registering a payment scheme with a specific network
@@ -174,6 +226,12 @@ export interface x402ClientConfig {
   policies?: PaymentPolicy[];
 
   /**
+   * Spend controls; default is default assets only + {@link DEFAULT_MAX_AMOUNT_PER_PAYMENT}.
+   * Pass `false` to disable all spend controls (any asset, no caps).
+   */
+  spendControls?: SpendControls | false;
+
+  /**
    * Custom payment requirements selector function
    * If not provided, uses the default selector (first available option)
    */
@@ -188,10 +246,17 @@ export interface x402ClientConfig {
  */
 export class x402Client {
   private readonly paymentRequirementsSelector: SelectPaymentRequirements;
-  private readonly registeredClientSchemes: Map<number, Map<string, Map<string, SchemeNetworkClient>>> = new Map();
-  private readonly schemeClientHookAdapters: Map<number, Map<string, Map<string, ClientHookAdapterHandles>>> = new Map();
+  private readonly registeredClientSchemes: Map<
+    number,
+    Map<string, Map<string, SchemeNetworkClient>>
+  > = new Map();
+  private readonly schemeClientHookAdapters: Map<
+    number,
+    Map<string, Map<string, ClientHookAdapterHandles>>
+  > = new Map();
   private readonly policies: PaymentPolicy[] = [];
   private readonly registeredExtensions: Map<string, ClientExtension> = new Map();
+  private spendControls: SpendControls | false = {};
 
   private beforePaymentCreationHooks: BeforePaymentCreationHook[] = [];
   private afterPaymentCreationHooks: AfterPaymentCreationHook[] = [];
@@ -204,7 +269,8 @@ export class x402Client {
    * @param paymentRequirementsSelector - Function to select payment requirements from available options
    */
   constructor(paymentRequirementsSelector?: SelectPaymentRequirements) {
-    this.paymentRequirementsSelector = paymentRequirementsSelector || ((x402Version, accepts) => accepts[0]);
+    this.paymentRequirementsSelector =
+      paymentRequirementsSelector || ((x402Version, accepts) => accepts[0]);
   }
 
   /**
@@ -225,6 +291,9 @@ export class x402Client {
     config.policies?.forEach(policy => {
       client.registerPolicy(policy);
     });
+    if (config.spendControls !== undefined) {
+      client.setSpendControls(config.spendControls);
+    }
     return client;
   }
 
@@ -278,12 +347,25 @@ export class x402Client {
   }
 
   /**
+   * Replace spend controls. Pass `false` to disable all spend controls.
+   * When an object is passed, omitted `maxAmountPerPayment` still defaults to
+   * {@link DEFAULT_MAX_AMOUNT_PER_PAYMENT}.
+   *
+   * @param controls - Spend control configuration, or `false` to disable
+   * @returns This client for chaining
+   */
+  setSpendControls(controls: SpendControls | false): x402Client {
+    this.spendControls = controls;
+    return this;
+  }
+
+  /**
    * Registers a client extension that can enrich payment payloads.
    *
    * Extensions are invoked after the scheme creates the base payload and the
-   * payload is wrapped with extensions/resource/accepted data. If the extension's
-   * key is present in `paymentRequired.extensions`, the extension's
-   * `enrichPaymentPayload` hook is called to modify the payload.
+   * payload is wrapped with extensions/resource/accepted data. Every registered
+   * extension's `enrichPaymentPayload` hook is called to modify the payload.
+   * Server-declared fields are preserved via merge after enrichment.
    *
    * @param extension - The client extension to register
    * @returns The x402Client instance for chaining
@@ -382,15 +464,16 @@ export class x402Client {
    * @param paymentRequired - The PaymentRequired response from the server
    * @returns Promise resolving to the complete payment payload
    */
-  async createPaymentPayload(
-    paymentRequired: PaymentRequired,
-  ): Promise<PaymentPayload> {
+  async createPaymentPayload(paymentRequired: PaymentRequired): Promise<PaymentPayload> {
     const clientSchemesByNetwork = this.registeredClientSchemes.get(paymentRequired.x402Version);
     if (!clientSchemesByNetwork) {
       throw new Error(`No client registered for x402 version: ${paymentRequired.x402Version}`);
     }
 
-    const requirements = this.selectPaymentRequirements(paymentRequired.x402Version, paymentRequired.accepts);
+    const requirements = this.selectPaymentRequirements(
+      paymentRequired.x402Version,
+      paymentRequired.accepts,
+    );
 
     const context: PaymentCreationContext = {
       paymentRequired,
@@ -410,9 +493,15 @@ export class x402Client {
     }
 
     try {
-      const schemeNetworkClient = findByNetworkAndScheme(clientSchemesByNetwork, requirements.scheme, requirements.network);
+      const schemeNetworkClient = findByNetworkAndScheme(
+        clientSchemesByNetwork,
+        requirements.scheme,
+        requirements.network,
+      );
       if (!schemeNetworkClient) {
-        throw new Error(`No client registered for scheme: ${requirements.scheme} and network: ${requirements.network}`);
+        throw new Error(
+          `No client registered for scheme: ${requirements.scheme} and network: ${requirements.network}`,
+        );
       }
 
       const partialPayload = await schemeNetworkClient.createPaymentPayload(
@@ -442,7 +531,10 @@ export class x402Client {
       }
 
       // Enrich payload via registered client extensions (for non-scheme extensions)
-      paymentPayload = await this.enrichPaymentPayloadWithExtensions(paymentPayload, paymentRequired);
+      paymentPayload = await this.enrichPaymentPayloadWithExtensions(
+        paymentPayload,
+        paymentRequired,
+      );
 
       const createdContext: PaymentCreatedContext = {
         ...context,
@@ -481,11 +573,14 @@ export class x402Client {
     }
   }
 
-
-
   /**
    * Merges server-declared extensions with client extension echoes.
    * Client extension data may add fields, but server-declared fields remain intact.
+   * For fields listed in `ADDITIVE_ARRAY_INFO_FIELDS` (e.g. builder-code `s`), a
+   * conflicting array is concatenated with client entries first (so a downstream
+   * length cap trims server entries rather than the client's) and duplicates
+   * removed; a scalar on either side is treated as a single-element array. Every
+   * other conflicting array keeps the server's value, same as any other scalar.
    *
    * @param serverExtensions - Extensions declared by the server in the 402 response
    * @param clientExtensions - Extensions provided by the client or scheme
@@ -515,6 +610,7 @@ export class x402Client {
 
       const serverRecord = serverValue as Record<string, unknown>;
       const clientRecord = clientValue as Record<string, unknown>;
+      const additiveFields = ADDITIVE_ARRAY_INFO_FIELDS[key];
       const extensionValue = { ...serverRecord };
       const pending = [{ target: extensionValue, source: clientRecord }];
       for (const item of pending) {
@@ -537,6 +633,22 @@ export class x402Client {
             continue;
           }
 
+          // A scalar on one side (e.g. builder-code `s` sent as a bare string)
+          // merges as a single-element array against an array on the other side.
+          // Only additive fields concatenate; other conflicting arrays keep the
+          // server's value below, same as any other scalar leaf field.
+          if (
+            additiveFields?.has(fieldKey) &&
+            (Array.isArray(serverFieldValue) || Array.isArray(clientFieldValue))
+          ) {
+            const serverArray = toComparableArray(serverFieldValue);
+            const clientArray = toComparableArray(clientFieldValue);
+            if (serverArray && clientArray) {
+              item.target[fieldKey] = mergeArraysUnique(clientArray, serverArray);
+              continue;
+            }
+          }
+
           if (!Object.prototype.hasOwnProperty.call(item.target, fieldKey)) {
             item.target[fieldKey] = clientFieldValue;
           }
@@ -550,8 +662,8 @@ export class x402Client {
 
   /**
    * Enriches a payment payload by calling registered extension hooks.
-   * For each extension key present in the PaymentRequired response,
-   * invokes the corresponding extension's enrichPaymentPayload callback.
+   * Invokes enrichPaymentPayload for every registered extension, then merges
+   * server-declared extension fields back into the result.
    *
    * @param paymentPayload - The payment payload to enrich with extension data
    * @param paymentRequired - The PaymentRequired response containing extension declarations
@@ -561,13 +673,13 @@ export class x402Client {
     paymentPayload: PaymentPayload,
     paymentRequired: PaymentRequired,
   ): Promise<PaymentPayload> {
-    if (!paymentRequired.extensions || this.registeredExtensions.size === 0) {
+    if (this.registeredExtensions.size === 0) {
       return paymentPayload;
     }
 
     let enriched = paymentPayload;
-    for (const [key, extension] of this.registeredExtensions) {
-      if (key in paymentRequired.extensions && extension.enrichPaymentPayload) {
+    for (const [, extension] of this.registeredExtensions) {
+      if (extension.enrichPaymentPayload) {
         enriched = await extension.enrichPaymentPayload(enriched, paymentRequired);
       }
     }
@@ -583,14 +695,20 @@ export class x402Client {
    *
    * Selection process:
    * 1. Filter by registered schemes (network + scheme support)
-   * 2. Apply all registered policies in order
-   * 3. Use selector to choose final requirement
+   * 2. Drop accepts with unrecognized `extra.paymentFlow`
+   * 3. Enforce spend controls (allowlist, per-asset caps, USD cap on default assets)
+   * 4. Apply all registered policies in order
+   * 5. Prefer authorization (omit or explicit) over upfront/escrow when both remain
+   * 6. Use selector to choose final requirement
    *
    * @param x402Version - The x402 protocol version
    * @param paymentRequirements - Array of available payment requirements
    * @returns The selected payment requirements
    */
-  private selectPaymentRequirements(x402Version: number, paymentRequirements: PaymentRequirements[]): PaymentRequirements {
+  private selectPaymentRequirements(
+    x402Version: number,
+    paymentRequirements: PaymentRequirements[],
+  ): PaymentRequirements {
     const clientSchemesByNetwork = this.registeredClientSchemes.get(x402Version);
     if (!clientSchemesByNetwork) {
       throw new Error(`No client registered for x402 version: ${x402Version}`);
@@ -604,30 +722,207 @@ export class x402Client {
       }
 
       return clientSchemes.has(requirement.scheme);
-    })
+    });
 
     if (supportedPaymentRequirements.length === 0) {
-      throw new Error(`No network/scheme registered for x402 version: ${x402Version} which comply with the payment requirements. ${JSON.stringify({
-        x402Version,
-        paymentRequirements,
-        x402Versions: Array.from(this.registeredClientSchemes.keys()),
-        networks: Array.from(clientSchemesByNetwork.keys()),
-        schemes: Array.from(clientSchemesByNetwork.values()).map(schemes => Array.from(schemes.keys())).flat(),
-      })}`);
+      throw new Error(
+        `No network/scheme registered for x402 version: ${x402Version} which comply with the payment requirements. ${JSON.stringify(
+          {
+            x402Version,
+            paymentRequirements,
+            x402Versions: Array.from(this.registeredClientSchemes.keys()),
+            networks: Array.from(clientSchemesByNetwork.keys()),
+            schemes: Array.from(clientSchemesByNetwork.values())
+              .map(schemes => Array.from(schemes.keys()))
+              .flat(),
+          },
+        )}`,
+      );
     }
 
-    // Step 2: Apply all policies in order
-    let filteredRequirements = supportedPaymentRequirements;
+    // Step 2: Drop unrecognized paymentFlow values
+    const recognizedFlowRequirements = supportedPaymentRequirements.filter(requirement => {
+      const flow = requirement.extra?.paymentFlow;
+      return flow == null || flow === "authorization" || flow === "upfront" || flow === "escrow";
+    });
+    if (recognizedFlowRequirements.length === 0) {
+      throw new Error(
+        `No payment requirements with a recognized paymentFlow for x402 version: ${x402Version}`,
+      );
+    }
+
+    // Step 3: Enforce spend controls
+    let filteredRequirements = this.applySpendControls(
+      x402Version,
+      recognizedFlowRequirements,
+      clientSchemesByNetwork,
+    );
+
+    // Step 4: Apply all policies in order
     for (const policy of this.policies) {
       filteredRequirements = policy(x402Version, filteredRequirements);
 
       if (filteredRequirements.length === 0) {
-        throw new Error(`All payment requirements were filtered out by policies for x402 version: ${x402Version}`);
+        throw new Error(
+          `All payment requirements were filtered out by policies for x402 version: ${x402Version}`,
+        );
       }
     }
 
-    // Step 3: Use selector to choose final requirement
+    // Step 5: Prefer authorization when both post- and pre-handler flows remain
+    const authorizationAccepts = filteredRequirements.filter(
+      requirement =>
+        requirement.extra?.paymentFlow == null ||
+        requirement.extra?.paymentFlow === "authorization",
+    );
+    if (authorizationAccepts.length > 0) {
+      filteredRequirements = authorizationAccepts;
+    }
+
+    // Step 6: Use selector to choose final requirement
     return this.paymentRequirementsSelector(x402Version, filteredRequirements);
+  }
+
+  /**
+   * Filter by spend controls (default-asset allowlist → opt-in assets → caps).
+   * Keeps any accept that fits so a mixed offer can still pay the affordable option.
+   *
+   * @param x402Version - Protocol version (v1 uses `maxAmountRequired`)
+   * @param requirements - Post scheme/flow filter
+   * @param clientSchemesByNetwork - Registered clients for this version
+   * @returns Requirements that pass spend controls
+   */
+  private applySpendControls(
+    x402Version: number,
+    requirements: PaymentRequirements[],
+    clientSchemesByNetwork: Map<string, Map<string, SchemeNetworkClient>>,
+  ): PaymentRequirements[] {
+    const controls = this.spendControls;
+    if (controls === false) {
+      return requirements;
+    }
+
+    const rawAmountOf = (requirement: PaymentRequirements) =>
+      x402Version === 1
+        ? (requirement as unknown as PaymentRequirementsV1).maxAmountRequired
+        : requirement.amount;
+    const isAtomicAmount = (amount: string) => /^\d+$/.test(amount);
+    const amountOf = (requirement: PaymentRequirements) => BigInt(rawAmountOf(requirement));
+    const schemeFor = (requirement: PaymentRequirements) =>
+      findByNetworkAndScheme(clientSchemesByNetwork, requirement.scheme, requirement.network);
+    const defaultAssetFor = (requirement: PaymentRequirements) =>
+      schemeFor(requirement)?.findDefaultAsset?.(requirement.asset, requirement.network);
+    const matchesAssetEntry = (entry: SpendControlAsset, requirement: PaymentRequirements) => {
+      if (!networkMatchesPattern(entry.network, requirement.network)) {
+        return false;
+      }
+      if (entry.asset.toLowerCase() === requirement.asset.toLowerCase()) {
+        return true;
+      }
+      const defaultAsset = defaultAssetFor(requirement);
+      return (
+        defaultAsset != null && defaultAsset.symbol.toLowerCase() === entry.asset.toLowerCase()
+      );
+    };
+    const assetEntries = controls.allowedAssets === true ? undefined : controls.allowedAssets;
+    const allowAnyAsset = controls.allowedAssets === true;
+    const findAssetEntry = (requirement: PaymentRequirements) =>
+      assetEntries?.find(entry => matchesAssetEntry(entry, requirement));
+
+    let filtered = allowAnyAsset
+      ? requirements
+      : requirements.filter(requirement => {
+          if (defaultAssetFor(requirement) != null) {
+            return true;
+          }
+          return findAssetEntry(requirement) != null;
+        });
+    if (filtered.length === 0) {
+      throw new Error(
+        `All payment requirements were rejected by spendControls: only default assets ` +
+          `or entries in spendControls.allowedAssets are allowed. Add an allowedAssets ` +
+          `entry for non-default tokens, set allowedAssets: true, or set spendControls: false.`,
+      );
+    }
+
+    const usdLimit =
+      controls.maxAmountPerPayment === false
+        ? false
+        : (controls.maxAmountPerPayment ?? DEFAULT_MAX_AMOUNT_PER_PAYMENT);
+
+    const beforeAmountCaps = filtered;
+    let rejectedByAssetCap = false;
+    let rejectedUsdSymbol: string | undefined;
+
+    filtered = filtered.filter(requirement => {
+      const assetEntry = findAssetEntry(requirement);
+      if (assetEntry?.maxAmountPerPayment != null) {
+        if (!isAtomicAmount(assetEntry.maxAmountPerPayment)) {
+          throw new Error(
+            `spendControls.allowedAssets[].maxAmountPerPayment must be an integer atomic amount, not a dollar value; got ${JSON.stringify(assetEntry.maxAmountPerPayment)}`,
+          );
+        }
+        if (!isAtomicAmount(rawAmountOf(requirement))) {
+          rejectedByAssetCap = true;
+          return false;
+        }
+        const ok = amountOf(requirement) <= BigInt(assetEntry.maxAmountPerPayment);
+        if (!ok) rejectedByAssetCap = true;
+        return ok;
+      }
+
+      const defaultAsset = defaultAssetFor(requirement);
+      if (!defaultAsset) {
+        // Opt-in non-default asset without a per-entry cap: uncapped.
+        return true;
+      }
+
+      if (usdLimit === false) {
+        return true;
+      }
+
+      const rawAmount = rawAmountOf(requirement);
+      if (!isAtomicAmount(rawAmount)) {
+        // Decimal ledger value (e.g. XRPL IOU "0.01") — 1:1 USD vs the Money cap.
+        const valueScaled = BigInt(convertToTokenAmount(rawAmount, 18));
+        const capScaled = BigInt(convertToTokenAmount(parseMoney(usdLimit).amount, 18));
+        const ok = valueScaled <= capScaled;
+        if (!ok) rejectedUsdSymbol = defaultAsset.symbol;
+        return ok;
+      }
+
+      const maxAtomic = BigInt(
+        convertToTokenAmount(parseMoney(usdLimit).amount, defaultAsset.decimals),
+      );
+      const ok = amountOf(requirement) <= maxAtomic;
+      if (!ok) rejectedUsdSymbol = defaultAsset.symbol;
+      return ok;
+    });
+
+    if (filtered.length === 0) {
+      if (
+        rejectedByAssetCap &&
+        beforeAmountCaps.every(requirement => {
+          const entry = findAssetEntry(requirement);
+          return entry?.maxAmountPerPayment != null;
+        })
+      ) {
+        throw new Error(
+          `All payment requirements were rejected by spendControls.allowedAssets maxAmountPerPayment. ` +
+            `Raise the per-asset cap, or omit maxAmountPerPayment to allow uncapped ` +
+            `(default assets then fall back to the top-level USD cap).`,
+        );
+      }
+      throw new Error(
+        `All payment requirements were rejected by spendControls.maxAmountPerPayment ` +
+          `(${String(usdLimit)}${rejectedUsdSymbol ? `, including ${rejectedUsdSymbol}` : ""}). ` +
+          `Raise maxAmountPerPayment, set it to false to disable, ` +
+          `set allowedAssets[].maxAmountPerPayment for a per-asset atomic cap, ` +
+          `or set spendControls: false to disable all spend controls.`,
+      );
+    }
+
+    return filtered;
   }
 
   /**
@@ -638,7 +933,11 @@ export class x402Client {
    * @param client - The scheme network client to register
    * @returns The x402Client instance for chaining
    */
-  private _registerScheme(x402Version: number, network: Network, client: SchemeNetworkClient): x402Client {
+  private _registerScheme(
+    x402Version: number,
+    network: Network,
+    client: SchemeNetworkClient,
+  ): x402Client {
     if (!this.registeredClientSchemes.has(x402Version)) {
       this.registeredClientSchemes.set(x402Version, new Map());
     }
@@ -706,14 +1005,10 @@ export class x402Client {
     let manual: Array<NonNullable<ClientHookAdapterHandles[P]>>;
     switch (phase) {
       case "beforePaymentCreation":
-        manual = this.beforePaymentCreationHooks as Array<
-          NonNullable<ClientHookAdapterHandles[P]>
-        >;
+        manual = this.beforePaymentCreationHooks as Array<NonNullable<ClientHookAdapterHandles[P]>>;
         break;
       case "afterPaymentCreation":
-        manual = this.afterPaymentCreationHooks as Array<
-          NonNullable<ClientHookAdapterHandles[P]>
-        >;
+        manual = this.afterPaymentCreationHooks as Array<NonNullable<ClientHookAdapterHandles[P]>>;
         break;
       case "onPaymentCreationFailure":
         manual = this.onPaymentCreationFailureHooks as Array<
@@ -749,10 +1044,7 @@ export class x402Client {
       type HookContext = Parameters<HookFn>[0];
       out.push((async (ctx: HookContext) => {
         return (
-          extensionHook as (
-            declaration: unknown,
-            context: HookContext,
-          ) => ReturnType<HookFn>
+          extensionHook as (declaration: unknown, context: HookContext) => ReturnType<HookFn>
         )(declaredExtensions[extensionKey], ctx);
       }) as HookFn);
     }
@@ -779,4 +1071,23 @@ export class x402Client {
         return "onPaymentResponse";
     }
   }
+}
+
+/**
+ * Concatenates two arrays, keeping client entries first (so a downstream length
+ * cap trims server entries rather than the client's) and dropping duplicates
+ * (deep equality) wherever they occur, including within either input array.
+ *
+ * @param client - Client-provided array values
+ * @param server - Server-declared array values
+ * @returns Deduplicated concatenation
+ */
+function mergeArraysUnique(client: unknown[], server: unknown[]): unknown[] {
+  const merged: unknown[] = [];
+  for (const item of [...client, ...server]) {
+    if (!merged.some(existing => deepEqual(existing, item))) {
+      merged.push(item);
+    }
+  }
+  return merged;
 }

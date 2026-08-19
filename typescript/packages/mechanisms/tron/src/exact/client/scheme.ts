@@ -9,6 +9,7 @@ import { AssetTransferMethod } from "../../types";
 import { transferWithAuthorizationABI } from "../../constants";
 import { createEIP3009Payload } from "./eip3009";
 import { createPermit2Payload } from "./permit2";
+import { findDefaultAsset } from "../../shared/defaultAssets";
 
 /**
  * TRON client implementation for the Exact payment scheme.
@@ -19,6 +20,7 @@ import { createPermit2Payload } from "./permit2";
  */
 export class ExactTronScheme implements SchemeNetworkClient {
   readonly scheme = "exact";
+  readonly findDefaultAsset = findDefaultAsset;
 
   /**
    * Creates a new ExactTronScheme instance.

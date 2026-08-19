@@ -1,6 +1,7 @@
 import {
   AssetAmount,
   Network,
+  PaymentFlowConfig,
   PaymentRequirements,
   Price,
   SchemeNetworkServer,
@@ -22,6 +23,10 @@ import {
  */
 export class ExactGasFreeTronScheme implements SchemeNetworkServer {
   readonly scheme = "exact_gasfree";
+  readonly defaultAssetTransferMethod = "default";
+  readonly paymentFlows = {
+    default: { supported: ["authorization"], default: "authorization" },
+  } as const satisfies Record<"default", PaymentFlowConfig>;
 
   /**
    * Parse a price into an asset amount.

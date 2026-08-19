@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { PaymentRequirements } from "@bankofai/x402-core/types";
 import { ExactEvmScheme } from "../../../src/exact/client/scheme";
 import {
   createPermit2ApprovalTx,
   getPermit2AllowanceReadParams,
 } from "../../../src/exact/client/permit2";
 import type { ClientEvmSigner } from "../../../src/signer";
-import { PaymentRequirements } from "@bankofai/x402-core/types";
 import { PERMIT2_ADDRESS, x402ExactPermit2ProxyAddress } from "../../../src/constants";
 import { isPermit2Payload, isEIP3009Payload } from "../../../src/types";
 
@@ -85,7 +85,6 @@ describe("ExactEvmScheme (Client)", () => {
         extra: { name: "USD Coin", version: "2" },
       };
 
-      const now = Math.floor(Date.now() / 1000);
       const result = await client.createPaymentPayload(2, requirements);
 
       expect(result.payload.authorization.validAfter).toBe("0");

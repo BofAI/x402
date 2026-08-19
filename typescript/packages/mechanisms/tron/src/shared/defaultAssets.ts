@@ -1,4 +1,4 @@
-import type { Network } from "@bankofai/x402-core/types";
+import type { DefaultAsset, Network } from "@bankofai/x402-core/types";
 import { getToken, DEFAULT_ASSET_SYMBOL, type TokenInfo } from "./tokens";
 
 /**
@@ -76,4 +76,24 @@ export function getDefaultAsset(network: Network): ExactDefaultAssetInfo {
     throw new Error(`No default asset configured for TRON network ${network}`);
   }
   return toExactAssetInfo(token);
+}
+
+/**
+ * Resolve a payment asset when it is the network's default stablecoin.
+ * Used by core spend controls to distinguish default assets from opt-in assets.
+ *
+ * @param asset - TRC-20 contract address from payment requirements.
+ * @param network - CAIP-2 TRON network identifier.
+ * @returns Comparable default-asset metadata, or undefined for a non-default asset.
+ */
+export function findDefaultAsset(asset: string, network: Network): DefaultAsset | undefined {
+  const token = getToken(network, DEFAULT_SYMBOL);
+  if (!token || token.address !== asset) {
+    return undefined;
+  }
+  return {
+    asset: token.address,
+    decimals: token.decimals,
+    symbol: token.symbol,
+  };
 }

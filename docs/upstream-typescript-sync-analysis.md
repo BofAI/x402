@@ -4,11 +4,11 @@
 
 This document records the checkpoint used to compare `x402-foundation/x402` with the BankofAI TypeScript fork. Future reviews should start after the recorded upstream end commit and compare against the then-current target HEAD.
 
-| Repository | Path | Commit | Date |
-| --- | --- | --- | --- |
+| Repository      | Path                                                | Commit                                                       | Date                       |
+| --------------- | --------------------------------------------------- | ------------------------------------------------------------ | -------------------------- |
 | Upstream source | `/Users/roger/Project/develop/foundation-x402/x402` | Start, exclusive: `d454eb9b9557c5d48dc641dd0ec48dc605919b03` | 2026-06-08 22:53:39 +02:00 |
-| Upstream source | `/Users/roger/Project/develop/foundation-x402/x402` | End, inclusive: `2b74587b29bd7d986c4c562e46444d74606b0e1d` | 2026-07-06 |
-| Target fork | `/Users/roger/Project/develop/x402` | HEAD examined: `e158640a7ebf2ade6c7a6e2dc0fbfdfc6f3f0e79` | 2026-07-07 |
+| Upstream source | `/Users/roger/Project/develop/foundation-x402/x402` | End, inclusive: `2b74587b29bd7d986c4c562e46444d74606b0e1d`   | 2026-07-06                 |
+| Target fork     | `/Users/roger/Project/develop/x402`                 | HEAD examined: `e158640a7ebf2ade6c7a6e2dc0fbfdfc6f3f0e79`    | 2026-07-07                 |
 
 Upstream range examined:
 
@@ -22,11 +22,11 @@ The range contains 72 commits, 615 changed files, 52,672 insertions, and 19,013 
 
 Fetched upstream `origin/main` on 2026-07-13. The new checkpoint extends the previous reviewed upstream end commit to:
 
-| Repository | Path | Commit | Date |
-| --- | --- | --- | --- |
-| Upstream source | `/Users/roger/Project/develop/foundation-x402/x402` | Previous end, exclusive: `2b74587b29bd7d986c4c562e46444d74606b0e1d` | 2026-07-06 |
-| Upstream source | `/Users/roger/Project/develop/foundation-x402/x402` | Latest reviewed end, inclusive: `ea2cd8177d0b694945fcd3c69e962ad880e8cab0` | 2026-07-13 |
-| Target fork | `/Users/roger/Project/develop/x402` | HEAD examined for this supplement: `ab923e64c109b5732e1286a3c08fe3845b1daa2c` | 2026-07-09 |
+| Repository      | Path                                                | Commit                                                                        | Date       |
+| --------------- | --------------------------------------------------- | ----------------------------------------------------------------------------- | ---------- |
+| Upstream source | `/Users/roger/Project/develop/foundation-x402/x402` | Previous end, exclusive: `2b74587b29bd7d986c4c562e46444d74606b0e1d`           | 2026-07-06 |
+| Upstream source | `/Users/roger/Project/develop/foundation-x402/x402` | Latest reviewed end, inclusive: `ea2cd8177d0b694945fcd3c69e962ad880e8cab0`    | 2026-07-13 |
+| Target fork     | `/Users/roger/Project/develop/x402`                 | HEAD examined for this supplement: `ab923e64c109b5732e1286a3c08fe3845b1daa2c` | 2026-07-09 |
 
 Supplement range examined:
 
@@ -59,11 +59,11 @@ f4530e2766c822a9c7f880e2a86484dd98257fb1  2026-07-08  fix(python/flask): use syn
 
 Fetched upstream `origin/main` on 2026-07-30. This review extends the previous reviewed upstream end commit to:
 
-| Repository | Path | Commit | Date |
-| --- | --- | --- | --- |
-| Upstream source | `/Users/roger/Project/develop/foundation-x402/x402` | Previous end, exclusive: `ea2cd8177d0b694945fcd3c69e962ad880e8cab0` | 2026-07-13 |
+| Repository      | Path                                                | Commit                                                                     | Date       |
+| --------------- | --------------------------------------------------- | -------------------------------------------------------------------------- | ---------- |
+| Upstream source | `/Users/roger/Project/develop/foundation-x402/x402` | Previous end, exclusive: `ea2cd8177d0b694945fcd3c69e962ad880e8cab0`        | 2026-07-13 |
 | Upstream source | `/Users/roger/Project/develop/foundation-x402/x402` | Latest reviewed end, inclusive: `183b2706953e5d730f268360ca20bddd58ba19a1` | 2026-07-30 |
-| Target fork | `/Users/roger/Project/develop/x402` | HEAD examined: `76368cf104a70d0387843e49cd087b0f01a0fdcf` | 2026-07-17 |
+| Target fork     | `/Users/roger/Project/develop/x402`                 | HEAD examined: `76368cf104a70d0387843e49cd087b0f01a0fdcf`                  | 2026-07-17 |
 
 Review range:
 
@@ -72,6 +72,34 @@ ea2cd8177d0b694945fcd3c69e962ad880e8cab0..183b2706953e5d730f268360ca20bddd58ba19
 ```
 
 The range contains 52 commits, 388 changed files, 18,252 insertions, and 2,837 deletions. Of the 151 changed TypeScript files (9,169 insertions, 964 deletions), the reusable work is concentrated in SIWx, HTTP clients, the Fetch wrapper, Builder Code, and EVM Batch Settlement. XRPL, SVM, Aptos, AVM, Stellar, and other unsupported-chain work remains out of scope.
+
+## 2026-08-19 upstream review and sync
+
+Fetched upstream `origin/main` on 2026-08-19 and reviewed the range below against target branch `sync/upstream-typescript-2026-07-30` at `418afc0d` plus the resulting working-tree port.
+
+```text
+183b2706953e5d730f268360ca20bddd58ba19a1..75b519d0a3a7
+```
+
+The range contains 67 commits. Twenty-five commits touch the supported TypeScript SDK, HTTP adapters, MCP package, EVM mechanism, or shared specifications. Release/version commits and unsupported-chain work were not ported.
+
+Ported changes:
+
+- Payment-flow handlers, cancellation settlement, and the `settlement_pending` state (`db5da2e6`, `6dba93ed`). TRON schemes were adapted to declare their authorization flows without replacing the fork's own facilitator logic.
+- Client spend controls and MCP policy propagation/re-approval (`4f587236`, `08e84ab0`, `c4274251`). TRON clients expose their default assets so the same controls work for TRON payments.
+- HTTP route hardening for encoded separators, backslashes, and line terminators (`16019420`, `37412e7c`, `5192e50f`), plus cache-control behavior (`ee1b148d`).
+- Bazaar external-reference rejection (`6b04d5e8`), SIWx request-origin binding (`c2612d31`), and Builder Code merge/budget behavior (`e805616f`, `e335d4fc`).
+- EVM settlement receipt verification, pending-result handling, default-asset updates, and missing-`accepted` handling (`dea7937b`, `6dba93ed`, `76bda78e`, `242d6e97`, `db9dabd0`, `ab1a31ab`).
+- Current shared specifications for exact, upto, batch settlement, Bazaar, Builder Code, and SIWx.
+
+Fork-specific decisions retained:
+
+- `registerExactEvmScheme` still does not auto-register protocol v1 networks.
+- Package names remain under `@bankofai`; upstream version and changelog bumps were excluded.
+- TRON address/signing, GasFree, Permit2, batch-settlement, and sub-token-precision rejection remain fork-owned behavior.
+- SVM and other unsupported mechanisms remain out of scope.
+
+Validation after the port: core 647 tests, extensions 517, EVM 828, TRON 139, MCP 113, Fetch 20, Axios 23, Express 72, Fastify 54, Hono 62, and Next 66 all pass. The affected packages also build successfully, and the synced files pass lint. Full-package lint still reports pre-existing issues in unchanged files, including TRON signer JSDoc declarations, EVM test unused variables, and formatting in Extension/MCP entry files.
 
 ## Repository relationship
 
@@ -82,6 +110,7 @@ The target is not a Git branch of upstream. It has an independent history and ha
 ### Required
 
 1. `04860337caca929bdf9ccba69f2413d6d659e9a2` — emit the spec-compliant EVM `authorization_value_mismatch` error.
+
    - ✅ **Ported on branch `sync/upstream-2026-07`** (2026-07-13). Added `ErrAuthorizationValueMismatch` in `evm/src/exact/facilitator/errors.ts`, changed `eip3009.ts` to emit it instead of `ErrInvalidAuthorizationValue`, added the legacy `ErrorReasons` entry in `legacy/x402/src/types/verify/x402Specs.ts`, and updated the facilitator test assertion. EVM 710 tests pass, legacy 270 tests pass.
 
 2. `a3ad102baa16d05440855214d43acf293cd0400f` — MCP interoperability fixes.
@@ -90,12 +119,15 @@ The target is not a Git branch of upstream. It has an independent history and ha
 ### High priority
 
 3. `59ac597de8e3c15be6249dbba7aa5b7f08e0f47e` — dynamic extension info fields.
+
    - ✅ **Ported on branch `sync/upstream-2026-07`** (2026-07-13). Added `dynamicInfoFields?: string[]` to `ResourceServerExtension` in `core/src/types/extensions.ts`. Added `omitFields()` helper in `core/src/server/x402ResourceServer.ts` and applied it to echo validation so dynamic fields are excluded from `extensionInfoMatchesAdvertised`. Declared `["offers"]` in `offer-receipt/server.ts` and `["nonce", "issuedAt", "expirationTime"]` in `sign-in-with-x/server.ts`. Added 3 tests in core resource server and 2 tests in SIWX extension (incl. end-to-end fresh-nonce echo validation). Core 513 tests pass, extensions 471 tests pass.
 
 4. `4cba2622badce62585ab4a41b3cb7a291ef96621` — EVM wallet compatibility and signature-verification hardening.
-  - ✅ **Ported on branch `sync/upstream-2026-07`** (2026-07-13). Added 3 new shared files: `verifySignature.ts` (strict EOA/ERC-1271 verification primitive + `classifyErc6492Payer`), `erc7702.ts` (delegation detection), `revert.ts` (contract revert vs RPC failure). Replaced `signer.verifyTypedData` with `verifyTypedDataSignature` in 6 facilitators (exact eip3009, exact permit2, upto permit2, v1 scheme, batch-settlement deposit-eip3009, deposit-permit2) + `verifyBatchSettlementVoucherTypedData`. Rewrote `verifyEIP3009` to use `classifyErc6492Payer` + counterfactual factory allowlist gate. Added `simulateEip3009TransferResult`, deploy receipt status check, inner-signature extraction for settle, and `errorMessage` preservation. Added counterfactual ERC-6492 deposit support to batch-settlement (`Erc3009DepositVerifyResult`, `simulateCounterfactualErc3009Deposit`, `tryDeployCounterfactualErc3009Deposit`). Added `BatchSettlementEvmSchemeConfig` with `eip6492AllowedFactories`. Ported 3 new test files + 4 modified test files (mock signer adapted with `rcWithSig` helper). EVM 738 tests pass.
+
+- ✅ **Ported on branch `sync/upstream-2026-07`** (2026-07-13). Added 3 new shared files: `verifySignature.ts` (strict EOA/ERC-1271 verification primitive + `classifyErc6492Payer`), `erc7702.ts` (delegation detection), `revert.ts` (contract revert vs RPC failure). Replaced `signer.verifyTypedData` with `verifyTypedDataSignature` in 6 facilitators (exact eip3009, exact permit2, upto permit2, v1 scheme, batch-settlement deposit-eip3009, deposit-permit2) + `verifyBatchSettlementVoucherTypedData`. Rewrote `verifyEIP3009` to use `classifyErc6492Payer` + counterfactual factory allowlist gate. Added `simulateEip3009TransferResult`, deploy receipt status check, inner-signature extraction for settle, and `errorMessage` preservation. Added counterfactual ERC-6492 deposit support to batch-settlement (`Erc3009DepositVerifyResult`, `simulateCounterfactualErc3009Deposit`, `tryDeployCounterfactualErc3009Deposit`). Added `BatchSettlementEvmSchemeConfig` with `eip6492AllowedFactories`. Ported 3 new test files + 4 modified test files (mock signer adapted with `rcWithSig` helper). EVM 738 tests pass.
 
 5. `f4c532e8` — EVM `validAfter` time-window correction.
+
    - ✅ **Ported on branch `sync/upstream-2026-07`** (2026-07-13). Changed `(now - 600).toString()` / `BigInt(now - 600)` to `"0"` / `BigInt(0)` across 9 source files (EVM: 5, Tron: 4) and 3 test files. The original "Already represented" assessment was incorrect — the target still used the old `now - 600` behavior before this port.
 
 6. `8f22db34` — `Retry-After` handling.
@@ -104,9 +136,11 @@ The target is not a Git branch of upstream. It has an independent history and ha
 ### Conditional
 
 7. `266b19d2251356ee958a1f4ffaa4e57aa2007f33` — optional Batch Settlement facilitator receiver authorizer.
-  - ✅ **Ported on branch `sync/upstream-2026-07`** (2026-07-13). Added `validateFacilitatorSupport?()` to `SchemeNetworkServer` in `core/src/types/mechanisms.ts` and wired `validateFacilitatorCapabilities()` into `x402ResourceServer.initialize()`. Made `authorizerSigner` optional in EVM + Tron facilitator schemes (`getExtra()` returns `undefined` when absent). Added `ErrAuthorizerNotConfigured` guard in EVM + Tron `claim.ts` and `refund.ts`. Added `validateFacilitatorSupport()` to EVM + Tron server schemes. Core 516 tests pass (+3), EVM 747 tests pass (+9), Tron 152 tests pass.
+
+- ✅ **Ported on branch `sync/upstream-2026-07`** (2026-07-13). Added `validateFacilitatorSupport?()` to `SchemeNetworkServer` in `core/src/types/mechanisms.ts` and wired `validateFacilitatorCapabilities()` into `x402ResourceServer.initialize()`. Made `authorizerSigner` optional in EVM + Tron facilitator schemes (`getExtra()` returns `undefined` when absent). Added `ErrAuthorizerNotConfigured` guard in EVM + Tron `claim.ts` and `refund.ts`. Added `validateFacilitatorSupport()` to EVM + Tron server schemes. Core 516 tests pass (+3), EVM 747 tests pass (+9), Tron 152 tests pass.
 
 8. `ef7db6793791ca86c209113073ecdc4e480e5eec` — EVM client signer type clarification.
+
    - Review semantics only. The target's wallet interfaces have diverged, so the upstream patch should not be applied directly.
 
 9. `d9bd02d151cb142e76769f3b6150e4ff625c3217` — Igra mainnet `eip155:38833` default stablecoin.
@@ -117,32 +151,40 @@ The target is not a Git branch of upstream. It has an independent history and ha
 ### 2026-07-30 review — Required
 
 10. `21b0745acdd62fea7ed555be7766ddb75088df9c` — bind SIWx validation and challenge issuance to a configured public origin.
-   - ✅ **Ported locally** (2026-07-30). Added required `origin`, strict origin normalization, request-path rebasing for challenges, and validation against the configured public origin. Extensions 477 tests pass before the structured-results follow-up below.
+
+- ✅ **Ported locally** (2026-07-30). Added required `origin`, strict origin normalization, request-path rebasing for challenges, and validation against the configured public origin. Extensions 477 tests pass before the structured-results follow-up below.
 
 11. `c72cfeeee215b51f0d5552d821dc8accf2d8f276` — harden EVM Batch Settlement channel storage and verification lifecycle.
-   - ✅ **Ported locally** (2026-07-30). Added canonical channel-ID validation/normalization, file-storage traversal protection, fail-closed verification state handling, two-phase reservations, and `after_verify_aborted` cleanup. EVM 771 tests pass.
+
+- ✅ **Ported locally** (2026-07-30). Added canonical channel-ID validation/normalization, file-storage traversal protection, fail-closed verification state handling, two-phase reservations, and `after_verify_aborted` cleanup. EVM 771 tests pass.
 
 12. `27fadeb3c63f0f057359da0eb1ca9481715972bc` — preserve `Request` bodies in Fetch recovery retries.
-   - ✅ **Ported locally** (2026-07-30). Paid attempts clone the request and recovery retries reuse the preserved clone, retaining streamed/one-shot request bodies.
+
+- ✅ **Ported locally** (2026-07-30). Paid attempts clone the request and recovery retries reuse the preserved clone, retaining streamed/one-shot request bodies.
 
 13. `e5c50518a0553258ffa859b6dc0390de93e752ed` — honor caller-supplied EVM Batch Settlement assets outside `DEFAULT_STABLECOINS`.
-   - ✅ **Ported locally** (2026-07-30). EVM preserves caller-supplied asset metadata and `createChannelManager` accepts an explicit token; TRON behavior remains unchanged.
+
+- ✅ **Ported locally** (2026-07-30). EVM preserves caller-supplied asset metadata and `createChannelManager` accepts an explicit token; TRON behavior remains unchanged.
 
 14. `4453a929bea3122e7f86448435df158b82c30f50` — reject malformed `createAuthHeaders` callback results.
-   - ✅ **Ported locally** (2026-07-30). Path entries are optional and flat header objects now raise a descriptive error instead of silently dropping authentication.
+
+- ✅ **Ported locally** (2026-07-30). Path entries are optional and flat header objects now raise a descriptive error instead of silently dropping authentication.
 
 15. `183b2706953e5d730f268360ca20bddd58ba19a1` — timeout HTTP facilitator requests and guard eager middleware initialization rejection.
-   - ✅ **Ported locally** (2026-07-30). Added validated 30-second default `timeoutMs`, `FacilitatorTimeoutError`, per-attempt abort signals, and eager-init rejection guards for Express/Fastify/Hono/Next. Core build passes; one existing core test requires DNS access to `x402.org`.
+
+- ✅ **Ported locally** (2026-07-30). Added validated 30-second default `timeoutMs`, `FacilitatorTimeoutError`, per-attempt abort signals, and eager-init rejection guards for Express/Fastify/Hono/Next. Core build passes; one existing core test requires DNS access to `x402.org`.
 
 ### 2026-07-30 review — High priority
 
 16. `b7bfa69fcbd1505950acbac3bd913b7c10a09aba` — cap Builder Code service codes (`s`) at five.
-   - ✅ **Ported locally** (2026-07-30). Added `MAX_SERVICE_CODES = 5`, schema `maxItems: 5`, and facilitator-side truncation.
+
+- ✅ **Ported locally** (2026-07-30). Added `MAX_SERVICE_CODES = 5`, schema `maxItems: 5`, and facilitator-side truncation.
 
 ### 2026-07-30 review — Conditional
 
 17. `c1f2d90c157a0a3985f05c2a06bcee93ff805dd8` — SIWx structured failure results.
-   - ✅ **Ported locally** (2026-07-30). Replaced the public `{ valid, error?, address? }` shapes with discriminated `{ isValid, invalidReason, invalidMessage, payer }` results. Extensions 488 tests pass.
+
+- ✅ **Ported locally** (2026-07-30). Replaced the public `{ valid, error?, address? }` shapes with discriminated `{ isValid, invalidReason, invalidMessage, payer }` results. Extensions 488 tests pass.
 
 ## Already represented in the target
 
@@ -162,7 +204,6 @@ From the 2026-07-13 supplement, no additional port is currently required for:
 ### Not previously tracked
 
 - `10ccbdb2` — docs: replace dead `facilitator.x402.org` with `x402.org/facilitator` (#2787). README-only URL change in 5 files (bazaar, express, fastify, hono, next). Target still has old URL. Low priority — docs only, no runtime impact.
-
 
 ## Out of scope for this target
 
@@ -190,8 +231,8 @@ For the next upstream review, use this upstream range:
 
 ```bash
 git -C /Users/roger/Project/develop/foundation-x402/x402 log \
-  183b2706953e5d730f268360ca20bddd58ba19a1..HEAD \
+  75b519d0a3a7..HEAD \
   --date=short --pretty=format:'%H%x09%ad%x09%s'
 ```
 
-Before relying on this checkpoint, verify whether the recommended ports above have landed in the target. Record the new target HEAD and replace the upstream end commit only after the new range has been fully reviewed.
+Before relying on this checkpoint, verify that the 2026-08-19 working-tree port has been committed to the target and record that target commit.

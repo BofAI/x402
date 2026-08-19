@@ -1,6 +1,7 @@
 import {
   AssetAmount,
   Network,
+  PaymentFlowConfig,
   PaymentPayload,
   PaymentRequirements,
   Price,
@@ -11,15 +12,12 @@ import {
 } from "@bankofai/x402-core/types";
 import type { DeepReadonly } from "@bankofai/x402-core/types";
 import type { SettleContext, SettleResultContext } from "@bankofai/x402-core/server";
-import {
-  convertToTokenAmount,
-  numberToDecimalString,
-  parseMoneyString,
-} from "@bankofai/x402-core/utils";
+import { convertToTokenAmount, parseMoney } from "@bankofai/x402-core/utils";
 import type { FacilitatorClient } from "@bankofai/x402-core/server";
 import { normalizeAddressForSigning } from "../../utils";
 import { getDefaultAsset } from "../../shared/defaultAssets";
 import type { TronAuthorizerSigner } from "../types";
+import type { BatchSettlementAssetTransferMethod } from "../types";
 import {
   BATCH_SETTLEMENT_SCHEME,
   MIN_WITHDRAW_DELAY,
@@ -62,6 +60,11 @@ export interface BatchSettlementRequestContext {
  */
 export class BatchSettlementTronScheme implements SchemeNetworkServer {
   readonly scheme = BATCH_SETTLEMENT_SCHEME;
+  readonly defaultAssetTransferMethod: BatchSettlementAssetTransferMethod = "eip3009";
+  readonly paymentFlows = {
+    eip3009: { supported: ["authorization"], default: "authorization" },
+    permit2: { supported: ["authorization"], default: "authorization" },
+  } as const satisfies Record<BatchSettlementAssetTransferMethod, PaymentFlowConfig>;
   readonly schemeHooks: SchemeServerHooks;
 
   private readonly requestContexts = new WeakMap<
@@ -240,7 +243,7 @@ export class BatchSettlementTronScheme implements SchemeNetworkServer {
       return { amount: price.amount, asset: price.asset, extra: price.extra || {} };
     }
 
-    const amount = this.parseMoneyToDecimal(price);
+    const amount = parseMoney(price).amount;
     for (const parser of this.moneyParsers) {
       const result = await parser(amount, network);
       if (result !== null) return result;
@@ -400,11 +403,6 @@ export class BatchSettlementTronScheme implements SchemeNetworkServer {
    * @param money - Money string (may include `$`) or numeric amount.
    * @returns Parsed finite number.
    */
-  private parseMoneyToDecimal(money: string | number): number {
-    if (typeof money === "number") return money;
-    return parseMoneyString(money);
-  }
-
   /**
    * Converts a decimal dollar amount to the network's default token amount.
    *
@@ -412,9 +410,9 @@ export class BatchSettlementTronScheme implements SchemeNetworkServer {
    * @param network - Target chain/network for default asset resolution.
    * @returns {@link AssetAmount} with integer token amount, contract address, and metadata.
    */
-  private defaultMoneyConversion(amount: number, network: Network): AssetAmount {
+  private defaultMoneyConversion(amount: string, network: Network): AssetAmount {
     const assetInfo = getDefaultAsset(network);
-    const tokenAmount = convertToTokenAmount(numberToDecimalString(amount), assetInfo.decimals);
+    const tokenAmount = convertToTokenAmount(amount, assetInfo.decimals);
     return {
       amount: tokenAmount,
       asset: assetInfo.address,

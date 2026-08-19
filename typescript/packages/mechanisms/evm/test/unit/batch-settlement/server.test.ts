@@ -373,10 +373,10 @@ describe("BatchSettlementEvmScheme — parsePrice", () => {
 describe("BatchSettlementEvmScheme — enhancePaymentRequirements", () => {
   const baseReqs = makeRequirements();
 
-  it("injects withdrawDelay, facilitator receiverAuthorizer, name, version", async () => {
+  it("injects withdrawDelay, facilitator receiverAuthorizer, and passes through name/version", async () => {
     const server = new BatchSettlementEvmScheme(RECEIVER, { withdrawDelay: 1800 });
     const enhanced = await server.enhancePaymentRequirements(
-      baseReqs,
+      makeRequirements({ extra: { name: "USDC", version: "2" } }),
       {
         x402Version: 2,
         scheme: "batch-settlement",

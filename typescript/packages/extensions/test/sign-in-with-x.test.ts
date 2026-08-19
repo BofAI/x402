@@ -11,6 +11,8 @@ import {
   validateSIWxMessage,
   createSIWxMessage,
   createSIWxPayload,
+  assertSIWxChallengeBoundToOrigin,
+  wrapFetchWithSIWx,
   verifySIWxSignature,
   SOLANA_MAINNET,
   SOLANA_DEVNET,
@@ -39,6 +41,7 @@ import {
 } from "../src/sign-in-with-x/index";
 import { safeBase64Encode } from "@bankofai/x402-core/utils";
 import { x402ResourceServer } from "@bankofai/x402-core/server";
+import { ED25519_TORSION_SUBGROUP } from "@noble/curves/ed25519.js";
 import { privateKeyToAccount, generatePrivateKey } from "viem/accounts";
 import nacl from "tweetnacl";
 import { randomBytes } from "crypto";
@@ -102,6 +105,17 @@ function authRouteConfig(opts: { accepts?: unknown }) {
 
 const API_ORIGIN = new URL("https://api.example.com");
 const EXAMPLE_ORIGIN = new URL("http://example.com");
+
+/**
+ * Returns a 402 response URL bound to the challenge's declared uri origin.
+ *
+ * @param info - Challenge info containing uri
+ * @param info.uri - The URI declared in the challenge
+ * @returns Request URL with matching origin
+ */
+function boundRequestUrl(info: { uri: string }): string {
+  return info.uri;
+}
 const PAID_ROUTE = {
   accepts: [
     {
@@ -412,7 +426,7 @@ describe("Sign-In-With-X Extension", () => {
         chainId: ext.supportedChains[0].chainId,
         type: ext.supportedChains[0].type,
       };
-      const payload = await createSIWxPayload(completeInfo, account);
+      const payload = await createSIWxPayload(completeInfo, account, boundRequestUrl(completeInfo));
       const header = encodeSIWxHeader(payload);
       const parsed = parseSIWxHeader(header);
 
@@ -439,7 +453,7 @@ describe("Sign-In-With-X Extension", () => {
         chainId: ext.supportedChains[0].chainId,
         type: ext.supportedChains[0].type,
       };
-      const payload = await createSIWxPayload(completeInfo, account);
+      const payload = await createSIWxPayload(completeInfo, account, boundRequestUrl(completeInfo));
       payload.signature = "0x" + "00".repeat(65); // Invalid signature
 
       const verification = await verifySIWxSignature(payload);
@@ -465,7 +479,7 @@ describe("Sign-In-With-X Extension", () => {
         chainId: ext.supportedChains[0].chainId,
         type: ext.supportedChains[0].type,
       };
-      const payload = await createSIWxPayload(completeInfo, account);
+      const payload = await createSIWxPayload(completeInfo, account, boundRequestUrl(completeInfo));
       const header = encodeSIWxHeader(payload);
 
       const parsed = parseSIWxHeader(header);
@@ -495,7 +509,7 @@ describe("Sign-In-With-X Extension", () => {
         chainId: ext.supportedChains[0].chainId,
         type: ext.supportedChains[0].type,
       };
-      const payload = await createSIWxPayload(completeInfo, account);
+      const payload = await createSIWxPayload(completeInfo, account, boundRequestUrl(completeInfo));
 
       const result = await verifySIWxSignature(payload, {
         evmVerifier: mockVerifier,
@@ -525,7 +539,7 @@ describe("Sign-In-With-X Extension", () => {
         chainId: ext.supportedChains[0].chainId,
         type: ext.supportedChains[0].type,
       };
-      const payload = await createSIWxPayload(completeInfo, account);
+      const payload = await createSIWxPayload(completeInfo, account, boundRequestUrl(completeInfo));
 
       // No verifier - should still work for EOA
       const result = await verifySIWxSignature(payload);
@@ -549,7 +563,7 @@ describe("Sign-In-With-X Extension", () => {
         chainId: ext.supportedChains[0].chainId,
         type: ext.supportedChains[0].type,
       };
-      const payload = await createSIWxPayload(completeInfo, account);
+      const payload = await createSIWxPayload(completeInfo, account, boundRequestUrl(completeInfo));
 
       const result = await verifySIWxSignature(payload, {
         evmVerifier: mockVerifier,
@@ -576,7 +590,7 @@ describe("Sign-In-With-X Extension", () => {
         chainId: ext.supportedChains[0].chainId,
         type: ext.supportedChains[0].type,
       };
-      const payload = await createSIWxPayload(completeInfo, account);
+      const payload = await createSIWxPayload(completeInfo, account, boundRequestUrl(completeInfo));
 
       const result = await verifySIWxSignature(payload, {
         evmVerifier: mockVerifier,
@@ -609,7 +623,11 @@ describe("Sign-In-With-X Extension", () => {
         chainId: ext.supportedChains[0].chainId,
         type: ext.supportedChains[0].type,
       };
-      const payload = await createSIWxPayload(completeInfo, solanaSigner);
+      const payload = await createSIWxPayload(
+        completeInfo,
+        solanaSigner,
+        boundRequestUrl(completeInfo),
+      );
 
       const result = await verifySIWxSignature(payload, {
         evmVerifier: mockVerifier,
@@ -794,6 +812,14 @@ describe("Sign-In-With-X Extension", () => {
       const valid = verifySolanaSignature(message, signature, keypair2.publicKey);
       expect(valid).toBe(false);
     });
+
+    it.each(ED25519_TORSION_SUBGROUP)("should reject small-order public key %s", publicKeyHex => {
+      const publicKey = Uint8Array.from(Buffer.from(publicKeyHex, "hex"));
+      const signature = new Uint8Array(64);
+      signature[0] = 1;
+
+      expect(verifySolanaSignature("arbitrary message", signature, publicKey)).toBe(false);
+    });
   });
 
   describe("verifySIWxSignature - chain routing", () => {
@@ -852,6 +878,28 @@ describe("Sign-In-With-X Extension", () => {
       const result = await verifySIWxSignature(payload);
       expect(result.isValid).toBe(true);
       expect(result.payer).toBe(address);
+    });
+
+    it("should reject a small-order Solana public key forgery", async () => {
+      const publicKey = new Uint8Array(32);
+      publicKey[0] = 1;
+      const signature = new Uint8Array(64);
+      signature[0] = 1;
+      const payload = {
+        domain: "api.example.com",
+        uri: "https://api.example.com/data",
+        version: "1",
+        chainId: SOLANA_MAINNET,
+        type: "ed25519" as const,
+        nonce: "test123",
+        issuedAt: new Date().toISOString(),
+        address: encodeBase58(publicKey),
+        signature: encodeBase58(signature),
+      };
+
+      const result = await verifySIWxSignature(payload);
+      expect(result.isValid).toBe(false);
+      expect(result.invalidReason).toBe("invalid_siwx_signature");
     });
 
     it("should reject invalid Solana signature length", async () => {
@@ -960,7 +1008,11 @@ describe("Sign-In-With-X Extension", () => {
           issuedAt: new Date().toISOString(),
         };
 
-        const payload = await createSIWxPayload(serverInfo, solanaSigner);
+        const payload = await createSIWxPayload(
+          serverInfo,
+          solanaSigner,
+          boundRequestUrl(serverInfo),
+        );
 
         expect(payload.address).toBe(address);
         expect(payload.chainId).toBe(SOLANA_MAINNET);
@@ -993,7 +1045,11 @@ describe("Sign-In-With-X Extension", () => {
           chainId: ext.supportedChains[0].chainId,
           type: ext.supportedChains[0].type,
         };
-        const payload = await createSIWxPayload(completeInfo, solanaSigner);
+        const payload = await createSIWxPayload(
+          completeInfo,
+          solanaSigner,
+          boundRequestUrl(completeInfo),
+        );
         const header = encodeSIWxHeader(payload);
         const parsed = parseSIWxHeader(header);
 
@@ -1027,7 +1083,11 @@ describe("Sign-In-With-X Extension", () => {
           chainId: ext.supportedChains[0].chainId,
           type: ext.supportedChains[0].type,
         };
-        const payload = await createSIWxPayload(completeInfo, solanaSigner);
+        const payload = await createSIWxPayload(
+          completeInfo,
+          solanaSigner,
+          boundRequestUrl(completeInfo),
+        );
 
         expect(payload.address).toBe(address);
         expect(payload.chainId).toBe(SOLANA_DEVNET);
@@ -1241,7 +1301,7 @@ describe("SIWX Hooks", () => {
         chainId: ext.supportedChains[0].chainId,
         type: ext.supportedChains[0].type,
       };
-      const payload = await createSIWxPayload(completeInfo, account);
+      const payload = await createSIWxPayload(completeInfo, account, boundRequestUrl(completeInfo));
       const header = encodeSIWxHeader(payload);
 
       const hook = createSIWxRequestHook({ storage, origin: EXAMPLE_ORIGIN.href });
@@ -1277,7 +1337,7 @@ describe("SIWX Hooks", () => {
         chainId: ext.supportedChains[0].chainId,
         type: ext.supportedChains[0].type,
       };
-      const payload = await createSIWxPayload(completeInfo, account);
+      const payload = await createSIWxPayload(completeInfo, account, boundRequestUrl(completeInfo));
       const header = encodeSIWxHeader(payload);
 
       const hook = createSIWxRequestHook({ storage, origin: EXAMPLE_ORIGIN.href });
@@ -1408,7 +1468,11 @@ describe("SIWX Hooks", () => {
           chainId: ext.supportedChains[0].chainId,
           type: ext.supportedChains[0].type,
         };
-        const payload = await createSIWxPayload(completeInfo, account);
+        const payload = await createSIWxPayload(
+          completeInfo,
+          account,
+          boundRequestUrl(completeInfo),
+        );
         const header = encodeSIWxHeader(payload);
 
         // Mark nonce as already used
@@ -1455,7 +1519,11 @@ describe("SIWX Hooks", () => {
           chainId: ext.supportedChains[0].chainId,
           type: ext.supportedChains[0].type,
         };
-        const payload = await createSIWxPayload(completeInfo, account);
+        const payload = await createSIWxPayload(
+          completeInfo,
+          account,
+          boundRequestUrl(completeInfo),
+        );
         const header = encodeSIWxHeader(payload);
 
         const hook = createSIWxRequestHook({ storage, origin: EXAMPLE_ORIGIN.href });
@@ -1497,7 +1565,11 @@ describe("SIWX Hooks", () => {
           chainId: ext.supportedChains[0].chainId,
           type: ext.supportedChains[0].type,
         };
-        const payload = await createSIWxPayload(completeInfo, account);
+        const payload = await createSIWxPayload(
+          completeInfo,
+          account,
+          boundRequestUrl(completeInfo),
+        );
         const header = encodeSIWxHeader(payload);
 
         const hook = createSIWxRequestHook({ storage, origin: EXAMPLE_ORIGIN.href });
@@ -1550,7 +1622,11 @@ describe("SIWX Hooks", () => {
           chainId: ext.supportedChains[0].chainId,
           type: ext.supportedChains[0].type,
         };
-        const payload = await createSIWxPayload(completeInfo, account);
+        const payload = await createSIWxPayload(
+          completeInfo,
+          account,
+          boundRequestUrl(completeInfo),
+        );
         const header = encodeSIWxHeader(payload);
 
         const hook = createSIWxRequestHook({ storage, origin: EXAMPLE_ORIGIN.href });
@@ -1596,7 +1672,11 @@ describe("SIWX Hooks", () => {
           chainId: ext.supportedChains[0].chainId,
           type: ext.supportedChains[0].type,
         };
-        const payload = await createSIWxPayload(completeInfo, account);
+        const payload = await createSIWxPayload(
+          completeInfo,
+          account,
+          boundRequestUrl(completeInfo),
+        );
         const header = encodeSIWxHeader(payload);
 
         const hook = createSIWxRequestHook({
@@ -1640,7 +1720,11 @@ describe("SIWX Hooks", () => {
           chainId: ext.supportedChains[0].chainId,
           type: ext.supportedChains[0].type,
         };
-        const payload = await createSIWxPayload(completeInfo, account);
+        const payload = await createSIWxPayload(
+          completeInfo,
+          account,
+          boundRequestUrl(completeInfo),
+        );
         const header = encodeSIWxHeader(payload);
 
         const hook = createSIWxRequestHook({ storage, origin: EXAMPLE_ORIGIN.href });
@@ -1679,7 +1763,11 @@ describe("SIWX Hooks", () => {
           chainId: ext.supportedChains[0].chainId,
           type: ext.supportedChains[0].type,
         };
-        const payload = await createSIWxPayload(completeInfo, account);
+        const payload = await createSIWxPayload(
+          completeInfo,
+          account,
+          boundRequestUrl(completeInfo),
+        );
         const header = encodeSIWxHeader(payload);
 
         const hook = createSIWxRequestHook({
@@ -1734,7 +1822,11 @@ describe("SIWX Hooks", () => {
           chainId: ext.supportedChains[0].chainId,
           type: ext.supportedChains[0].type,
         };
-        const payload = await createSIWxPayload(completeInfo, account);
+        const payload = await createSIWxPayload(
+          completeInfo,
+          account,
+          boundRequestUrl(completeInfo),
+        );
         const header = encodeSIWxHeader(payload);
 
         const hook = createSIWxRequestHook({ storage, origin: "http://localhost:4021" });
@@ -1756,6 +1848,170 @@ describe("SIWX Hooks", () => {
     });
   });
 
+  describe("origin binding", () => {
+    it("should throw when challenge domain does not match response origin", async () => {
+      const account = privateKeyToAccount(generatePrivateKey());
+      const extension = createTestChallenge({
+        domain: "evil.example.com",
+        resourceUri: "https://api.example.com/resource",
+        network: "eip155:8453",
+      });
+      const ext = extension["sign-in-with-x"];
+      const completeInfo = {
+        ...ext.info,
+        chainId: ext.supportedChains[0].chainId,
+        type: ext.supportedChains[0].type,
+      };
+
+      await expect(
+        createSIWxPayload(completeInfo, account, "https://api.example.com/resource"),
+      ).rejects.toThrow(/domain.*does not match/i);
+    });
+
+    it("should throw when challenge uri origin does not match response origin", async () => {
+      const account = privateKeyToAccount(generatePrivateKey());
+      const extension = createTestChallenge({
+        domain: "api.example.com",
+        resourceUri: "https://evil.example.com/resource",
+        network: "eip155:8453",
+      });
+      const ext = extension["sign-in-with-x"];
+      const completeInfo = {
+        ...ext.info,
+        chainId: ext.supportedChains[0].chainId,
+        type: ext.supportedChains[0].type,
+      };
+
+      await expect(
+        createSIWxPayload(completeInfo, account, "https://api.example.com/resource"),
+      ).rejects.toThrow(/uri origin.*does not match/i);
+    });
+
+    it("should sign when challenge is bound to response origin", async () => {
+      const account = privateKeyToAccount(generatePrivateKey());
+      const extension = createTestChallenge({
+        domain: "api.example.com",
+        resourceUri: "https://api.example.com/resource",
+        network: "eip155:8453",
+      });
+      const ext = extension["sign-in-with-x"];
+      const completeInfo = {
+        ...ext.info,
+        chainId: ext.supportedChains[0].chainId,
+        type: ext.supportedChains[0].type,
+      };
+
+      const payload = await createSIWxPayload(
+        completeInfo,
+        account,
+        "https://api.example.com/resource",
+      );
+      expect(payload.signature).toBeDefined();
+    });
+
+    it("should allow cross-origin resources when domain and uri match", async () => {
+      const account = privateKeyToAccount(generatePrivateKey());
+      const extension = createTestChallenge({
+        domain: "api.example.com",
+        resourceUri: "https://api.example.com/resource",
+        network: "eip155:8453",
+      });
+      const ext = extension["sign-in-with-x"];
+      const completeInfo = {
+        ...ext.info,
+        resources: ["https://cdn.other-example.com/asset"],
+        chainId: ext.supportedChains[0].chainId,
+        type: ext.supportedChains[0].type,
+      };
+
+      const payload = await createSIWxPayload(
+        completeInfo,
+        account,
+        "https://api.example.com/resource",
+      );
+      expect(payload.signature).toBeDefined();
+      expect(payload.resources).toEqual(["https://cdn.other-example.com/asset"]);
+    });
+
+    it("assertSIWxChallengeBoundToOrigin throws on invalid uri", () => {
+      expect(() =>
+        assertSIWxChallengeBoundToOrigin(
+          {
+            domain: "api.example.com",
+            uri: "not-a-url",
+            version: "1",
+            nonce: "abc",
+            issuedAt: new Date().toISOString(),
+          },
+          "https://api.example.com/resource",
+        ),
+      ).toThrow(/uri.*not a valid URL/i);
+    });
+
+    it("createSIWxClientHook should not sign when origin is mismatched", async () => {
+      const account = privateKeyToAccount(generatePrivateKey());
+      const hook = createSIWxClientHook(account);
+      const challenge = createTestChallenge({
+        domain: "evil.example.com",
+        resourceUri: "https://evil.example.com/resource",
+        network: "eip155:1",
+      });
+
+      const result = await hook({
+        paymentRequired: {
+          accepts: [{ network: "eip155:1" }],
+          extensions: challenge,
+        },
+        requestUrl: "http://example.com/resource",
+      });
+
+      expect(result).toBeUndefined();
+    });
+
+    it("wrapFetchWithSIWx should return original 402 when origin is mismatched", async () => {
+      const account = privateKeyToAccount(generatePrivateKey());
+      const challenge = createTestChallenge({
+        domain: "evil.example.com",
+        resourceUri: "https://evil.example.com/resource",
+        network: "eip155:8453",
+      });
+      const paymentRequired = {
+        x402Version: 2 as const,
+        resource: {
+          url: "https://api.example.com/resource",
+          description: "test",
+          mimeType: "text/plain",
+        },
+        accepts: [
+          {
+            scheme: "exact" as const,
+            network: "eip155:8453",
+            amount: "1000",
+            payTo: "0x0" as const,
+          },
+        ],
+        extensions: challenge,
+      };
+      const encodedHeader = safeBase64Encode(JSON.stringify(paymentRequired));
+      const original402 = new Response(JSON.stringify(paymentRequired), {
+        status: 402,
+        headers: { "PAYMENT-REQUIRED": encodedHeader },
+      });
+      Object.defineProperty(original402, "url", {
+        value: "https://api.example.com/resource",
+      });
+
+      const mockFetch = vi.fn().mockResolvedValue(original402);
+      const fetchWithSIWx = wrapFetchWithSIWx(mockFetch, account);
+
+      const response = await fetchWithSIWx("https://api.example.com/resource");
+
+      expect(response.status).toBe(402);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(response.headers.get("sign-in-with-x")).toBeNull();
+    });
+  });
+
   describe("createSIWxClientHook", () => {
     it("should return undefined when no SIWX extension", async () => {
       const account = privateKeyToAccount(generatePrivateKey());
@@ -1763,6 +2019,7 @@ describe("SIWX Hooks", () => {
 
       const result = await hook({
         paymentRequired: { extensions: {} },
+        requestUrl: "http://example.com/resource",
       });
 
       expect(result).toBeUndefined();
@@ -1783,6 +2040,7 @@ describe("SIWX Hooks", () => {
           accepts: [{ network: "eip155:1" }],
           extensions: challenge,
         },
+        requestUrl: "http://example.com/resource",
       });
 
       expect(result).toHaveProperty("headers");
@@ -1801,7 +2059,10 @@ describe("SIWX Hooks", () => {
       const httpHook = extension.transportHooks?.http as {
         onPaymentRequired: (
           declaration: unknown,
-          context: { paymentRequired: { extensions?: Record<string, unknown> } },
+          context: {
+            paymentRequired: { extensions?: Record<string, unknown> };
+            requestUrl: string;
+          },
         ) => Promise<{ headers: Record<string, string> } | void>;
       };
 
@@ -1815,6 +2076,7 @@ describe("SIWX Hooks", () => {
               network: SOLANA_MAINNET,
             }),
           },
+          requestUrl: "http://example.com/resource",
         },
       );
 
@@ -1832,7 +2094,10 @@ describe("SIWX Hooks", () => {
       const httpHook = extension.transportHooks?.http as {
         onPaymentRequired: (
           declaration: unknown,
-          context: { paymentRequired: { extensions?: Record<string, unknown> } },
+          context: {
+            paymentRequired: { extensions?: Record<string, unknown> };
+            requestUrl: string;
+          },
         ) => Promise<{ headers: Record<string, string> } | void>;
       };
 
@@ -1846,6 +2111,7 @@ describe("SIWX Hooks", () => {
               network: "eip155:1",
             }),
           },
+          requestUrl: "http://example.com/resource",
         },
       );
 
@@ -2109,6 +2375,7 @@ describe("createSIWxResourceServerExtension", () => {
         type: siwxExtension.supportedChains[0].type,
       },
       account,
+      boundRequestUrl(siwxExtension.info),
     );
     const header = encodeSIWxHeader(payload);
 

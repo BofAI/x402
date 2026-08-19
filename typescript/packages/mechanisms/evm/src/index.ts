@@ -79,8 +79,8 @@ export {
 } from "./batch-settlement/constants";
 
 // Default stablecoins (USD string pricing → token address per chain)
-export { getDefaultAsset } from "./shared/defaultAssets";
-export type { DefaultAssetInfo, ExactDefaultAssetInfo } from "./shared/defaultAssets";
+export { findDefaultAsset, getDefaultAsset } from "./defaultAssets";
+export type { DefaultAssetInfo, ExactDefaultAssetInfo } from "./defaultAssets";
 
 // ERC-7702 detection utilities (diagnostic — not used in routing).
 // Verification is code-routed via {@link verifyTypedDataSignature}; 7702 is just
@@ -117,8 +117,7 @@ export {
   x402UptoPermit2ProxyABI,
 } from "./constants";
 
-// Default-asset registry (network → token metadata)
-export { DEFAULT_STABLECOINS } from "./shared/defaultAssets";
+export { DEFAULT_ASSETS } from "./defaultAssets";
 
 // AuthCapture scheme
 export { AuthCaptureEvmScheme } from "./auth-capture";
