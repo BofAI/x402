@@ -19,7 +19,11 @@
  *   Unset ⇒ each configured chain once, with its first advertised token.
  */
 import { TRON_NILE, TRON_MAINNET, TRON_SHASTA } from "@bankofai/x402-tron";
-import { x402Client, wrapFetchWithPayment } from "@bankofai/x402-fetch";
+import {
+  type Network,
+  x402Client,
+  wrapFetchWithPayment,
+} from "@bankofai/x402-fetch";
 
 import { registerEvm } from "./chains/evm.js";
 import { registerTron } from "./chains/tron.js";
@@ -53,6 +57,51 @@ const TOKEN_ADDRESSES: Record<string, Record<string, string>> = {
     USDT: "TG3XXyExBkPp9nzdajDZsozEu4BkaSJozs",
   },
 };
+
+// These tokens are example-specific rather than SDK default assets. Opt them in
+// explicitly and cap each payment at the amount advertised by servers/express.
+// SDK default assets remain allowed under the default $1 spend limit.
+const EXAMPLE_SPEND_CONTROL_ASSETS: Array<{
+  network: Network;
+  asset: string;
+  maxAmountPerPayment: string;
+}> = [
+  {
+    network: "eip155:97" as const,
+    asset: TOKEN_ADDRESSES["eip155:97"]!.DHLU!,
+    maxAmountPerPayment: "1000",
+  },
+  {
+    network: "eip155:97" as const,
+    asset: TOKEN_ADDRESSES["eip155:97"]!.USDC!,
+    maxAmountPerPayment: "1000000000000000",
+  },
+  {
+    network: "eip155:97" as const,
+    asset: TOKEN_ADDRESSES["eip155:97"]!.USDT!,
+    maxAmountPerPayment: "1000000000000000",
+  },
+  {
+    network: "eip155:56" as const,
+    asset: TOKEN_ADDRESSES["eip155:56"]!.USDC!,
+    maxAmountPerPayment: "1000000000000000",
+  },
+  {
+    network: "eip155:56" as const,
+    asset: TOKEN_ADDRESSES["eip155:56"]!.USDT!,
+    maxAmountPerPayment: "1000000000000000",
+  },
+  {
+    network: TRON_NILE,
+    asset: TOKEN_ADDRESSES[TRON_NILE]!.USDD!,
+    maxAmountPerPayment: "1000000000000000",
+  },
+  {
+    network: TRON_MAINNET,
+    asset: TOKEN_ADDRESSES[TRON_MAINNET]!.USDD!,
+    maxAmountPerPayment: "1000000000000000",
+  },
+];
 
 /** A single payment to perform: a network prefix + optional asset address. */
 interface PayTarget {
@@ -113,7 +162,7 @@ const client = new x402Client((_x402Version, accepts) => {
     throw new Error(`server offered no payment option matching "${t.raw}"`);
   }
   return match;
-});
+}).setSpendControls({ allowedAssets: EXAMPLE_SPEND_CONTROL_ASSETS });
 
 const evm = await registerEvm(client);
 const tron = await registerTron(client);
@@ -156,6 +205,12 @@ for (const t of targets) {
   target = t;
   console.log(`\n→ [${t.raw}] GET ${RESOURCE_URL}`);
   const res = await fetchWithPay(RESOURCE_URL);
+  const body = await res.json();
   console.log(`← ${res.status} ${res.statusText}`);
-  console.log(JSON.stringify(await res.json(), null, 2));
+  console.log(JSON.stringify(body, null, 2));
+  if (!res.ok) {
+    throw new Error(
+      `request for target "${t.raw}" failed with HTTP ${res.status}`,
+    );
+  }
 }

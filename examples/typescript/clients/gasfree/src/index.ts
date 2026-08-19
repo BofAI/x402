@@ -12,7 +12,8 @@ import { registerTronGasFree } from "./chains/tron.js";
 
 // Dedicated env var (set in .env-gasfree) so the GasFree line stays on its own
 // :4031 server, independent of the other scenarios.
-const RESOURCE_URL = process.env.RESOURCE_URL || "http://localhost:4031/weather";
+const RESOURCE_URL =
+  process.env.RESOURCE_URL || "http://localhost:4031/weather";
 
 const client = new x402Client();
 
@@ -26,5 +27,9 @@ const fetchWithPay = wrapFetchWithPayment(fetch, client);
 
 console.log(`→ GET ${RESOURCE_URL}`);
 const res = await fetchWithPay(RESOURCE_URL);
+const body = await res.json();
 console.log(`← ${res.status} ${res.statusText}`);
-console.log(JSON.stringify(await res.json(), null, 2));
+console.log(JSON.stringify(body, null, 2));
+if (!res.ok) {
+  throw new Error(`request failed with HTTP ${res.status}`);
+}

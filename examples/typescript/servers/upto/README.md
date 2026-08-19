@@ -46,7 +46,7 @@ the whole point of `upto`, and over-settling is rejected.
 
 ## Notes
 
-- Both chains price in `"$"` form (the authorization ceiling, `MAX_PRICE`); the
-  scheme maps it to the network's default asset (BSC USDC / TRON USDT, both
-  registered in `@bankofai/x402-evm` / `@bankofai/x402-tron`).
+- BSC testnet has no SDK default asset, so the server converts `MAX_PRICE` to an
+  explicit 18-decimal USDC atomic amount. TRON keeps the `"$"` price form and
+  resolves its default USDT from the token registry.
 - The server holds no signing key — only payout addresses.

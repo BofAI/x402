@@ -29,8 +29,7 @@ const NUMBER_OF_REQUESTS = Number(process.env.NUMBER_OF_REQUESTS ?? "3");
 // Friendly token symbol → asset address, mirroring what the server advertises.
 const TOKEN_ADDRESSES: Record<string, Record<string, string>> = {
   "eip155:97": {
-    DHLU: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816", // ERC-3009
-    USDC: "0x64544969ed7EBf5f083679233325356EbE738930", // permit2 (default)
+    USDC: "0x64544969ed7EBf5f083679233325356EbE738930", // permit2
   },
   [TRON_NILE]: {
     USDT: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf", // permit2 (default)
@@ -44,6 +43,15 @@ const TOKEN_ADDRESSES: Record<string, Record<string, string>> = {
     USDD: "TXDk8mbtRbXeYuMNS83CfKPaYYT8XWv9Hz",
   },
 };
+
+const EXAMPLE_SPEND_CONTROL_ASSETS = [
+  {
+    network: "eip155:97" as const,
+    asset: TOKEN_ADDRESSES["eip155:97"]!.USDC!,
+    // Preserve the SDK's default $1 safety boundary for this 18-decimal token.
+    maxAmountPerPayment: "1000000000000000000",
+  },
+];
 
 /** A single payment target: a network prefix + optional asset address. */
 interface PayTarget {
@@ -103,7 +111,7 @@ const client = new x402Client((_x402Version, accepts) => {
     throw new Error(`server offered no payment option matching "${t.raw}"`);
   }
   return match;
-});
+}).setSpendControls({ allowedAssets: EXAMPLE_SPEND_CONTROL_ASSETS });
 
 const evm = (await registerEvm(client)).length > 0;
 const tron = (await registerTron(client)).length > 0;
@@ -150,5 +158,10 @@ for (const t of targets) {
       `request ${i}/${NUMBER_OF_REQUESTS} — ${res.status} in ${secs}s`,
     );
     console.log(JSON.stringify(body, null, 2));
+    if (!res.ok) {
+      throw new Error(
+        `request ${i}/${NUMBER_OF_REQUESTS} for target "${t.raw}" failed with HTTP ${res.status}`,
+      );
+    }
   }
 }

@@ -27,11 +27,11 @@
 | 暂缓 | 8 份共享规范仍停留在旧版本 | 按当前决策暂不处理 `specs/` |
 | P1 | 上游仓库工作区落后 `origin/main` 67 个提交 | 同步流程风险，容易重复漏拷文件 |
 | 已完成 | HTTP/Fetch 若干上游回归测试 | 已同步并通过全量包测试 |
-| P1 | exact example 的 DHLU 被默认 spend controls 过滤 | 待显式配置自定义资产及单笔上限 |
+| 已完成 | exact example 自定义资产被默认 spend controls 过滤 | Fetch/MCP 已配置资产白名单及单笔 atomic 上限，并完成端到端验证 |
 | P2 | EVM 智能账户集成矩阵未引入 | 测试覆盖缺口，不是生产源码缺口 |
 | 观察项 | EIP-1271 magic value 使用严格相等 | 本地安全加固，建议保留，不应视为遗漏 |
 
-综合判断：代码同步提交可以进入评审；合并前仍需决定是否适配 EVM 智能账户集成矩阵，并处理 exact example 自定义 DHLU 资产与新 spend controls 的兼容问题。`specs/` 保持暂缓。
+综合判断：代码同步提交可以进入评审；exact example 已适配新 spend controls，合并前仍需决定是否适配 EVM 智能账户集成矩阵。`specs/` 保持暂缓。
 
 ## 2. 比较基线与方法
 
@@ -197,11 +197,11 @@ specs/x402-specification-v2.md
 
 Express、Fastify、Hono、Next 和 Fetch 全量包测试均已通过。
 
-### P1：exact example 尚未适配默认 spend controls
+### 已完成：exact example 适配默认 spend controls
 
-社区提交 `4f587236` 新增 client spend controls，并默认只允许机制注册的默认资产。fork 的 exact example 使用 BSC testnet 自定义资产 DHLU，因此客户端在 selector 运行前过滤了该支付选项。
+社区提交 `4f587236` 新增 client spend controls，并默认只允许机制注册的默认资产。fork 的 exact example 使用 BSC 自定义 DHLU/USDC/USDT；TRON USDD 虽在机制 token registry 中，但不是默认资产（默认资产为 USDT）。这些支付选项此前会在 selector 运行前被过滤。
 
-2026-08-19 端到端验证结果：facilitator 和 server 正常启动，TRON Nile USDT exact 支付成功并确认上链；BSC testnet DHLU 在客户端选择阶段失败，未发起链上交易。后续应将 DHLU 等 example 自定义资产显式加入 `allowedAssets` 并设置 atomic amount 上限，不建议关闭全部 spend controls。
+2026-08-19 已在 Fetch 和 MCP exact client 中将上述非默认资产显式加入 `allowedAssets`，单笔 atomic 上限与对应 example server 报价一致；没有关闭全局 spend controls，SDK 默认资产仍受默认 `$1` 上限保护。
 
 ### P2：EVM 智能账户集成矩阵缺失
 
@@ -293,10 +293,9 @@ SIWx 修复后还验证了伪造签名被拒绝、正常签名继续通过；Ext
 
 ## 8. 当前待办与合并前检查
 
-1. 为 exact example 的 DHLU 等自定义资产配置 spend controls allowlist 和单笔 atomic 上限；
-2. 评估是否适配 EVM 智能账户集成矩阵；
-3. `specs/` 按当前决策暂缓，后续恢复时从固定 upstream Git 对象同步；
-4. 合并到 `main` 后用 `git merge-base --is-ancestor 9046c846 main` 做最终确认，并更新本文件状态。
+1. 评估是否适配 EVM 智能账户集成矩阵；
+2. `specs/` 按当前决策暂缓，后续恢复时从固定 upstream Git 对象同步；
+3. 合并到 `main` 后用 `git merge-base --is-ancestor 9046c846 main` 做最终确认，并更新本文件状态。
 
 ## 9. 后续全局比较机制建议
 

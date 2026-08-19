@@ -90,6 +90,10 @@ export class ExactGasFreeTronScheme implements SchemeNetworkServer {
     // Remove stale fee metadata left over from the removed advisory-fee API.
     // GasFree fees (transferFee/activateFee) are relayer-side and never carried in extra.
     delete extra.fee;
+    // Token-registry transfer methods describe direct token settlement. GasFree
+    // settles through its relayer protocol instead, so that metadata must not
+    // select a payment flow (for example, TRON USDT is otherwise `permit2`).
+    delete extra.assetTransferMethod;
     const requirementsWithoutFee = { ...paymentRequirements, extra };
 
     const token = findByAddress(supportedKind.network, paymentRequirements.asset);

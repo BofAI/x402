@@ -18,6 +18,7 @@ SDK in `index.ts`.
 - **One-time `approve(Permit2)`** for the payer on the token being used
   (BSC USDC / TRON USDT). On TRON the client auto-broadcasts it; on EVM grant it
   once before the first run.
+- For BSC testnet, set `EVM_RPC_URL` to a reachable RPC endpoint.
 
 ## Run
 
