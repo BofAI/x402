@@ -1,4 +1,3 @@
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 import { TronWeb } from "tronweb";
 import type { FacilitatorWallet } from "@bankofai/x402-core/wallets";
 import { erc20AllowanceAbi, transferWithAuthorizationABI } from "../constants";
@@ -42,23 +41,55 @@ type BroadcastHexResult = {
   message?: string;
 };
 
+/**
+ * Converts an optional java-tron numeric value without losing precision.
+ *
+ * @param value - Chain value or missing field.
+ * @returns Bigint value, or zero when absent.
+ */
 function toBigInt(value: number | string | bigint | undefined): bigint {
   return value == null ? 0n : BigInt(value);
 }
 
+/**
+ * Computes a non-negative resource balance.
+ *
+ * @param limit - Resource limit.
+ * @param used - Resource usage.
+ * @returns Remaining resource units.
+ */
 function available(limit: number | undefined, used: number | undefined): bigint {
   const remaining = toBigInt(limit) - toBigInt(used);
   return remaining > 0n ? remaining : 0n;
 }
 
+/**
+ * Normalizes a TRON address for comparisons.
+ *
+ * @param address - Base58Check or hexadecimal address.
+ * @returns Lowercase 21-byte hexadecimal address.
+ */
 function normalizeAddress(address: string): string {
   return TronWeb.address.toHex(address).toLowerCase();
 }
 
+/**
+ * Recognizes java-tron contract account representations.
+ *
+ * @param type - Account type returned by TronWeb or java-tron.
+ * @returns Whether the account is a contract.
+ */
 function isContractAccount(type: unknown): boolean {
   return type === "Contract" || type === 2 || type === "2";
 }
 
+/**
+ * Converts a bounded bigint for TronWeb APIs that currently accept numbers.
+ *
+ * @param value - Non-negative chain value.
+ * @param label - Human-readable field label for errors.
+ * @returns Safe JavaScript number.
+ */
 function toSafeNumber(value: bigint, label: string): number {
   if (value < 0n || value > BigInt(Number.MAX_SAFE_INTEGER)) {
     throw new Error(`${label} is outside TronWeb's safe numeric range`);
@@ -66,6 +97,12 @@ function toSafeNumber(value: bigint, label: string): number {
   return Number(value);
 }
 
+/**
+ * Converts a wallet-signed system transaction into a durable action.
+ *
+ * @param signed - Signed TronWeb transaction object.
+ * @returns Immutable transaction identifier and serialized bytes.
+ */
 function preparedFromSigned(signed: Record<string, unknown>): PreparedTronAction {
   const txID = signed.txID;
   if (typeof txID !== "string" || !/^[0-9a-fA-F]{64}$/.test(txID)) {
@@ -77,10 +114,24 @@ function preparedFromSigned(signed: Record<string, unknown>): PreparedTronAction
   };
 }
 
+/**
+ * Reads one chain parameter as bigint.
+ *
+ * @param parameters - Current java-tron chain parameters.
+ * @param key - Parameter key.
+ * @returns Parameter value, or zero when absent.
+ */
 function parameterValue(parameters: readonly ChainParameter[], key: string): bigint {
   return toBigInt(parameters.find(parameter => parameter.key === key)?.value);
 }
 
+/**
+ * Validates TAPOS fields against a recent block on the requested network.
+ *
+ * @param tronWeb - Network-pinned TronWeb client.
+ * @param request - Sponsorship request carrying signed TAPOS fields.
+ * @param maxAgeBlocks - Maximum accepted referenced-block age.
+ */
 async function validateTapos(
   tronWeb: TronWeb,
   request: Trc20ApprovalResourceSponsoringRequest,
@@ -107,7 +158,12 @@ async function validateTapos(
   }
 }
 
-/** Creates a concrete chain driver backed by TronWeb and a Resource Owner wallet. */
+/**
+ * Creates a concrete chain driver backed by TronWeb and a Resource Owner wallet.
+ *
+ * @param options - TronWeb, wallet, token allowlist, and confirmation policy.
+ * @returns Chain driver ready for the resource-sponsoring runtime.
+ */
 export async function createTronWebResourceSponsoringChain(
   options: TronWebResourceSponsoringChainOptions,
 ): Promise<Trc20ResourceSponsoringChain> {
@@ -120,6 +176,12 @@ export async function createTronWebResourceSponsoringChain(
   const confirmationTimeoutMs = options.confirmationTimeoutMs ?? 90_000;
   const confirmationPollIntervalMs = options.confirmationPollIntervalMs ?? 3_000;
 
+  /**
+   * Reads the configured packed or solidified transaction status.
+   *
+   * @param txID - Original transaction identifier.
+   * @returns Current action result or pending.
+   */
   async function readTransactionResult(txID: string): Promise<TronActionResult | "pending"> {
     try {
       const info =
@@ -138,6 +200,12 @@ export async function createTronWebResourceSponsoringChain(
     }
   }
 
+  /**
+   * Signs a Resource Owner system transaction without broadcasting it.
+   *
+   * @param unsigned - Unsigned TronWeb transaction object.
+   * @returns Durable signed action.
+   */
   async function signSystemTransaction(
     unsigned: Record<string, unknown>,
   ): Promise<PreparedTronAction> {
@@ -148,6 +216,12 @@ export async function createTronWebResourceSponsoringChain(
     return preparedFromSigned(signed);
   }
 
+  /**
+   * Broadcasts exactly the serialized transaction supplied by the caller.
+   *
+   * @param signedTransaction - Complete signed transaction hex.
+   * @returns Node-reported transaction identifier.
+   */
   async function broadcastHex(signedTransaction: string): Promise<string> {
     const result = (await options.tronWeb.trx.sendHexTransaction(
       signedTransaction,
@@ -158,6 +232,12 @@ export async function createTronWebResourceSponsoringChain(
     return result.txid.toLowerCase();
   }
 
+  /**
+   * Reads the payer's canonical Permit2 allowance.
+   *
+   * @param request - Sponsorship request.
+   * @returns Current allowance.
+   */
   async function readAllowance(request: Trc20ApprovalResourceSponsoringRequest): Promise<bigint> {
     return BigInt(
       (await options.readContract({
@@ -169,6 +249,12 @@ export async function createTronWebResourceSponsoringChain(
     );
   }
 
+  /**
+   * Reads the payer's TRC-20 balance.
+   *
+   * @param request - Sponsorship request.
+   * @returns Current token balance.
+   */
   async function readBalance(request: Trc20ApprovalResourceSponsoringRequest): Promise<bigint> {
     return BigInt(
       (await options.readContract({
