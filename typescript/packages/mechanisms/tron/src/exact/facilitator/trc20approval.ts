@@ -176,11 +176,12 @@ function validateSignatureEncoding(signature: Uint8Array): string {
     r >= SECP256K1_ORDER ||
     s <= 0n ||
     s > SECP256K1_ORDER / 2n ||
-    (recovery !== 27 && recovery !== 28)
+    (recovery !== 0 && recovery !== 1 && recovery !== 27 && recovery !== 28)
   ) {
     throw new Error("invalid Approval signature encoding");
   }
-  return signatureHex;
+  const recoverable = recovery < 2 ? recovery + 27 : recovery;
+  return `${signatureHex.slice(0, -2)}${recoverable.toString(16).padStart(2, "0")}`;
 }
 
 function decodeSignedEnvelope(signedTransaction: string): SignedEnvelope {

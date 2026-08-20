@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { TronWeb } from "tronweb";
-import { createClientTronSigner, type ClientTronWallet } from "../../src/signer";
+import {
+  createClientTronSigner,
+  normalizeSignedTronTransaction,
+  type ClientTronWallet,
+} from "../../src/signer";
 import { buildTronWeb } from "../../src/rpc";
 import { privateKeyTronWallet } from "./helpers";
 
@@ -94,5 +98,26 @@ describe("createClientTronSigner (wallet-only)", () => {
     };
     const signer = await makeClient(tron(), wallet);
     expect(typeof signer.readContract).toBe("function");
+  });
+});
+
+describe("normalizeSignedTronTransaction", () => {
+  it("normalizes Ethereum-style recovery bytes for TRON transaction signatures", () => {
+    const r = "11".repeat(64);
+    const unsigned = { txID: "abc" };
+
+    expect(
+      normalizeSignedTronTransaction({ ...unsigned, signature: [`${r}1b`] }, unsigned),
+    ).toMatchObject({ signature: [`${r}00`] });
+    expect(
+      normalizeSignedTronTransaction(JSON.stringify({ signature: [`${r}1c`] }), unsigned),
+    ).toMatchObject({ signature: [`${r}01`] });
+  });
+
+  it("preserves already normalized TRON recovery bytes", () => {
+    const signature = `${"22".repeat(64)}01`;
+    expect(normalizeSignedTronTransaction(signature, { txID: "abc" })).toMatchObject({
+      signature: [signature],
+    });
   });
 });
