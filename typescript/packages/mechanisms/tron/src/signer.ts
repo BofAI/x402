@@ -478,8 +478,25 @@ export function normalizeSignedTronTransaction(
   result: string | Record<string, unknown>,
   unsigned: Record<string, unknown>,
 ): Record<string, unknown> {
+  const normalizeSignatures = (transaction: Record<string, unknown>): Record<string, unknown> => {
+    const signatures = transaction.signature;
+    if (!Array.isArray(signatures)) return transaction;
+    return {
+      ...transaction,
+      signature: signatures.map(signature => {
+        if (typeof signature !== "string") return signature;
+        const prefix = signature.startsWith("0x") ? "0x" : "";
+        const hex = signature.slice(prefix.length);
+        if (!/^[0-9a-fA-F]{130}$/.test(hex)) return signature;
+        const recovery = Number.parseInt(hex.slice(-2), 16);
+        if (recovery !== 27 && recovery !== 28) return signature;
+        return `${prefix}${hex.slice(0, -2)}${(recovery - 27).toString(16).padStart(2, "0")}`;
+      }),
+    };
+  };
+
   if (typeof result !== "string") {
-    return result;
+    return normalizeSignatures(result);
   }
   const trimmed = result.trim();
   if (trimmed.startsWith("{")) {
@@ -492,11 +509,11 @@ export function normalizeSignedTronTransaction(
       );
     }
     if (Array.isArray((parsed as { signature?: unknown }).signature)) {
-      return { ...unsigned, ...parsed };
+      return normalizeSignatures({ ...unsigned, ...parsed });
     }
-    return parsed;
+    return normalizeSignatures(parsed);
   }
-  return { ...unsigned, signature: [trimmed.replace(/^0x/, "")] };
+  return normalizeSignatures({ ...unsigned, signature: [trimmed.replace(/^0x/, "")] });
 }
 
 /** Wallet hook that signs a built TRON transaction for broadcast. */

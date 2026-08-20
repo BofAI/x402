@@ -55,6 +55,10 @@ function normalizeAddress(address: string): string {
   return TronWeb.address.toHex(address).toLowerCase();
 }
 
+function isContractAccount(type: unknown): boolean {
+  return type === "Contract" || type === 2 || type === "2";
+}
+
 function toSafeNumber(value: bigint, label: string): number {
   if (value < 0n || value > BigInt(Number.MAX_SAFE_INTEGER)) {
     throw new Error(`${label} is outside TronWeb's safe numeric range`);
@@ -127,7 +131,8 @@ export async function createTronWebResourceSponsoringChain(
               "post",
             )) as { blockNumber?: number; receipt?: { result?: string } });
       if (!info?.blockNumber) return "pending";
-      return info.receipt?.result === "SUCCESS" ? "confirmed" : "failed";
+      const result = info.receipt?.result;
+      return result == null || result === "SUCCESS" ? "confirmed" : "failed";
     } catch {
       return "pending";
     }
@@ -185,8 +190,8 @@ export async function createTronWebResourceSponsoringChain(
         options.tronWeb.trx.getAccount(request.asset),
       ]);
       const accountActivated = Boolean(payerAccount.address);
-      const accountIsContract = Number(payerAccount.type) === 2;
-      if (!tokenAccount.address || Number(tokenAccount.type) !== 2) {
+      const accountIsContract = isContractAccount(payerAccount.type);
+      if (!tokenAccount.address || !isContractAccount(tokenAccount.type)) {
         throw new Error("approval_asset_not_contract");
       }
       await validateTapos(options.tronWeb, request, maxTaposAgeBlocks);

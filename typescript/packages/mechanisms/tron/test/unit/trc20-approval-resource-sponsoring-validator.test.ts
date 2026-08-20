@@ -63,6 +63,7 @@ function buildSignedApproval(
     timestamp?: number;
     expiration?: number;
     extraRawField?: Uint8Array;
+    tronRecoveryByte?: boolean;
   } = {},
 ): string {
   const now = options.timestamp ?? Date.now();
@@ -92,6 +93,7 @@ function buildSignedApproval(
   );
   const txID = Uint8Array.from(tronUtils.crypto.SHA256(rawData));
   const signature = hexBytes(tronUtils.crypto.ECKeySign(txID, hexBytes(PRIVATE_KEY)));
+  if (options.tronRecoveryByte && signature[64] >= 27) signature[64] -= 27;
   return tronUtils.code
     .byteArray2hexStr(concat(bytesField(1, rawData), bytesField(2, signature)))
     .toLowerCase();
@@ -129,6 +131,13 @@ describe("TRC-20 Approval Resource Sponsoring validator", () => {
     expect(decoded.amount).toBe(TRC20_APPROVAL_MAX_AMOUNT);
     expect(decoded.approvalTxID).toMatch(/^[0-9a-f]{64}$/);
     expect(result.isValid).toBe(true);
+  });
+
+  it("accepts the 0/1 recovery byte used by TRON transaction broadcasts", () => {
+    const signed = buildSignedApproval({ tronRecoveryByte: true });
+    expect(
+      validateTrc20ApprovalForPayment(info(signed), PAYER, requirements as never),
+    ).toMatchObject({ isValid: true });
   });
 
   it("rejects an Approval for a different spender", () => {

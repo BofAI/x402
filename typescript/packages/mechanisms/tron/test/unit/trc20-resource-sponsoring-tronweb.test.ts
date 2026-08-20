@@ -81,12 +81,14 @@ function createTronWebMock() {
       fullNode: {
         request: vi.fn(async () => ({
           blockNumber: 1,
-          receipt: { result: "SUCCESS" },
+          receipt: { net_usage: 281 },
         })),
       },
       trx: {
         getAccount: vi.fn(async (address: string) =>
-          address === TOKEN ? { address, type: 2, code: "6000" } : { address, type: 0, code: "" },
+          address === TOKEN
+            ? { address, type: "Contract", code: "6000" }
+            : { address, type: 0, code: "" },
         ),
         getCurrentBlock: vi.fn(async () => ({
           blockID: "0".repeat(64),

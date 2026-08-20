@@ -10,4 +10,6 @@ mechanism strictly decodes and validates the signed protobuf and binds it to the
 before any resource lifecycle is executed. The TRON package also provides a production-oriented
 resource state machine, TronWeb chain driver, Stake 2.0 sizing, immutable action persistence
 contracts, bounded policy helpers, unknown-state recovery, and an explicit process-local coordinator
-for tests and development.
+for tests and development. TRON transaction signing now normalizes wallet recovery bytes for node
+broadcast while the Approval validator accepts both standard encodings, and the chain driver handles
+TronWeb's string account types plus successful system receipts that omit `receipt.result`.

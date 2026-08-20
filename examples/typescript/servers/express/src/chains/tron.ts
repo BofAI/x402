@@ -10,6 +10,7 @@
 import { TRON_NILE, TRON_MAINNET, TRON_SHASTA } from "@bankofai/x402-tron";
 import { ExactTronScheme } from "@bankofai/x402-tron/exact/server";
 import { getNetworkTokens } from "@bankofai/x402-tron";
+import { declareTrc20ApprovalResourceSponsoringExtension } from "@bankofai/x402-extensions";
 import type { x402ResourceServer } from "@bankofai/x402-express";
 
 // Switch to TRON_MAINNET for production (REAL FUNDS). USDT/USDD are registered
@@ -40,7 +41,11 @@ export function registerTron(resourceServer: x402ResourceServer): void {
  */
 export function tronAccepts() {
   const payTo = process.env.TRON_ADDRESS as string;
-  return TRON_NETWORKS.flatMap((network) =>
+  const networks =
+    process.env.TRON_APPROVAL_SPONSORING === "true"
+      ? ([TRON_NILE] as const)
+      : TRON_NETWORKS;
+  return networks.flatMap((network) =>
     Object.keys(getNetworkTokens(network)).map((symbol) => ({
       scheme: "exact",
       network,
@@ -48,4 +53,11 @@ export function tronAccepts() {
       price: `0.001 ${symbol}`,
     })),
   );
+}
+
+/** Declares Nile Approval sponsorship when the local Facilitator enables it. */
+export function tronExtensions(): Record<string, unknown> {
+  return process.env.TRON_APPROVAL_SPONSORING === "true"
+    ? { ...declareTrc20ApprovalResourceSponsoringExtension() }
+    : {};
 }
