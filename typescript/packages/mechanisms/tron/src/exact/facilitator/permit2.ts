@@ -1,4 +1,5 @@
 import {
+  FacilitatorContext,
   PaymentPayload,
   PaymentRequirements,
   SettleResponse,
@@ -15,7 +16,30 @@ import {
 import { FacilitatorTronSigner } from "../../signer";
 import { ExactPermit2Payload } from "../../types";
 import { getTronChainId, normalizeAddressForSigning } from "../../utils";
+import {
+  extractTrc20ApprovalResourceSponsoringInfo,
+  resolveTrc20ApprovalResourceSponsoringRuntime,
+  TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
+  type Trc20ApprovalResourceSponsoringFacilitatorExtension,
+} from "../extensions";
 import * as errors from "./errors";
+import {
+  buildTrc20ApprovalSponsoringRequest,
+  validateTrc20ApprovalForPayment,
+} from "./trc20approval";
+
+/**
+ * Returns true when the payload explicitly carries the sponsoring extension key.
+ *
+ * @param payload - Payment payload to inspect.
+ * @returns Whether the extension key is present.
+ */
+function hasApprovalSponsoringExtension(payload: PaymentPayload): boolean {
+  return Object.prototype.hasOwnProperty.call(
+    payload.extensions ?? {},
+    TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
+  );
+}
 
 /**
  * Verifies a Permit2 payment payload on TRON.
@@ -24,6 +48,7 @@ import * as errors from "./errors";
  * @param payload - The payment payload.
  * @param requirements - The payment requirements.
  * @param permit2Payload - The Permit2 specific payload.
+ * @param context - Registered Facilitator extension capabilities.
  * @returns The verification response.
  */
 export async function verifyPermit2(
@@ -31,6 +56,7 @@ export async function verifyPermit2(
   payload: PaymentPayload,
   requirements: PaymentRequirements,
   permit2Payload: ExactPermit2Payload,
+  context?: FacilitatorContext,
 ): Promise<VerifyResponse> {
   const payer = permit2Payload.permit2Authorization.from;
 
@@ -123,6 +149,85 @@ export async function verifyPermit2(
     return { isValid: false, invalidReason: errors.PERMIT2_INVALID_SIGNATURE, payer };
   }
 
+  const approvalInfo = extractTrc20ApprovalResourceSponsoringInfo(payload);
+  if (hasApprovalSponsoringExtension(payload) && !approvalInfo) {
+    return { isValid: false, invalidReason: errors.APPROVAL_EXTENSION_INVALID, payer };
+  }
+
+  if (approvalInfo) {
+    const extension = context?.getExtension<Trc20ApprovalResourceSponsoringFacilitatorExtension>(
+      TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
+    );
+    const runtime = resolveTrc20ApprovalResourceSponsoringRuntime(extension, network);
+    if (!runtime) {
+      return { isValid: false, invalidReason: errors.SPONSOR_RUNTIME_UNAVAILABLE, payer };
+    }
+
+    const approvalValidation = validateTrc20ApprovalForPayment(approvalInfo, payer, requirements);
+    if (!approvalValidation.isValid) {
+      return {
+        isValid: false,
+        invalidReason: approvalValidation.invalidReason,
+        invalidMessage: approvalValidation.invalidMessage,
+        payer,
+      };
+    }
+
+    try {
+      const result = await runtime.verify(
+        buildTrc20ApprovalSponsoringRequest(
+          approvalInfo,
+          approvalValidation.approval,
+          payload,
+          requirements,
+        ),
+      );
+      if (!result.isValid) {
+        return {
+          isValid: false,
+          invalidReason: result.invalidReason ?? errors.SPONSOR_POLICY_DENIED,
+          invalidMessage: result.invalidMessage,
+          payer,
+        };
+      }
+    } catch (error) {
+      return {
+        isValid: false,
+        invalidReason: errors.SPONSOR_POLICY_DENIED,
+        invalidMessage: error instanceof Error ? error.message : String(error),
+        payer,
+      };
+    }
+
+    // Sponsored requests are fail-closed because a chain-read failure must not
+    // be converted into a real resource delegation.
+    try {
+      const balance = (await signer.readContract({
+        address: requirements.asset,
+        abi: transferWithAuthorizationABI as unknown as readonly Record<string, unknown>[],
+        functionName: "balanceOf",
+        args: [payer],
+      })) as bigint;
+      if (balance < BigInt(requirements.amount)) {
+        return {
+          isValid: false,
+          invalidReason: errors.INSUFFICIENT_FUNDS,
+          invalidMessage: `Insufficient funds. Required: ${requirements.amount}, Available: ${balance.toString()}`,
+          payer,
+        };
+      }
+    } catch (error) {
+      return {
+        isValid: false,
+        invalidReason: errors.SPONSOR_POLICY_DENIED,
+        invalidMessage: error instanceof Error ? error.message : String(error),
+        payer,
+      };
+    }
+
+    return { isValid: true, invalidReason: undefined, payer };
+  }
+
   // Check Permit2 allowance
   try {
     const allowance = (await signer.readContract({
@@ -170,6 +275,7 @@ export async function verifyPermit2(
  * @param payload - The payment payload.
  * @param requirements - The payment requirements.
  * @param permit2Payload - The Permit2 specific payload.
+ * @param context - Registered Facilitator extension capabilities.
  * @returns The settlement response.
  */
 export async function settlePermit2(
@@ -177,10 +283,11 @@ export async function settlePermit2(
   payload: PaymentPayload,
   requirements: PaymentRequirements,
   permit2Payload: ExactPermit2Payload,
+  context?: FacilitatorContext,
 ): Promise<SettleResponse> {
   const payer = permit2Payload.permit2Authorization.from;
 
-  const valid = await verifyPermit2(signer, payload, requirements, permit2Payload);
+  const valid = await verifyPermit2(signer, payload, requirements, permit2Payload, context);
   if (!valid.isValid) {
     return {
       success: false,
@@ -189,6 +296,57 @@ export async function settlePermit2(
       errorReason: valid.invalidReason ?? errors.INVALID_SCHEME,
       payer,
     };
+  }
+
+  const approvalInfo = extractTrc20ApprovalResourceSponsoringInfo(payload);
+  if (approvalInfo) {
+    const extension = context?.getExtension<Trc20ApprovalResourceSponsoringFacilitatorExtension>(
+      TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
+    );
+    const runtime = resolveTrc20ApprovalResourceSponsoringRuntime(extension, requirements.network);
+    const approvalValidation = validateTrc20ApprovalForPayment(approvalInfo, payer, requirements);
+    if (!runtime || !approvalValidation.isValid) {
+      return {
+        success: false,
+        network: payload.accepted.network,
+        transaction: "",
+        errorReason: !runtime
+          ? errors.SPONSOR_RUNTIME_UNAVAILABLE
+          : approvalValidation.invalidReason,
+        errorMessage: approvalValidation.isValid ? undefined : approvalValidation.invalidMessage,
+        payer,
+      };
+    }
+
+    try {
+      const sponsored = await runtime.sponsor(
+        buildTrc20ApprovalSponsoringRequest(
+          approvalInfo,
+          approvalValidation.approval,
+          payload,
+          requirements,
+        ),
+      );
+      if (!sponsored.success) {
+        return {
+          success: false,
+          network: payload.accepted.network,
+          transaction: sponsored.approvalTransaction ?? "",
+          errorReason: sponsored.errorReason ?? errors.SPONSOR_EXECUTION_FAILED,
+          errorMessage: sponsored.errorMessage,
+          payer,
+        };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        network: payload.accepted.network,
+        transaction: "",
+        errorReason: errors.SPONSOR_EXECUTION_FAILED,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        payer,
+      };
+    }
   }
 
   const proxyAddress = X402_PERMIT2_PROXY_ADDRESSES[requirements.network]!;

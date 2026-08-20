@@ -73,13 +73,10 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
     requirements: PaymentRequirements,
     context?: FacilitatorContext,
   ): Promise<VerifyResponse> {
-    // Mark unused parameters to satisfy linter
-    void context;
-
     const rawPayload = payload.payload as ExactTronPayload;
 
     if (isPermit2Payload(rawPayload)) {
-      return verifyPermit2(this.signer, payload, requirements, rawPayload);
+      return verifyPermit2(this.signer, payload, requirements, rawPayload, context);
     }
 
     return verifyEIP3009(this.signer, payload, requirements, rawPayload as ExactEIP3009Payload);
@@ -98,13 +95,10 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
     requirements: PaymentRequirements,
     context?: FacilitatorContext,
   ): Promise<SettleResponse> {
-    // Mark unused parameters to satisfy linter
-    void context;
-
     const rawPayload = payload.payload as ExactTronPayload;
 
     if (isPermit2Payload(rawPayload)) {
-      return settlePermit2(this.signer, payload, requirements, rawPayload);
+      return settlePermit2(this.signer, payload, requirements, rawPayload, context);
     }
 
     return settleEIP3009(this.signer, payload, requirements, rawPayload as ExactEIP3009Payload);

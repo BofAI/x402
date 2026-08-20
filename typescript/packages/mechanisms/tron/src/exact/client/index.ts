@@ -6,3 +6,4 @@ export {
   getPermit2AllowanceReadParams,
   type Permit2AllowanceParams,
 } from "./permit2Helpers";
+export { trySignTrc20ApprovalResourceSponsoringExtension } from "./trc20approval";

@@ -1,4 +1,8 @@
-import { PaymentRequirements, PaymentPayloadResult } from "@bankofai/x402-core/types";
+import {
+  PaymentPayloadContext,
+  PaymentRequirements,
+  PaymentPayloadResult,
+} from "@bankofai/x402-core/types";
 import {
   permit2WitnessTypes,
   PERMIT2_ADDRESSES,
@@ -7,6 +11,7 @@ import {
 import { ClientTronSigner } from "../../signer";
 import { ExactPermit2Payload } from "../../types";
 import { createNonce, getTronChainId, normalizeAddressForSigning } from "../../utils";
+import { trySignTrc20ApprovalResourceSponsoringExtension } from "./trc20approval";
 
 /**
  * Creates a Permit2 payload using the x402Permit2Proxy witness pattern on TRON.
@@ -16,12 +21,14 @@ import { createNonce, getTronChainId, normalizeAddressForSigning } from "../../u
  * @param signer - The TRON signer to sign the payload.
  * @param x402Version - The version of the x402 protocol.
  * @param paymentRequirements - The requirements for the payment.
+ * @param context - Optional context containing Server-declared extensions.
  * @returns The generated payment payload.
  */
 export async function createPermit2Payload(
   signer: ClientTronSigner,
   x402Version: number,
   paymentRequirements: PaymentRequirements,
+  context?: PaymentPayloadContext,
 ): Promise<PaymentPayloadResult> {
   const now = Math.floor(Date.now() / 1000);
   const nonce = createNonce();
@@ -60,18 +67,21 @@ export async function createPermit2Payload(
     },
   };
 
-  // Ensure the one-time Permit2 allowance before signing (mirrors the Python
-  // client). No-op when the signer can't broadcast (sign-only wallet) or when
-  // the allowance already covers the payment amount. TRON's mainstream tokens
-  // (USDT/USDD) lack ERC-3009, so this approve is required on first use.
-  // Note: the facilitator advisory fee was removed; allowance covers only the
-  // payment amount. GasFree relayer fees (transferFee/activateFee) are deducted
-  // from the GasFree wallet, not via Permit2 allowance.
-  await signer.ensureAllowance?.({
-    token: paymentRequirements.asset,
-    amount: BigInt(paymentRequirements.amount),
-    network,
-  });
+  const approvalExtension = await trySignTrc20ApprovalResourceSponsoringExtension(
+    signer,
+    paymentRequirements,
+    context,
+  );
+
+  // Preserve the existing self-funded Approval fallback when the extension is
+  // absent or the signer cannot create a serialized signed TRON transaction.
+  if (!approvalExtension.handled) {
+    await signer.ensureAllowance?.({
+      token: paymentRequirements.asset,
+      amount: BigInt(paymentRequirements.amount),
+      network,
+    });
+  }
 
   const signature = await signPermit2Authorization(
     signer,
@@ -87,6 +97,7 @@ export async function createPermit2Payload(
   return {
     x402Version,
     payload,
+    ...(approvalExtension.extensions ? { extensions: approvalExtension.extensions } : {}),
   };
 }
 
