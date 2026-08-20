@@ -242,4 +242,32 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
     });
     expect(signer.writeContract).not.toHaveBeenCalled();
   });
+
+  it("fails closed when unsponsored allowance or balance reads fail", async () => {
+    const signer: FacilitatorTronSigner = {
+      getAddresses: () => [PAYER],
+      verifyTypedData: vi.fn(async () => true),
+      readContract: vi.fn(async () => {
+        throw new Error("RPC unavailable");
+      }),
+      writeContract: vi.fn(),
+      waitForTransactionReceipt: vi.fn(),
+    };
+    const payload = {
+      ...sponsoredPayment(buildSignedApproval()),
+      extensions: undefined,
+    };
+    const result = await new ExactTronScheme(signer).verify(
+      payload as never,
+      requirements as never,
+    );
+
+    expect(result).toMatchObject({
+      isValid: false,
+      invalidReason: "chain_read_failed",
+      invalidMessage: "TRON contract read failed",
+    });
+    expect(result.invalidMessage).not.toContain("RPC unavailable");
+    expect(signer.writeContract).not.toHaveBeenCalled();
+  });
 });

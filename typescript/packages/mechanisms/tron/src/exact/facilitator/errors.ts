@@ -10,6 +10,7 @@ export const VALUE_MISMATCH = "invalid_exact_tron_payload_authorization_value_mi
 export const INSUFFICIENT_FUNDS = "insufficient_funds";
 export const INVALID_TRANSACTION_STATE = "invalid_transaction_state";
 export const TRANSACTION_FAILED = "transaction_failed";
+export const CHAIN_READ_FAILED = "chain_read_failed";
 
 // Permit2-specific error reasons
 export const INVALID_PERMIT2_SPENDER = "invalid_permit2_spender";

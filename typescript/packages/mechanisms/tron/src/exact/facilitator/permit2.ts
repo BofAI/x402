@@ -5,41 +5,12 @@ import {
   SettleResponse,
   VerifyResponse,
 } from "@bankofai/x402-core/types";
-import {
-  permit2WitnessTypes,
-  PERMIT2_ADDRESSES,
-  X402_PERMIT2_PROXY_ADDRESSES,
-  x402ExactPermit2ProxyABI,
-  erc20AllowanceAbi,
-  transferWithAuthorizationABI,
-} from "../../constants";
+import { X402_PERMIT2_PROXY_ADDRESSES, x402ExactPermit2ProxyABI } from "../../constants";
 import { FacilitatorTronSigner } from "../../signer";
 import { ExactPermit2Payload } from "../../types";
-import { getTronChainId, normalizeAddressForSigning } from "../../utils";
-import {
-  extractTrc20ApprovalResourceSponsoringInfo,
-  resolveTrc20ApprovalResourceSponsoringRuntime,
-  TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
-  type Trc20ApprovalResourceSponsoringFacilitatorExtension,
-} from "../extensions";
 import * as errors from "./errors";
-import {
-  buildTrc20ApprovalSponsoringRequest,
-  validateTrc20ApprovalForPayment,
-} from "./trc20approval";
-
-/**
- * Returns true when the payload explicitly carries the sponsoring extension key.
- *
- * @param payload - Payment payload to inspect.
- * @returns Whether the extension key is present.
- */
-function hasApprovalSponsoringExtension(payload: PaymentPayload): boolean {
-  return Object.prototype.hasOwnProperty.call(
-    payload.extensions ?? {},
-    TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
-  );
-}
+import { verifyPermit2AccountState, verifyPermit2Authorization } from "./permit2Verification";
+import { executeTrc20Sponsorship, verifyTrc20Sponsorship } from "./trc20Sponsoring";
 
 /**
  * Verifies a Permit2 payment payload on TRON.
@@ -59,213 +30,71 @@ export async function verifyPermit2(
   context?: FacilitatorContext,
 ): Promise<VerifyResponse> {
   const payer = permit2Payload.permit2Authorization.from;
+  const authorization = await verifyPermit2Authorization(
+    signer,
+    payload,
+    requirements,
+    permit2Payload,
+  );
+  if (!authorization.isValid) return authorization;
+  const sponsorship = await verifyTrc20Sponsorship(payload, requirements, payer, context);
+  if (sponsorship && !sponsorship.isValid) return sponsorship;
+  return verifyPermit2AccountState(signer, requirements, payer, sponsorship === null);
+}
 
-  if (payload.accepted.scheme !== "exact" || requirements.scheme !== "exact") {
-    return { isValid: false, invalidReason: errors.INVALID_SCHEME, payer };
-  }
-
-  if (payload.accepted.network !== requirements.network) {
-    return { isValid: false, invalidReason: errors.NETWORK_MISMATCH, payer };
-  }
-
-  const network = requirements.network;
-  const permit2Address = PERMIT2_ADDRESSES[network];
-  const proxyAddress = X402_PERMIT2_PROXY_ADDRESSES[network];
-  if (!permit2Address || !proxyAddress) {
-    return { isValid: false, invalidReason: errors.MISSING_PERMIT2_ADDRESS, payer };
-  }
-
-  const normalizedProxy = normalizeAddressForSigning(proxyAddress);
-  const tokenAddress = normalizeAddressForSigning(requirements.asset);
-
-  // Verify spender is x402Permit2Proxy
-  if (normalizeAddressForSigning(permit2Payload.permit2Authorization.spender) !== normalizedProxy) {
-    return { isValid: false, invalidReason: errors.INVALID_PERMIT2_SPENDER, payer };
-  }
-
-  // Verify recipient
-  const payloadTo = normalizeAddressForSigning(permit2Payload.permit2Authorization.witness.to);
-  const requiresPayTo = normalizeAddressForSigning(requirements.payTo);
-  if (payloadTo !== requiresPayTo) {
-    return { isValid: false, invalidReason: errors.PERMIT2_RECIPIENT_MISMATCH, payer };
-  }
-
-  // Verify deadline (with 6 second buffer)
-  const now = Math.floor(Date.now() / 1000);
-  if (BigInt(permit2Payload.permit2Authorization.deadline) < BigInt(now + 6)) {
-    return { isValid: false, invalidReason: errors.PERMIT2_DEADLINE_EXPIRED, payer };
-  }
-
-  // Verify validAfter is not in the future
-  if (BigInt(permit2Payload.permit2Authorization.witness.validAfter) > BigInt(now)) {
-    return { isValid: false, invalidReason: errors.PERMIT2_NOT_YET_VALID, payer };
-  }
-
-  // Verify amount
-  if (
-    BigInt(permit2Payload.permit2Authorization.permitted.amount) !== BigInt(requirements.amount)
-  ) {
-    return { isValid: false, invalidReason: errors.PERMIT2_AMOUNT_MISMATCH, payer };
-  }
-
-  // Verify token
-  if (
-    normalizeAddressForSigning(permit2Payload.permit2Authorization.permitted.token) !== tokenAddress
-  ) {
-    return { isValid: false, invalidReason: errors.PERMIT2_TOKEN_MISMATCH, payer };
-  }
-
-  // Verify signature
-  const chainId = getTronChainId(network);
-  const normalizedPermit2 = normalizeAddressForSigning(permit2Address);
-
-  const typedData = {
-    address: payer,
-    types: permit2WitnessTypes,
-    primaryType: "PermitWitnessTransferFrom" as const,
-    domain: { name: "Permit2", chainId, verifyingContract: normalizedPermit2 },
-    message: {
-      permitted: {
-        token: permit2Payload.permit2Authorization.permitted.token,
-        amount: BigInt(permit2Payload.permit2Authorization.permitted.amount),
-      },
-      spender: permit2Payload.permit2Authorization.spender,
-      nonce: BigInt(permit2Payload.permit2Authorization.nonce),
-      deadline: BigInt(permit2Payload.permit2Authorization.deadline),
-      witness: {
-        to: permit2Payload.permit2Authorization.witness.to,
-        validAfter: BigInt(permit2Payload.permit2Authorization.witness.validAfter),
-      },
-    },
-    signature: permit2Payload.signature,
-  };
-
+/**
+ * Submits the already-verified Permit2 settlement call.
+ *
+ * @param signer - Facilitator TRON signer.
+ * @param payload - Verified x402 payment payload.
+ * @param requirements - Trusted payment requirements.
+ * @param permit2Payload - Verified Permit2 authorization.
+ * @returns Core settlement response.
+ */
+async function submitPermit2Settlement(
+  signer: FacilitatorTronSigner,
+  payload: PaymentPayload,
+  requirements: PaymentRequirements,
+  permit2Payload: ExactPermit2Payload,
+): Promise<SettleResponse> {
+  const payer = permit2Payload.permit2Authorization.from;
+  const authorization = permit2Payload.permit2Authorization;
+  const permitTuple = [
+    [authorization.permitted.token, BigInt(authorization.permitted.amount)],
+    BigInt(authorization.nonce),
+    BigInt(authorization.deadline),
+  ] as const;
+  const witnessTuple = [
+    authorization.witness.to,
+    BigInt(authorization.witness.validAfter),
+  ] as const;
   try {
-    const isValid = await signer.verifyTypedData(typedData);
-    if (!isValid) {
-      return { isValid: false, invalidReason: errors.PERMIT2_INVALID_SIGNATURE, payer };
-    }
-  } catch {
-    return { isValid: false, invalidReason: errors.PERMIT2_INVALID_SIGNATURE, payer };
-  }
-
-  const approvalInfo = extractTrc20ApprovalResourceSponsoringInfo(payload);
-  if (hasApprovalSponsoringExtension(payload) && !approvalInfo) {
-    return { isValid: false, invalidReason: errors.APPROVAL_EXTENSION_INVALID, payer };
-  }
-
-  if (approvalInfo) {
-    const extension = context?.getExtension<Trc20ApprovalResourceSponsoringFacilitatorExtension>(
-      TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
-    );
-    const runtime = resolveTrc20ApprovalResourceSponsoringRuntime(extension, network);
-    if (!runtime) {
-      return { isValid: false, invalidReason: errors.SPONSOR_RUNTIME_UNAVAILABLE, payer };
-    }
-
-    const approvalValidation = validateTrc20ApprovalForPayment(approvalInfo, payer, requirements);
-    if (!approvalValidation.isValid) {
-      return {
-        isValid: false,
-        invalidReason: approvalValidation.invalidReason,
-        invalidMessage: approvalValidation.invalidMessage,
-        payer,
-      };
-    }
-
-    try {
-      const result = await runtime.verify(
-        buildTrc20ApprovalSponsoringRequest(
-          approvalInfo,
-          approvalValidation.approval,
-          payload,
-          requirements,
-        ),
-      );
-      if (!result.isValid) {
-        return {
-          isValid: false,
-          invalidReason: result.invalidReason ?? errors.SPONSOR_POLICY_DENIED,
-          invalidMessage: result.invalidMessage,
+    const transaction = await signer.writeContract({
+      address: X402_PERMIT2_PROXY_ADDRESSES[requirements.network]!,
+      abi: x402ExactPermit2ProxyABI as unknown as readonly Record<string, unknown>[],
+      functionName: "settle",
+      args: [permitTuple, payer, witnessTuple, permit2Payload.signature],
+    });
+    const receipt = await signer.waitForTransactionReceipt({ hash: transaction });
+    return receipt.status === "success"
+      ? { success: true, transaction, network: payload.accepted.network, payer }
+      : {
+          success: false,
+          errorReason: errors.INVALID_TRANSACTION_STATE,
+          transaction,
+          network: payload.accepted.network,
           payer,
         };
-      }
-    } catch (error) {
-      return {
-        isValid: false,
-        invalidReason: errors.SPONSOR_POLICY_DENIED,
-        invalidMessage: error instanceof Error ? error.message : String(error),
-        payer,
-      };
-    }
-
-    // Sponsored requests are fail-closed because a chain-read failure must not
-    // be converted into a real resource delegation.
-    try {
-      const balance = (await signer.readContract({
-        address: requirements.asset,
-        abi: transferWithAuthorizationABI as unknown as readonly Record<string, unknown>[],
-        functionName: "balanceOf",
-        args: [payer],
-      })) as bigint;
-      if (balance < BigInt(requirements.amount)) {
-        return {
-          isValid: false,
-          invalidReason: errors.INSUFFICIENT_FUNDS,
-          invalidMessage: `Insufficient funds. Required: ${requirements.amount}, Available: ${balance.toString()}`,
-          payer,
-        };
-      }
-    } catch (error) {
-      return {
-        isValid: false,
-        invalidReason: errors.SPONSOR_POLICY_DENIED,
-        invalidMessage: error instanceof Error ? error.message : String(error),
-        payer,
-      };
-    }
-
-    return { isValid: true, invalidReason: undefined, payer };
+  } catch (error: unknown) {
+    return {
+      success: false,
+      errorReason: errors.TRANSACTION_FAILED,
+      errorMessage: error instanceof Error ? error.message : "Permit2 settlement failed",
+      transaction: "",
+      network: payload.accepted.network,
+      payer,
+    };
   }
-
-  // Check Permit2 allowance
-  try {
-    const allowance = (await signer.readContract({
-      address: requirements.asset,
-      abi: erc20AllowanceAbi as unknown as readonly Record<string, unknown>[],
-      functionName: "allowance",
-      args: [payer, permit2Address],
-    })) as bigint;
-
-    if (allowance < BigInt(requirements.amount)) {
-      return { isValid: false, invalidReason: errors.PERMIT2_ALLOWANCE_REQUIRED, payer };
-    }
-  } catch {
-    // If allowance check fails, proceed optimistically
-  }
-
-  // Check balance
-  try {
-    const balance = (await signer.readContract({
-      address: requirements.asset,
-      abi: transferWithAuthorizationABI as unknown as readonly Record<string, unknown>[],
-      functionName: "balanceOf",
-      args: [payer],
-    })) as bigint;
-
-    if (balance < BigInt(requirements.amount)) {
-      return {
-        isValid: false,
-        invalidReason: errors.INSUFFICIENT_FUNDS,
-        invalidMessage: `Insufficient funds. Required: ${requirements.amount}, Available: ${balance.toString()}`,
-        payer,
-      };
-    }
-  } catch {
-    // If balance check fails, continue
-  }
-
-  return { isValid: true, invalidReason: undefined, payer };
 }
 
 /**
@@ -298,107 +127,7 @@ export async function settlePermit2(
     };
   }
 
-  const approvalInfo = extractTrc20ApprovalResourceSponsoringInfo(payload);
-  if (approvalInfo) {
-    const extension = context?.getExtension<Trc20ApprovalResourceSponsoringFacilitatorExtension>(
-      TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
-    );
-    const runtime = resolveTrc20ApprovalResourceSponsoringRuntime(extension, requirements.network);
-    const approvalValidation = validateTrc20ApprovalForPayment(approvalInfo, payer, requirements);
-    if (!runtime || !approvalValidation.isValid) {
-      return {
-        success: false,
-        network: payload.accepted.network,
-        transaction: "",
-        errorReason: !runtime
-          ? errors.SPONSOR_RUNTIME_UNAVAILABLE
-          : approvalValidation.invalidReason,
-        errorMessage: approvalValidation.isValid ? undefined : approvalValidation.invalidMessage,
-        payer,
-      };
-    }
-
-    try {
-      const sponsored = await runtime.sponsor(
-        buildTrc20ApprovalSponsoringRequest(
-          approvalInfo,
-          approvalValidation.approval,
-          payload,
-          requirements,
-        ),
-      );
-      if (!sponsored.success) {
-        return {
-          success: false,
-          network: payload.accepted.network,
-          transaction: sponsored.approvalTransaction ?? "",
-          errorReason: sponsored.errorReason ?? errors.SPONSOR_EXECUTION_FAILED,
-          errorMessage: sponsored.errorMessage,
-          payer,
-        };
-      }
-    } catch (error) {
-      return {
-        success: false,
-        network: payload.accepted.network,
-        transaction: "",
-        errorReason: errors.SPONSOR_EXECUTION_FAILED,
-        errorMessage: error instanceof Error ? error.message : String(error),
-        payer,
-      };
-    }
-  }
-
-  const proxyAddress = X402_PERMIT2_PROXY_ADDRESSES[requirements.network]!;
-
-  try {
-    const permitTuple = [
-      [
-        permit2Payload.permit2Authorization.permitted.token,
-        BigInt(permit2Payload.permit2Authorization.permitted.amount),
-      ],
-      BigInt(permit2Payload.permit2Authorization.nonce),
-      BigInt(permit2Payload.permit2Authorization.deadline),
-    ] as const;
-
-    const witnessTuple = [
-      permit2Payload.permit2Authorization.witness.to,
-      BigInt(permit2Payload.permit2Authorization.witness.validAfter),
-    ] as const;
-
-    const tx = await signer.writeContract({
-      address: proxyAddress,
-      abi: x402ExactPermit2ProxyABI as unknown as readonly Record<string, unknown>[],
-      functionName: "settle",
-      args: [permitTuple, payer, witnessTuple, permit2Payload.signature],
-    });
-
-    const receipt = await signer.waitForTransactionReceipt({ hash: tx });
-
-    if (receipt.status !== "success") {
-      return {
-        success: false,
-        errorReason: errors.INVALID_TRANSACTION_STATE,
-        transaction: tx,
-        network: payload.accepted.network,
-        payer,
-      };
-    }
-
-    return {
-      success: true,
-      transaction: tx,
-      network: payload.accepted.network,
-      payer,
-    };
-  } catch (err) {
-    return {
-      success: false,
-      errorReason: errors.TRANSACTION_FAILED,
-      errorMessage: err instanceof Error ? err.message : String(err),
-      transaction: "",
-      network: payload.accepted.network,
-      payer,
-    };
-  }
+  const sponsorshipFailure = await executeTrc20Sponsorship(payload, requirements, payer, context);
+  if (sponsorshipFailure) return sponsorshipFailure;
+  return submitPermit2Settlement(signer, payload, requirements, permit2Payload);
 }

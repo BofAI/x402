@@ -18,26 +18,26 @@ export const TRC20_APPROVAL_MAX_AMOUNT =
 
 /** Client-populated extension information. */
 export interface Trc20ApprovalResourceSponsoringInfo {
-  [key: string]: unknown;
+  readonly [key: string]: unknown;
   /** Payer and Approval signer in TRON Base58Check form. */
-  from: string;
+  readonly from: string;
   /** TRC-20 contract in TRON Base58Check form. */
-  asset: string;
+  readonly asset: string;
   /** Canonical Permit2 contract in TRON Base58Check form. */
-  spender: string;
+  readonly spender: string;
   /** Approval amount as a decimal string. Version 1 requires MaxUint256. */
-  amount: string;
+  readonly amount: string;
   /** Complete signed TRON Transaction protobuf as lowercase hex without `0x`. */
-  signedTransaction: string;
+  readonly signedTransaction: string;
   /** Extension schema version. */
-  version: string;
+  readonly version: string;
 }
 
 /** Server-provided declaration metadata. */
 export interface Trc20ApprovalResourceSponsoringServerInfo {
-  [key: string]: unknown;
-  description: string;
-  version: string;
+  readonly [key: string]: unknown;
+  readonly description: string;
+  readonly version: string;
 }
 
 /** Extension declaration/payload envelope. */
@@ -48,18 +48,18 @@ export interface Trc20ApprovalResourceSponsoringExtension {
 
 /** Request passed to a Facilitator's resource-sponsoring runtime. */
 export interface Trc20ApprovalResourceSponsoringRequest {
-  network: string;
-  approvalTxID: string;
-  approvalTimestamp: string;
-  approvalExpiration: string;
-  approvalFeeLimitSun: string;
-  payer: string;
-  asset: string;
-  spender: string;
-  amount: string;
-  signedTransaction: string;
-  paymentPayload: PaymentPayload;
-  paymentRequirements: PaymentRequirements;
+  readonly network: string;
+  readonly approvalTxID: string;
+  readonly approvalTimestamp: string;
+  readonly approvalExpiration: string;
+  readonly approvalFeeLimitSun: string;
+  readonly payer: string;
+  readonly asset: string;
+  readonly spender: string;
+  readonly amount: string;
+  readonly signedTransaction: string;
+  readonly paymentPayload: PaymentPayload;
+  readonly paymentRequirements: PaymentRequirements;
 }
 
 /** Read-only runtime verification result. */
