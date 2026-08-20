@@ -25,3 +25,12 @@ export const PERMIT2_TOKEN_MISMATCH = "permit2_token_mismatch";
 export const PERMIT2_INVALID_SIGNATURE = "invalid_permit2_signature";
 export const PERMIT2_ALLOWANCE_REQUIRED = "permit2_allowance_required";
 export const MISSING_PERMIT2_ADDRESS = "missing_permit2_address";
+
+// TRC-20 Approval Resource Sponsoring errors
+export const APPROVAL_EXTENSION_INVALID = "approval_extension_invalid";
+export const APPROVAL_SIGNATURE_INVALID = "approval_signature_invalid";
+export const APPROVAL_SEMANTICS_INVALID = "approval_semantics_invalid";
+export const APPROVAL_RESET_REQUIRED = "approval_reset_required";
+export const SPONSOR_RUNTIME_UNAVAILABLE = "sponsor_runtime_unavailable";
+export const SPONSOR_POLICY_DENIED = "sponsor_policy_denied";
+export const SPONSOR_EXECUTION_FAILED = "sponsor_execution_failed";
