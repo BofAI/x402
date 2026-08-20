@@ -407,6 +407,8 @@ export function buildTrc20ApprovalSponsoringRequest(
     approvalTimestamp: approval.timestamp.toString(),
     approvalExpiration: approval.expiration.toString(),
     approvalFeeLimitSun: approval.feeLimit.toString(),
+    approvalRefBlockBytes: bytesToHex(approval.refBlockBytes),
+    approvalRefBlockHash: bytesToHex(approval.refBlockHash),
     payer: approval.owner,
     asset: approval.asset,
     spender: approval.spender,

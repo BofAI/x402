@@ -474,7 +474,7 @@ function findAbiFunction(abi: readonly Record<string, unknown>[], name: string):
  * @param unsigned - The original unsigned transaction.
  * @returns A transaction object ready to broadcast.
  */
-function toSignedTransaction(
+export function normalizeSignedTronTransaction(
   result: string | Record<string, unknown>,
   unsigned: Record<string, unknown>,
 ): Record<string, unknown> {
@@ -555,7 +555,10 @@ async function buildAndSignContract(
   if (!built.result?.result) {
     throw new Error(`triggerSmartContract failed: ${JSON.stringify(built)}`);
   }
-  return toSignedTransaction(await signTransaction(built.transaction), built.transaction);
+  return normalizeSignedTronTransaction(
+    await signTransaction(built.transaction),
+    built.transaction,
+  );
 }
 
 /**
@@ -564,7 +567,7 @@ async function buildAndSignContract(
  * @param transaction - Wallet-signed TRON transaction object.
  * @returns Complete signed Transaction protobuf as lowercase hex.
  */
-function serializeSignedTronTransaction(transaction: Record<string, unknown>): string {
+export function serializeSignedTronTransaction(transaction: Record<string, unknown>): string {
   const signatures = transaction.signature;
   if (!Array.isArray(signatures) || signatures.length !== 1 || typeof signatures[0] !== "string") {
     throw new Error("TRON Approval requires exactly one transaction signature");
