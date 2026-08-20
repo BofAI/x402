@@ -6,28 +6,28 @@ export const TRC20_APPROVAL_MAX_AMOUNT =
   "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 
 export interface Trc20ApprovalResourceSponsoringInfo {
-  [key: string]: unknown;
-  from: string;
-  asset: string;
-  spender: string;
-  amount: string;
-  signedTransaction: string;
-  version: string;
+  readonly [key: string]: unknown;
+  readonly from: string;
+  readonly asset: string;
+  readonly spender: string;
+  readonly amount: string;
+  readonly signedTransaction: string;
+  readonly version: string;
 }
 
 export interface Trc20ApprovalResourceSponsoringRequest {
-  network: string;
-  approvalTxID: string;
-  approvalTimestamp: string;
-  approvalExpiration: string;
-  approvalFeeLimitSun: string;
-  payer: string;
-  asset: string;
-  spender: string;
-  amount: string;
-  signedTransaction: string;
-  paymentPayload: PaymentPayload;
-  paymentRequirements: PaymentRequirements;
+  readonly network: string;
+  readonly approvalTxID: string;
+  readonly approvalTimestamp: string;
+  readonly approvalExpiration: string;
+  readonly approvalFeeLimitSun: string;
+  readonly payer: string;
+  readonly asset: string;
+  readonly spender: string;
+  readonly amount: string;
+  readonly signedTransaction: string;
+  readonly paymentPayload: PaymentPayload;
+  readonly paymentRequirements: PaymentRequirements;
 }
 
 export interface Trc20ApprovalResourceSponsoringRuntime {
