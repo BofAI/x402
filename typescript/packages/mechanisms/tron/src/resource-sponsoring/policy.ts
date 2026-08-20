@@ -1,4 +1,3 @@
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 import { TronWeb } from "tronweb";
 import type { Trc20ResourceSponsoringPolicy, Trc20SponsoringPolicyDecision } from "./types";
 
@@ -10,11 +9,22 @@ export interface StaticTrc20ResourceSponsoringPolicyOptions {
   readonly budgetUnits?: (replacementCost: bigint) => bigint;
 }
 
+/**
+ * Normalizes a TRON address for allowlist comparison.
+ *
+ * @param address - Base58Check or hexadecimal TRON address.
+ * @returns Lowercase 21-byte hexadecimal address.
+ */
 function normalizeAddress(address: string): string {
   return TronWeb.address.toHex(address).toLowerCase();
 }
 
-/** Creates a deterministic local policy suitable for composition with tenant credit admission. */
+/**
+ * Creates a deterministic local policy suitable for composition with tenant credit admission.
+ *
+ * @param options - Network, token, and replacement-cost bounds.
+ * @returns A read-only sponsorship policy.
+ */
 export function createStaticTrc20ResourceSponsoringPolicy(
   options: StaticTrc20ResourceSponsoringPolicyOptions,
 ): Trc20ResourceSponsoringPolicy {

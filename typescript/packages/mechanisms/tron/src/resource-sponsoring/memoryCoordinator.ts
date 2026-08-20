@@ -1,4 +1,3 @@
-/* eslint-disable jsdoc/require-jsdoc */
 import type {
   Trc20SponsoringAdmission,
   Trc20SponsoringCoordinator,
@@ -13,6 +12,13 @@ export interface InMemoryTrc20SponsoringCoordinatorOptions {
   readonly managementBandwidthCapacity?: bigint;
 }
 
+/**
+ * Sums the delegated Stake 2.0 balance for one resource type.
+ *
+ * @param operation - Sponsorship operation to inspect.
+ * @param resource - Resource type to total.
+ * @returns Delegated stake balance in SUN.
+ */
 function operationResourceStake(
   operation: Trc20SponsoringOperation,
   resource: "ENERGY" | "BANDWIDTH",
@@ -22,10 +28,22 @@ function operationResourceStake(
     .reduce((sum, leg) => sum + leg.stakeSun, 0n);
 }
 
+/**
+ * Copies an operation so callers cannot mutate coordinator state by reference.
+ *
+ * @param operation - Operation to copy.
+ * @returns A deep copy of the operation.
+ */
 function cloneOperation(operation: Trc20SponsoringOperation): Trc20SponsoringOperation {
   return structuredClone(operation);
 }
 
+/**
+ * Detects a confirmed or potentially submitted delegation without confirmed reclamation.
+ *
+ * @param operation - Operation to inspect.
+ * @returns Whether a resource delegation may still be outstanding.
+ */
 function hasOutstandingDelegation(operation: Trc20SponsoringOperation): boolean {
   return operation.plan.legs.some(leg => {
     const delegated = operation.actions.find(
@@ -52,6 +70,11 @@ export class InMemoryTrc20SponsoringCoordinator implements Trc20SponsoringCoordi
   private readonly budgetCapacity: bigint;
   private readonly managementBandwidthCapacity: bigint;
 
+  /**
+   * Creates a process-local coordinator with explicit capacity limits.
+   *
+   * @param options - Development and test capacity limits.
+   */
   constructor(options: InMemoryTrc20SponsoringCoordinatorOptions = {}) {
     this.energyCapacity = options.energyStakeSunCapacity ?? 1n << 255n;
     this.bandwidthCapacity = options.bandwidthStakeSunCapacity ?? 1n << 255n;
@@ -59,6 +82,13 @@ export class InMemoryTrc20SponsoringCoordinator implements Trc20SponsoringCoordi
     this.managementBandwidthCapacity = options.managementBandwidthCapacity ?? 1n << 255n;
   }
 
+  /**
+   * Serializes work for a payer scope inside this process.
+   *
+   * @param scope - Lock scope, normally `(network,payer)`.
+   * @param work - Asynchronous operation to run exclusively.
+   * @returns The operation result.
+   */
   async runExclusive<T>(scope: string, work: () => Promise<T>): Promise<T> {
     const previous = this.lockTails.get(scope) ?? Promise.resolve();
     let release!: () => void;
@@ -76,6 +106,12 @@ export class InMemoryTrc20SponsoringCoordinator implements Trc20SponsoringCoordi
     }
   }
 
+  /**
+   * Atomically checks idempotency, payer activity, budget, and resource capacity.
+   *
+   * @param operation - Candidate operation and immutable reservation plan.
+   * @returns Admission outcome and stored operation when accepted.
+   */
   async admit(operation: Trc20SponsoringOperation): Promise<Trc20SponsoringAdmission> {
     const existing = this.operations.get(operation.key);
     if (existing) {
@@ -140,6 +176,12 @@ export class InMemoryTrc20SponsoringCoordinator implements Trc20SponsoringCoordi
     return { kind: "created", operation: cloneOperation(stored) };
   }
 
+  /**
+   * Persists an optimistic state transition.
+   *
+   * @param operation - Operation carrying the expected revision.
+   * @returns Saved operation with its revision incremented.
+   */
   async save(operation: Trc20SponsoringOperation): Promise<Trc20SponsoringOperation> {
     const current = this.operations.get(operation.key);
     if (!current) throw new Error("sponsorship operation does not exist");
@@ -151,6 +193,12 @@ export class InMemoryTrc20SponsoringCoordinator implements Trc20SponsoringCoordi
     return cloneOperation(next);
   }
 
+  /**
+   * Lists operations requiring reconciliation or capacity recovery checks.
+   *
+   * @param limit - Maximum number of operations to return.
+   * @returns Deep copies of recoverable operations.
+   */
   async listRecoverable(limit: number): Promise<readonly Trc20SponsoringOperation[]> {
     return [...this.operations.values()]
       .filter(
@@ -163,6 +211,12 @@ export class InMemoryTrc20SponsoringCoordinator implements Trc20SponsoringCoordi
       .map(cloneOperation);
   }
 
+  /**
+   * Marks an operation recovered and releases its in-memory reservations.
+   *
+   * @param operation - Operation whose capacity is clean again.
+   * @returns Saved recovered operation.
+   */
   async markRecovered(operation: Trc20SponsoringOperation): Promise<Trc20SponsoringOperation> {
     return this.save({ ...operation, status: "recovered" });
   }

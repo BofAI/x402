@@ -1,4 +1,3 @@
-/* eslint-disable jsdoc/require-jsdoc */
 import { TronWeb, utils as tronUtils } from "tronweb";
 import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
 import { PERMIT2_ADDRESSES } from "../../constants";
@@ -45,15 +44,31 @@ export type Trc20ApprovalValidationResult =
 type ProtoValue = bigint | Uint8Array;
 type ProtoField = { number: number; wireType: number; value: ProtoValue };
 
+/** Minimal protobuf reader that rejects unsupported and non-minimal encodings. */
 class ProtoReader {
   private offset = 0;
 
+  /**
+   * Creates a reader over immutable protobuf bytes.
+   *
+   * @param bytes - Bytes to parse.
+   */
   constructor(private readonly bytes: Uint8Array) {}
 
+  /**
+   * Reports reader completion.
+   *
+   * @returns Whether every input byte has been consumed.
+   */
   get done(): boolean {
     return this.offset === this.bytes.length;
   }
 
+  /**
+   * Reads an unsigned protobuf varint.
+   *
+   * @returns The next minimally encoded unsigned protobuf varint.
+   */
   readVarint(): bigint {
     const start = this.offset;
     let value = 0n;
@@ -74,6 +89,11 @@ class ProtoReader {
     throw new Error("invalid protobuf varint");
   }
 
+  /**
+   * Reads a length-delimited protobuf value.
+   *
+   * @returns The next length-delimited protobuf value.
+   */
   readBytes(): Uint8Array {
     const length = this.readVarint();
     if (length > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("protobuf field too large");
@@ -84,6 +104,11 @@ class ProtoReader {
     return value;
   }
 
+  /**
+   * Reads one supported protobuf field.
+   *
+   * @returns The next supported protobuf field.
+   */
   readField(): ProtoField {
     const tag = this.readVarint();
     const number = Number(tag >> 3n);
@@ -95,6 +120,12 @@ class ProtoReader {
   }
 }
 
+/**
+ * Parses all supported protobuf fields from an input buffer.
+ *
+ * @param bytes - Serialized protobuf bytes.
+ * @returns Parsed fields in wire order.
+ */
 function parseFields(bytes: Uint8Array): ProtoField[] {
   const reader = new ProtoReader(bytes);
   const fields: ProtoField[] = [];
@@ -102,6 +133,13 @@ function parseFields(bytes: Uint8Array): ProtoField[] {
   return fields;
 }
 
+/**
+ * Rejects unknown, duplicate, or incorrectly encoded protobuf fields.
+ *
+ * @param fields - Parsed protobuf fields.
+ * @param allowed - Allowed field numbers and their expected wire types.
+ * @returns A field-number lookup for the validated message.
+ */
 function requireFields(
   fields: ProtoField[],
   allowed: Readonly<Record<number, number>>,
@@ -117,27 +155,62 @@ function requireFields(
   return result;
 }
 
+/**
+ * Reads one required length-delimited field.
+ *
+ * @param fields - Validated field lookup.
+ * @param number - Protobuf field number.
+ * @param label - Human-readable field label for errors.
+ * @returns The field bytes.
+ */
 function bytesField(fields: Map<number, ProtoValue>, number: number, label: string): Uint8Array {
   const value = fields.get(number);
   if (!(value instanceof Uint8Array)) throw new Error(`missing ${label}`);
   return value;
 }
 
+/**
+ * Reads one required unsigned integer field.
+ *
+ * @param fields - Validated field lookup.
+ * @param number - Protobuf field number.
+ * @param label - Human-readable field label for errors.
+ * @returns The field value.
+ */
 function uintField(fields: Map<number, ProtoValue>, number: number, label: string): bigint {
   const value = fields.get(number);
   if (typeof value !== "bigint") throw new Error(`missing ${label}`);
   return value;
 }
 
+/**
+ * Encodes bytes as lowercase hexadecimal.
+ *
+ * @param bytes - Bytes to encode.
+ * @returns Lowercase hexadecimal without a prefix.
+ */
 function bytesToHex(bytes: Uint8Array): string {
   return tronUtils.code.byteArray2hexStr(bytes).toLowerCase();
 }
 
+/**
+ * Converts a validated 21-byte TRON address to Base58Check.
+ *
+ * @param bytes - Serialized TRON address.
+ * @param label - Human-readable field label for errors.
+ * @returns Base58Check address.
+ */
 function addressFromBytes(bytes: Uint8Array, label: string): string {
   if (bytes.length !== 21 || bytes[0] !== 0x41) throw new Error(`invalid ${label}`);
   return TronWeb.address.fromHex(bytesToHex(bytes));
 }
 
+/**
+ * Normalizes a TRON address for equality comparisons.
+ *
+ * @param address - Base58Check or TRON hexadecimal address.
+ * @returns Lowercase 21-byte hexadecimal address.
+ */
 function normalizeTronAddress(address: string): string {
   const hex = TronWeb.address.toHex(address).toLowerCase();
   if (!/^41[0-9a-f]{40}$/.test(hex)) throw new Error("invalid TRON address");
@@ -165,6 +238,12 @@ interface ApprovalCall {
   spender: string;
 }
 
+/**
+ * Validates a single canonical secp256k1 signature and normalizes its recovery byte.
+ *
+ * @param signature - Raw 65-byte signature.
+ * @returns Lowercase signature hex accepted by TronWeb recovery.
+ */
 function validateSignatureEncoding(signature: Uint8Array): string {
   if (signature.length !== 65) throw new Error("Approval requires one 65-byte signature");
   const signatureHex = bytesToHex(signature);
@@ -184,6 +263,12 @@ function validateSignatureEncoding(signature: Uint8Array): string {
   return `${signatureHex.slice(0, -2)}${recoverable.toString(16).padStart(2, "0")}`;
 }
 
+/**
+ * Decodes the outer signed Transaction envelope.
+ *
+ * @param signedTransaction - Complete serialized transaction hex.
+ * @returns Raw data, normalized signature, and original bytes.
+ */
 function decodeSignedEnvelope(signedTransaction: string): SignedEnvelope {
   if (!/^(?:[0-9a-f]{2})+$/.test(signedTransaction) || signedTransaction.length > 16384) {
     throw new Error("invalid signedTransaction encoding");
@@ -199,6 +284,12 @@ function decodeSignedEnvelope(signedTransaction: string): SignedEnvelope {
   };
 }
 
+/**
+ * Decodes the exact raw_data fields allowed by extension version 1.
+ *
+ * @param rawData - Signed raw_data bytes.
+ * @returns Strictly decoded Approval transaction metadata.
+ */
 function decodeRawApprovalData(rawData: Uint8Array): RawApprovalData {
   const raw = requireFields(parseFields(rawData), {
     1: 2,
@@ -223,18 +314,24 @@ function decodeRawApprovalData(rawData: Uint8Array): RawApprovalData {
   };
 }
 
+/**
+ * Decodes and validates the single TriggerSmartContract approve call.
+ *
+ * @param contractBytes - Serialized Transaction.Contract bytes.
+ * @returns Owner, token, and spender addresses from canonical calldata.
+ */
 function decodeApprovalCall(contractBytes: Uint8Array): ApprovalCall {
   const contract = requireFields(parseFields(contractBytes), { 1: 0, 2: 2 });
   if (uintField(contract, 1, "contract type") !== TRIGGER_SMART_CONTRACT_TYPE) {
     throw new Error("contract is not TriggerSmartContract");
   }
-  const any = requireFields(parseFields(bytesField(contract, 2, "contract parameter")), {
+  const parameter = requireFields(parseFields(bytesField(contract, 2, "contract parameter")), {
     1: 2,
     2: 2,
   });
-  const typeUrl = new TextDecoder().decode(bytesField(any, 1, "type_url"));
+  const typeUrl = new TextDecoder().decode(bytesField(parameter, 1, "type_url"));
   if (typeUrl !== TRIGGER_SMART_CONTRACT_TYPE_URL) throw new Error("invalid contract type_url");
-  const trigger = requireFields(parseFields(bytesField(any, 2, "contract value")), {
+  const trigger = requireFields(parseFields(bytesField(parameter, 2, "contract value")), {
     1: 2,
     2: 2,
     4: 2,
@@ -256,6 +353,14 @@ function decodeApprovalCall(contractBytes: Uint8Array): ApprovalCall {
   };
 }
 
+/**
+ * Authenticates the raw transaction and derives its transaction identifier.
+ *
+ * @param rawData - Signed raw_data bytes.
+ * @param signatureHex - Canonical recoverable signature hex.
+ * @param owner - Owner address encoded in the contract call.
+ * @returns Lowercase Approval transaction identifier.
+ */
 function authenticateApproval(rawData: Uint8Array, signatureHex: string, owner: string): string {
   const approvalTxID = bytesToHex(Uint8Array.from(tronUtils.crypto.SHA256(rawData)));
   const recovered = TronWeb.address.fromHex(tronUtils.crypto.ecRecover(approvalTxID, signatureHex));
@@ -290,6 +395,15 @@ export function decodeSignedTrc20Approval(signedTransaction: string): DecodedTrc
   };
 }
 
+/**
+ * Binds the decoded Approval to extension metadata and trusted payment requirements.
+ *
+ * @param info - Client-supplied extension metadata.
+ * @param approval - Authenticated Approval transaction.
+ * @param payer - Payer recovered from the Permit2 payment authorization.
+ * @param requirements - Trusted server payment requirements.
+ * @param allowedAssets - Optional facilitator-local token allowlist.
+ */
 function validateApprovalBinding(
   info: Trc20ApprovalResourceSponsoringInfo,
   approval: DecodedTrc20Approval,
@@ -326,6 +440,12 @@ function validateApprovalBinding(
   }
 }
 
+/**
+ * Enforces facilitator-local lifetime and fee-limit bounds.
+ *
+ * @param approval - Authenticated Approval transaction.
+ * @param options - Local validation policy.
+ */
 function validateApprovalTimePolicy(
   approval: DecodedTrc20Approval,
   options: Trc20ApprovalValidationOptions,

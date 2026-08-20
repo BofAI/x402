@@ -43,7 +43,7 @@ export interface ClientTronSigner {
    */
   signTypedData(args: {
     domain: Record<string, unknown>;
-    types: Record<string, Array<{ name: string; type: string }>>;
+    types: Record<string, ReadonlyArray<{ name: string; type: string }>>;
     primaryType: string;
     message: Record<string, unknown>;
   }): Promise<`0x${string}`>;
@@ -127,7 +127,7 @@ export interface FacilitatorTronSigner {
   verifyTypedData(args: {
     address: string;
     domain: Record<string, unknown>;
-    types: Record<string, Array<{ name: string; type: string }>>;
+    types: Record<string, ReadonlyArray<{ name: string; type: string }>>;
     primaryType: string;
     message: Record<string, unknown>;
     signature: `0x${string}`;
@@ -336,7 +336,7 @@ export interface TronAuthorizerSignerLike {
   address: string;
   signTypedData(args: {
     domain: Record<string, unknown>;
-    types: Record<string, Array<{ name: string; type: string }>>;
+    types: Record<string, ReadonlyArray<{ name: string; type: string }>>;
     primaryType: string;
     message: Record<string, unknown>;
   }): Promise<`0x${string}`>;
@@ -852,9 +852,12 @@ export async function createFacilitatorTronSigner(
       return method(...args.args).call();
     },
     async verifyTypedData(args) {
+      const mutableTypes = Object.fromEntries(
+        Object.entries(args.types).map(([name, fields]) => [name, [...fields]]),
+      );
       const recovered = tronUtils.typedData.verifyTypedData(
         args.domain,
-        args.types,
+        mutableTypes,
         args.message,
         args.signature,
       );

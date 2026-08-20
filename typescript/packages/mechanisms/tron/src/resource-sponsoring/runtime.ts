@@ -1,4 +1,3 @@
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 import { utils as tronUtils } from "tronweb";
 import { buildTrc20SponsoringPlan } from "./resourceSizing";
 import type {
@@ -21,7 +20,15 @@ const DEFAULT_MAX_ENERGY = 250_000n;
 const DEFAULT_MAX_BANDWIDTH = 2_000n;
 const DEFAULT_MANAGEMENT_BANDWIDTH_PER_ACTION = 350n;
 
+/** Error carrying a stable sponsorship reason and optional durable operation state. */
 class SponsoringFailure extends Error {
+  /**
+   * Creates a sponsorship failure.
+   *
+   * @param reason - Stable machine-readable reason.
+   * @param message - Optional human-readable message.
+   * @param operation - Latest durable operation state, when available.
+   */
   constructor(
     readonly reason: string,
     message?: string,
@@ -31,6 +38,14 @@ class SponsoringFailure extends Error {
   }
 }
 
+/**
+ * Normalizes thrown values into a stable sponsorship failure.
+ *
+ * @param error - Value caught from a dependency.
+ * @param fallbackReason - Reason used for unrecognized failures.
+ * @param fallbackMessage - Message used for unrecognized failures.
+ * @returns Normalized sponsorship failure.
+ */
 function normalizedFailure(error: unknown, fallbackReason: string, fallbackMessage: string) {
   if (error instanceof SponsoringFailure) return error;
   if (error instanceof Error && /^[a-z0-9_]+$/.test(error.message)) {
@@ -39,14 +54,32 @@ function normalizedFailure(error: unknown, fallbackReason: string, fallbackMessa
   return new SponsoringFailure(fallbackReason, fallbackMessage);
 }
 
+/**
+ * Builds the deployment-wide idempotency key.
+ *
+ * @param request - Sponsorship request.
+ * @returns Network-qualified Approval transaction key.
+ */
 function operationKey(request: Trc20ApprovalResourceSponsoringRequest): string {
   return `${request.network}:${request.approvalTxID.toLowerCase()}`;
 }
 
+/**
+ * Builds the payer mutation-lock scope.
+ *
+ * @param request - Sponsorship request.
+ * @returns Network-qualified payer scope.
+ */
 function payerScope(request: Trc20ApprovalResourceSponsoringRequest): string {
   return `${request.network}:${request.payer}`;
 }
 
+/**
+ * Produces a deterministic JSON representation for request binding.
+ *
+ * @param value - JSON-compatible value that may contain bigint values.
+ * @returns Canonical JSON string.
+ */
 function canonicalJson(value: unknown): string {
   if (typeof value === "bigint") return JSON.stringify(value.toString());
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -58,11 +91,24 @@ function canonicalJson(value: unknown): string {
     .join(",")}}`;
 }
 
+/**
+ * Hashes every Approval and Payment field bound to an operation.
+ *
+ * @param request - Sponsorship request.
+ * @returns Lowercase SHA-256 digest.
+ */
 function requestDigest(request: Trc20ApprovalResourceSponsoringRequest): string {
   const bytes = new TextEncoder().encode(canonicalJson(request));
   return tronUtils.code.byteArray2hexStr(tronUtils.crypto.SHA256(bytes)).toLowerCase();
 }
 
+/**
+ * Applies account, balance, and allowance state-machine checks.
+ *
+ * @param request - Sponsorship request.
+ * @param preflight - Current chain state.
+ * @returns Whether a new Approval is required or already satisfied.
+ */
 function validatePreflight(
   request: Trc20ApprovalResourceSponsoringRequest,
   preflight: Trc20SponsoringPreflight,
@@ -78,6 +124,14 @@ function validatePreflight(
   throw new SponsoringFailure("approval_reset_required");
 }
 
+/**
+ * Matches a durable action by logical kind and resource leg.
+ *
+ * @param action - Action to inspect.
+ * @param kind - Expected action kind.
+ * @param resource - Optional resource leg.
+ * @returns Whether the action has the requested identity.
+ */
 function actionMatches(
   action: Trc20SponsoringAction,
   kind: Trc20SponsoringActionKind,
@@ -86,6 +140,13 @@ function actionMatches(
   return action.kind === kind && action.resource === resource;
 }
 
+/**
+ * Replaces or appends one logical durable action.
+ *
+ * @param operation - Operation to update.
+ * @param nextAction - New immutable transaction bytes and mutable status.
+ * @returns Updated operation value.
+ */
 function replaceAction(
   operation: Trc20SponsoringOperation,
   nextAction: Trc20SponsoringAction,
@@ -101,6 +162,13 @@ function replaceAction(
   return { ...operation, actions };
 }
 
+/**
+ * Returns an operation with a new lifecycle status.
+ *
+ * @param operation - Operation to update.
+ * @param status - New lifecycle status.
+ * @returns Updated operation value.
+ */
 function withStatus(
   operation: Trc20SponsoringOperation,
   status: Trc20SponsoringOperationStatus,
@@ -108,6 +176,14 @@ function withStatus(
   return { ...operation, status };
 }
 
+/**
+ * Locates one logical action in an operation.
+ *
+ * @param operation - Operation to inspect.
+ * @param kind - Expected action kind.
+ * @param resource - Optional resource leg.
+ * @returns Matching action, if present.
+ */
 function actionFor(
   operation: Trc20SponsoringOperation,
   kind: Trc20SponsoringActionKind,
@@ -116,6 +192,14 @@ function actionFor(
   return operation.actions.find(action => actionMatches(action, kind, resource));
 }
 
+/**
+ * Creates the first immutable operation record before chain-side effects.
+ *
+ * @param request - Fully bound sponsorship request.
+ * @param plan - Admitted resource plan.
+ * @param budgetUnits - Deployment-defined budget reservation.
+ * @returns New operation ready for atomic admission.
+ */
 function initialOperation(
   request: Trc20ApprovalResourceSponsoringRequest,
   plan: Trc20SponsoringPlan,
@@ -144,7 +228,12 @@ function initialOperation(
   };
 }
 
-/** Creates the production-oriented, dependency-injected sponsoring state machine. */
+/**
+ * Creates the production-oriented, dependency-injected sponsoring state machine.
+ *
+ * @param options - Chain, coordinator, policy, and resource bounds.
+ * @returns Managed runtime with verify, sponsor, and reconcile entrypoints.
+ */
 export function createTrc20ApprovalResourceSponsoringRuntime(
   options: Trc20ResourceSponsoringRuntimeOptions,
 ): ManagedTrc20ApprovalResourceSponsoringRuntime {
@@ -157,6 +246,12 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
       options.managementBandwidthPerAction ?? DEFAULT_MANAGEMENT_BANDWIDTH_PER_ACTION,
   };
 
+  /**
+   * Computes a read-only plan and policy decision.
+   *
+   * @param request - Sponsorship request.
+   * @returns Current preflight, resource plan, budget, and allowance state.
+   */
   async function preview(request: Trc20ApprovalResourceSponsoringRequest): Promise<{
     preflight: Trc20SponsoringPreflight;
     plan: Trc20SponsoringPlan;
@@ -192,10 +287,25 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
     };
   }
 
+  /**
+   * Persists one optimistic operation transition.
+   *
+   * @param operation - Operation carrying the expected revision.
+   * @returns Saved operation.
+   */
   async function persist(operation: Trc20SponsoringOperation): Promise<Trc20SponsoringOperation> {
     return options.coordinator.save(operation);
   }
 
+  /**
+   * Prepares, persists, broadcasts, and confirms one immutable chain action.
+   *
+   * @param operation - Current operation state.
+   * @param kind - Logical action kind.
+   * @param resource - Optional resource leg.
+   * @param prepare - Builder used only when no durable action exists.
+   * @returns Operation with the confirmed action.
+   */
   async function executeAction(
     operation: Trc20SponsoringOperation,
     kind: Trc20SponsoringActionKind,
@@ -254,6 +364,12 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
     return persist(replaceAction(current, { ...action, status: "confirmed" }));
   }
 
+  /**
+   * Undelegates every confirmed resource leg.
+   *
+   * @param operation - Operation whose resources must be reclaimed.
+   * @returns Updated reclaiming operation.
+   */
   async function reclaim(operation: Trc20SponsoringOperation): Promise<Trc20SponsoringOperation> {
     let current = await persist(withStatus(operation, "reclaiming"));
     for (const leg of current.plan.legs) {
@@ -266,6 +382,12 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
     return current;
   }
 
+  /**
+   * Reconciles actions whose broadcast outcome is unknown using only the original txID.
+   *
+   * @param operation - Operation containing unknown actions.
+   * @returns Updated operation observations.
+   */
   async function refreshUnknownActions(
     operation: Trc20SponsoringOperation,
   ): Promise<Trc20SponsoringOperation> {
@@ -283,19 +405,43 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
     return current;
   }
 
+  /**
+   * Checks whether reconciliation is still required.
+   *
+   * @param operation - Operation to inspect.
+   * @returns Whether any action remains unknown.
+   */
   function hasUnknownAction(operation: Trc20SponsoringOperation): boolean {
     return operation.actions.some(action => action.status === "unknown");
   }
 
+  /**
+   * Checks whether the Approval transaction reached confirmation.
+   *
+   * @param operation - Operation to inspect.
+   * @returns Whether the Approval is confirmed.
+   */
   function approvalWasConfirmed(operation: Trc20SponsoringOperation): boolean {
     return actionFor(operation, "approval")?.status === "confirmed";
   }
 
+  /**
+   * Checks whether an Approval may still be accepted by the network.
+   *
+   * @param operation - Operation to inspect.
+   * @returns Whether reclamation must wait.
+   */
   function approvalMayStillLand(operation: Trc20SponsoringOperation): boolean {
     const status = actionFor(operation, "approval")?.status;
     return status === "submitted" || status === "unknown";
   }
 
+  /**
+   * Checks whether every possible delegation has a confirmed undelegation.
+   *
+   * @param operation - Operation to inspect.
+   * @returns Whether all resource legs are reclaimed.
+   */
   function allDelegationsReclaimed(operation: Trc20SponsoringOperation): boolean {
     return operation.plan.legs.every(leg => {
       const delegated = actionFor(operation, "delegate", leg.resource);
@@ -304,6 +450,12 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
     });
   }
 
+  /**
+   * Runs or resumes one idempotent payer-serialized sponsorship operation.
+   *
+   * @param request - Sponsorship request.
+   * @returns Terminal response for the synchronous x402 settle flow.
+   */
   async function executeNewOrExisting(request: Trc20ApprovalResourceSponsoringRequest): Promise<{
     success: boolean;
     approvalTransaction?: string;
@@ -372,8 +524,9 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
 
         current = await persist(withStatus(current, "delegating"));
         for (const leg of current.plan.legs) {
+          const requestForDelegation = current.request;
           current = await executeAction(current, "delegate", leg.resource, () =>
-            options.chain.prepareDelegate(current!.request, leg),
+            options.chain.prepareDelegate(requestForDelegation, leg),
           );
         }
         if (!(await options.chain.resourcesVisible(current.request, current.plan))) {
@@ -389,9 +542,11 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
             throw new SponsoringFailure("resource_estimate_changed");
           }
           current = await persist(withStatus(current, "approval_submitted"));
+          const approvalTxID = current.approvalTxID;
+          const signedApproval = current.request.signedTransaction;
           current = await executeAction(current, "approval", undefined, async () => ({
-            txID: current!.approvalTxID,
-            signedTransaction: current!.request.signedTransaction,
+            txID: approvalTxID,
+            signedTransaction: signedApproval,
           }));
           if (!(await options.chain.allowanceSufficient(current.request))) {
             throw new SponsoringFailure("approval_allowance_not_observed");
