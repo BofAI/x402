@@ -21,6 +21,8 @@ export interface Trc20ApprovalResourceSponsoringRequest {
   readonly approvalTimestamp: string;
   readonly approvalExpiration: string;
   readonly approvalFeeLimitSun: string;
+  readonly approvalRefBlockBytes: string;
+  readonly approvalRefBlockHash: string;
   readonly payer: string;
   readonly asset: string;
   readonly spender: string;

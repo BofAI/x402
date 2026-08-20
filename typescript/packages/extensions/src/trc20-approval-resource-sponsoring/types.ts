@@ -53,6 +53,10 @@ export interface Trc20ApprovalResourceSponsoringRequest {
   readonly approvalTimestamp: string;
   readonly approvalExpiration: string;
   readonly approvalFeeLimitSun: string;
+  /** Two-byte TAPOS block-number reference as lowercase hex. */
+  readonly approvalRefBlockBytes: string;
+  /** Eight-byte TAPOS block-hash reference as lowercase hex. */
+  readonly approvalRefBlockHash: string;
   readonly payer: string;
   readonly asset: string;
   readonly spender: string;
