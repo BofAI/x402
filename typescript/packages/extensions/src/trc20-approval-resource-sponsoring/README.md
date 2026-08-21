@@ -1,5 +1,9 @@
 # TRC-20 Approval Resource Sponsoring
 
+Part of [`@bankofai/x402-extensions`](../README.md). **Import from the package root:**
+`import { ... } from "@bankofai/x402-extensions"` (this module is not a separate npm export
+subpath).
+
 This Extension enables the first TRON `exact + Permit2` payment without requiring the payer to hold
 TRX. The payer signs, but does not broadcast, a canonical TRC-20 Approval. A registered Facilitator
 runtime validates the transaction, temporarily delegates the required Energy and Bandwidth,
@@ -8,7 +12,22 @@ with the Permit2 payment settlement.
 
 The Extension uses the normal x402 request flow. It does not add a Prepare endpoint.
 
-## Resource Server
+## End-to-end flow
+
+1. **Resource Server** advertises `trc20ApprovalResourceSponsoring` in
+   `PaymentRequired.extensions` for a TRON `exact + Permit2` route.
+2. **Client** builds the normal Permit2 payment payload. When allowance is zero and the Server
+   advertised the Extension, `ExactTronScheme` automatically attaches a serialized, signed
+   `approve(canonicalPermit2, MaxUint256)` transaction. The Client does not broadcast it.
+3. **Facilitator** registers `createTrc20ApprovalResourceSponsoringExtension(runtime)`. During the
+   normal `/verify` and `/settle` flow it validates the signed Approval, temporarily makes the
+   required resources available, broadcasts the unchanged transaction, reclaims the resources,
+   and continues with Permit2 settlement.
+
+There is no additional Server-to-Facilitator endpoint. The public x402 interaction remains
+`402 Payment Required -> PAYMENT-SIGNATURE -> /verify -> /settle`.
+
+## Resource server
 
 ```typescript
 import { declareTrc20ApprovalResourceSponsoringExtension } from "@bankofai/x402-extensions";
@@ -25,25 +44,36 @@ const route = {
 };
 ```
 
+The route must use `assetTransferMethod: "permit2"`. Declaring the Extension is the only additional
+Resource Server integration.
+
 ## Client
 
-`@bankofai/x402-tron` handles the Extension automatically. When the Server advertises version `1`
-and the allowance is zero, the Client constructs and signs
+**You do not manually add this Extension** when using `ExactTronScheme`.
+`@bankofai/x402-tron` handles it automatically. When the Server advertises version `1` and the
+allowance is zero, the Client constructs and signs
 `approve(canonicalPermit2, MaxUint256)`, serializes the complete signed TRON Transaction protobuf,
 and attaches it to the payment payload. The Client does not broadcast the Approval.
+
+Use `createClientTronSigner(...)` for the standard signer setup. Custom signers must expose
+`readContract` and `signPermit2Approval`.
 
 When the Extension is absent, the existing self-funded Approval behavior remains unchanged.
 
 ## Facilitator
 
-Register a runtime that implements the production resource lifecycle:
+### Typical stack (`@bankofai/x402-core` + `@bankofai/x402-tron`)
+
+Register the normal TRON scheme and a runtime that implements the resource lifecycle:
 
 ```typescript
+import { x402Facilitator } from "@bankofai/x402-core/facilitator";
 import {
   createTrc20ApprovalResourceSponsoringExtension,
 } from "@bankofai/x402-extensions";
 import {
   createTrc20ResourceSponsoringRuntime,
+  ExactTronScheme,
 } from "@bankofai/x402-tron/exact/facilitator";
 
 const resourceSponsoringRuntime = await createTrc20ResourceSponsoringRuntime({
@@ -54,10 +84,18 @@ const resourceSponsoringRuntime = await createTrc20ResourceSponsoringRuntime({
   confirmationMode: "packed",
 });
 
-facilitator.registerExtension(
-  createTrc20ApprovalResourceSponsoringExtension(resourceSponsoringRuntime),
-);
+const facilitator = new x402Facilitator()
+  .register(network, new ExactTronScheme(facilitatorSigner))
+  .registerExtension(
+    createTrc20ApprovalResourceSponsoringExtension(resourceSponsoringRuntime),
+  );
 ```
+
+The Resource Owner must have Stake 2.0 resource capacity. The payer must be an activated EOA, the
+asset must be in the Facilitator allowlist, and the existing Permit2 allowance must be zero. These
+conditions are checked before sponsorship.
+
+### Production runtime requirements
 
 The TRON mechanism performs strict protobuf, transaction-signature, Approval-template, and Payment
 binding checks before invoking the runtime. `runtime.verify()` must remain read-only.
@@ -81,6 +119,20 @@ lifetime, but it is provisional until the block solidifies. Deployments that con
 state must bound that exposure and keep recovery active. `"solidified"` is safer but adds roughly one
 TRON finality interval to every chain action and therefore requires a correspondingly longer Client
 Approval lifetime.
+
+## ERC-20 alignment
+
+The public Extension Contract intentionally matches `erc20ApprovalGasSponsoring`: the same package
+layout, declaration helper, automatic Client enrichment, `signedTransaction` payload field,
+Facilitator factory, and standard `/verify` and `/settle` lifecycle are used. TRON adds a resource
+runtime because Energy and Bandwidth are account-level, recoverable resources; that execution layer
+does not change the Resource Server or Client protocol.
+
+## Related exports
+
+See [`index.ts`](./index.ts) for `TRC20_APPROVAL_RESOURCE_SPONSORING`,
+`declareTrc20ApprovalResourceSponsoringExtension`,
+`createTrc20ApprovalResourceSponsoringExtension`, validation helpers, and types.
 
 See [`specs/extensions/trc20_approval_resource_sponsoring.md`](../../../../../specs/extensions/trc20_approval_resource_sponsoring.md)
 for normative requirements and residual account-level resource-diversion risk.
