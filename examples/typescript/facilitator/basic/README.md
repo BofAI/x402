@@ -33,10 +33,26 @@ provider matrix.
 
 ## Networks
 
-| Chain | Network | Scheme |
-|---|---|---|
-| EVM | `eip155:97` (BSC testnet) | `exact` — DHLU via eip3009, USDC via permit2 + gas-sponsored approve |
-| TRON | `tron:0xcd8690dc` | `exact` — USDT/USDD via permit2 (auto-approve) |
+| Chain | Network                   | Scheme                                                                      |
+| ----- | ------------------------- | --------------------------------------------------------------------------- |
+| EVM   | `eip155:97` (BSC testnet) | `exact` — DHLU via eip3009, USDC via permit2 + gas-sponsored approve        |
+| TRON  | `tron:0xcd8690dc`         | `exact` — USDT/USDD via permit2; optional USDT Approval Resource Sponsoring |
+
+## Nile Approval Resource Sponsoring
+
+Set `TRON_APPROVAL_SPONSORING=true` to register the TRC-20 Approval Resource
+Sponsoring runtime. The Resource Owner must be distinct from the payer and have:
+
+- Stake 2.0 Energy capacity for the Approval;
+- at least one full Delegate/Undelegate lifecycle of available management
+  Bandwidth (the reference runtime reserves approximately 700 BW for one
+  Energy-only sponsorship);
+- an Active Permission id supplied through `TRON_PERMISSION_ID` when it does not
+  sign through the default owner permission.
+
+The bundled in-memory coordinator is only for a single-process Nile example.
+Production deployments require a shared durable coordinator and recovery
+worker.
 
 Add another EVM network (e.g. Base Sepolia) by adding one entry to the
 `EVM_NETWORKS` table in `src/chains/evm.ts`. The ERC-20 approval gas-sponsoring

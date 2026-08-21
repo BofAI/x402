@@ -5,6 +5,7 @@ import type { Trc20ApprovalResourceSponsoringRequest } from "../../src/exact/ext
 import { createTronWebResourceSponsoringChain } from "../../src/resource-sponsoring";
 
 const PAYER = "TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC";
+const PAYER_EVM_HEX = "0x5cd0fb0ab3ce40f3051414c604b27756e69e43db";
 const TOKEN = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf";
 const SPENDER = "TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h";
 const OWNER = "TFpPyDCKAqfWwMrh5GXdLTr1Emjo4DxsDm";
@@ -153,6 +154,27 @@ describe("TronWeb resource-sponsoring chain", () => {
     expect(txID).toBe("b".repeat(64));
     expect(confirmation).toBe("confirmed");
     expect(mock.sendHexTransaction).toHaveBeenCalledWith("0a02abcd");
+  });
+
+  it("normalizes a Permit2-recovered 0x payer before TRON account and contract reads", async () => {
+    const mock = createTronWebMock();
+    const readContract = vi.fn().mockResolvedValueOnce(0n).mockResolvedValueOnce(2_000_000n);
+    const chain = await createTronWebResourceSponsoringChain({
+      tronWeb: mock.tronWeb,
+      resourceOwnerWallet: wallet,
+      readContract,
+      allowedAssets: [TOKEN],
+    });
+
+    await chain.preflight({ ...runtimeRequest(), payer: PAYER_EVM_HEX });
+
+    expect(mock.tronWeb.trx.getAccount).toHaveBeenCalledWith(PAYER);
+    expect(mock.tronWeb.trx.getAccountResources).toHaveBeenCalledWith(PAYER);
+    expect(readContract).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ args: [PAYER, SPENDER] }),
+    );
+    expect(readContract).toHaveBeenNthCalledWith(2, expect.objectContaining({ args: [PAYER] }));
   });
 
   it("fails closed when the signed Approval TAPOS hash is not current", async () => {

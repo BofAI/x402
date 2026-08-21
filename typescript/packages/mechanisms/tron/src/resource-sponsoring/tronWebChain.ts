@@ -74,6 +74,22 @@ function normalizeAddress(address: string): string {
 }
 
 /**
+ * Converts every supported address representation to the Base58 form expected
+ * by java-tron account and resource endpoints.
+ *
+ * Permit2 signature recovery yields a 20-byte `0x` address, while TRON account
+ * RPCs require the equivalent 21-byte network-prefixed address. Contract ABI
+ * calls accept Base58 as well, so normalizing at this boundary keeps all chain
+ * reads and resource mutations on the same account.
+ *
+ * @param address - Base58Check, 21-byte hexadecimal, or 20-byte `0x` address.
+ * @returns Canonical TRON Base58Check address.
+ */
+function toBase58Address(address: string): string {
+  return TronWeb.address.fromHex(normalizeAddress(address));
+}
+
+/**
  * Recognizes java-tron contract account representations.
  *
  * @param type - Account type returned by TronWeb or java-tron.
@@ -244,7 +260,7 @@ export async function createTronWebResourceSponsoringChain(
         address: request.asset,
         abi: erc20AllowanceAbi as unknown as readonly Record<string, unknown>[],
         functionName: "allowance",
-        args: [request.payer, request.spender],
+        args: [toBase58Address(request.payer), request.spender],
       })) as bigint | string | number,
     );
   }
@@ -261,7 +277,7 @@ export async function createTronWebResourceSponsoringChain(
         address: request.asset,
         abi: transferWithAuthorizationABI as unknown as readonly Record<string, unknown>[],
         functionName: "balanceOf",
-        args: [request.payer],
+        args: [toBase58Address(request.payer)],
       })) as bigint | string | number,
     );
   }
@@ -271,8 +287,9 @@ export async function createTronWebResourceSponsoringChain(
       if (!allowedAssets.has(normalizeAddress(request.asset))) {
         throw new Error("approval_asset_not_allowed");
       }
+      const payerAddress = toBase58Address(request.payer);
       const [payerAccount, tokenAccount] = await Promise.all([
-        options.tronWeb.trx.getAccount(request.payer),
+        options.tronWeb.trx.getAccount(payerAddress),
         options.tronWeb.trx.getAccount(request.asset),
       ]);
       const accountActivated = Boolean(payerAccount.address);
@@ -299,9 +316,9 @@ export async function createTronWebResourceSponsoringChain(
               { type: "address", value: request.spender },
               { type: "uint256", value: MAX_UINT256.toString() },
             ],
-            request.payer,
+            payerAddress,
           ),
-          options.tronWeb.trx.getAccountResources(request.payer),
+          options.tronWeb.trx.getAccountResources(payerAddress),
           options.tronWeb.trx.getAccountResources(ownerAddress),
           options.tronWeb.trx.getChainParameters(),
         ]);
@@ -343,9 +360,10 @@ export async function createTronWebResourceSponsoringChain(
     },
 
     async prepareDelegate(request, leg) {
+      const payerAddress = toBase58Address(request.payer);
       const unsigned = await options.tronWeb.transactionBuilder.delegateResource(
         toSafeNumber(leg.stakeSun, "delegated stake"),
-        request.payer,
+        payerAddress,
         leg.resource,
         ownerAddress,
         false,
@@ -356,9 +374,10 @@ export async function createTronWebResourceSponsoringChain(
     },
 
     async prepareUndelegate(request, leg) {
+      const payerAddress = toBase58Address(request.payer);
       const unsigned = await options.tronWeb.transactionBuilder.undelegateResource(
         toSafeNumber(leg.stakeSun, "undelegated stake"),
-        request.payer,
+        payerAddress,
         leg.resource,
         ownerAddress,
         options.permissionId == null ? undefined : { permissionId: options.permissionId },
@@ -380,7 +399,9 @@ export async function createTronWebResourceSponsoringChain(
     },
 
     async resourcesVisible(request, plan) {
-      const resources = await options.tronWeb.trx.getAccountResources(request.payer);
+      const resources = await options.tronWeb.trx.getAccountResources(
+        toBase58Address(request.payer),
+      );
       const energyAvailable = available(resources.EnergyLimit, resources.EnergyUsed);
       const stakedBandwidth = available(resources.NetLimit, resources.NetUsed);
       const freeBandwidth = available(resources.freeNetLimit, resources.freeNetUsed);

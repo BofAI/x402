@@ -41,17 +41,19 @@ export function registerTron(resourceServer: x402ResourceServer): void {
  */
 export function tronAccepts() {
   const payTo = process.env.TRON_ADDRESS as string;
-  const networks =
-    process.env.TRON_APPROVAL_SPONSORING === "true"
-      ? ([TRON_NILE] as const)
-      : TRON_NETWORKS;
+  const sponsoring = process.env.TRON_APPROVAL_SPONSORING === "true";
+  const networks = sponsoring ? ([TRON_NILE] as const) : TRON_NETWORKS;
   return networks.flatMap((network) =>
-    Object.keys(getNetworkTokens(network)).map((symbol) => ({
-      scheme: "exact",
-      network,
-      payTo,
-      price: `0.001 ${symbol}`,
-    })),
+    Object.keys(getNetworkTokens(network))
+      // The development runtime intentionally hard-allows Nile USDT only. Do
+      // not advertise the Extension for USDD and then fail it at /verify.
+      .filter((symbol) => !sponsoring || symbol === "USDT")
+      .map((symbol) => ({
+        scheme: "exact",
+        network,
+        payTo,
+        price: `0.001 ${symbol}`,
+      })),
   );
 }
 
