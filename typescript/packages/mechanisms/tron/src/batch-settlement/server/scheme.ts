@@ -16,6 +16,7 @@ import { convertToTokenAmount, parseMoney } from "@bankofai/x402-core/utils";
 import type { FacilitatorClient } from "@bankofai/x402-core/server";
 import { normalizeAddressForSigning } from "../../utils";
 import { getDefaultAsset } from "../../shared/defaultAssets";
+import { parsePrice as parseTokenPrice } from "../../shared/tokens";
 import type { TronAuthorizerSigner } from "../types";
 import type { BatchSettlementAssetTransferMethod } from "../types";
 import {
@@ -243,7 +244,10 @@ export class BatchSettlementTronScheme implements SchemeNetworkServer {
       return { amount: price.amount, asset: price.asset, extra: price.extra || {} };
     }
 
-    const amount = parseMoney(price).amount;
+    const { amount, symbol } = parseMoney(price);
+    if (symbol) {
+      return parseTokenPrice(`${amount} ${symbol}`, network);
+    }
     for (const parser of this.moneyParsers) {
       const result = await parser(amount, network);
       if (result !== null) return result;

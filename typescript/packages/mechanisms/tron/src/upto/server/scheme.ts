@@ -63,7 +63,10 @@ export class UptoTronScheme implements SchemeNetworkServer {
       return parseTokenPrice(price.trim(), network);
     }
 
-    const amount = parseMoney(price).amount;
+    const { amount, symbol } = parseMoney(price);
+    if (symbol) {
+      return parseTokenPrice(`${amount} ${symbol}`, network);
+    }
 
     for (const parser of this.moneyParsers) {
       const result = await parser(amount, network);
