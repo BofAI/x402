@@ -1,3 +1,5 @@
+import { normalizeChannelId } from "../utils";
+
 /**
  * Client-side channel fields mirrored from PAYMENT-RESPONSE / recovery flows.
  */
@@ -57,4 +59,3 @@ export class InMemoryClientChannelStorage implements ClientChannelStorage {
     this.channels.delete(normalizeChannelId(key));
   }
 }
-import { normalizeChannelId } from "../utils";

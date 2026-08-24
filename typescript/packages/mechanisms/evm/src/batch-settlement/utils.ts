@@ -7,11 +7,24 @@ import { getEvmChainId } from "../utils";
 /** Canonical `bytes32` channel id: `0x` followed by exactly 64 hex digits. */
 const CHANNEL_ID_RE = /^0x[0-9a-fA-F]{64}$/;
 
+/**
+ * Narrows an untrusted value to a canonical `bytes32` channel id string.
+ *
+ * @param value - The value to test.
+ * @returns `true` when `value` is a `0x`-prefixed 64-hex-digit string.
+ */
 export function isCanonicalChannelId(value: unknown): value is `0x${string}` {
   return typeof value === "string" && CHANNEL_ID_RE.test(value);
 }
 
-/** Validates a channel id and normalizes it for all storage backends. */
+/**
+ * Validates canonical `bytes32` form and normalizes to lowercase.
+ *
+ * @param channelId - Untrusted channel identifier from a request payload.
+ * @returns The lowercased channel id.
+ * @throws When `channelId` is not a canonical `bytes32` string. The message is generic
+ *   so untrusted input is never echoed into logs.
+ */
 export function normalizeChannelId(channelId: string): `0x${string}` {
   if (!isCanonicalChannelId(channelId)) {
     throw new Error(ErrInvalidChannelId);
@@ -19,7 +32,14 @@ export function normalizeChannelId(channelId: string): `0x${string}` {
   return channelId.toLowerCase() as `0x${string}`;
 }
 
-/** Returns an error code unless a claimed id matches its immutable channel config. */
+/**
+ * Binds a claimed channel id to a channel config and network.
+ *
+ * @param config - The immutable channel configuration from the payload.
+ * @param claimedChannelId - The channel id the client claims the config resolves to.
+ * @param networkOrChainId - CAIP-2 network identifier or numeric EVM chain id.
+ * @returns An error code when the id is malformed or does not match the config, else `undefined`.
+ */
 export function channelIdBindingError(
   config: ChannelConfig,
   claimedChannelId: string,

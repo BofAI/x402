@@ -321,7 +321,9 @@ describe("RedisChannelStorage", () => {
 
   it.each(MALFORMED_IDS)("rejects malformed id %j", async id => {
     await expect(storage.get(id)).rejects.toThrow(ErrInvalidChannelId);
-    await expect(storage.updateChannel(id, () => buildSession())).rejects.toThrow(ErrInvalidChannelId);
+    await expect(storage.updateChannel(id, () => buildSession())).rejects.toThrow(
+      ErrInvalidChannelId,
+    );
   });
 
   it("lists stored channels sorted by channelId", async () => {
