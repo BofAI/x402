@@ -12,11 +12,11 @@ import {
 } from "@bankofai/x402-core/types";
 import type { DeepReadonly } from "@bankofai/x402-core/types";
 import type { SettleContext, SettleResultContext } from "@bankofai/x402-core/server";
-import { convertToTokenAmount, parseMoney } from "@bankofai/x402-core/utils";
+import { parseMoney } from "@bankofai/x402-core/utils";
 import type { FacilitatorClient } from "@bankofai/x402-core/server";
 import { normalizeAddressForSigning } from "../../utils";
 import { getDefaultAsset } from "../../shared/defaultAssets";
-import { parsePrice as parseTokenPrice } from "../../shared/tokens";
+import { convertToTokenAmount, parsePrice as parseTokenPrice } from "../../shared/tokens";
 import type { TronAuthorizerSigner } from "../types";
 import type { BatchSettlementAssetTransferMethod } from "../types";
 import {
@@ -401,12 +401,6 @@ export class BatchSettlementTronScheme implements SchemeNetworkServer {
     });
   }
 
-  /**
-   * Parses a human-readable money string (e.g. `"$1.50"`) into a decimal number.
-   *
-   * @param money - Money string (may include `$`) or numeric amount.
-   * @returns Parsed finite number.
-   */
   /**
    * Converts a decimal dollar amount to the network's default token amount.
    *

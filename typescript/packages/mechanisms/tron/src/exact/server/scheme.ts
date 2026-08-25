@@ -7,9 +7,13 @@ import {
   SchemeNetworkServer,
   MoneyParser,
 } from "@bankofai/x402-core/types";
-import { convertToTokenAmount, parseMoney } from "@bankofai/x402-core/utils";
+import { parseMoney } from "@bankofai/x402-core/utils";
 import { ExactDefaultAssetInfo, getDefaultAsset } from "../../shared/defaultAssets";
-import { getDecimals, parsePrice as parseTokenPrice } from "../../shared/tokens";
+import {
+  convertToTokenAmount,
+  getDecimals,
+  parsePrice as parseTokenPrice,
+} from "../../shared/tokens";
 import type { AssetTransferMethod } from "../../types";
 
 /**
@@ -72,13 +76,6 @@ export class ExactTronScheme implements SchemeNetworkServer {
       };
     }
 
-    // "<amount> <symbol>" form (e.g. "0.5 USDD") selects a specific registered
-    // token instead of the network default. Delegate to the token registry.
-    if (typeof price === "string" && /^\s*\d+(\.\d+)?\s+\S+\s*$/.test(price)) {
-      return parseTokenPrice(price.trim(), network);
-    }
-
-    // Parse Money to decimal number
     const { amount, symbol } = parseMoney(price);
     if (symbol) {
       return parseTokenPrice(`${amount} ${symbol}`, network);
@@ -168,13 +165,6 @@ export class ExactTronScheme implements SchemeNetworkServer {
   }
 
   /**
-   * Parse Money (string | number) to a decimal number.
-   * Handles formats like "$1.50", "1.50", 1.50, etc.
-   *
-   * @param money - The money value to parse
-   * @returns Decimal number
-   */
-  /**
    * Default money conversion implementation.
    * Converts decimal amount to the default stablecoin on the specified network.
    *
@@ -185,11 +175,6 @@ export class ExactTronScheme implements SchemeNetworkServer {
   private defaultMoneyConversion(amount: string, network: Network): AssetAmount {
     const assetInfo = this.getDefaultAsset(network);
     const tokenAmount = convertToTokenAmount(amount, assetInfo.decimals);
-    if (tokenAmount === "0" && /[1-9]/.test(amount)) {
-      throw new Error(
-        `Amount ${amount} is too small to represent with ${assetInfo.decimals} decimal places`,
-      );
-    }
 
     // TIP-712 (eip3009) tokens need name/version for the TransferWithAuthorization
     // domain. Permit2 tokens don't — except those that also support EIP-2612, where

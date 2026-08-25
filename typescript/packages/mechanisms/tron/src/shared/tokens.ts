@@ -1,4 +1,5 @@
 import type { AssetAmount, Network } from "@bankofai/x402-core/types";
+import { convertToTokenAmount as convertCoreTokenAmount } from "@bankofai/x402-core/utils";
 
 /**
  * Token registry for TRON networks.
@@ -184,6 +185,25 @@ export function buildAssetExtra(token: TokenInfo): Record<string, unknown> {
 }
 
 /**
+ * Convert a decimal amount to token units without silently turning a positive
+ * price into a zero-value payment.
+ *
+ * @param decimalAmount - Decimal amount in display units.
+ * @param decimals - Number of decimal places supported by the token.
+ * @returns The amount in the token's smallest unit.
+ * @throws If a positive amount is below the token's smallest unit.
+ */
+export function convertToTokenAmount(decimalAmount: string, decimals: number): string {
+  const tokenAmount = convertCoreTokenAmount(decimalAmount, decimals);
+  if (tokenAmount === "0" && /[1-9]/.test(decimalAmount)) {
+    throw new Error(
+      `Amount ${decimalAmount} is too small to represent with ${decimals} decimal places`,
+    );
+  }
+  return tokenAmount;
+}
+
+/**
  * Parse a human-readable price string into a typed AssetAmount.
  *
  * @param price - `"<decimal-amount> <symbol>"` (e.g. `"1.25 USDT"`).
@@ -221,10 +241,7 @@ export function parsePrice(price: string, network: Network): AssetAmount {
       `Amount "${amountStr}" has more decimal places (${fracPart.length}) than ${token.symbol} supports (${token.decimals}).`,
     );
   }
-  const paddedFrac = fracPart.padEnd(token.decimals, "0");
-  // Strip leading zeros to keep a canonical numeric string.
-  const combined = `${intPart}${paddedFrac}`.replace(/^0+(?=\d)/, "");
-  const amount = combined === "" ? "0" : combined;
+  const amount = convertToTokenAmount(`${intPart}.${fracPart}`, token.decimals);
 
   return {
     asset: token.address,

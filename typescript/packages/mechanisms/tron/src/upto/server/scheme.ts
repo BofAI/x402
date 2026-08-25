@@ -7,9 +7,13 @@ import {
   SchemeNetworkServer,
   MoneyParser,
 } from "@bankofai/x402-core/types";
-import { convertToTokenAmount, parseMoney } from "@bankofai/x402-core/utils";
+import { parseMoney } from "@bankofai/x402-core/utils";
 import { ExactDefaultAssetInfo, getDefaultAsset } from "../../shared/defaultAssets";
-import { getDecimals, parsePrice as parseTokenPrice } from "../../shared/tokens";
+import {
+  convertToTokenAmount,
+  getDecimals,
+  parsePrice as parseTokenPrice,
+} from "../../shared/tokens";
 import type { AssetTransferMethod } from "../../types";
 
 /**
@@ -56,11 +60,6 @@ export class UptoTronScheme implements SchemeNetworkServer {
         asset: price.asset,
         extra: price.extra || {},
       };
-    }
-
-    // "<amount> <symbol>" form selects a specific registered token.
-    if (typeof price === "string" && /^\s*\d+(\.\d+)?\s+\S+\s*$/.test(price)) {
-      return parseTokenPrice(price.trim(), network);
     }
 
     const { amount, symbol } = parseMoney(price);
@@ -134,12 +133,6 @@ export class UptoTronScheme implements SchemeNetworkServer {
   }
 
   /**
-   * Parse Money (string | number) to a decimal number.
-   *
-   * @param money - The money value to parse
-   * @returns Decimal number
-   */
-  /**
    * Default money conversion: convert decimal amount to the default stablecoin.
    *
    * @param amount - The decimal amount (e.g., 1.50)
@@ -149,11 +142,6 @@ export class UptoTronScheme implements SchemeNetworkServer {
   private defaultMoneyConversion(amount: string, network: Network): AssetAmount {
     const assetInfo = this.getDefaultAsset(network);
     const tokenAmount = convertToTokenAmount(amount, assetInfo.decimals);
-    if (tokenAmount === "0" && /[1-9]/.test(amount)) {
-      throw new Error(
-        `Amount ${amount} is too small to represent with ${assetInfo.decimals} decimal places`,
-      );
-    }
 
     return {
       amount: tokenAmount,
