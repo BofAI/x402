@@ -29,10 +29,10 @@ facilitator and **before** the client.
 
 ## Notes
 
-- Both chains price in `"$"` form and build the channel manager via
-  `scheme.createChannelManager()`, resolving the token from the default-asset
-  registry (BSC's USDC and TRON's USDT are both registered in `@bankofai/x402-evm`
-  / `@bankofai/x402-tron`).
+- BSC testnet USDC is an SDK default asset; this example still declares its
+  address, atomic price, and Permit2 transfer method explicitly to make the
+  deposit path visible. TRON uses the `"$"` price form and resolves its default
+  USDT from the token registry.
 - The channel manager runs claim/settle/refund loops on short, example-friendly
   intervals (60s / 120s / 180s). On `SIGINT` it flushes pending claims before
   exiting so vouchers aren't lost.

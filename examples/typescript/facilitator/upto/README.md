@@ -15,6 +15,8 @@ TRON-only, or both.
 - A wallet via `@bankofai/agent-wallet` (`AGENT_WALLET_PRIVATE_KEY`); one key
   serves both chains. The facilitator address must hold gas (BNB on BSC, TRX on
   TRON) to broadcast settlements.
+- For BSC testnet, set `EVM_RPC_URL` to a reachable RPC endpoint; viem's default
+  public endpoint may refuse connections.
 
 ## Run
 

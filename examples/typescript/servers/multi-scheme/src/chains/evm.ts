@@ -10,9 +10,10 @@
  *   one-time `approve(Permit2)`. Mark `extra.assetTransferMethod: "permit2"`; the
  *   gas-sponsoring extension lets the client sign that approve offline.
  *
- * BSC has no default-token registry entry, so tokens are advertised as explicit
- * `{ amount, asset, extra }` prices. Adding a chain (e.g. Base Sepolia) is one
- * table entry. Amounts are ≈ $0.001 per the token's decimals.
+ * Tokens are advertised as explicit `{ amount, asset, extra }` prices because
+ * this multi-token example includes both SDK defaults and additional assets.
+ * Adding a chain (e.g. Base Sepolia) is one table entry. Amounts are ≈ $0.001
+ * per the token's decimals.
  */
 import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
 import { declareErc20ApprovalGasSponsoringExtension } from "@bankofai/x402-extensions";

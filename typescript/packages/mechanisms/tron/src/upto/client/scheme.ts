@@ -7,6 +7,7 @@ import {
 import { ClientTronSigner } from "../../signer";
 import { transferWithAuthorizationABI } from "../../constants";
 import { createUptoPermit2Payload } from "./permit2";
+import { findDefaultAsset } from "../../shared/defaultAssets";
 
 /**
  * TRON client implementation for the Upto payment scheme.
@@ -18,6 +19,7 @@ import { createUptoPermit2Payload } from "./permit2";
  */
 export class UptoTronScheme implements SchemeNetworkClient {
   readonly scheme = "upto";
+  readonly findDefaultAsset = findDefaultAsset;
 
   /**
    * Creates a new UptoTronScheme instance.

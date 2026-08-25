@@ -7,13 +7,11 @@
  * is supplied by the facilitator (fetched via `/supported`), so the server holds
  * no signing key.
  *
- * Prices use the `"$"` form: the scheme maps it to the network's default asset
- * (see `DEFAULT_STABLECOINS` in `@bankofai/x402-evm`). On BSC testnet that's
- * USDC, a **Permit2** token → the client deposits via Permit2 (needs a one-time
- * `approve(Permit2)`). Note: batch deposits sign `ReceiveWithAuthorization`, so an
- * eip3009 token must implement `receiveWithAuthorization` (BSC's DHLU only has
- * `transferWithAuthorization`, so it can't be used here). Adding a chain is one
- * `EVM_NETWORKS` entry (the chain must have a default-asset registry entry).
+ * This example declares the BSC testnet default USDC explicitly to keep its
+ * Permit2 path visible. The client deposits via Permit2 (needs a one-time
+ * `approve(Permit2)`). Note: batch deposits sign `ReceiveWithAuthorization`, so
+ * an eip3009 token must implement `receiveWithAuthorization` (BSC's DHLU only
+ * has `transferWithAuthorization`, so it can't be used here).
  */
 import {
   BatchSettlementEvmScheme,
@@ -23,12 +21,22 @@ import type { FacilitatorClient } from "@bankofai/x402-core/server";
 import type { Network } from "@bankofai/x402-core/types";
 import type { x402ResourceServer } from "@bankofai/x402-express";
 
-/** CAIP-2 networks the server settles batches on. */
-const EVM_NETWORKS: Network[] = [
-  "eip155:97",
-  // BSC mainnet — REAL FUNDS. Uncomment to enable (default asset: USDT, permit2).
-  // "eip155:56",
-];
+type EvmToken = {
+  asset: `0x${string}`;
+  amount: string;
+  extra: { assetTransferMethod: "permit2" };
+};
+
+/** CAIP-2 network → explicit token used for batch settlement. */
+const EVM_TOKENS: Record<string, EvmToken> = {
+  "eip155:97": {
+    asset: "0x64544969ed7EBf5f083679233325356EbE738930",
+    amount: "1000000000000000", // 0.001 × 1e18
+    extra: { assetTransferMethod: "permit2" },
+  },
+};
+
+const EVM_NETWORKS = Object.keys(EVM_TOKENS) as Network[];
 
 /** Minimal shape we rely on for graceful shutdown. */
 export type StoppableManager = { stop(opts?: { flush?: boolean }): Promise<void> };
@@ -54,10 +62,11 @@ export function registerEvm(
   const managers: StoppableManager[] = [];
 
   for (const network of EVM_NETWORKS) {
+    const token = EVM_TOKENS[network]!;
     const scheme = new BatchSettlementEvmScheme(payTo);
     resourceServer.register(network, scheme);
 
-    const manager = scheme.createChannelManager(facilitator, network);
+    const manager = scheme.createChannelManager(facilitator, network, token.asset);
     startManager(manager, network, payTo);
     managers.push(manager);
     console.info(`[evm] server registered ${network} batch-settlement (payTo ${payTo})`);
@@ -67,7 +76,7 @@ export function registerEvm(
 
 /**
  * Builds the `accepts` entries advertised for EVM batch payments — one per
- * network, priced in `"$"` form (mapped to the default asset).
+ * network, using the example's explicit BSC testnet USDC configuration.
  *
  * @returns Payment-requirements accept entries.
  */
@@ -77,7 +86,7 @@ export function evmAccepts() {
     scheme: "batch-settlement",
     network,
     payTo,
-    price: "$0.001",
+    price: EVM_TOKENS[network]!,
   }));
 }
 

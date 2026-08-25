@@ -1,24 +1,31 @@
 import {
   AssetAmount,
   Network,
+  PaymentFlowConfig,
   PaymentRequirements,
   Price,
   SchemeNetworkServer,
   MoneyParser,
 } from "@bankofai/x402-core/types";
+import { parseMoney } from "@bankofai/x402-core/utils";
+import { ExactDefaultAssetInfo, getDefaultAsset } from "../../shared/defaultAssets";
 import {
   convertToTokenAmount,
-  numberToDecimalString,
-  parseMoneyString,
-} from "@bankofai/x402-core/utils";
-import { ExactDefaultAssetInfo, getDefaultAsset } from "../../shared/defaultAssets";
-import { getDecimals, parsePrice as parseTokenPrice } from "../../shared/tokens";
+  getDecimals,
+  parsePrice as parseTokenPrice,
+} from "../../shared/tokens";
+import type { AssetTransferMethod } from "../../types";
 
 /**
  * TRON server implementation for the Exact payment scheme.
  */
 export class ExactTronScheme implements SchemeNetworkServer {
   readonly scheme = "exact";
+  readonly defaultAssetTransferMethod: AssetTransferMethod = "eip3009";
+  readonly paymentFlows = {
+    eip3009: { supported: ["authorization"], default: "authorization" },
+    permit2: { supported: ["authorization"], default: "authorization" },
+  } as const satisfies Record<AssetTransferMethod, PaymentFlowConfig>;
   private moneyParsers: MoneyParser[] = [];
 
   /**
@@ -69,14 +76,10 @@ export class ExactTronScheme implements SchemeNetworkServer {
       };
     }
 
-    // "<amount> <symbol>" form (e.g. "0.5 USDD") selects a specific registered
-    // token instead of the network default. Delegate to the token registry.
-    if (typeof price === "string" && /^\s*\d+(\.\d+)?\s+\S+\s*$/.test(price)) {
-      return parseTokenPrice(price.trim(), network);
+    const { amount, symbol } = parseMoney(price);
+    if (symbol) {
+      return parseTokenPrice(`${amount} ${symbol}`, network);
     }
-
-    // Parse Money to decimal number
-    const amount = this.parseMoneyToDecimal(price);
 
     // Try each custom money parser in order
     for (const parser of this.moneyParsers) {
@@ -162,22 +165,6 @@ export class ExactTronScheme implements SchemeNetworkServer {
   }
 
   /**
-   * Parse Money (string | number) to a decimal number.
-   * Handles formats like "$1.50", "1.50", 1.50, etc.
-   *
-   * @param money - The money value to parse
-   * @returns Decimal number
-   */
-  private parseMoneyToDecimal(money: string | number): number {
-    if (typeof money === "number") {
-      return money;
-    }
-    // Delegate to core's strict parser (rejects trailing garbage and scientific
-    // notation) — mirrors the EVM exact server scheme.
-    return parseMoneyString(money);
-  }
-
-  /**
    * Default money conversion implementation.
    * Converts decimal amount to the default stablecoin on the specified network.
    *
@@ -185,9 +172,9 @@ export class ExactTronScheme implements SchemeNetworkServer {
    * @param network - The network to use
    * @returns The parsed asset amount in the default stablecoin
    */
-  private defaultMoneyConversion(amount: number, network: Network): AssetAmount {
+  private defaultMoneyConversion(amount: string, network: Network): AssetAmount {
     const assetInfo = this.getDefaultAsset(network);
-    const tokenAmount = convertToTokenAmount(numberToDecimalString(amount), assetInfo.decimals);
+    const tokenAmount = convertToTokenAmount(amount, assetInfo.decimals);
 
     // TIP-712 (eip3009) tokens need name/version for the TransferWithAuthorization
     // domain. Permit2 tokens don't — except those that also support EIP-2612, where

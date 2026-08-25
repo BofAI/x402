@@ -23,6 +23,7 @@ import { TRON_NILE, TRON_MAINNET, TRON_SHASTA } from "@bankofai/x402-tron";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import { x402Client, wrapMCPClientWithPayment } from "@bankofai/x402-mcp";
+import type { Network } from "@bankofai/x402-core/types";
 
 import { evmSchemes } from "./chains/evm.js";
 import { tronSchemes } from "./chains/tron.js";
@@ -47,6 +48,31 @@ const TOKEN_ADDRESSES: Record<string, Record<string, string>> = {
     USDD: "TXDk8mbtRbXeYuMNS83CfKPaYYT8XWv9Hz",
   },
 };
+
+// These tokens are example-specific rather than SDK default assets. Opt them in
+// with the exact atomic amounts advertised by servers/mcp; default assets retain
+// the SDK's default $1 spend limit.
+const EXAMPLE_SPEND_CONTROL_ASSETS: Array<{
+  network: Network;
+  asset: string;
+  maxAmountPerPayment: string;
+}> = [
+  {
+    network: "eip155:97" as const,
+    asset: TOKEN_ADDRESSES["eip155:97"]!.DHLU!,
+    maxAmountPerPayment: "1000",
+  },
+  {
+    network: TRON_NILE,
+    asset: TOKEN_ADDRESSES[TRON_NILE]!.USDD!,
+    maxAmountPerPayment: "1000000000000000",
+  },
+  {
+    network: TRON_MAINNET,
+    asset: TOKEN_ADDRESSES[TRON_MAINNET]!.USDD!,
+    maxAmountPerPayment: "1000000000000000",
+  },
+];
 
 /** A single payment target: a network prefix + optional asset address. */
 interface PayTarget {
@@ -116,7 +142,7 @@ const paymentClient = new x402Client((_x402Version, accepts) => {
     throw new Error(`server offered no payment option matching "${t.raw}"`);
   }
   return match;
-});
+}).setSpendControls({ allowedAssets: EXAMPLE_SPEND_CONTROL_ASSETS });
 for (const s of schemes) {
   paymentClient.register(s.network, s.client);
 }

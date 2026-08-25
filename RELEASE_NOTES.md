@@ -1,3 +1,58 @@
+# v1.1.0 — Payment Flow and Wallet Compatibility
+
+Release date: August 25, 2026
+
+## Highlights
+
+Version 1.1.0 aligns all 11 public TypeScript packages and brings the BankofAI SDK up to date with the latest upstream TypeScript payment orchestration work. It adds explicit authorization, upfront, and escrow payment flows; safer client payment policies; broader EVM wallet support; more precise EVM and TRON settlement handling; and hardened HTTP and MCP integrations.
+
+## Upgrade Notes
+
+- Upgrade the complete `@bankofai/x402-*` package set together to `1.1.0`; internal package dependencies use the `~1.1.0` release line.
+- Custom money parsers now receive a decimal string rather than a JavaScript number. Use `Number(amount)` only for threshold comparisons; pass the string directly to token conversion helpers to preserve precision.
+- TRON integrations should use canonical CAIP-2 identifiers: `tron:0xcd8690dc` (Nile), `tron:0x94a9059e` (Shasta), and `tron:0x2b6653dc` (mainnet).
+- Facilitators enabling ERC-6492 deployment must configure `eip6492AllowedFactories`; an omitted or empty allowlist rejects counterfactual factory calls.
+- The hosted/self-hosted `x402-facilitator` remains wire-compatible with v2 client and server flows. Upgrade its `@bankofai/x402-*` dependencies to `1.1.0` after publishing this release so runtime behavior and type declarations stay aligned.
+
+## Changes
+
+- **Payment-flow orchestration**: server schemes can declare supported flows per asset-transfer method. Core consistently schedules verification and settlement before or after the resource handler for `authorization`, `upfront`, and `escrow` flows.
+- **Backward-compatible custom schemes**: v1.0 `SchemeNetworkServer` implementations may omit `defaultAssetTransferMethod` and `paymentFlows`; core treats them as legacy authorization flows.
+- **Client safety controls**: clients gain payment-selection policies, spend caps, transaction limits, and lifecycle hooks for observing and rejecting payment creation.
+- **Facilitator reliability**: `HTTPFacilitatorClient` validates responses, normalizes nullable cross-SDK fields, retries rate-limited `/supported` requests, surfaces typed timeout errors, and now defaults to a 90-second request timeout for receipt-backed settlement.
+- **EVM wallet compatibility**: verification and settlement support EOAs, deployed smart accounts, ERC-7702 delegation, and allowlisted ERC-6492 counterfactual deployment. Receipt validation confirms the expected transfer instead of trusting transaction status alone.
+- **EVM assets and settlement**: BSC default assets are restored, Permit2 handling is tightened, and settlement responses distinguish pending receipts from confirmed failures.
+- **TRON precision and token selection**: decimal prices retain their original string precision, token-symbol prices select the requested asset, and default asset conversion is consistent across `exact`, `upto`, and batch settlement.
+- **Extensions**: builder-code supports multiple service codes, SIWX validation and hooks are expanded, and dynamic extension fields such as nonces and timestamps no longer cause false echo mismatches.
+- **HTTP middleware hardening**: Express, Fastify, Hono, and Next.js normalize encoded paths and line terminators consistently so alternate path encodings cannot bypass protected routes.
+- **MCP interoperability**: MCP clients accept optional wire fields encoded as either `null` or omitted and preserve existing response metadata while adding payment metadata.
+
+## Verification
+
+- `pnpm build:release`
+- `pnpm test` (34 workspace tasks)
+- `pnpm lint:check`
+- `pnpm format:check`
+- npm package tarballs inspected to confirm versions and rewritten internal dependency ranges
+
+## Release Artifacts
+
+- `@bankofai/x402-core@1.1.0`
+- `@bankofai/x402-extensions@1.1.0`
+- `@bankofai/x402-mcp@1.1.0`
+- `@bankofai/x402-evm@1.1.0`
+- `@bankofai/x402-tron@1.1.0`
+- `@bankofai/x402-axios@1.1.0`
+- `@bankofai/x402-express@1.1.0`
+- `@bankofai/x402-fastify@1.1.0`
+- `@bankofai/x402-fetch@1.1.0`
+- `@bankofai/x402-hono@1.1.0`
+- `@bankofai/x402-next@1.1.0`
+
+## Credits
+
+Release integration and BankofAI compatibility work by [@roger-gan](https://github.com/roger-gan) in [PR #83](https://github.com/BofAI/x402/pull/83), building on the upstream [x402 Foundation](https://github.com/x402-foundation/x402) TypeScript SDK.
+
 # v1.0.0 — TypeScript-Only SDK
 
 Release date: July 2, 2026

@@ -13,6 +13,8 @@ import {
   SettlementOverrides,
   checkIfBazaarNeeded,
   PaymentCancellationDispatcher,
+  CompletedSettlement,
+  withPrivateCacheControl,
 } from "@bankofai/x402-core/server";
 import {
   SchemeNetworkServer,
@@ -37,6 +39,7 @@ export function setSettlementOverrides(reply: FastifyReply, overrides: Settlemen
 
 interface X402PaymentContext {
   cancellationDispatcher: PaymentCancellationDispatcher;
+  beforeHandlerSettlement?: CompletedSettlement;
   paymentPayload: PaymentPayload;
   paymentRequirements: PaymentRequirements;
   declaredExtensions?: Record<string, unknown>;
@@ -216,6 +219,17 @@ function sendFacilitatorError(reply: FastifyReply, error: FacilitatorResponseErr
 }
 
 /**
+ * Logs an unexpected error and sends a generic 500 without leaking internals.
+ *
+ * @param reply - The Fastify reply to write to
+ * @param error - The unexpected error
+ */
+function sendInternalError(reply: FastifyReply, error: unknown): void {
+  console.error(error);
+  reply.status(500).send({ error: "Internal Server Error" });
+}
+
+/**
  * Configuration for registering a payment scheme with a specific network.
  */
 export interface SchemeRegistration {
@@ -269,6 +283,11 @@ export function paymentMiddlewareFromHTTPServer(
   app.decorateRequest("x402RawGuard", undefined);
 
   let initPromise: Promise<void> | null = syncFacilitatorOnStart ? httpServer.initialize() : null;
+  // Attach a no-op rejection handler so an early failure (e.g. a facilitator
+  // request timeout) cannot become an unhandled rejection before the first
+  // protected request awaits initPromise. The original promise is kept, so that
+  // request still observes the failure and triggers the retry path.
+  void initPromise?.catch(() => {});
   let isInitialized = false;
 
   /**
@@ -335,7 +354,7 @@ export function paymentMiddlewareFromHTTPServer(
         if (facilitatorError) {
           return sendFacilitatorError(reply, facilitatorError);
         }
-        throw error;
+        return sendInternalError(reply, error);
       }
     }
 
@@ -351,7 +370,7 @@ export function paymentMiddlewareFromHTTPServer(
       if (error instanceof FacilitatorResponseError) {
         return sendFacilitatorError(reply, error);
       }
-      throw error;
+      return sendInternalError(reply, error);
     }
 
     switch (result.type) {
@@ -373,6 +392,7 @@ export function paymentMiddlewareFromHTTPServer(
       case "payment-verified": {
         request.x402Context = {
           cancellationDispatcher: result.cancellationDispatcher,
+          beforeHandlerSettlement: result.beforeHandlerSettlement,
           paymentPayload: result.paymentPayload,
           paymentRequirements: result.paymentRequirements,
           declaredExtensions: result.declaredExtensions,
@@ -423,11 +443,24 @@ export function paymentMiddlewareFromHTTPServer(
     }
 
     if (reply.statusCode >= 400) {
-      await x402Context.cancellationDispatcher.cancel({
+      const cancelSettlement = await x402Context.cancellationDispatcher.cancel({
         reason: "handler_failed",
         responseStatus: reply.statusCode,
       });
       reply.removeHeader(SETTLEMENT_OVERRIDES_HEADER);
+      const existingCacheControl =
+        reply.getHeader("Cache-Control") != null ? String(reply.getHeader("Cache-Control")) : null;
+      const failureHeaders = httpServer.createFailurePathSettlementHeaders(
+        cancelSettlement,
+        x402Context.beforeHandlerSettlement,
+        x402Context.paymentPayload,
+        existingCacheControl,
+      );
+      if (failureHeaders) {
+        for (const [key, value] of Object.entries(failureHeaders)) {
+          reply.header(key, value);
+        }
+      }
       return effectivePayload;
     }
 
@@ -446,6 +479,8 @@ export function paymentMiddlewareFromHTTPServer(
         x402Context.paymentRequirements,
         x402Context.declaredExtensions,
         { request: x402Context.requestContext, responseBody, responseHeaders },
+        undefined,
+        x402Context.beforeHandlerSettlement,
       );
 
       if (!settleResult.success) {
@@ -465,6 +500,14 @@ export function paymentMiddlewareFromHTTPServer(
       for (const [key, value] of Object.entries(settleResult.headers)) {
         reply.header(key, value);
       }
+      reply.header(
+        "Cache-Control",
+        withPrivateCacheControl(
+          reply.getHeader("Cache-Control") != null
+            ? String(reply.getHeader("Cache-Control"))
+            : null,
+        ),
+      );
       reply.removeHeader(SETTLEMENT_OVERRIDES_HEADER);
       return effectivePayload;
     } catch (error) {

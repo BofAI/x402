@@ -1,18 +1,20 @@
 import {
   AssetAmount,
   Network,
+  PaymentFlowConfig,
   PaymentRequirements,
   Price,
   SchemeNetworkServer,
   MoneyParser,
 } from "@bankofai/x402-core/types";
+import { parseMoney } from "@bankofai/x402-core/utils";
+import { ExactDefaultAssetInfo, getDefaultAsset } from "../../shared/defaultAssets";
 import {
   convertToTokenAmount,
-  numberToDecimalString,
-  parseMoneyString,
-} from "@bankofai/x402-core/utils";
-import { ExactDefaultAssetInfo, getDefaultAsset } from "../../shared/defaultAssets";
-import { getDecimals, parsePrice as parseTokenPrice } from "../../shared/tokens";
+  getDecimals,
+  parsePrice as parseTokenPrice,
+} from "../../shared/tokens";
+import type { AssetTransferMethod } from "../../types";
 
 /**
  * TRON server implementation for the Upto payment scheme.
@@ -23,6 +25,10 @@ import { getDecimals, parsePrice as parseTokenPrice } from "../../shared/tokens"
  */
 export class UptoTronScheme implements SchemeNetworkServer {
   readonly scheme = "upto";
+  readonly defaultAssetTransferMethod: AssetTransferMethod = "permit2";
+  readonly paymentFlows = {
+    permit2: { supported: ["authorization"], default: "authorization" },
+  } as const satisfies Record<"permit2", PaymentFlowConfig>;
   private moneyParsers: MoneyParser[] = [];
 
   /**
@@ -56,12 +62,10 @@ export class UptoTronScheme implements SchemeNetworkServer {
       };
     }
 
-    // "<amount> <symbol>" form selects a specific registered token.
-    if (typeof price === "string" && /^\s*\d+(\.\d+)?\s+\S+\s*$/.test(price)) {
-      return parseTokenPrice(price.trim(), network);
+    const { amount, symbol } = parseMoney(price);
+    if (symbol) {
+      return parseTokenPrice(`${amount} ${symbol}`, network);
     }
-
-    const amount = this.parseMoneyToDecimal(price);
 
     for (const parser of this.moneyParsers) {
       const result = await parser(amount, network);
@@ -129,30 +133,15 @@ export class UptoTronScheme implements SchemeNetworkServer {
   }
 
   /**
-   * Parse Money (string | number) to a decimal number.
-   *
-   * @param money - The money value to parse
-   * @returns Decimal number
-   */
-  private parseMoneyToDecimal(money: string | number): number {
-    if (typeof money === "number") {
-      return money;
-    }
-    // Delegate to core's strict parser (rejects trailing garbage and scientific
-    // notation) — mirrors the EVM exact server scheme.
-    return parseMoneyString(money);
-  }
-
-  /**
    * Default money conversion: convert decimal amount to the default stablecoin.
    *
    * @param amount - The decimal amount (e.g., 1.50)
    * @param network - The network to use
    * @returns The parsed asset amount in the default stablecoin
    */
-  private defaultMoneyConversion(amount: number, network: Network): AssetAmount {
+  private defaultMoneyConversion(amount: string, network: Network): AssetAmount {
     const assetInfo = this.getDefaultAsset(network);
-    const tokenAmount = convertToTokenAmount(numberToDecimalString(amount), assetInfo.decimals);
+    const tokenAmount = convertToTokenAmount(amount, assetInfo.decimals);
 
     return {
       amount: tokenAmount,

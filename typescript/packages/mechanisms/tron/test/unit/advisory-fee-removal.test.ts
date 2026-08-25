@@ -58,9 +58,11 @@ describe("advisory fee removal", () => {
 });
 
 describe("advisory fee removal — gasfree", () => {
-  it("strips upstream fee metadata from gasfree requirements", async () => {
+  it("strips upstream fee and direct-transfer metadata from gasfree requirements", async () => {
+    const input = requirements("exact" as "exact_gasfree");
+    input.extra = { ...input.extra, assetTransferMethod: "permit2" };
     const result = await new ExactGasFreeTronScheme().enhancePaymentRequirements(
-      requirements("exact" as "exact_gasfree"),
+      input,
       {
         x402Version: 2,
         scheme: "exact_gasfree",
@@ -70,5 +72,6 @@ describe("advisory fee removal — gasfree", () => {
     );
 
     expect(result.extra?.fee).toBeUndefined();
+    expect(result.extra?.assetTransferMethod).toBeUndefined();
   });
 });

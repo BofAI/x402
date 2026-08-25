@@ -2,7 +2,7 @@ import { x402Client, SelectPaymentRequirements, PaymentPolicy } from "@bankofai/
 import { Network } from "@bankofai/x402-core/types";
 import { ClientEvmSigner } from "../../signer";
 import { ExactEvmScheme } from "./scheme";
-import { ExactEvmSchemeOptions } from "./rpc";
+import type { EvmSchemeOptions } from "../../shared/rpc";
 
 /**
  * Configuration options for registering EVM schemes to an x402Client
@@ -29,7 +29,7 @@ export interface EvmClientConfig {
    * Supports either a single config ({ rpcUrl }) or per-chain configs
    * keyed by EVM chain ID ({ 8453: { rpcUrl: "..." } }).
    */
-  schemeOptions?: ExactEvmSchemeOptions;
+  schemeOptions?: EvmSchemeOptions;
 
   /**
    * Optional specific networks to register.

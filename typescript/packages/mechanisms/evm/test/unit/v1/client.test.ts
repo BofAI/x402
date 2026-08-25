@@ -94,7 +94,6 @@ describe("ExactEvmSchemeV1", () => {
 
     it("should set validAfter to 0", async () => {
       const client = new ExactEvmSchemeV1(mockSigner);
-      const now = Math.floor(Date.now() / 1000);
 
       const requirements: PaymentRequirementsV1 = {
         scheme: "exact",

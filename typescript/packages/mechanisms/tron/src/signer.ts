@@ -476,7 +476,13 @@ type SignTransactionFn = (
  * @param issuerAddress - The transaction owner/issuer (pays the on-chain fee).
  * @param signTransaction - Wallet hook that signs the built transaction.
  * @param args - The contract address, ABI, function name, and positional args.
+ * @param args.address - Contract address.
+ * @param args.abi - Contract ABI.
+ * @param args.functionName - Contract function name.
+ * @param args.args - Positional contract arguments.
  * @param options - Fee limit (SUN) and optional multi-sig permission id.
+ * @param options.feeLimit - Maximum energy fee in SUN.
+ * @param options.permissionId - Optional TRON multi-signature permission id.
  * @returns The broadcast transaction id.
  */
 async function buildSignAndBroadcast(
@@ -617,7 +623,15 @@ async function pollTransactionPacked(tronWeb: TronWeb, hash: string): Promise<{ 
  * surfaced rather than swallowed (so we never approve on bad/zeroed data).
  *
  * @param deps - TronWeb, the owner address, the wallet sign hook, and a reader.
+ * @param deps.tronWeb - TronWeb instance used to build and broadcast approval transactions.
+ * @param deps.ownerAddress - Token owner granting the allowance.
+ * @param deps.signTransaction - Optional wallet hook for signing an approval transaction.
+ * @param deps.readContract - Contract reader used to inspect the current allowance.
  * @param args - Token, required amount (payment + fee), network, and mode.
+ * @param args.token - TRC-20 token contract address.
+ * @param args.amount - Required Permit2 allowance.
+ * @param args.network - Canonical TRON CAIP-2 network.
+ * @param args.mode - Allowance handling mode.
  * @returns `true` once the allowance is sufficient.
  */
 async function ensurePermit2Allowance(

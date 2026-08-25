@@ -81,7 +81,8 @@ export function wrapFetchWithPayment(
     }
 
     // Run payment required hooks
-    const hookHeaders = await httpClient.handlePaymentRequired(paymentRequired);
+    const requestUrl = response.url || request.url;
+    const hookHeaders = await httpClient.handlePaymentRequired(paymentRequired, requestUrl);
     if (hookHeaders) {
       const hookRequest = clonedRequest.clone();
       for (const [key, value] of Object.entries(hookHeaders)) {
@@ -122,7 +123,7 @@ export function wrapFetchWithPayment(
     );
 
     // Retry the request with payment
-    const secondResponse = await fetch(clonedRequest);
+    const secondResponse = await fetch(clonedRequest.clone());
     log[secondResponse.ok ? "info" : "warn"]("x402: paid request result", {
       url: request.url,
       status: secondResponse.status,
@@ -139,7 +140,7 @@ export function wrapFetchWithPayment(
       // Hook fixed state — retry with fresh payload (bounded to one recovery)
       const freshPayload = await client.createPaymentPayload(paymentRequired);
       const retryHeaders = httpClient.encodePaymentSignatureHeader(freshPayload);
-      const retryRequest = new Request(input, init);
+      const retryRequest = clonedRequest;
       for (const [k, v] of Object.entries(retryHeaders)) {
         retryRequest.headers.set(k, v);
       }

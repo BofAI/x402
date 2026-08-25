@@ -15,6 +15,7 @@ import {
   type GasFreeAsset,
 } from "../../shared/gasfree/api";
 import { assembleGasFreeTransaction } from "../../shared/gasfree/assemble";
+import { findDefaultAsset } from "../../shared/defaultAssets";
 
 /**
  * Options for the GasFree client scheme.
@@ -71,6 +72,7 @@ function readRequestedDeadline(context?: PaymentPayloadContext): number | undefi
  */
 export class ExactGasFreeTronScheme implements SchemeNetworkClient {
   readonly scheme = "exact_gasfree";
+  readonly findDefaultAsset = findDefaultAsset;
 
   /**
    * Create the GasFree client scheme.

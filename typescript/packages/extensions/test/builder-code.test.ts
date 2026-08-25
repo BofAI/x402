@@ -11,6 +11,8 @@ import {
   BuilderCodeFacilitatorExtension,
   encodeBuilderCodeSuffix,
   parseBuilderCodeSuffixFromCalldata,
+  MAX_CLIENT_SERVICE_CODES,
+  MAX_SERVER_SERVICE_CODES,
   type DataSuffixContext,
 } from "../src/builder-code";
 
@@ -104,6 +106,35 @@ describe("Builder Code Extension", () => {
     it("rejects invalid app codes", () => {
       expect(() => declareBuilderCodeExtension("INVALID")).toThrow(/Invalid builder code/);
     });
+
+    it("omits s when no service codes are given", () => {
+      const declared = declareBuilderCodeExtension(APP);
+      expect(declared.info).toEqual({ a: APP });
+    });
+
+    it("declares service codes when given", () => {
+      const declared = declareBuilderCodeExtension(APP, ["bc_server_sdk", "bc_other"]);
+      expect(declared.info).toEqual({ a: APP, s: ["bc_server_sdk", "bc_other"] });
+    });
+
+    it("declares a single service code when given a string", () => {
+      const declared = declareBuilderCodeExtension(APP, "bc_server_sdk");
+      expect(declared.info).toEqual({ a: APP, s: ["bc_server_sdk"] });
+    });
+
+    it("rejects invalid service codes", () => {
+      expect(() => declareBuilderCodeExtension(APP, "Bad-Code")).toThrow(/Invalid builder code/);
+    });
+
+    it("rejects more than MAX_SERVER_SERVICE_CODES service codes", () => {
+      const tooMany = Array.from({ length: MAX_SERVER_SERVICE_CODES + 1 }, (_, i) => `bc_${i}`);
+      expect(() => declareBuilderCodeExtension(APP, tooMany)).toThrow(/Too many service codes/);
+    });
+
+    it("accepts exactly MAX_SERVER_SERVICE_CODES service codes", () => {
+      const atMax = Array.from({ length: MAX_SERVER_SERVICE_CODES }, (_, i) => `bc_${i}`);
+      expect(declareBuilderCodeExtension(APP, atMax).info).toEqual({ a: APP, s: atMax });
+    });
   });
 
   describe("BuilderCodeClientExtension", () => {
@@ -115,6 +146,16 @@ describe("Builder Code Extension", () => {
       expect(() => new BuilderCodeClientExtension([SERVICE, "Bad-Code"])).toThrow(
         /Invalid builder code/,
       );
+    });
+
+    it("rejects more than MAX_CLIENT_SERVICE_CODES service codes", () => {
+      const tooMany = Array.from({ length: MAX_CLIENT_SERVICE_CODES + 1 }, (_, i) => `bc_${i}`);
+      expect(() => new BuilderCodeClientExtension(tooMany)).toThrow(/Too many service codes/);
+    });
+
+    it("accepts exactly MAX_CLIENT_SERVICE_CODES service codes", () => {
+      const atMax = Array.from({ length: MAX_CLIENT_SERVICE_CODES }, (_, i) => `bc_${i}`);
+      expect(() => new BuilderCodeClientExtension(atMax)).not.toThrow();
     });
 
     it("attaches service code for core extension merging", async () => {
@@ -231,6 +272,89 @@ describe("Builder Code Extension", () => {
       );
 
       expect(parsed).toEqual({ w: WALLET, s: [SERVICE, "bc_other"] });
+    });
+
+    it("truncates echoed service codes to the client+server budget", () => {
+      const codes = Array.from({ length: 11 }, (_, i) => `bc_${i + 1}`);
+      const parsed = parsedFromFacilitator(
+        suffixContext({
+          paymentPayloadExtensions: {
+            [BUILDER_CODE]: { info: { s: codes }, schema: {} },
+          },
+        }),
+      );
+
+      expect(parsed).toEqual({
+        w: WALLET,
+        s: Array.from({ length: 10 }, (_, i) => `bc_${i + 1}`),
+      });
+    });
+
+    it("filters invalid service codes before truncating to the echoed budget", () => {
+      const codes = ["INVALID", ...Array.from({ length: 12 }, (_, i) => `bc_${i + 1}`)];
+      const parsed = parsedFromFacilitator(
+        suffixContext({
+          paymentPayloadExtensions: {
+            [BUILDER_CODE]: { info: { s: codes }, schema: {} },
+          },
+        }),
+      );
+
+      expect(parsed).toEqual({
+        w: WALLET,
+        s: Array.from({ length: 10 }, (_, i) => `bc_${i + 1}`),
+      });
+    });
+
+    it("does not drop server entries when both sides use their full reservation", () => {
+      const clientCodes = ["bc_c1", "bc_c2", "bc_c3", "bc_c4", "bc_c5"];
+      const serverCodes = ["bc_s1", "bc_s2", "bc_s3", "bc_s4", "bc_s5"];
+      const parsed = parsedFromFacilitator(
+        suffixContext({
+          paymentPayloadExtensions: {
+            [BUILDER_CODE]: { info: { s: [...clientCodes, ...serverCodes] }, schema: {} },
+          },
+        }),
+      );
+
+      expect(parsed).toEqual({ w: WALLET, s: [...clientCodes, ...serverCodes] });
+    });
+
+    it("appends the facilitator service code without duplication", () => {
+      const ext = new BuilderCodeFacilitatorExtension({
+        builderCode: WALLET,
+        serviceCode: "bc_fac",
+      });
+      const suffix = ext.buildDataSuffix(
+        suffixContext({
+          paymentPayloadExtensions: {
+            [BUILDER_CODE]: { info: { s: [SERVICE] }, schema: {} },
+          },
+        }),
+      );
+      if (!suffix) throw new Error("Expected builder-code suffix");
+
+      expect(
+        parseBuilderCodeSuffixFromCalldata(`0xdeadbeef${suffix.slice(2)}` as `0x${string}`),
+      ).toEqual({ w: WALLET, s: [SERVICE, "bc_fac"] });
+
+      const deduped = new BuilderCodeFacilitatorExtension({ serviceCode: SERVICE }).buildDataSuffix(
+        suffixContext({
+          paymentPayloadExtensions: {
+            [BUILDER_CODE]: { info: { s: [SERVICE] }, schema: {} },
+          },
+        }),
+      );
+      if (!deduped) throw new Error("Expected builder-code suffix");
+      expect(
+        parseBuilderCodeSuffixFromCalldata(`0xdeadbeef${deduped.slice(2)}` as `0x${string}`),
+      ).toEqual({ s: [SERVICE] });
+    });
+
+    it("rejects an invalid facilitator service code", () => {
+      expect(() => new BuilderCodeFacilitatorExtension({ serviceCode: "Bad-Code" })).toThrow(
+        /Invalid builder code/,
+      );
     });
 
     it("ignores invalid client service codes", () => {

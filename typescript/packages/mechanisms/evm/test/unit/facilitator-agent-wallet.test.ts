@@ -48,7 +48,6 @@ function makePublicClient(overrides: Record<string, unknown> = {}) {
 
 /** Install a mock public client as the one the factory builds for `network`. */
 function useClient(pc: ReturnType<typeof makePublicClient>) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   vi.mocked(createEvmPublicClient).mockReturnValue(pc as any);
   return pc;
 }
@@ -74,7 +73,7 @@ describe("createFacilitatorEvmSigner", () => {
   });
 
   it("delegates read/verify/receipt ops to the public client", async () => {
-    const pc = useClient(makePublicClient());
+    useClient(makePublicClient());
     const signer = await createFacilitatorEvmSigner(makeWallet(), { network: NETWORK });
 
     expect(
