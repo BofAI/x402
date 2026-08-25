@@ -54,7 +54,6 @@ describe("createClientEvmSigner", () => {
 
   it("wires readContract from the internally-built public client", async () => {
     const publicClient = { readContract: vi.fn(async () => 42n) };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.mocked(createEvmPublicClient).mockReturnValue(publicClient as any);
     const signer = await createClientEvmSigner(makeWallet("0xabcd"), { network: NETWORK });
     expect(signer.readContract).toBeDefined();

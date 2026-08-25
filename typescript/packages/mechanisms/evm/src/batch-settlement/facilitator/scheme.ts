@@ -43,6 +43,7 @@ export interface BatchSettlementEvmSchemeConfig {
   eip6492AllowedFactories?: string[];
 }
 
+/** Facilitator implementation for EVM batch-settlement payments. */
 export class BatchSettlementEvmScheme implements SchemeNetworkFacilitator {
   readonly scheme = BATCH_SETTLEMENT_SCHEME;
   readonly caipFamily = "eip155:*";

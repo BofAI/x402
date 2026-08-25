@@ -37,6 +37,7 @@ export const PAYMENT_FLOWS: Record<PaymentFlowName, PaymentFlowPhases> = {
  * Resolve assetTransferMethod and paymentFlow from a scheme table and requirements.
  *
  * Omit ATM → `scheme.defaultAssetTransferMethod`. Omit paymentFlow → that ATM's table default.
+ * A v1.0 scheme that declares neither field retains the legacy authorization flow.
  * Unsupported ATM or flow throws.
  *
  * @param scheme - Scheme declaring default ATM and per-ATM paymentFlows
@@ -47,16 +48,32 @@ export function resolvePaymentFlow(
   scheme: Pick<SchemeNetworkServer, "defaultAssetTransferMethod" | "paymentFlows" | "scheme">,
   requirements: DeepReadonly<PaymentRequirements>,
 ): { assetTransferMethod: string; paymentFlow: PaymentFlowName } {
+  const declaredFlows = scheme.paymentFlows;
+  const declaredAtms = declaredFlows ? Object.keys(declaredFlows) : [];
+  const fallbackAtm =
+    scheme.defaultAssetTransferMethod ??
+    (declaredAtms.length === 1 ? declaredAtms[0] : SDK_DEFAULT_ASSET_TRANSFER_METHOD);
   const atm =
     typeof requirements.extra?.assetTransferMethod === "string"
       ? requirements.extra.assetTransferMethod
-      : scheme.defaultAssetTransferMethod;
+      : fallbackAtm;
 
-  const config = scheme.paymentFlows[atm];
+  if (!declaredFlows) {
+    const requested = requirements.extra?.paymentFlow;
+    if (requested !== undefined && requested !== null && requested !== "authorization") {
+      throw new Error(
+        `[x402] Legacy scheme "${scheme.scheme}" does not support paymentFlow "${String(requested)}". ` +
+          `Supported: authorization (default: authorization).`,
+      );
+    }
+    return { assetTransferMethod: atm, paymentFlow: "authorization" };
+  }
+
+  const config = declaredFlows[atm];
   if (!config) {
     throw new Error(
       `[x402] Scheme "${scheme.scheme}" does not support assetTransferMethod "${atm}". ` +
-        `Supported: ${Object.keys(scheme.paymentFlows).join(", ")}.`,
+        `Supported: ${declaredAtms.join(", ")}.`,
     );
   }
   if (!config.supported.includes(config.default)) {

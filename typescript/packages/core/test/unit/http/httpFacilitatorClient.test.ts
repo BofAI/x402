@@ -25,6 +25,13 @@ describe("HTTPFacilitatorClient", () => {
     vi.unstubAllGlobals();
   });
 
+  it("defaults facilitator requests to a 90-second timeout", () => {
+    expect(new HTTPFacilitatorClient({ url: "https://facilitator.test" }).timeoutMs).toBe(90_000);
+    expect(
+      new HTTPFacilitatorClient({ url: "https://facilitator.test", timeoutMs: 12_345 }).timeoutMs,
+    ).toBe(12_345);
+  });
+
   it("throws FacilitatorResponseError for invalid verify JSON on success", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("not-json", { status: 200 })));
 

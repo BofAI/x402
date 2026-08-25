@@ -9,7 +9,11 @@
  */
 
 import { decodePaymentResponseHeader } from "@bankofai/x402-core/http";
-import type { PaymentRequired, PaymentRequirements, SettleResponse } from "@bankofai/x402-core/types";
+import type {
+  PaymentRequired,
+  PaymentRequirements,
+  SettleResponse,
+} from "@bankofai/x402-core/types";
 import { OFFER_RECEIPT, type OfferPayload, type SignedOffer, type SignedReceipt } from "./types";
 import { extractOfferPayload, extractReceiptPayload } from "./signing";
 

@@ -12,7 +12,7 @@ x402 currently supports the **TRON** and **BSC** networks, with plans to expand 
 
 ## Current Release
 
-Version `1.0.0`. The SDK is a **TypeScript-only** pnpm/turbo monorepo published as granular `@bankofai/x402-*` packages (there is no umbrella package). `core` and the EVM mechanism are forks of the [`x402-foundation/x402`](https://github.com/x402-foundation/x402) upstream; the TRON mechanism is in-house. Supported schemes: `exact` (ERC-3009 / Permit2), `upto`, `batch-settlement`, `auth-capture` (EVM), and `exact_gasfree` (TRON).
+Version `1.1.0`. The SDK is a **TypeScript-only** pnpm/turbo monorepo published as granular `@bankofai/x402-*` packages (there is no umbrella package). `core` and the EVM mechanism are forks of the [`x402-foundation/x402`](https://github.com/x402-foundation/x402) upstream; the TRON mechanism is in-house. Supported schemes: `exact` (ERC-3009 / Permit2), `upto`, `batch-settlement`, `auth-capture` (EVM), and `exact_gasfree` (TRON). See [the v1.1.0 release notes](RELEASE_NOTES.md#v110--payment-flow-and-wallet-compatibility) for upgrade details.
 
 > The previous-generation Python + TypeScript SDK lives under [`legacy/`](legacy/) for reference and is slated for removal.
 
@@ -88,7 +88,7 @@ client.register("eip155:97", new ExactEvmScheme(signer));
 
 ### Server (Seller)
 
-Build a resource server with `createResourceServer` (from `@bankofai/x402-core`), point it at a facilitator via `HTTPFacilitatorClient` (`@bankofai/x402-core/server`), and protect routes with the framework middleware — e.g. `paymentMiddlewareFromHTTPServer` from `@bankofai/x402-express`. The server is keyless (it only holds a payout address). See [`examples/typescript/servers/express`](examples/typescript/servers/express) for the full wiring.
+Build a resource server with `createResourceServer` (from `@bankofai/x402-core`), point it at a facilitator via `HTTPFacilitatorClient` (`@bankofai/x402-core/server`), and protect routes with the framework middleware — e.g. `paymentMiddlewareFromHTTPServer` from `@bankofai/x402-express`. The server is keyless (it only holds a payout address). Facilitator requests default to a 90-second timeout; set `timeoutMs` explicitly when your chain or deployment needs a different bound. See [`examples/typescript/servers/express`](examples/typescript/servers/express) for the full wiring.
 
 ### Facilitator
 
@@ -169,7 +169,7 @@ x402 currently supports TRC-20 tokens on the TRON network and BEP-20 tokens on t
 ## Development
 
 ### Prerequisites
-- Node.js 20+
+- Node.js 22+
 - `pnpm` >= 11
 - A TRON wallet with TRX for gas/energy, and/or a BSC wallet with BNB for gas.
 
@@ -178,9 +178,12 @@ x402 currently supports TRC-20 tokens on the TRON network and BEP-20 tokens on t
 cd typescript
 pnpm install
 pnpm build           # turbo run build (all packages → dist/, gitignored)
+pnpm build:release   # bypass build cache before packing/publishing
 pnpm test            # vitest unit tests (offline, no secrets)
 pnpm test:integration  # real-chain tests; self-skip without .env creds
 ```
+
+Use `pnpm build:release` before `pnpm pack` or `pnpm publish`. The forced build lets each package clean its output first, preventing stale hashed declaration files from entering release tarballs.
 
 ### Configuration
 - Configure wallet access through [`agent-wallet`](https://github.com/BofAI/agent-wallet).

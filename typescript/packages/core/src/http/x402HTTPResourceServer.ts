@@ -1160,11 +1160,14 @@ export class x402HTTPResourceServer {
         }
 
         // Check 2: Does the scheme support the declared ATM / paymentFlow?
+        const declaredFlows = schemeServer.paymentFlows;
+        const declaredAtms = declaredFlows ? Object.keys(declaredFlows) : [];
         const atm =
           typeof option.extra?.assetTransferMethod === "string"
             ? option.extra.assetTransferMethod
-            : schemeServer.defaultAssetTransferMethod;
-        if (!schemeServer.paymentFlows[atm]) {
+            : (schemeServer.defaultAssetTransferMethod ??
+              (declaredAtms.length === 1 ? declaredAtms[0] : "default"));
+        if (declaredFlows && !declaredFlows[atm]) {
           errors.push({
             routePattern: pattern,
             scheme: option.scheme,
@@ -1172,7 +1175,7 @@ export class x402HTTPResourceServer {
             reason: "unsupported_asset_transfer_method",
             message:
               `Route "${pattern}": [x402] Scheme "${schemeServer.scheme}" does not support ` +
-              `assetTransferMethod "${atm}". Supported: ${Object.keys(schemeServer.paymentFlows).join(", ")}.`,
+              `assetTransferMethod "${atm}". Supported: ${declaredAtms.join(", ")}.`,
           });
           continue;
         }

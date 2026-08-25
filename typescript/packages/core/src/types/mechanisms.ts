@@ -248,13 +248,17 @@ export interface SchemeNetworkServer {
   /**
    * ATM used when `requirements.extra.assetTransferMethod` is absent.
    * Use `"default"` only as SDK plumbing when the scheme has no on-wire ATM.
+   * Optional for compatibility with v1.0 custom schemes; omitted schemes use
+   * the sole declared payment-flow key or the SDK `"default"` sentinel.
    */
-  readonly defaultAssetTransferMethod: string;
+  readonly defaultAssetTransferMethod?: string;
   /**
    * Payment flows supported per assetTransferMethod.
    * Every ATM the scheme accepts must appear here.
+   * Optional for compatibility with v1.0 custom schemes, which are treated as
+   * authorization flows.
    */
-  readonly paymentFlows: Readonly<Record<string, PaymentFlowConfig>>;
+  readonly paymentFlows?: Readonly<Record<string, PaymentFlowConfig>>;
   readonly schemeHooks?: SchemeServerHooks;
   readonly dynamicExtraFields?: string[];
   enrichPaymentRequiredResponse?: SchemeEnrichPaymentRequiredResponseHook;

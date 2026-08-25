@@ -81,7 +81,11 @@ export {
 // reducing the number of separate package imports required.
 
 export { x402Client } from "@bankofai/x402-core/client";
-export type { x402ClientConfig, SelectPaymentRequirements, PaymentPolicy } from "@bankofai/x402-core/client";
+export type {
+  x402ClientConfig,
+  SelectPaymentRequirements,
+  PaymentPolicy,
+} from "@bankofai/x402-core/client";
 
 export { x402ResourceServer } from "@bankofai/x402-core/server";
 

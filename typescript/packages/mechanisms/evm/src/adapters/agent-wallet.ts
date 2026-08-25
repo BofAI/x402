@@ -262,7 +262,14 @@ export async function createFacilitatorEvmSigner(
     opts.rpcUrl,
   ) as unknown as LooseEvmPublicClient;
 
-  // Build → wallet-sign → broadcast. Shared by writeContract and sendTransaction.
+  /**
+   * Build, wallet-sign, and broadcast a transaction.
+   *
+   * @param to - Destination contract or account
+   * @param data - Encoded call data
+   * @param gasOverride - Optional precomputed gas limit
+   * @returns Broadcast transaction hash
+   */
   async function buildSignBroadcast(
     to: `0x${string}`,
     data: `0x${string}`,

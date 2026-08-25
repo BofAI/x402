@@ -149,6 +149,21 @@ describe("payment flows", () => {
       ).toEqual({ assetTransferMethod: "permit2", paymentFlow: "upfront" });
     });
 
+    it("keeps v1.0 schemes on the legacy authorization flow", () => {
+      const legacyScheme = { scheme: "custom" };
+
+      expect(resolvePaymentFlow(legacyScheme, buildPaymentRequirements({ extra: {} }))).toEqual({
+        assetTransferMethod: "default",
+        paymentFlow: "authorization",
+      });
+      expect(() =>
+        resolvePaymentFlow(
+          legacyScheme,
+          buildPaymentRequirements({ extra: { paymentFlow: "upfront" } }),
+        ),
+      ).toThrow(/Legacy scheme "custom" does not support paymentFlow "upfront"/);
+    });
+
     it("throws on unknown ATM", () => {
       expect(() =>
         resolvePaymentFlow(

@@ -6,11 +6,12 @@
   },
   "packageManager": "pnpm@11.1.1",
   "private": "true",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "x402 Payment Protocol Monorepo",
   "main": "index.js",
   "scripts": {
     "build": "turbo run build",
+    "build:release": "turbo run build --force",
     "lint": "turbo run lint",
     "format": "turbo run format",
     "lint:check": "turbo run lint:check",
