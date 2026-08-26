@@ -1,15 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
-import { TronWeb } from "tronweb";
-import type { FacilitatorWallet } from "@bankofai/x402-core/wallets";
+import { TronWeb, utils as tronUtils } from "tronweb";
 import type { Trc20ApprovalResourceSponsoringRequest } from "../../src/exact/extensions";
-import { createTronWebResourceSponsoringChain } from "../../src/resource-sponsoring";
+import {
+  createTronWebResourceSponsoringChain,
+  type TronResourceOwnerSigner,
+} from "../../src/resource-sponsoring";
 
 const PAYER = "TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC";
 const PAYER_EVM_HEX = "0x5cd0fb0ab3ce40f3051414c604b27756e69e43db";
 const TOKEN = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf";
 const SPENDER = "TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h";
-const OWNER = "TFpPyDCKAqfWwMrh5GXdLTr1Emjo4DxsDm";
+const OWNER = TronWeb.address.fromHex(`41${"11".repeat(20)}`);
 const BLOCK_HASH_REF = "0102030405060708";
+const RESOURCE_PERMISSION_OPERATIONS = `${"00".repeat(7)}06${"00".repeat(24)}`;
 
 function runtimeRequest(): Trc20ApprovalResourceSponsoringRequest {
   return {
@@ -89,7 +92,14 @@ function createTronWebMock() {
         getAccount: vi.fn(async (address: string) =>
           address === TOKEN
             ? { address, type: "Contract", code: "6000" }
-            : { address, type: 0, code: "" },
+            : address === OWNER
+              ? {
+                  address,
+                  type: 0,
+                  code: "",
+                  active_permission: [{ id: 2, operations: RESOURCE_PERMISSION_OPERATIONS }],
+                }
+              : { address, type: 0, code: "" },
         ),
         getCurrentBlock: vi.fn(async () => ({
           blockID: "0".repeat(64),
@@ -115,15 +125,57 @@ function createTronWebMock() {
           result: { result: true },
           energy_required: 500,
         })),
+        delegateResource: vi.fn(),
+        undelegateResource: vi.fn(),
       },
     } as unknown as TronWeb,
     sendHexTransaction,
   };
 }
 
-const wallet: FacilitatorWallet = {
+function systemTransaction(
+  kind: "DelegateResourceContract" | "UnDelegateResourceContract",
+  overrides: Record<string, unknown> = {},
+  permissionId = 2,
+): Record<string, unknown> {
+  const value = {
+    owner_address: TronWeb.address.toHex(OWNER),
+    receiver_address: TronWeb.address.toHex(PAYER),
+    balance: 100_000,
+    resource: "ENERGY",
+    ...(kind === "DelegateResourceContract" ? { lock: false, lock_period: 0 } : {}),
+    ...overrides,
+  };
+  const transaction = {
+    visible: false,
+    raw_data: {
+      contract: [
+        {
+          parameter: {
+            value,
+            type_url: `type.googleapis.com/protocol.${kind}`,
+          },
+          type: kind,
+          Permission_id: permissionId,
+        },
+      ],
+      ref_block_bytes: "1234",
+      ref_block_hash: BLOCK_HASH_REF,
+      expiration: Date.now() + 60_000,
+      timestamp: Date.now(),
+    },
+  } as Record<string, unknown> & { raw_data: Record<string, unknown> };
+  const transactionPb = tronUtils.transaction.txJsonToPb(transaction);
+  return {
+    ...transaction,
+    raw_data_hex: tronUtils.transaction.txPbToRawDataHex(transactionPb),
+    txID: tronUtils.transaction.txPbToTxID(transactionPb).replace(/^0x/, ""),
+  };
+}
+
+const resourceOwnerSigner: TronResourceOwnerSigner = {
   getAddress: vi.fn(async () => OWNER),
-  signTransaction: vi.fn(async transaction => transaction),
+  signResourceTransaction: vi.fn(async ({ transaction }) => transaction),
 };
 
 describe("TronWeb resource-sponsoring chain", () => {
@@ -132,9 +184,11 @@ describe("TronWeb resource-sponsoring chain", () => {
     const readContract = vi.fn().mockResolvedValueOnce(0n).mockResolvedValueOnce(2_000_000n);
     const chain = await createTronWebResourceSponsoringChain({
       tronWeb: mock.tronWeb,
-      resourceOwnerWallet: wallet,
+      network: "tron:0xcd8690dc",
+      resourceOwnerSigner,
       readContract,
       allowedAssets: [TOKEN],
+      permissionId: 2,
     });
 
     const result = await chain.preflight(runtimeRequest());
@@ -161,9 +215,11 @@ describe("TronWeb resource-sponsoring chain", () => {
     const readContract = vi.fn().mockResolvedValueOnce(0n).mockResolvedValueOnce(2_000_000n);
     const chain = await createTronWebResourceSponsoringChain({
       tronWeb: mock.tronWeb,
-      resourceOwnerWallet: wallet,
+      network: "tron:0xcd8690dc",
+      resourceOwnerSigner,
       readContract,
       allowedAssets: [TOKEN],
+      permissionId: 2,
     });
 
     await chain.preflight({ ...runtimeRequest(), payer: PAYER_EVM_HEX });
@@ -181,14 +237,240 @@ describe("TronWeb resource-sponsoring chain", () => {
     const mock = createTronWebMock();
     const chain = await createTronWebResourceSponsoringChain({
       tronWeb: mock.tronWeb,
-      resourceOwnerWallet: wallet,
+      network: "tron:0xcd8690dc",
+      resourceOwnerSigner,
       readContract: vi.fn(async () => 0n),
       allowedAssets: [TOKEN],
+      permissionId: 2,
     });
 
     await expect(
       chain.preflight({ ...runtimeRequest(), approvalRefBlockHash: "ff".repeat(8) }),
     ).rejects.toThrow("approval_tapos_invalid");
     expect(mock.sendHexTransaction).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["wrong owner", { owner_address: `41${"22".repeat(20)}` }],
+    ["wrong receiver", { receiver_address: `41${"33".repeat(20)}` }],
+    ["wrong stake", { balance: 100_001 }],
+    ["wrong resource", { resource: "BANDWIDTH" }],
+    ["locked delegation", { lock: true }],
+  ])("rejects a Resource Owner %s transaction before signing", async (_label, mutation) => {
+    const mock = createTronWebMock();
+    const unsigned = systemTransaction("DelegateResourceContract", mutation);
+    vi.mocked(mock.tronWeb.transactionBuilder.delegateResource).mockResolvedValue(
+      unsigned as never,
+    );
+    const signTransaction = vi.fn(async transaction => ({
+      ...transaction,
+      signature: ["11".repeat(65)],
+    }));
+    const chain = await createTronWebResourceSponsoringChain({
+      tronWeb: mock.tronWeb,
+      network: "tron:0xcd8690dc",
+      resourceOwnerSigner: {
+        getAddress: async () => OWNER,
+        signResourceTransaction: ({ transaction }) => signTransaction(transaction),
+      },
+      readContract: vi.fn(async () => 0n),
+      allowedAssets: [TOKEN],
+      permissionId: 2,
+    });
+
+    await expect(
+      chain.prepareDelegate(runtimeRequest(), {
+        resource: "ENERGY",
+        requiredUnits: 100n,
+        delegatedUnits: 100n,
+        stakeSun: 100_000n,
+      }),
+    ).rejects.toThrow("resource_owner_transaction_invalid");
+    expect(signTransaction).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["wrong contract type", systemTransaction("UnDelegateResourceContract")],
+    ["unexpected permission", systemTransaction("DelegateResourceContract", {}, 3)],
+  ])("rejects a Resource Owner %s before signing", async (_label, unsigned) => {
+    const mock = createTronWebMock();
+    vi.mocked(mock.tronWeb.transactionBuilder.delegateResource).mockResolvedValue(
+      unsigned as never,
+    );
+    const signTransaction = vi.fn(async transaction => transaction);
+    const chain = await createTronWebResourceSponsoringChain({
+      tronWeb: mock.tronWeb,
+      network: "tron:0xcd8690dc",
+      resourceOwnerSigner: {
+        getAddress: async () => OWNER,
+        signResourceTransaction: ({ transaction }) => signTransaction(transaction),
+      },
+      readContract: vi.fn(async () => 0n),
+      allowedAssets: [TOKEN],
+      permissionId: 2,
+    });
+
+    await expect(
+      chain.prepareDelegate(runtimeRequest(), {
+        resource: "ENERGY",
+        requiredUnits: 100n,
+        delegatedUnits: 100n,
+        stakeSun: 100_000n,
+      }),
+    ).rejects.toThrow("resource_owner_transaction_invalid");
+    expect(signTransaction).not.toHaveBeenCalled();
+  });
+
+  it("rejects an extra Resource Owner contract before signing", async () => {
+    const mock = createTronWebMock();
+    const unsigned = systemTransaction("DelegateResourceContract");
+    const rawData = unsigned.raw_data as { contract: Array<Record<string, unknown>> };
+    rawData.contract.push(structuredClone(rawData.contract[0]!));
+    const transactionPb = tronUtils.transaction.txJsonToPb(unsigned);
+    unsigned.raw_data_hex = tronUtils.transaction.txPbToRawDataHex(transactionPb);
+    unsigned.txID = tronUtils.transaction.txPbToTxID(transactionPb).replace(/^0x/, "");
+    vi.mocked(mock.tronWeb.transactionBuilder.delegateResource).mockResolvedValue(
+      unsigned as never,
+    );
+    const signTransaction = vi.fn(async transaction => ({
+      ...transaction,
+      signature: ["11".repeat(65)],
+    }));
+    const chain = await createTronWebResourceSponsoringChain({
+      tronWeb: mock.tronWeb,
+      network: "tron:0xcd8690dc",
+      resourceOwnerSigner: {
+        getAddress: async () => OWNER,
+        signResourceTransaction: ({ transaction }) => signTransaction(transaction),
+      },
+      readContract: vi.fn(async () => 0n),
+      allowedAssets: [TOKEN],
+      permissionId: 2,
+    });
+
+    await expect(
+      chain.prepareDelegate(runtimeRequest(), {
+        resource: "ENERGY",
+        requiredUnits: 100n,
+        delegatedUnits: 100n,
+        stakeSun: 100_000n,
+      }),
+    ).rejects.toThrow("resource_owner_transaction_invalid");
+    expect(signTransaction).not.toHaveBeenCalled();
+  });
+
+  it("rejects a wallet-signed transaction whose raw data differs from the validated intent", async () => {
+    const mock = createTronWebMock();
+    const unsigned = systemTransaction("DelegateResourceContract");
+    const replacement = systemTransaction("DelegateResourceContract", {
+      receiver_address: `41${"33".repeat(20)}`,
+    });
+    vi.mocked(mock.tronWeb.transactionBuilder.delegateResource).mockResolvedValue(
+      unsigned as never,
+    );
+    const signTransaction = vi.fn(async () => ({
+      ...replacement,
+      signature: ["11".repeat(65)],
+    }));
+    const chain = await createTronWebResourceSponsoringChain({
+      tronWeb: mock.tronWeb,
+      network: "tron:0xcd8690dc",
+      resourceOwnerSigner: {
+        getAddress: async () => OWNER,
+        signResourceTransaction: ({ transaction }) => signTransaction(transaction),
+      },
+      readContract: vi.fn(async () => 0n),
+      allowedAssets: [TOKEN],
+      permissionId: 2,
+    });
+
+    await expect(
+      chain.prepareDelegate(runtimeRequest(), {
+        resource: "ENERGY",
+        requiredUnits: 100n,
+        delegatedUnits: 100n,
+        stakeSun: 100_000n,
+      }),
+    ).rejects.toThrow("resource_owner_signed_transaction_mismatch");
+  });
+
+  it("passes an exact network-bound resource intent to the Resource Owner signer", async () => {
+    const mock = createTronWebMock();
+    const unsigned = systemTransaction("DelegateResourceContract");
+    vi.mocked(mock.tronWeb.transactionBuilder.delegateResource).mockResolvedValue(
+      unsigned as never,
+    );
+    const signResourceTransaction = vi.fn(async ({ transaction }) => ({
+      ...transaction,
+      signature: ["11".repeat(65)],
+    }));
+    const chain = await createTronWebResourceSponsoringChain({
+      tronWeb: mock.tronWeb,
+      network: "tron:0xcd8690dc",
+      resourceOwnerSigner: { getAddress: async () => OWNER, signResourceTransaction },
+      readContract: vi.fn(async () => 0n),
+      allowedAssets: [TOKEN],
+      permissionId: 2,
+    });
+
+    await chain.prepareDelegate(runtimeRequest(), {
+      resource: "ENERGY",
+      requiredUnits: 100n,
+      delegatedUnits: 100n,
+      stakeSun: 100_000n,
+    });
+
+    expect(signResourceTransaction).toHaveBeenCalledWith({
+      intent: {
+        network: "tron:0xcd8690dc",
+        action: "delegate",
+        owner: OWNER,
+        receiver: PAYER,
+        resource: "ENERGY",
+        stakeSun: "100000",
+        lock: false,
+        permissionId: 2,
+      },
+      transaction: unsigned,
+    });
+  });
+
+  it("rejects a permission that is not an Active Permission for both resource actions", async () => {
+    const mock = createTronWebMock();
+    const unsigned = systemTransaction("DelegateResourceContract");
+    vi.mocked(mock.tronWeb.transactionBuilder.delegateResource).mockResolvedValue(
+      unsigned as never,
+    );
+    vi.mocked(mock.tronWeb.trx.getAccount).mockImplementation(async address =>
+      address === OWNER
+        ? ({
+            address,
+            type: 0,
+            active_permission: [{ id: 2, operations: "00".repeat(32) }],
+          } as never)
+        : ({ address, type: 0 } as never),
+    );
+    const signResourceTransaction = vi.fn(async ({ transaction }) => ({
+      ...transaction,
+      signature: ["11".repeat(65)],
+    }));
+    const chain = await createTronWebResourceSponsoringChain({
+      tronWeb: mock.tronWeb,
+      network: "tron:0xcd8690dc",
+      resourceOwnerSigner: { getAddress: async () => OWNER, signResourceTransaction },
+      readContract: vi.fn(async () => 0n),
+      allowedAssets: [TOKEN],
+      permissionId: 2,
+    });
+
+    await expect(
+      chain.prepareDelegate(runtimeRequest(), {
+        resource: "ENERGY",
+        requiredUnits: 100n,
+        delegatedUnits: 100n,
+        stakeSun: 100_000n,
+      }),
+    ).rejects.toThrow("resource_owner_permission_invalid");
+    expect(signResourceTransaction).not.toHaveBeenCalled();
   });
 });

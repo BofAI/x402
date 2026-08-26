@@ -14,6 +14,8 @@ export {
 } from "./policy";
 export {
   createTronWebResourceSponsoringChain,
+  type TronResourceOwnerActionIntent,
+  type TronResourceOwnerSigner,
   type TronWebResourceSponsoringChainOptions,
 } from "./tronWebChain";
 export type {

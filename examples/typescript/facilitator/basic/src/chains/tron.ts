@@ -55,6 +55,11 @@ export async function registerTron(
   }
 
   if (process.env.TRON_APPROVAL_SPONSORING === "true") {
+    if (permissionId <= 0) {
+      throw new Error(
+        "TRON_PERMISSION_ID must select a restricted Active Permission for sponsoring",
+      );
+    }
     const coordinator = new InMemoryTrc20SponsoringCoordinator({
       energyStakeSunCapacity: 2_000_000_000n,
       bandwidthStakeSunCapacity: 2_000_000_000n,
@@ -63,13 +68,17 @@ export async function registerTron(
     });
     const runtime = await createTrc20ResourceSponsoringRuntime({
       network: TRON_NILE,
-      resourceOwnerWallet: wallet,
+      resourceOwnerSigner: {
+        getAddress: () => wallet.getAddress(),
+        signResourceTransaction: ({ transaction }) =>
+          wallet.signTransaction(transaction),
+      },
       coordinator,
       allowedAssets: ["TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf"],
       confirmationMode: "packed",
       apiKey: process.env.TRON_GRID_API_KEY,
       ...(rpcUrl ? { rpcUrl } : {}),
-      ...(permissionId > 0 ? { permissionId } : {}),
+      permissionId,
     });
     facilitator.registerExtension(
       createTrc20ApprovalResourceSponsoringExtension(runtime),

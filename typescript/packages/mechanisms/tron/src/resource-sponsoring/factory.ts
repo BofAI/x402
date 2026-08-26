@@ -9,16 +9,17 @@ import type {
   Trc20ResourceSponsoringRuntimeOptions,
   Trc20SponsoringCoordinator,
 } from "./types";
+import type { TronResourceOwnerSigner } from "./tronWebChain";
 
 /** High-level configuration for one network's resource-sponsoring runtime. */
 export interface CreateTrc20ResourceSponsoringRuntimeOptions {
   readonly network: string;
-  readonly resourceOwnerWallet: FacilitatorWallet;
+  readonly resourceOwnerSigner: TronResourceOwnerSigner;
   readonly coordinator: Trc20SponsoringCoordinator;
   readonly allowedAssets: readonly string[];
   readonly rpcUrl?: string;
   readonly apiKey?: string;
-  readonly permissionId?: number;
+  readonly permissionId: number;
   readonly maxReplacementCost?: bigint;
   readonly energySafetyBps?: bigint;
   readonly bandwidthSafetyBps?: bigint;
@@ -45,7 +46,13 @@ export async function createTrc20ResourceSponsoringRuntime(
     rpcUrl: options.rpcUrl,
     apiKey: options.apiKey,
   });
-  const signer = await createFacilitatorTronSigner(options.resourceOwnerWallet, {
+  const readOnlyWallet: FacilitatorWallet = {
+    getAddress: () => options.resourceOwnerSigner.getAddress(),
+    signTransaction: async () => {
+      throw new Error("Resource Owner signer only authorizes resource intents");
+    },
+  };
+  const signer = await createFacilitatorTronSigner(readOnlyWallet, {
     network: options.network,
     rpcUrl: options.rpcUrl,
     apiKey: options.apiKey,
@@ -53,7 +60,8 @@ export async function createTrc20ResourceSponsoringRuntime(
   });
   const chain = await createTronWebResourceSponsoringChain({
     tronWeb,
-    resourceOwnerWallet: options.resourceOwnerWallet,
+    network: options.network,
+    resourceOwnerSigner: options.resourceOwnerSigner,
     readContract: signer.readContract,
     allowedAssets: options.allowedAssets,
     permissionId: options.permissionId,

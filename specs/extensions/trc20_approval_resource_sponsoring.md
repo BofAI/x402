@@ -7,7 +7,8 @@ externally owned account (EOA) without requiring the payer to hold or burn TRX. 
 does not broadcast, a transaction calling `token.approve(canonicalPermit2, MaxUint256)`. The
 Facilitator validates the signed transaction, temporarily delegates the required Energy and, when
 needed, Bandwidth to the payer, broadcasts the unchanged Approval, reclaims the delegated resource
-share, and settles the Permit2 payment.
+share through durable asynchronous recovery, and settles the Permit2 payment without waiting for
+reclamation confirmation.
 
 The extension uses the normal x402 flow. It does not add a `prepare` endpoint or require an additional
 Resource Server interaction.
@@ -152,9 +153,12 @@ Settlement proceeds in this order:
 5. repeat mutable Approval and Payment checks;
 6. broadcast the exact payer-signed Approval;
 7. confirm successful execution and independently observe the expected allowance;
-8. immediately submit a matching `UnDelegateResource` transaction for every successful delegation;
-   and
-9. submit and confirm the Permit2 payment settlement.
+8. durably record the recovery debt and immediately submit a matching `UnDelegateResource`
+   transaction for every successful delegation;
+9. continue with the Permit2 payment settlement without waiting for `UnDelegateResource`
+   confirmation; and
+10. asynchronously confirm or reconcile every original `UnDelegateResource` transaction before
+    releasing the reserved Resource Owner capacity.
 
 Energy and Bandwidth are separate TRON resource types and therefore require separate delegation and
 reclamation transactions when both are needed. The Facilitator MUST NOT broadcast the Approval until
@@ -162,8 +166,10 @@ the required resources are visible and sufficient, and MUST NOT deliberately rel
 payer's TRX as a fallback.
 
 If allowance becomes sufficient before the Approval is broadcast, the Facilitator skips the
-Approval. Any resource already delegated MUST still be reclaimed before normal Permit2 settlement
-continues.
+Approval. Any resource already delegated MUST enter durable recovery and have its matching
+`UnDelegateResource` submitted before normal Permit2 settlement continues. Confirmation and
+capacity recovery remain asynchronous and MUST NOT turn an otherwise valid payment into a
+settlement failure.
 
 After any successful delegation, Approval failure, expiration, timeout, caller disconnection, or
 settlement failure MUST NOT strand resources on the payer. An unknown chain result MUST be reconciled
@@ -206,6 +212,19 @@ sponsorship through one Facilitator domain and enforce bounded exposure.
 Implementations MUST persist enough operation and transaction identity to resume reconciliation and
 resource reclamation after RPC errors, process restarts, or request disconnection. The persistence,
 worker, locking, monitoring, and storage design is implementation-defined.
+
+### Resource Owner signing
+
+The Resource Owner MUST use a non-owner Active Permission that authorizes `DelegateResourceContract`
+and `UnDelegateResourceContract`. A generic opaque transaction-signing callback is insufficient.
+The signing boundary MUST receive the intended network, action, owner, receiver, resource, stake
+amount, unlocked policy, and permission ID.
+
+Before signing, the Facilitator and Resource Owner signer MUST decode the authoritative `raw_data`
+protobuf and require exactly one expected contract, exact intent-field equality, `lock = false` for
+delegation, the configured non-zero Active Permission ID, and no memo, scripts, auths, fee limit, or
+additional contracts. After signing, the `raw_data` bytes and locally recomputed transaction ID MUST
+remain identical to the validated unsigned transaction.
 
 ## References
 

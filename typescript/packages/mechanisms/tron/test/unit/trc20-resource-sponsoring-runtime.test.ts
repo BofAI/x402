@@ -90,6 +90,7 @@ function instrumentedCoordinator(persisted: Set<string>): Trc20SponsoringCoordin
   };
   return {
     runExclusive: (scope, work) => base.runExclusive(scope, work),
+    get: key => base.get(key),
     async admit(operation) {
       const result = await base.admit(operation);
       if (result.kind === "created" || result.kind === "existing") remember(result.operation);
@@ -110,6 +111,7 @@ function createHarness() {
   const broadcasts: string[] = [];
   const results = new Map<string, TronActionResult>();
   let allowanceSufficient = true;
+  let preflightAllowance = 0n;
   let resourcesDelegated = false;
   const ids = {
     delegateEnergy: "1".repeat(64),
@@ -119,7 +121,7 @@ function createHarness() {
   };
   const chain: Trc20ResourceSponsoringChain = {
     preflight: vi.fn(async () => {
-      const value = preflight();
+      const value = { ...preflight(), allowance: preflightAllowance };
       return resourcesDelegated
         ? {
             ...value,
@@ -155,9 +157,10 @@ function createHarness() {
     allowanceSufficient: vi.fn(async () => allowanceSufficient),
     capacityRecovered: vi.fn(async () => true),
   };
+  const coordinator = instrumentedCoordinator(persisted);
   const runtime = createTrc20ApprovalResourceSponsoringRuntime({
     chain,
-    coordinator: instrumentedCoordinator(persisted),
+    coordinator,
     policy: { preview: vi.fn(async () => ({ allowed: true, budgetUnits: 10n })) },
     energySafetyBps: 10_000n,
     bandwidthSafetyBps: 10_000n,
@@ -168,12 +171,76 @@ function createHarness() {
   return {
     runtime,
     chain,
+    coordinator,
     broadcasts,
     results,
     ids,
     setAllowanceSufficient(value: boolean) {
       allowanceSufficient = value;
     },
+    setPreflightAllowance(value: bigint) {
+      preflightAllowance = value;
+    },
+  };
+}
+
+function seededOperation(
+  status: Trc20SponsoringOperation["status"],
+  approvalStatus: "prepared" | "submitted" | "confirmed" = "confirmed",
+): Trc20SponsoringOperation {
+  return {
+    key: `${request.network}:${request.approvalTxID}`,
+    network: request.network,
+    approvalTxID: request.approvalTxID,
+    payer: request.payer,
+    requestDigest: "seeded-operation",
+    request: structuredClone(request),
+    plan: {
+      energyRequired: 100n,
+      bandwidthRequired: 300n,
+      managementBandwidthRequired: 1_200n,
+      replacementCost: 10n,
+      legs: [
+        {
+          resource: "ENERGY",
+          requiredUnits: 100n,
+          delegatedUnits: 100n,
+          stakeSun: 100_000n,
+        },
+        {
+          resource: "BANDWIDTH",
+          requiredUnits: 300n,
+          delegatedUnits: 300n,
+          stakeSun: 300_000n,
+        },
+      ],
+    },
+    budgetUnits: 10n,
+    status,
+    actions: [
+      {
+        kind: "delegate",
+        resource: "ENERGY",
+        txID: "1".repeat(64),
+        signedTransaction: "signed-energy-delegation",
+        status: "confirmed",
+      },
+      {
+        kind: "delegate",
+        resource: "BANDWIDTH",
+        txID: "2".repeat(64),
+        signedTransaction: "signed-bandwidth-delegation",
+        status: "confirmed",
+      },
+      {
+        kind: "approval",
+        txID: APPROVAL_TX_ID,
+        signedTransaction: request.signedTransaction,
+        status: approvalStatus,
+      },
+    ],
+    revision: 0,
+    createdAtMs: Date.now(),
   };
 }
 
@@ -340,5 +407,149 @@ describe("TRC-20 Approval resource-sponsoring runtime", () => {
 
     expect(reconciled).toEqual({ examined: 1, recovered: 1 });
     expect(harness.chain.capacityRecovered).toHaveBeenCalledTimes(1);
+  });
+
+  it("recovers an existing operation before taking the sufficient-allowance shortcut", async () => {
+    const harness = createHarness();
+    harness.results.set(APPROVAL_TX_ID, "unknown");
+    harness.setAllowanceSufficient(false);
+    await harness.runtime.sponsor(request);
+
+    harness.results.set(APPROVAL_TX_ID, "confirmed");
+    harness.setAllowanceSufficient(true);
+    harness.setPreflightAllowance(1_000_000n);
+    const retried = await harness.runtime.sponsor(request);
+
+    expect(retried).toEqual({ success: true, approvalTransaction: APPROVAL_TX_ID });
+    expect(harness.broadcasts.slice(-2)).toEqual([
+      harness.ids.undelegateEnergy,
+      harness.ids.undelegateBandwidth,
+    ]);
+  });
+
+  it.each([
+    "delegating",
+    "resources_visible",
+    "approval_submitted",
+    "approval_confirmed",
+    "reclaiming",
+  ] as const)("reconciles the %s crash window", async status => {
+    const harness = createHarness();
+    await harness.coordinator.admit(seededOperation(status));
+
+    const reconciled = await harness.runtime.reconcile();
+
+    expect(reconciled.examined).toBe(1);
+    expect(harness.broadcasts).toEqual([
+      harness.ids.undelegateEnergy,
+      harness.ids.undelegateBandwidth,
+    ]);
+  });
+
+  it("reconciles a submitted Approval action after restart", async () => {
+    const harness = createHarness();
+    await harness.coordinator.admit(seededOperation("approval_submitted", "submitted"));
+
+    const reconciled = await harness.runtime.reconcile();
+
+    expect(reconciled.examined).toBe(1);
+    expect(harness.chain.confirm).toHaveBeenCalledWith(APPROVAL_TX_ID);
+    expect(harness.broadcasts).toEqual([
+      harness.ids.undelegateEnergy,
+      harness.ids.undelegateBandwidth,
+    ]);
+  });
+
+  it("does not reclaim when a prepared Approval may have been broadcast before the crash", async () => {
+    const harness = createHarness();
+    harness.results.set(APPROVAL_TX_ID, "unknown");
+    harness.setAllowanceSufficient(false);
+    await harness.coordinator.admit(seededOperation("approval_submitted", "prepared"));
+
+    const reconciled = await harness.runtime.reconcile();
+
+    expect(reconciled).toEqual({ examined: 1, recovered: 0 });
+    expect(harness.chain.confirm).toHaveBeenCalledWith(APPROVAL_TX_ID);
+    expect(harness.broadcasts).toEqual([]);
+  });
+
+  it("continues after durable Undelegate submission without waiting for its confirmation", async () => {
+    const harness = createHarness();
+    harness.results.set(harness.ids.undelegateEnergy, "unknown");
+    harness.results.set(harness.ids.undelegateBandwidth, "unknown");
+
+    const sponsored = await harness.runtime.sponsor(request);
+
+    expect(sponsored).toEqual({ success: true, approvalTransaction: APPROVAL_TX_ID });
+    expect(harness.broadcasts).toEqual([
+      harness.ids.delegateEnergy,
+      harness.ids.delegateBandwidth,
+      APPROVAL_TX_ID,
+      harness.ids.undelegateEnergy,
+      harness.ids.undelegateBandwidth,
+    ]);
+    expect(harness.chain.confirm).not.toHaveBeenCalledWith(harness.ids.undelegateEnergy);
+    expect(harness.chain.confirm).not.toHaveBeenCalledWith(harness.ids.undelegateBandwidth);
+
+    harness.results.set(harness.ids.undelegateEnergy, "confirmed");
+    harness.results.set(harness.ids.undelegateBandwidth, "confirmed");
+    const reconciled = await harness.runtime.reconcile();
+    expect(reconciled).toEqual({ examined: 1, recovered: 1 });
+  });
+
+  it("replaces an Undelegate only after the original is confirmed failed", async () => {
+    const harness = createHarness();
+    await harness.runtime.sponsor(request);
+    harness.results.set(harness.ids.undelegateEnergy, "failed");
+    harness.results.set(harness.ids.undelegateBandwidth, "confirmed");
+    const replacementTxID = "5".repeat(64);
+    vi.mocked(harness.chain.prepareUndelegate).mockImplementation(async (_request, leg) =>
+      prepared(leg.resource === "ENERGY" ? replacementTxID : harness.ids.undelegateBandwidth),
+    );
+
+    const reconciled = await harness.runtime.reconcile();
+
+    expect(reconciled).toEqual({ examined: 1, recovered: 1 });
+    expect(harness.broadcasts).toContain(replacementTxID);
+  });
+});
+
+describe("TRC-20 sponsoring coordinator recovery scan", () => {
+  it.each([
+    "admitted",
+    "delegating",
+    "resources_visible",
+    "approval_submitted",
+    "approval_confirmed",
+    "reclaiming",
+    "sponsored_recovering",
+    "failed_recovering",
+  ] as const)("returns the %s state for recovery", async status => {
+    const coordinator = new InMemoryTrc20SponsoringCoordinator();
+    await coordinator.admit(seededOperation(status));
+
+    const recoverable = await coordinator.listRecoverable(10);
+
+    expect(recoverable.map(operation => operation.status)).toEqual([status]);
+  });
+
+  it("blocks a second operation while the payer still has outstanding sponsored resources", async () => {
+    const coordinator = new InMemoryTrc20SponsoringCoordinator();
+    await coordinator.admit(seededOperation("sponsored_recovering"));
+    const secondTxID = "b".repeat(64);
+    const second = seededOperation("admitted");
+
+    const admission = await coordinator.admit({
+      ...second,
+      key: `${second.network}:${secondTxID}`,
+      approvalTxID: secondTxID,
+      requestDigest: "second-operation",
+      request: { ...second.request, approvalTxID: secondTxID },
+    });
+
+    expect(admission).toMatchObject({
+      kind: "denied",
+      reason: "sponsor_operation_in_progress",
+    });
   });
 });

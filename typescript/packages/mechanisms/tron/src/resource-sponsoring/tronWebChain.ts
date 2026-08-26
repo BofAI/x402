@@ -1,5 +1,4 @@
-import { TronWeb } from "tronweb";
-import type { FacilitatorWallet } from "@bankofai/x402-core/wallets";
+import { TronWeb, utils as tronUtils } from "tronweb";
 import { erc20AllowanceAbi, transferWithAuthorizationABI } from "../constants";
 import type { FacilitatorTronSigner } from "../signer";
 import { normalizeSignedTronTransaction, serializeSignedTronTransaction } from "../signer";
@@ -20,10 +19,11 @@ const TRANSACTION_RESULT_BYTES = 64n;
 /** Options for the concrete TronWeb resource-sponsoring chain driver. */
 export interface TronWebResourceSponsoringChainOptions {
   readonly tronWeb: TronWeb;
-  readonly resourceOwnerWallet: FacilitatorWallet;
+  readonly network: string;
+  readonly resourceOwnerSigner: TronResourceOwnerSigner;
   readonly readContract: FacilitatorTronSigner["readContract"];
   readonly allowedAssets: readonly string[];
-  readonly permissionId?: number;
+  readonly permissionId: number;
   readonly recoveryWindowMs?: number;
   readonly maxTaposAgeBlocks?: number;
   readonly minimumApprovalBroadcastWindowMs?: number;
@@ -33,12 +33,74 @@ export interface TronWebResourceSponsoringChainOptions {
   readonly confirmationPollIntervalMs?: number;
 }
 
+/** Exact Resource Owner operation exposed to a policy-aware wallet or HSM. */
+export interface TronResourceOwnerActionIntent {
+  readonly network: string;
+  readonly action: "delegate" | "undelegate";
+  readonly owner: string;
+  readonly receiver: string;
+  readonly resource: Trc20ResourceLeg["resource"];
+  readonly stakeSun: string;
+  readonly lock: false;
+  readonly permissionId: number;
+}
+
+/** Resource Owner signing boundary that receives both intent and validated transaction bytes. */
+export interface TronResourceOwnerSigner {
+  getAddress(): Promise<string>;
+  signResourceTransaction(args: {
+    readonly intent: TronResourceOwnerActionIntent;
+    readonly transaction: Record<string, unknown>;
+  }): Promise<string | Record<string, unknown>>;
+}
+
 type ChainParameter = { key: string; value: number };
 type BroadcastHexResult = {
   result?: boolean;
   txid?: string;
   code?: string;
   message?: string;
+};
+
+type ResourceOwnerTransactionIntent = {
+  readonly kind: "delegate" | "undelegate";
+  readonly owner: string;
+  readonly receiver: string;
+  readonly resource: Trc20ResourceLeg["resource"];
+  readonly stakeSun: bigint;
+  readonly permissionId: number;
+};
+
+type DecodedResourceContract = {
+  readonly contract?: readonly {
+    readonly parameter?: {
+      readonly value?: {
+        readonly owner_address?: string;
+        readonly receiver_address?: string;
+        readonly balance?: number | string;
+        readonly resource?: string;
+        readonly lock?: boolean;
+        readonly lock_period?: number | string;
+      };
+      readonly type_url?: string;
+    };
+    readonly type?: string;
+    readonly Permission_id?: number;
+  }[];
+  readonly data?: string;
+  readonly scripts?: string;
+  readonly auths?: readonly unknown[];
+  readonly fee_limit?: number | string;
+};
+
+type TronActivePermission = {
+  readonly id?: number;
+  readonly operations?: string;
+};
+
+type TronAccountWithPermissions = {
+  readonly active_permission?: readonly TronActivePermission[];
+  readonly activePermission?: readonly TronActivePermission[];
 };
 
 /**
@@ -114,6 +176,99 @@ function toSafeNumber(value: bigint, label: string): number {
 }
 
 /**
+ * Returns whether an Active Permission operation bit is enabled.
+ *
+ * @param operations - TRON Active Permission operation mask.
+ * @param contractType - Protocol contract type number.
+ * @returns Whether the mask permits the contract type.
+ */
+function permissionAllows(operations: string, contractType: number): boolean {
+  const normalized = operations.replace(/^0x/, "").toLowerCase();
+  if (!/^[0-9a-f]{64}$/.test(normalized)) return false;
+  const byte = Number.parseInt(
+    normalized.slice(Math.floor(contractType / 8) * 2, Math.floor(contractType / 8) * 2 + 2),
+    16,
+  );
+  return (byte & (1 << contractType % 8)) !== 0;
+}
+
+/**
+ * Parses an RPC-built Resource Owner transaction and binds it to the requested intent.
+ *
+ * Both the JSON and authoritative raw protobuf bytes are checked. This prevents a
+ * compromised RPC from placing a different contract behind plausible display fields.
+ *
+ * @param transaction - RPC-built unsigned transaction.
+ * @param intent - Exact operation the Resource Owner has authorized.
+ */
+function validateResourceOwnerTransaction(
+  transaction: Record<string, unknown>,
+  intent: ResourceOwnerTransactionIntent,
+): void {
+  try {
+    const rawData = transaction.raw_data as
+      | { readonly contract?: readonly Record<string, unknown>[] }
+      | undefined;
+    if (rawData?.contract?.length !== 1) throw new Error("contract_count");
+    const expectedType =
+      intent.kind === "delegate" ? "DelegateResourceContract" : "UnDelegateResourceContract";
+    const contract = rawData.contract[0] as
+      | {
+          readonly type?: string;
+          readonly Permission_id?: number;
+          readonly parameter?: { readonly type_url?: string };
+        }
+      | undefined;
+    if (
+      contract?.type !== expectedType ||
+      contract.parameter?.type_url !== `type.googleapis.com/protocol.${expectedType}` ||
+      contract.Permission_id !== intent.permissionId
+    ) {
+      throw new Error("contract_header");
+    }
+    if (
+      typeof transaction.raw_data_hex !== "string" ||
+      typeof transaction.txID !== "string" ||
+      !tronUtils.transaction.txCheck(transaction as never)
+    ) {
+      throw new Error("protobuf_mismatch");
+    }
+
+    const decoded = tronUtils.deserializeTx.deserializeTransaction(
+      expectedType,
+      transaction.raw_data_hex,
+    ) as DecodedResourceContract;
+    if (
+      decoded.contract?.length !== 1 ||
+      decoded.data !== "" ||
+      decoded.scripts !== "" ||
+      (decoded.auths?.length ?? 0) !== 0 ||
+      toBigInt(decoded.fee_limit) !== 0n
+    ) {
+      throw new Error("raw_data_extras");
+    }
+    const decodedContract = decoded.contract[0];
+    const value = decodedContract?.parameter?.value;
+    if (
+      decodedContract?.type !== expectedType ||
+      decodedContract.parameter?.type_url !== `type.googleapis.com/protocol.${expectedType}` ||
+      decodedContract.Permission_id !== intent.permissionId ||
+      value?.owner_address == null ||
+      normalizeAddress(value.owner_address) !== normalizeAddress(intent.owner) ||
+      value.receiver_address == null ||
+      normalizeAddress(value.receiver_address) !== normalizeAddress(intent.receiver) ||
+      toBigInt(value.balance) !== intent.stakeSun ||
+      value.resource !== intent.resource ||
+      (intent.kind === "delegate" && (value.lock !== false || toBigInt(value.lock_period) !== 0n))
+    ) {
+      throw new Error("intent_mismatch");
+    }
+  } catch {
+    throw new Error("resource_owner_transaction_invalid");
+  }
+}
+
+/**
  * Converts a wallet-signed system transaction into a durable action.
  *
  * @param signed - Signed TronWeb transaction object.
@@ -183,7 +338,7 @@ async function validateTapos(
 export async function createTronWebResourceSponsoringChain(
   options: TronWebResourceSponsoringChainOptions,
 ): Promise<Trc20ResourceSponsoringChain> {
-  const ownerAddress = await options.resourceOwnerWallet.getAddress();
+  const ownerAddress = await options.resourceOwnerSigner.getAddress();
   const allowedAssets = new Set(options.allowedAssets.map(normalizeAddress));
   const recoveryWindowMs = options.recoveryWindowMs ?? DEFAULT_RECOVERY_WINDOW_MS;
   const maxTaposAgeBlocks = options.maxTaposAgeBlocks ?? DEFAULT_MAX_TAPOS_AGE_BLOCKS;
@@ -191,6 +346,33 @@ export async function createTronWebResourceSponsoringChain(
   const confirmationMode = options.confirmationMode ?? "packed";
   const confirmationTimeoutMs = options.confirmationTimeoutMs ?? 90_000;
   const confirmationPollIntervalMs = options.confirmationPollIntervalMs ?? 3_000;
+  let permissionValidation: Promise<void> | undefined;
+
+  /**
+   * Ensures resource mutations use an on-chain Active Permission, never Owner Permission.
+   *
+   * @returns When the configured permission is valid for both resource operations.
+   */
+  async function ensureResourceOwnerPermission(): Promise<void> {
+    permissionValidation ??= (async () => {
+      if (!Number.isInteger(options.permissionId) || options.permissionId <= 0) {
+        throw new Error("resource_owner_permission_required");
+      }
+      const account = (await options.tronWeb.trx.getAccount(
+        toBase58Address(ownerAddress),
+      )) as TronAccountWithPermissions;
+      const permissions = account.active_permission ?? account.activePermission ?? [];
+      const permission = permissions.find(candidate => candidate.id === options.permissionId);
+      if (
+        !permission?.operations ||
+        !permissionAllows(permission.operations, 57) ||
+        !permissionAllows(permission.operations, 58)
+      ) {
+        throw new Error("resource_owner_permission_invalid");
+      }
+    })();
+    return permissionValidation;
+  }
 
   /**
    * Reads the configured packed or solidified transaction status.
@@ -220,15 +402,40 @@ export async function createTronWebResourceSponsoringChain(
    * Signs a Resource Owner system transaction without broadcasting it.
    *
    * @param unsigned - Unsigned TronWeb transaction object.
+   * @param intent - Exact resource operation authorized by the runtime.
    * @returns Durable signed action.
    */
   async function signSystemTransaction(
     unsigned: Record<string, unknown>,
+    intent: Omit<ResourceOwnerTransactionIntent, "owner" | "permissionId">,
   ): Promise<PreparedTronAction> {
+    await ensureResourceOwnerPermission();
+    const completeIntent: ResourceOwnerTransactionIntent = {
+      ...intent,
+      owner: ownerAddress,
+      permissionId: options.permissionId,
+    };
+    validateResourceOwnerTransaction(unsigned, completeIntent);
     const signed = normalizeSignedTronTransaction(
-      await options.resourceOwnerWallet.signTransaction(unsigned),
+      await options.resourceOwnerSigner.signResourceTransaction({
+        intent: {
+          network: options.network,
+          action: completeIntent.kind,
+          owner: toBase58Address(completeIntent.owner),
+          receiver: toBase58Address(completeIntent.receiver),
+          resource: completeIntent.resource,
+          stakeSun: completeIntent.stakeSun.toString(),
+          lock: false,
+          permissionId: completeIntent.permissionId,
+        },
+        transaction: unsigned,
+      }),
       unsigned,
     );
+    if (signed.raw_data_hex !== unsigned.raw_data_hex || signed.txID !== unsigned.txID) {
+      throw new Error("resource_owner_signed_transaction_mismatch");
+    }
+    validateResourceOwnerTransaction(signed, completeIntent);
     return preparedFromSigned(signed);
   }
 
@@ -368,9 +575,14 @@ export async function createTronWebResourceSponsoringChain(
         ownerAddress,
         false,
         0,
-        options.permissionId == null ? undefined : { permissionId: options.permissionId },
+        { permissionId: options.permissionId },
       );
-      return signSystemTransaction(unsigned as unknown as Record<string, unknown>);
+      return signSystemTransaction(unsigned as unknown as Record<string, unknown>, {
+        kind: "delegate",
+        receiver: payerAddress,
+        resource: leg.resource,
+        stakeSun: leg.stakeSun,
+      });
     },
 
     async prepareUndelegate(request, leg) {
@@ -380,9 +592,14 @@ export async function createTronWebResourceSponsoringChain(
         payerAddress,
         leg.resource,
         ownerAddress,
-        options.permissionId == null ? undefined : { permissionId: options.permissionId },
+        { permissionId: options.permissionId },
       );
-      return signSystemTransaction(unsigned as unknown as Record<string, unknown>);
+      return signSystemTransaction(unsigned as unknown as Record<string, unknown>, {
+        kind: "undelegate",
+        receiver: payerAddress,
+        resource: leg.resource,
+        stakeSun: leg.stakeSun,
+      });
     },
 
     broadcast: action => broadcastHex(action.signedTransaction),

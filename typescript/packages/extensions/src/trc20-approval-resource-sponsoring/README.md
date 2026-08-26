@@ -7,8 +7,8 @@ subpath).
 This Extension enables the first TRON `exact + Permit2` payment without requiring the payer to hold
 TRX. The payer signs, but does not broadcast, a canonical TRC-20 Approval. A registered Facilitator
 runtime validates the transaction, temporarily delegates the required Energy and Bandwidth,
-broadcasts the unchanged Approval, reclaims every delegated resource share, and only then continues
-with the Permit2 payment settlement.
+broadcasts the unchanged Approval, durably submits reclamation for every delegated resource share,
+and then continues with Permit2 settlement while reclamation confirmation runs asynchronously.
 
 The Extension uses the normal x402 request flow. It does not add a Prepare endpoint.
 
@@ -21,8 +21,8 @@ The Extension uses the normal x402 request flow. It does not add a Prepare endpo
    `approve(canonicalPermit2, MaxUint256)` transaction. The Client does not broadcast it.
 3. **Facilitator** registers `createTrc20ApprovalResourceSponsoringExtension(runtime)`. During the
    normal `/verify` and `/settle` flow it validates the signed Approval, temporarily makes the
-   required resources available, broadcasts the unchanged transaction, reclaims the resources,
-   and continues with Permit2 settlement.
+   required resources available, broadcasts the unchanged transaction, persists and submits the
+   matching Undelegates, and continues with Permit2 settlement without waiting for their confirmation.
 
 There is no additional Server-to-Facilitator endpoint. The public x402 interaction remains
 `402 Payment Required -> PAYMENT-SIGNATURE -> /verify -> /settle`.
@@ -78,9 +78,10 @@ import {
 
 const resourceSponsoringRuntime = await createTrc20ResourceSponsoringRuntime({
   network,
-  resourceOwnerWallet,
+  resourceOwnerSigner,
   coordinator: durableCoordinator,
   allowedAssets: [usdtAddress],
+  permissionId: 2,
   confirmationMode: "packed",
 });
 
@@ -91,9 +92,11 @@ const facilitator = new x402Facilitator()
   );
 ```
 
-The Resource Owner must have Stake 2.0 resource capacity. The payer must be an activated EOA, the
-asset must be in the Facilitator allowlist, and the existing Permit2 allowance must be zero. These
-conditions are checked before sponsorship.
+The Resource Owner must have Stake 2.0 resource capacity and a non-zero Active Permission that
+authorizes Delegate/Undelegate. `resourceOwnerSigner` receives an exact, network-bound resource
+intent plus the locally validated transaction so a remote wallet or HSM can enforce the same policy.
+The payer must be an activated EOA, the asset must be in the Facilitator allowlist, and the existing
+Permit2 allowance must be zero. These conditions are checked before sponsorship.
 
 ### Production runtime requirements
 
@@ -101,18 +104,22 @@ The TRON mechanism performs strict protobuf, transaction-signature, Approval-tem
 binding checks before invoking the runtime. `runtime.verify()` must remain read-only.
 `runtime.sponsor()` owns durable idempotency, policy admission, resource estimation and reservation,
 DelegateResource, resource visibility, immutable Approval broadcast, allowance confirmation,
-UnDelegateResource, and unknown-state recovery. It must return success only after Approval allowance
-is observable and every successful delegation has entered reclamation.
+durable UnDelegateResource submission, and unknown-state recovery. It returns success after Approval
+allowance is observable and every successful delegation has durable recovery debt; it does not wait
+for UnDelegateResource confirmation.
 
 `durableCoordinator` is an intentional deployment boundary. It must atomically enforce
 `(network, approvalTxID)` idempotency, one active resource mutation per payer, Resource Owner
-capacity, and sponsorship budget across every Facilitator replica. The SDK exports
+capacity, and sponsorship budget across every Facilitator replica. It must load an existing
+operation before allowance shortcuts and return every non-terminal state from `listRecoverable`.
+The SDK exports
 `InMemoryTrc20SponsoringCoordinator` only for unit tests and single-process development; production
 deployments must not use it.
 
-The managed runtime exposes `reconcile()`. Run it from a recovery worker after startup and on a
-schedule so unknown transaction results and recovering capacity converge even when the original
-HTTP request or process disappears.
+The managed runtime exposes `reconcile()`. Run it from a recovery worker immediately after startup
+and on a schedule so prepared, submitted, unknown, and every non-terminal lifecycle state converge
+even when the original HTTP request or process disappears. Recovery confirmation failures remain
+resource debt and do not retroactively fail a successful Permit2 payment.
 
 `confirmationMode: "packed"` keeps the multi-transaction Approval path within a short transaction
 lifetime, but it is provisional until the block solidifies. Deployments that continue after packed

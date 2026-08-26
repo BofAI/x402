@@ -327,7 +327,18 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
     }
     if (action.status === "confirmed") return current;
     if (action.status === "failed") {
-      throw new SponsoringFailure(`${kind}_failed`);
+      if (kind !== "undelegate") {
+        throw new SponsoringFailure(`${kind}_failed`);
+      }
+      const prepared = await prepare();
+      action = {
+        kind,
+        ...(resource ? { resource } : {}),
+        txID: prepared.txID.toLowerCase(),
+        signedTransaction: prepared.signedTransaction,
+        status: "prepared",
+      };
+      current = await persist(replaceAction(current, action));
     }
 
     if (action.status === "prepared") {
@@ -383,6 +394,78 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
   }
 
   /**
+   * Persists and broadcasts one recovery action without waiting for confirmation.
+   *
+   * @param operation - Current durable operation.
+   * @param resource - Resource leg being reclaimed.
+   * @param prepare - Builder for the immutable Undelegate transaction.
+   * @returns Operation containing a submitted or unknown recovery action.
+   */
+  async function submitRecoveryAction(
+    operation: Trc20SponsoringOperation,
+    resource: TronResourceType,
+    prepare: () => Promise<PreparedTronAction>,
+  ): Promise<Trc20SponsoringOperation> {
+    let current = operation;
+    let action = actionFor(current, "undelegate", resource);
+    if (!action) {
+      const prepared = await prepare();
+      action = {
+        kind: "undelegate",
+        resource,
+        txID: prepared.txID.toLowerCase(),
+        signedTransaction: prepared.signedTransaction,
+        status: "prepared",
+      };
+      current = await persist(replaceAction(current, action));
+    }
+    if (action.status !== "prepared") return current;
+    try {
+      const returnedTxID = await options.chain.broadcast({
+        txID: action.txID,
+        signedTransaction: action.signedTransaction,
+      });
+      const status = returnedTxID.toLowerCase() === action.txID ? "submitted" : "unknown";
+      return persist(replaceAction(current, { ...action, status }));
+    } catch {
+      // The node may have accepted the immutable bytes before the transport
+      // failed. Persist unknown and let reconcile query the original txID.
+      return persist(replaceAction(current, { ...action, status: "unknown" }));
+    }
+  }
+
+  /**
+   * Durably enters recovery and submits Undelegates without blocking payment settlement.
+   *
+   * @param operation - Approval-confirmed operation.
+   * @returns Operation whose recovery debt is durable.
+   */
+  async function beginRecovery(
+    operation: Trc20SponsoringOperation,
+  ): Promise<Trc20SponsoringOperation> {
+    let current = await persist({
+      ...operation,
+      status: "sponsored_recovering",
+      errorReason: undefined,
+      errorMessage: undefined,
+    });
+    for (const leg of current.plan.legs) {
+      const delegated = actionFor(current, "delegate", leg.resource);
+      if (!delegated || delegated.status !== "confirmed") continue;
+      try {
+        current = await submitRecoveryAction(current, leg.resource, () =>
+          options.chain.prepareUndelegate(current.request, leg),
+        );
+      } catch {
+        // The durable sponsored_recovering state is the recovery queue. A
+        // worker can retry preparation without turning a valid payment into a
+        // settlement failure.
+      }
+    }
+    return current;
+  }
+
+  /**
    * Reconciles actions whose broadcast outcome is unknown using only the original txID.
    *
    * @param operation - Operation containing unknown actions.
@@ -392,13 +475,14 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
     operation: Trc20SponsoringOperation,
   ): Promise<Trc20SponsoringOperation> {
     let current = operation;
-    for (const action of current.actions.filter(candidate => candidate.status === "unknown")) {
+    for (const action of current.actions.filter(
+      candidate => candidate.status === "submitted" || candidate.status === "unknown",
+    )) {
       const result = await options.chain.confirm(action.txID);
-      if (result === "unknown") continue;
       current = await persist(
         replaceAction(current, {
           ...action,
-          status: result === "confirmed" ? "confirmed" : "failed",
+          status: result === "confirmed" ? "confirmed" : result === "failed" ? "failed" : "unknown",
         }),
       );
     }
@@ -465,19 +549,22 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
     return options.coordinator.runExclusive(payerScope(request), async () => {
       let current: Trc20SponsoringOperation | undefined;
       try {
-        const prepared = await preview(request);
-        if (prepared.approvalState === "approval_satisfied") return { success: true };
-        const admission = await options.coordinator.admit(
-          initialOperation(request, prepared.plan, prepared.budgetUnits),
-        );
-        if (admission.kind === "conflict" || admission.kind === "denied") {
-          return {
-            success: false,
-            errorReason: admission.reason,
-            errorMessage: admission.message,
-          };
+        current = await options.coordinator.get(operationKey(request));
+        if (!current) {
+          const prepared = await preview(request);
+          if (prepared.approvalState === "approval_satisfied") return { success: true };
+          const admission = await options.coordinator.admit(
+            initialOperation(request, prepared.plan, prepared.budgetUnits),
+          );
+          if (admission.kind === "conflict" || admission.kind === "denied") {
+            return {
+              success: false,
+              errorReason: admission.reason,
+              errorMessage: admission.message,
+            };
+          }
+          current = admission.operation;
         }
-        current = admission.operation;
         if (current.requestDigest !== requestDigest(request)) {
           throw new SponsoringFailure("approval_transaction_reused");
         }
@@ -504,17 +591,17 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
             };
           }
           const allowanceNowSufficient = await options.chain.allowanceSufficient(current.request);
-          current = await reclaim(current);
           const sponsored = approvalWasConfirmed(current) || allowanceNowSufficient;
-          current = await persist({
-            ...current,
-            status: sponsored ? "sponsored_recovering" : "failed_recovering",
-            recoveryStartedAtMs: current.recoveryStartedAtMs ?? Date.now(),
-            ...(sponsored ? { errorReason: undefined, errorMessage: undefined } : {}),
-          });
           if (sponsored) {
+            current = await beginRecovery(current);
             return { success: true, approvalTransaction: current.approvalTxID };
           }
+          current = await reclaim(current);
+          current = await persist({
+            ...current,
+            status: "failed_recovering",
+            recoveryStartedAtMs: current.recoveryStartedAtMs ?? Date.now(),
+          });
           return {
             success: false,
             errorReason: current.errorReason ?? "sponsor_execution_failed",
@@ -553,11 +640,7 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
           }
         }
         current = await persist(withStatus(current, "approval_confirmed"));
-        current = await reclaim(current);
-        current = await persist({
-          ...withStatus(current, "sponsored_recovering"),
-          recoveryStartedAtMs: Date.now(),
-        });
+        current = await beginRecovery(current);
         return { success: true, approvalTransaction: current.approvalTxID };
       } catch (error) {
         const failure = normalizedFailure(
@@ -627,26 +710,68 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
         await options.coordinator.runExclusive(
           `${operation.network}:${operation.payer}`,
           async () => {
-            let current = await refreshUnknownActions(operation);
-            if (!hasUnknownAction(current) && current.status === "failed_recovering") {
-              try {
-                const allowanceNowSufficient = await options.chain.allowanceSufficient(
-                  current.request,
+            let current = operation;
+            try {
+              const preparedApproval = actionFor(current, "approval");
+              if (
+                current.status === "approval_submitted" &&
+                preparedApproval?.status === "prepared"
+              ) {
+                const result = await options.chain.confirm(preparedApproval.txID);
+                const expired = BigInt(current.request.approvalExpiration) <= BigInt(Date.now());
+                current = await persist(
+                  replaceAction(current, {
+                    ...preparedApproval,
+                    status:
+                      result === "confirmed"
+                        ? "confirmed"
+                        : result === "failed" || expired
+                          ? "failed"
+                          : "unknown",
+                  }),
                 );
-                current = await reclaim(current);
-                if (approvalWasConfirmed(current) || allowanceNowSufficient) {
-                  current = await persist({
-                    ...current,
-                    status: "sponsored_recovering",
-                    recoveryStartedAtMs: current.recoveryStartedAtMs ?? Date.now(),
-                    errorReason: undefined,
-                    errorMessage: undefined,
-                  });
-                }
-              } catch {
-                // Keep the operation recoverable. A later pass reconciles the
-                // same immutable action txIDs; it never creates replacements.
               }
+              current = await refreshUnknownActions(current);
+
+              // A prepared resource action may have been broadcast immediately
+              // before a process crash. Replaying its immutable bytes is safe and
+              // gives the worker one txID whose result can be reconciled.
+              for (const leg of current.plan.legs) {
+                const delegation = actionFor(current, "delegate", leg.resource);
+                if (
+                  delegation &&
+                  delegation.status !== "confirmed" &&
+                  delegation.status !== "failed"
+                ) {
+                  current = await executeAction(current, "delegate", leg.resource, () =>
+                    options.chain.prepareDelegate(current.request, leg),
+                  );
+                }
+              }
+
+              current = await refreshUnknownActions(current);
+              if (hasUnknownAction(current)) return;
+
+              const allowanceNowSufficient = await options.chain.allowanceSufficient(
+                current.request,
+              );
+              current = await reclaim(current);
+              const sponsored = approvalWasConfirmed(current) || allowanceNowSufficient;
+              current = await persist({
+                ...current,
+                status: sponsored ? "sponsored_recovering" : "failed_recovering",
+                recoveryStartedAtMs: current.recoveryStartedAtMs ?? Date.now(),
+                ...(sponsored
+                  ? { errorReason: undefined, errorMessage: undefined }
+                  : {
+                      errorReason: current.errorReason ?? "sponsor_interrupted",
+                      errorMessage: current.errorMessage,
+                    }),
+              });
+            } catch {
+              // Keep the operation recoverable. A later pass reconciles the
+              // same immutable txID while its outcome is unknown. Only an
+              // Undelegate confirmed failed may be replaced on a later pass.
             }
             if (
               !hasUnknownAction(current) &&

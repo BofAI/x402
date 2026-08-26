@@ -107,6 +107,17 @@ export class InMemoryTrc20SponsoringCoordinator implements Trc20SponsoringCoordi
   }
 
   /**
+   * Loads one operation by its deployment-wide idempotency key.
+   *
+   * @param key - Operation idempotency key.
+   * @returns A detached operation snapshot, when present.
+   */
+  async get(key: string): Promise<Trc20SponsoringOperation | undefined> {
+    const operation = this.operations.get(key);
+    return operation ? cloneOperation(operation) : undefined;
+  }
+
+  /**
    * Atomically checks idempotency, payer activity, budget, and resource capacity.
    *
    * @param operation - Candidate operation and immutable reservation plan.
@@ -130,7 +141,6 @@ export class InMemoryTrc20SponsoringCoordinator implements Trc20SponsoringCoordi
         candidate.payer === operation.payer &&
         candidate.key !== operation.key &&
         candidate.status !== "recovered" &&
-        candidate.status !== "sponsored_recovering" &&
         hasOutstandingDelegation(candidate),
     );
     if (activeForPayer) {
@@ -201,12 +211,7 @@ export class InMemoryTrc20SponsoringCoordinator implements Trc20SponsoringCoordi
    */
   async listRecoverable(limit: number): Promise<readonly Trc20SponsoringOperation[]> {
     return [...this.operations.values()]
-      .filter(
-        operation =>
-          operation.status === "sponsored_recovering" ||
-          operation.status === "failed_recovering" ||
-          operation.actions.some(action => action.status === "unknown"),
-      )
+      .filter(operation => operation.status !== "recovered")
       .slice(0, Math.max(0, limit))
       .map(cloneOperation);
   }

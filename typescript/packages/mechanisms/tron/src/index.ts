@@ -38,6 +38,8 @@ export {
   type Trc20SponsoringPlan,
   type Trc20SponsoringPreflight,
   type TronResourceSnapshot,
+  type TronResourceOwnerActionIntent,
+  type TronResourceOwnerSigner,
   type TronResourceType,
   type TronWebResourceSponsoringChainOptions,
 } from "./resource-sponsoring";

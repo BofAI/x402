@@ -177,6 +177,8 @@ export type Trc20SponsoringAdmission =
 export interface Trc20SponsoringCoordinator {
   /** Serializes mutations for one `(network,payer)` scope. */
   runExclusive<T>(scope: string, work: () => Promise<T>): Promise<T>;
+  /** Loads an existing operation before mutable chain-state shortcuts are evaluated. */
+  get(key: string): Promise<Trc20SponsoringOperation | undefined>;
   /** Atomically creates an operation and reserves its resource/budget capacity. */
   admit(operation: Trc20SponsoringOperation): Promise<Trc20SponsoringAdmission>;
   /** Persists a state transition with optimistic revision checking. */

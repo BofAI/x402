@@ -175,6 +175,9 @@ describe.skipIf(!configured)("TRC-20 Approval Resource Sponsoring on Nile", () =
       process.env.TRON_NILE_FACILITATOR_PERMISSION_ID || "0",
       10,
     );
+    if (permissionId <= 0) {
+      throw new Error("TRON_NILE_FACILITATOR_PERMISSION_ID must select an Active Permission");
+    }
     const freshPayer = process.env.TRON_NILE_FRESH_PAYER === "true";
     const payerKey = freshPayer
       ? (await TronWeb.createAccount()).privateKey
@@ -204,11 +207,16 @@ describe.skipIf(!configured)("TRC-20 Approval Resource Sponsoring on Nile", () =
     const runtime = await createTrc20ResourceSponsoringRuntime({
       network: TRON_NILE,
       rpcUrl,
-      resourceOwnerWallet,
+      resourceOwnerSigner: {
+        getAddress: () => resourceOwnerWallet.getAddress(),
+        signResourceTransaction: ({ transaction }) =>
+          resourceOwnerWallet.signTransaction(transaction),
+      },
       coordinator: new InMemoryTrc20SponsoringCoordinator(),
       allowedAssets: [USDT_NILE],
       confirmationMode: "packed",
-      ...(permissionId > 0 ? { permissionId } : {}),
+      permissionId,
+      recoveryWindowMs: 0,
     });
 
     const server = new ExactServer();
@@ -271,6 +279,9 @@ describe.skipIf(!configured)("TRC-20 Approval Resource Sponsoring on Nile", () =
       BigInt(requirements.amount),
     );
     expect(await payerTronWeb.trx.getBalance(payer)).toBe(payerTrxBefore);
+    const recovery = await runtime.reconcile();
+    console.info("[nile] resource recovery", recovery);
+    expect(recovery).toEqual({ examined: 1, recovered: 1 });
     const delegated = await ownerTronWeb.trx.getDelegatedResourceV2(resourceOwner, payer, {
       confirmed: false,
     });
