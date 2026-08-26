@@ -23,20 +23,6 @@ The `mcp` pair is the same line over an **MCP transport** — it shares
 server (`pnpm dev:mcp-server`, :4023) and client (`pnpm dev:mcp-client`); `ping`
 is free, `get_weather` is paid.
 
-### TRON Approval Resource Sponsoring on Nile
-
-Set `TRON_APPROVAL_SPONSORING=true` to make the Express Server advertise
-`trc20ApprovalResourceSponsoring`. The Client then signs, but does not broadcast,
-the first `approve(Permit2)` transaction. The local Facilitator delegates the
-required Energy/Bandwidth, broadcasts the unchanged Approval, undelegates the
-resource share, and settles the Permit2 payment.
-
-The Client and Facilitator must use different TRON accounts. Start each process
-with its own `AGENT_WALLET_PRIVATE_KEY`; set `TRON_PERMISSION_ID` when the
-Facilitator key uses an Active Permission. The bundled coordinator is deliberately
-in-memory and bounded, so this mode is Nile-only development—not a production or
-mainnet deployment.
-
 ## GasFree scenario (TRON `exact_gasfree`)
 
 A parallel, self-contained trio demonstrating TRON's **gasless** scheme: the payer
@@ -112,7 +98,7 @@ amount and strips the header. BSC uses USDC, TRON Nile uses USDT — both Permit
 
 | Chain | Network | Token | Scheme | One-time approve | User pays gas? |
 |---|---|---|---|---|---|
-| TRON nile | `tron:0xcd8690dc` | USDT (6) | exact **permit2 + resource-sponsoring** | yes — client signs, facilitator broadcasts | **no** when sponsoring is enabled |
+| TRON nile | `tron:0xcd8690dc` | USDT (6) | exact **permit2** | yes — client auto-broadcasts | only the approve (TRX) |
 | TRON nile | `tron:0xcd8690dc` | USDD (18) | exact **permit2** | yes — client auto-broadcasts | only the approve (TRX) |
 | BSC testnet | `eip155:97` | DHLU (6) | exact **eip3009** | none | **none (fully gasless)** |
 | BSC testnet | `eip155:97` | USDC (18) | exact **permit2 + gas-sponsoring** | yes — client signs, facilitator relays | only the approve (BNB) |
@@ -123,13 +109,11 @@ How each token settles on-chain:
 - **DHLU — eip3009 (best):** the client signs `transferWithAuthorization`
   (EIP-712, domain `("DA HULU","1")`); the facilitator submits it. No approve,
   user pays no gas. Use this whenever a token implements ERC-3009.
-- **TRON USDT — permit2 + resource-sponsoring:** when the Extension is enabled,
-  the client signs the one-time `approve(Permit2)` without broadcasting it. The
-  facilitator temporarily delegates Stake 2.0 resources to the payer, broadcasts
-  the exact signed Approval, reclaims the delegation, then settles through
-  `x402Permit2Proxy`. Without the Extension, the existing client-funded Approval
-  remains the compatibility fallback. USDD currently uses that fallback in the
-  example because the Facilitator hard allowlist is USDT-only.
+- **TRON USDT/USDD — permit2:** the client signs a Permit2 witness permit
+  (TIP-712). On first use the client **auto-broadcasts** the one-time
+  `approve(Permit2)` (`ensureAllowance`, ~3s); the facilitator settles via
+  `x402Permit2Proxy.settle`. TRON has no gas delegation, so that approve costs
+  the user a little TRX.
 - **BSC USDC/USDT — permit2 + gas-sponsoring:** both are plain BEP-20 (no
   ERC-3009 / no EIP-2612), so each needs an on-chain `approve(Permit2)`. The
   client signs that approve **offline**; the facilitator broadcasts it bundled
@@ -138,11 +122,10 @@ How each token settles on-chain:
   basic EOA facilitator the user still pays its BNB (true gasless needs an
   AA/paymaster facilitator).
 
-TRON still has no authorizer/fee-payer split. Resource sponsoring works by
-temporarily delegating Energy/Bandwidth to the payer EOA before the Facilitator
-broadcasts the payer-signed Approval; that account-level delegation risk is why
-the runtime applies strict validation, capacity limits, idempotency, and prompt
-reclamation.
+Approve broadcasting differs by chain on purpose: TRON has no
+authorizer/fee-payer split, so the **client** broadcasts it; EVM can decouple
+them, so the **facilitator** relays it (leaving the door open to real
+sponsorship).
 
 ### Mainnet (real funds)
 

@@ -12,10 +12,8 @@ Both chains sign via `@bankofai/agent-wallet` (`resolveWallet({ network })`):
   (async address + `0x`-normalized signatures); the factory builds the viem
   `publicClient` internally and wires `readContract` for permit2 enrichment.
 - TRON: `createClientTronSigner(wallet, { network, apiKey })` — the factory
-  builds TronWeb internally from the network. Normally it auto-broadcasts a
-  one-time Permit2 Approval; when the Server declares
-  `trc20ApprovalResourceSponsoring`, it only signs the Approval and attaches it
-  to the x402 payload for the Facilitator to sponsor.
+  builds TronWeb internally from the network and auto-broadcasts the one-time
+  Permit2 approve for USDT/USDD.
 
 A chain registers only if its wallet resolves, so you can pay from EVM-only,
 TRON-only, or both.

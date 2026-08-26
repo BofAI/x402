@@ -15,18 +15,8 @@ import {
   paymentMiddlewareFromHTTPServer,
 } from "@bankofai/x402-express";
 
-import {
-  hasEvm,
-  registerEvm,
-  evmAccepts,
-  evmExtensions,
-} from "./chains/evm.js";
-import {
-  hasTron,
-  registerTron,
-  tronAccepts,
-  tronExtensions,
-} from "./chains/tron.js";
+import { hasEvm, registerEvm, evmAccepts, evmExtensions } from "./chains/evm.js";
+import { hasTron, registerTron, tronAccepts } from "./chains/tron.js";
 import { ResourceStrippingFacilitatorClient } from "./resourceStrippingFacilitator.js";
 
 const PORT = parseInt(process.env.SERVER_PORT || "4021", 10);
@@ -40,9 +30,7 @@ const STRIP_RESOURCE_URL = process.env.STRIP_RESOURCE_URL === "true";
 // a rate-limit tier; anonymous calls still work, so it's unset by default.
 const FACILITATOR_API_KEY = process.env.FACILITATOR_API_KEY;
 
-const apiKeyHeaders: Record<string, string> = FACILITATOR_API_KEY
-  ? { "X-API-KEY": FACILITATOR_API_KEY }
-  : {};
+const apiKeyHeaders: Record<string, string> = FACILITATOR_API_KEY ? { "X-API-KEY": FACILITATOR_API_KEY } : {};
 const httpFacilitator = new HTTPFacilitatorClient({
   url: FACILITATOR_URL,
   ...(FACILITATOR_API_KEY
@@ -65,9 +53,7 @@ const resourceServer = createResourceServer(facilitatorClient);
 // Register each chain (and advertise its tokens) only when its payout is set.
 // Each chain may advertise multiple tokens, so accepts is flattened. EVM prices
 // are explicit asset objects; TRON prices are "<amount> <symbol>" strings.
-type Accept =
-  | ReturnType<typeof evmAccepts>[number]
-  | ReturnType<typeof tronAccepts>[number];
+type Accept = ReturnType<typeof evmAccepts>[number] | ReturnType<typeof tronAccepts>[number];
 const accepts: Accept[] = [];
 let extensions: Record<string, unknown> = {};
 if (hasEvm()) {
@@ -79,12 +65,9 @@ if (hasEvm()) {
 if (hasTron()) {
   registerTron(resourceServer);
   accepts.push(...tronAccepts());
-  extensions = { ...extensions, ...tronExtensions() };
 }
 if (accepts.length === 0) {
-  console.error(
-    "❌ No payout address configured (set EVM_ADDRESS and/or TRON_ADDRESS).",
-  );
+  console.error("❌ No payout address configured (set EVM_ADDRESS and/or TRON_ADDRESS).");
   process.exit(1);
 }
 

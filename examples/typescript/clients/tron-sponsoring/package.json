@@ -1,0 +1,21 @@
+{
+  "name": "@bankofai/x402-example-tron-sponsoring-client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx --env-file=.env src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bankofai/agent-wallet": "^2.3.0",
+    "@bankofai/x402-fetch": "workspace:*",
+    "@bankofai/x402-tron": "workspace:*",
+    "tronweb": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.0"
+  }
+}
