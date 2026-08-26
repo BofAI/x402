@@ -153,8 +153,8 @@ Settlement proceeds in this order:
 5. repeat mutable Approval and Payment checks;
 6. broadcast the exact payer-signed Approval;
 7. confirm successful execution and independently observe the expected allowance;
-8. durably record the recovery debt and immediately submit a matching `UnDelegateResource`
-   transaction for every successful delegation;
+8. durably record the recovery debt and immediately attempt to prepare, persist, and submit a
+   matching `UnDelegateResource` transaction for every successful delegation;
 9. continue with the Permit2 payment settlement without waiting for `UnDelegateResource`
    confirmation; and
 10. asynchronously confirm or reconcile every original `UnDelegateResource` transaction before
@@ -166,15 +166,20 @@ the required resources are visible and sufficient, and MUST NOT deliberately rel
 payer's TRX as a fallback.
 
 If allowance becomes sufficient before the Approval is broadcast, the Facilitator skips the
-Approval. Any resource already delegated MUST enter durable recovery and have its matching
-`UnDelegateResource` submitted before normal Permit2 settlement continues. Confirmation and
-capacity recovery remain asynchronous and MUST NOT turn an otherwise valid payment into a
-settlement failure.
+Approval. Any resource already delegated MUST enter durable recovery before normal Permit2
+settlement continues. The Facilitator MUST immediately attempt to prepare, durably persist, and
+submit the matching `UnDelegateResource`. If preparation, persistence of the prepared action,
+broadcast, or confirmation cannot complete after the recovery debt is durable, the operation MUST
+remain recoverable and a worker MUST continue it asynchronously. Such a recovery failure MUST NOT
+turn an otherwise valid payment into a settlement failure. An implementation MUST NOT continue
+settlement if it cannot first persist the recovery debt itself.
 
 After any successful delegation, Approval failure, expiration, timeout, caller disconnection, or
-settlement failure MUST NOT strand resources on the payer. An unknown chain result MUST be reconciled
-using the original transaction ID before the Facilitator retries or reclaims; it MUST NOT create a
-replacement transaction while the original may still be included.
+settlement failure MUST NOT strand resources on the payer. If no immutable Undelegate action was
+persisted, a recovery worker MAY prepare one. Once an action is persisted and its chain result is
+unknown, the Facilitator MUST reconcile the original transaction ID before retrying or reclaiming and
+MUST NOT create a replacement while the original may still be included. A replacement Undelegate MAY
+be prepared only after the original transaction is confirmed failed.
 
 Delegate, Approval, Undelegate, and settlement are separate TRON transactions. Atomic or same-block
 execution is not guaranteed. The `transaction` in a successful core `SettleResponse` is the Permit2
