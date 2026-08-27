@@ -45,6 +45,7 @@ export function buildPermit2DepositCollectorData(
  * @param payload - Batch deposit payload.
  * @param requirements - Payment requirements for the request.
  * @param network - CAIP-2 network identifier.
+ * @param requireAllowance - Whether existing Permit2 allowance must cover the deposit.
  * @returns A failure response, or `null` when valid.
  */
 export async function verifyPermit2DepositAuthorization(
@@ -52,6 +53,7 @@ export async function verifyPermit2DepositAuthorization(
   payload: BatchSettlementDepositPayload,
   requirements: PaymentRequirements,
   network: string,
+  requireAllowance = true,
 ): Promise<VerifyResponse | null> {
   const auth = payload.deposit.authorization.permit2Authorization;
   const payer = payload.channelConfig.payer;
@@ -124,20 +126,22 @@ export async function verifyPermit2DepositAuthorization(
   }
 
   // Payer must have approved Permit2 to move the token.
-  try {
-    const allowance = toBigInt(
-      await signer.readContract({
-        address: requirements.asset,
-        abi: erc20AllowanceAbi as unknown as readonly Record<string, unknown>[],
-        functionName: "allowance",
-        args: [normalizeAddressForSigning(payer), normalizeAddressForSigning(permit2Address)],
-      }),
-    );
-    if (allowance < BigInt(payload.deposit.amount)) {
+  if (requireAllowance) {
+    try {
+      const allowance = toBigInt(
+        await signer.readContract({
+          address: requirements.asset,
+          abi: erc20AllowanceAbi as unknown as readonly Record<string, unknown>[],
+          functionName: "allowance",
+          args: [normalizeAddressForSigning(payer), normalizeAddressForSigning(permit2Address)],
+        }),
+      );
+      if (allowance < BigInt(payload.deposit.amount)) {
+        return { isValid: false, invalidReason: Errors.ErrPermit2AllowanceRequired, payer };
+      }
+    } catch {
       return { isValid: false, invalidReason: Errors.ErrPermit2AllowanceRequired, payer };
     }
-  } catch {
-    return { isValid: false, invalidReason: Errors.ErrPermit2AllowanceRequired, payer };
   }
 
   return null;

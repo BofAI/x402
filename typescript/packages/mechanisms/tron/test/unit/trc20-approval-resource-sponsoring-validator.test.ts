@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { TronWeb, utils as tronUtils } from "tronweb";
-import { PERMIT2_ADDRESSES, X402_PERMIT2_PROXY_ADDRESSES } from "../../src/constants";
+import {
+  PERMIT2_ADDRESSES,
+  X402_PERMIT2_PROXY_ADDRESSES,
+  X402_UPTO_PERMIT2_PROXY_ADDRESSES,
+} from "../../src/constants";
 import {
   decodeSignedTrc20Approval,
   validateTrc20ApprovalForPayment,
@@ -12,6 +16,10 @@ import {
 import { ExactTronScheme } from "../../src/exact/facilitator/scheme";
 import type { FacilitatorTronSigner } from "../../src/signer";
 import { normalizeAddressForSigning } from "../../src/utils";
+import { UptoTronScheme as UptoFacilitator } from "../../src/upto/facilitator/scheme";
+import { BatchSettlementTronScheme as BatchFacilitator } from "../../src/batch-settlement/facilitator/scheme";
+import { computeChannelId } from "../../src/shared/batch-settlement/utils";
+import { PERMIT2_DEPOSIT_COLLECTOR_ADDRESSES } from "../../src/shared/batch-settlement/constants";
 
 const NETWORK = "tron:0xcd8690dc";
 const PRIVATE_KEY = "4f3edf983ac63ad7c24ee152a7494471b2a18551b7117f7f7f3f2c47c8f6e5ad";
@@ -117,6 +125,7 @@ const requirements = {
   amount: "1000000",
   payTo: PAYER,
   maxTimeoutSeconds: 600,
+  extra: { assetTransferMethod: "permit2" },
 };
 
 describe("TRC-20 Approval Resource Sponsoring validator", () => {
@@ -187,6 +196,74 @@ function sponsoredPayment(signedTransaction: string) {
 }
 
 describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
+  it("rejects exact Permit2 when the Server selected EIP-3009", async () => {
+    const signer: FacilitatorTronSigner = {
+      getAddresses: () => [PAYER],
+      verifyTypedData: vi.fn(async () => true),
+      readContract: vi.fn(),
+      writeContract: vi.fn(),
+      waitForTransactionReceipt: vi.fn(),
+    };
+    const eip3009Requirements = {
+      ...requirements,
+      extra: { assetTransferMethod: "eip3009" },
+    };
+    const payload = {
+      ...sponsoredPayment(buildSignedApproval()),
+      accepted: eip3009Requirements,
+    };
+    const scheme = new ExactTronScheme(signer);
+
+    const verified = await scheme.verify(payload as never, eip3009Requirements as never);
+    const settled = await scheme.settle(payload as never, eip3009Requirements as never);
+
+    expect(verified).toMatchObject({
+      isValid: false,
+      invalidReason: "invalid_exact_tron_asset_transfer_method",
+    });
+    expect(settled).toMatchObject({
+      success: false,
+      transaction: "",
+      errorReason: "invalid_exact_tron_asset_transfer_method",
+    });
+    expect(signer.verifyTypedData).not.toHaveBeenCalled();
+    expect(signer.writeContract).not.toHaveBeenCalled();
+  });
+
+  it("rejects the Approval sponsorship extension on exact EIP-3009", async () => {
+    const signer: FacilitatorTronSigner = {
+      getAddresses: () => [PAYER],
+      verifyTypedData: vi.fn(),
+      readContract: vi.fn(),
+      writeContract: vi.fn(),
+      waitForTransactionReceipt: vi.fn(),
+    };
+    const payload = {
+      x402Version: 2,
+      accepted: requirements,
+      payload: {},
+      extensions: {
+        trc20ApprovalResourceSponsoring: { info: info(buildSignedApproval()) },
+      },
+    };
+
+    const scheme = new ExactTronScheme(signer);
+    const verified = await scheme.verify(payload as never, requirements as never);
+    const settled = await scheme.settle(payload as never, requirements as never);
+
+    expect(verified).toMatchObject({
+      isValid: false,
+      invalidReason: "approval_extension_invalid",
+    });
+    expect(settled).toMatchObject({
+      success: false,
+      transaction: "",
+      errorReason: "approval_extension_invalid",
+    });
+    expect(signer.verifyTypedData).not.toHaveBeenCalled();
+    expect(signer.writeContract).not.toHaveBeenCalled();
+  });
+
   it("uses read-only runtime verification and executes sponsorship before settlement", async () => {
     const calls: string[] = [];
     const runtime = {
@@ -194,8 +271,11 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
         calls.push("verify-sponsor");
         return { isValid: true };
       }),
-      sponsor: vi.fn(async () => {
+      sponsor: vi.fn(async (_request, options) => {
         calls.push("sponsor");
+        const revalidation = await options?.revalidate?.();
+        calls.push("revalidate");
+        expect(revalidation?.isValid).toBe(true);
         return { success: true, approvalTransaction: "approval-tx" };
       }),
     };
@@ -227,7 +307,7 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
     calls.length = 0;
     const settled = await scheme.settle(payload as never, requirements as never, context);
     expect(settled).toMatchObject({ success: true, transaction: "settlement-tx" });
-    expect(calls).toEqual(["verify-sponsor", "sponsor", "settlement"]);
+    expect(calls).toEqual(["verify-sponsor", "sponsor", "revalidate", "settlement"]);
   });
 
   it("fails closed before sponsorship when the runtime is not registered", async () => {
@@ -278,5 +358,183 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
     });
     expect(result.invalidMessage).not.toContain("RPC unavailable");
     expect(signer.writeContract).not.toHaveBeenCalled();
+  });
+
+  it("sponsors an upto maximum before a positive settlement and skips sponsorship for zero", async () => {
+    const calls: string[] = [];
+    const runtime = {
+      verify: vi.fn(async request => {
+        calls.push("verify-sponsor");
+        expect(request.requiredAllowance).toBe("1000000");
+        return { isValid: true };
+      }),
+      sponsor: vi.fn(async (_request, options) => {
+        calls.push("sponsor");
+        const revalidation = await options?.revalidate?.();
+        calls.push("revalidate");
+        expect(revalidation?.isValid).toBe(true);
+        return { success: true };
+      }),
+    };
+    const signer: FacilitatorTronSigner = {
+      getAddresses: () => [PAYER],
+      verifyTypedData: vi.fn(async () => true),
+      readContract: vi.fn(async args => {
+        if (args.functionName === "balanceOf") return 2_000_000n;
+        throw new Error(`unexpected read ${args.functionName}`);
+      }),
+      writeContract: vi.fn(async () => {
+        calls.push("settlement");
+        return "upto-settlement";
+      }),
+      waitForTransactionReceipt: vi.fn(async () => ({ status: "success" })),
+    };
+    const uptoRequirements = {
+      ...requirements,
+      scheme: "upto",
+      extra: { permit2FacilitatorAddress: PAYER, assetTransferMethod: "permit2" },
+    };
+    const payment = {
+      x402Version: 2,
+      accepted: uptoRequirements,
+      payload: {
+        signature: "0xpermit2-signature",
+        permit2Authorization: {
+          from: PAYER,
+          permitted: { token: TOKEN, amount: "1000000" },
+          spender: normalizeAddressForSigning(X402_UPTO_PERMIT2_PROXY_ADDRESSES[NETWORK]),
+          nonce: "1",
+          deadline: String(Math.floor(Date.now() / 1000) + 600),
+          witness: { to: PAYER, facilitator: PAYER, validAfter: "0" },
+        },
+      },
+      extensions: {
+        trc20ApprovalResourceSponsoring: { info: info(buildSignedApproval()) },
+      },
+    };
+    const context = {
+      getExtension: vi.fn(() => ({ key: "trc20ApprovalResourceSponsoring", runtime })),
+    };
+    const scheme = new UptoFacilitator(signer);
+
+    const zero = await scheme.settle(
+      payment as never,
+      { ...uptoRequirements, amount: "0" } as never,
+      context,
+    );
+    expect(zero).toMatchObject({ success: true, amount: "0", transaction: "" });
+    expect(runtime.sponsor).not.toHaveBeenCalled();
+    expect(signer.writeContract).not.toHaveBeenCalled();
+
+    calls.length = 0;
+    const settled = await scheme.settle(
+      payment as never,
+      { ...uptoRequirements, amount: "400000" } as never,
+      context,
+    );
+    expect(settled).toMatchObject({ success: true, amount: "400000" });
+    expect(calls).toEqual(["verify-sponsor", "sponsor", "revalidate", "settlement"]);
+  });
+
+  it("sponsors the batch deposit amount before submitting the channel deposit", async () => {
+    const calls: string[] = [];
+    let channelBalance = 0n;
+    const runtime = {
+      verify: vi.fn(async request => {
+        calls.push("verify-sponsor");
+        expect(request.requiredAllowance).toBe("5000");
+        return { isValid: true };
+      }),
+      sponsor: vi.fn(async (_request, options) => {
+        calls.push("sponsor");
+        const revalidation = await options?.revalidate?.();
+        calls.push("revalidate");
+        expect(revalidation?.isValid).toBe(true);
+        return { success: true };
+      }),
+    };
+    const signer: FacilitatorTronSigner = {
+      getAddresses: () => [PAYER],
+      verifyTypedData: vi.fn(async () => true),
+      readContract: vi.fn(async args => {
+        if (args.functionName === "balanceOf") return 10_000n;
+        if (args.functionName === "channels") return [channelBalance, 0n];
+        if (args.functionName === "pendingWithdrawals") return [0n, 0n];
+        if (args.functionName === "refundNonce") return 0n;
+        throw new Error(`unexpected read ${args.functionName}`);
+      }),
+      writeContract: vi.fn(async () => {
+        calls.push("deposit");
+        channelBalance = 5_000n;
+        return "deposit-tx";
+      }),
+      waitForTransactionReceipt: vi.fn(async () => ({ status: "success" })),
+    };
+    const config = {
+      payer: normalizeAddressForSigning(PAYER),
+      payerAuthorizer: normalizeAddressForSigning(PAYER),
+      receiver: normalizeAddressForSigning(PAYER),
+      receiverAuthorizer: normalizeAddressForSigning(PAYER),
+      token: normalizeAddressForSigning(TOKEN),
+      withdrawDelay: 900,
+      salt: `0x${"00".repeat(32)}`,
+    };
+    const batchRequirements = {
+      ...requirements,
+      scheme: "batch-settlement",
+      amount: "1000",
+      extra: {
+        receiverAuthorizer: PAYER,
+        withdrawDelay: 900,
+        assetTransferMethod: "permit2",
+      },
+    };
+    const channelId = computeChannelId(config as never, NETWORK);
+    const payment = {
+      x402Version: 2,
+      accepted: batchRequirements,
+      payload: {
+        type: "deposit",
+        channelConfig: config,
+        voucher: {
+          channelId,
+          maxClaimableAmount: "1000",
+          signature: `0x${"22".repeat(65)}`,
+        },
+        deposit: {
+          amount: "5000",
+          authorization: {
+            permit2Authorization: {
+              from: normalizeAddressForSigning(PAYER),
+              permitted: { token: normalizeAddressForSigning(TOKEN), amount: "5000" },
+              spender: normalizeAddressForSigning(PERMIT2_DEPOSIT_COLLECTOR_ADDRESSES[NETWORK]),
+              nonce: "1",
+              deadline: String(Math.floor(Date.now() / 1000) + 600),
+              witness: { channelId },
+              signature: `0x${"11".repeat(65)}`,
+            },
+          },
+        },
+      },
+      extensions: {
+        trc20ApprovalResourceSponsoring: { info: info(buildSignedApproval()) },
+      },
+    };
+    const context = {
+      getExtension: vi.fn(() => ({ key: "trc20ApprovalResourceSponsoring", runtime })),
+    };
+
+    const settled = await new BatchFacilitator(signer).settle(
+      payment as never,
+      batchRequirements as never,
+      context,
+    );
+
+    expect(settled, JSON.stringify({ settled, calls })).toMatchObject({
+      success: true,
+      transaction: "deposit-tx",
+      amount: "5000",
+    });
+    expect(calls).toEqual(["verify-sponsor", "sponsor", "revalidate", "deposit"]);
   });
 });

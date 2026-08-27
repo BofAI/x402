@@ -12,6 +12,7 @@ import {
   type Trc20ApprovalResourceSponsoringFacilitatorExtension,
   type Trc20ApprovalResourceSponsoringInfo,
   type Trc20ApprovalResourceSponsoringRuntime,
+  type Trc20SponsorshipRevalidationResult,
 } from "../extensions";
 import * as errors from "./errors";
 import {
@@ -50,6 +51,7 @@ function hasExtension(payload: PaymentPayload): boolean {
  * @param requirements - Trusted payment requirements.
  * @param payer - Authenticated Permit2 payer.
  * @param context - Registered Facilitator extensions.
+ * @param requiredAllowance - Permit2 allowance required by the selected operation.
  * @returns Absent, invalid, or ready sponsorship state.
  */
 function resolveSponsorship(
@@ -57,6 +59,7 @@ function resolveSponsorship(
   requirements: PaymentRequirements,
   payer: string,
   context?: FacilitatorContext,
+  requiredAllowance = requirements.amount,
 ): SponsorshipResolution {
   const info = extractTrc20ApprovalResourceSponsoringInfo(payload);
   if (!info) {
@@ -87,6 +90,7 @@ function resolveSponsorship(
         validation.approval,
         payload,
         requirements,
+        requiredAllowance,
       ),
     },
   };
@@ -99,6 +103,7 @@ function resolveSponsorship(
  * @param requirements - Trusted payment requirements.
  * @param payer - Authenticated Permit2 payer.
  * @param context - Registered Facilitator extensions.
+ * @param requiredAllowance - Permit2 allowance required by the selected operation.
  * @returns Null when absent, otherwise the verification response.
  */
 export async function verifyTrc20Sponsorship(
@@ -106,8 +111,9 @@ export async function verifyTrc20Sponsorship(
   requirements: PaymentRequirements,
   payer: string,
   context?: FacilitatorContext,
+  requiredAllowance?: string,
 ): Promise<VerifyResponse | null> {
-  const resolution = resolveSponsorship(payload, requirements, payer, context);
+  const resolution = resolveSponsorship(payload, requirements, payer, context, requiredAllowance);
   if (resolution.state === "absent") return null;
   if (resolution.state === "invalid") {
     return {
@@ -144,6 +150,8 @@ export async function verifyTrc20Sponsorship(
  * @param requirements - Trusted payment requirements.
  * @param payer - Authenticated Permit2 payer.
  * @param context - Registered Facilitator extensions.
+ * @param requiredAllowance - Permit2 allowance required by the selected operation.
+ * @param revalidate - Scheme-specific authorization checks repeated before Approval broadcast.
  * @returns Null on success/absence, otherwise a settlement failure.
  */
 export async function executeTrc20Sponsorship(
@@ -151,8 +159,10 @@ export async function executeTrc20Sponsorship(
   requirements: PaymentRequirements,
   payer: string,
   context?: FacilitatorContext,
+  requiredAllowance?: string,
+  revalidate?: () => Promise<Trc20SponsorshipRevalidationResult>,
 ): Promise<SettleResponse | null> {
-  const resolution = resolveSponsorship(payload, requirements, payer, context);
+  const resolution = resolveSponsorship(payload, requirements, payer, context, requiredAllowance);
   if (resolution.state === "absent") return null;
   if (resolution.state === "invalid") {
     return {
@@ -165,7 +175,9 @@ export async function executeTrc20Sponsorship(
     };
   }
   try {
-    const result = await resolution.binding.runtime.sponsor(resolution.binding.request);
+    const result = await resolution.binding.runtime.sponsor(resolution.binding.request, {
+      revalidate,
+    });
     return result.success
       ? null
       : {

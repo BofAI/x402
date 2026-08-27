@@ -1,4 +1,8 @@
-import { PaymentRequirements, PaymentPayloadResult } from "@bankofai/x402-core/types";
+import {
+  PaymentPayloadContext,
+  PaymentRequirements,
+  PaymentPayloadResult,
+} from "@bankofai/x402-core/types";
 import {
   uptoPermit2WitnessTypes,
   PERMIT2_ADDRESSES,
@@ -7,6 +11,10 @@ import {
 import { ClientTronSigner } from "../../signer";
 import { UptoPermit2Payload } from "../../types";
 import { createNonce, getTronChainId, normalizeAddressForSigning } from "../../utils";
+import {
+  isTrc20ApprovalResourceSponsoringDeclared,
+  trySignTrc20ApprovalResourceSponsoringExtension,
+} from "../../shared/extensions/resourceSponsoring";
 
 /**
  * Creates an Upto Permit2 payload using the x402UptoPermit2Proxy witness pattern on TRON.
@@ -19,12 +27,14 @@ import { createNonce, getTronChainId, normalizeAddressForSigning } from "../../u
  * @param signer - The TRON signer to sign the payload.
  * @param x402Version - The version of the x402 protocol.
  * @param paymentRequirements - The requirements for the payment.
+ * @param context - Optional context containing Server-declared extensions.
  * @returns The generated payment payload.
  */
 export async function createUptoPermit2Payload(
   signer: ClientTronSigner,
   x402Version: number,
   paymentRequirements: PaymentRequirements,
+  context?: PaymentPayloadContext,
 ): Promise<PaymentPayloadResult> {
   const now = Math.floor(Date.now() / 1000);
   const nonce = createNonce();
@@ -82,20 +92,15 @@ export async function createUptoPermit2Payload(
     },
   };
 
-  // Ensure the one-time Permit2 allowance before signing (mirrors the exact
-  // client). No-op when the signer can't broadcast (sign-only wallet) or when
-  // the allowance already covers the authorized maximum. TRON's mainstream
-  // tokens (USDT/USDD) lack ERC-3009, so this approve is required on first use.
-  // `permitted.amount` is the upto ceiling — approve at least that much, since
-  // the facilitator may settle for any amount up to it.
-  // Note: the facilitator advisory fee was removed; allowance covers only the
-  // payment amount. GasFree relayer fees (transferFee/activateFee) are deducted
-  // from the GasFree wallet, not via Permit2 allowance.
-  await signer.ensureAllowance?.({
-    token: paymentRequirements.asset,
-    amount: BigInt(paymentRequirements.amount),
-    network,
-  });
+  const requiredAllowance = BigInt(paymentRequirements.amount);
+  const sponsorshipDeclared = isTrc20ApprovalResourceSponsoringDeclared(context);
+  if (!sponsorshipDeclared) {
+    await signer.ensureAllowance?.({
+      token: paymentRequirements.asset,
+      amount: requiredAllowance,
+      network,
+    });
+  }
 
   const signature = await signUptoPermit2Authorization(
     signer,
@@ -108,9 +113,27 @@ export async function createUptoPermit2Payload(
     permit2Authorization,
   };
 
+  const approvalExtension = sponsorshipDeclared
+    ? await trySignTrc20ApprovalResourceSponsoringExtension(
+        signer,
+        paymentRequirements,
+        requiredAllowance,
+        context,
+      )
+    : { handled: false, extensions: undefined };
+
+  if (sponsorshipDeclared && !approvalExtension.handled) {
+    await signer.ensureAllowance?.({
+      token: paymentRequirements.asset,
+      amount: requiredAllowance,
+      network,
+    });
+  }
+
   return {
     x402Version,
     payload,
+    ...(approvalExtension.extensions ? { extensions: approvalExtension.extensions } : {}),
   };
 }
 

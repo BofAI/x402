@@ -127,7 +127,23 @@ export async function settlePermit2(
     };
   }
 
-  const sponsorshipFailure = await executeTrc20Sponsorship(payload, requirements, payer, context);
+  const sponsorshipFailure = await executeTrc20Sponsorship(
+    payload,
+    requirements,
+    payer,
+    context,
+    requirements.amount,
+    async () => {
+      const authorization = await verifyPermit2Authorization(
+        signer,
+        payload,
+        requirements,
+        permit2Payload,
+      );
+      if (!authorization.isValid) return authorization;
+      return verifyPermit2AccountState(signer, requirements, payer, false);
+    },
+  );
   if (sponsorshipFailure) return sponsorshipFailure;
   return submitPermit2Settlement(signer, payload, requirements, permit2Payload);
 }

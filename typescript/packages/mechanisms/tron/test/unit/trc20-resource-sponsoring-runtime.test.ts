@@ -29,6 +29,7 @@ const request: Trc20ApprovalResourceSponsoringRequest = {
   asset: TOKEN,
   spender: SPENDER,
   amount: String((1n << 256n) - 1n),
+  requiredAllowance: "1000000",
   signedTransaction: "0a02abcd",
   paymentPayload: {
     x402Version: 2,
@@ -279,6 +280,58 @@ describe("TRC-20 resource sizing", () => {
 });
 
 describe("TRC-20 Approval resource-sponsoring runtime", () => {
+  it("uses the selected operation allowance instead of the request price", async () => {
+    const harness = createHarness();
+    const result = await harness.runtime.verify({
+      ...request,
+      requiredAllowance: "3000000",
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      invalidReason: "insufficient_funds",
+      invalidMessage: "insufficient_funds",
+    });
+  });
+
+  it("resumes a 1.1 exact operation when the new request carries the default allowance", async () => {
+    const harness = createHarness();
+    harness.results.set(harness.ids.undelegateEnergy, "unknown");
+    harness.results.set(harness.ids.undelegateBandwidth, "unknown");
+    const legacyRequest = structuredClone(request);
+    delete (legacyRequest as { requiredAllowance?: string }).requiredAllowance;
+
+    const first = await harness.runtime.sponsor(legacyRequest);
+    const retried = await harness.runtime.sponsor(request);
+
+    expect(first.success).toBe(true);
+    expect(retried).toMatchObject({ success: true });
+    expect(retried).not.toHaveProperty("errorReason", "approval_transaction_reused");
+  });
+
+  it("revalidates the scheme after delegation and reclaims without broadcasting Approval", async () => {
+    const harness = createHarness();
+    const result = await harness.runtime.sponsor(request, {
+      revalidate: async () => ({
+        isValid: false,
+        invalidReason: "scheme_authorization_expired",
+        invalidMessage: "scheme authorization expired during delegation",
+      }),
+    });
+
+    expect(result).toMatchObject({
+      success: false,
+      errorReason: "scheme_authorization_expired",
+    });
+    expect(harness.broadcasts).toEqual([
+      harness.ids.delegateEnergy,
+      harness.ids.delegateBandwidth,
+      harness.ids.undelegateEnergy,
+      harness.ids.undelegateBandwidth,
+    ]);
+    expect(harness.broadcasts).not.toContain(APPROVAL_TX_ID);
+  });
+
   it("persists, delegates, approves, and reclaims both resource legs in order", async () => {
     const harness = createHarness();
     const verified = await harness.runtime.verify(request);

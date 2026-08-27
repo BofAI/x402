@@ -629,7 +629,8 @@ export async function createTronWebResourceSponsoringChain(
     },
 
     async allowanceSufficient(request) {
-      return (await readAllowance(request)) >= BigInt(request.paymentRequirements.amount);
+      const requiredAllowance = request.requiredAllowance ?? request.paymentRequirements.amount;
+      return (await readAllowance(request)) >= BigInt(requiredAllowance);
     },
 
     async capacityRecovered(operation: Trc20SponsoringOperation) {

@@ -7,4 +7,6 @@ export {
   type Trc20ApprovalResourceSponsoringInfo,
   type Trc20ApprovalResourceSponsoringRequest,
   type Trc20ApprovalResourceSponsoringRuntime,
+  type Trc20SponsorshipExecutionOptions,
+  type Trc20SponsorshipRevalidationResult,
 } from "./extensions";

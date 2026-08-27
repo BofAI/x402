@@ -13,6 +13,7 @@ import {
 import { buildTronWeb } from "../../src/rpc";
 import { privateKeyTronWallet } from "./helpers";
 import { uptoPermit2WitnessTypes, X402_UPTO_PERMIT2_PROXY_ADDRESSES } from "../../src/constants";
+import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "../../src/exact/extensions";
 
 // The signer factories build TronWeb internally; mock that builder so each signer
 // gets a TronWeb seeded with its own key (set right before each create call).
@@ -129,6 +130,34 @@ async function wire(chain: Chain, capture?: WriteCapture) {
 }
 
 describe("upto Permit2 end-to-end (in-process)", () => {
+  it("returns a sponsored Approval for the authorized maximum when allowance is zero", async () => {
+    const chain: Chain = { balance: 10_000_000n, allowance: 0n };
+    const { server, facilitator } = await wire(chain);
+    const req = await negotiate(server, facilitator);
+    const baseSigner = await clientSigner(chain);
+    const signPermit2Approval = vi.fn(async () => "0a02abcd");
+    const ensureAllowance = vi.fn(async () => true);
+    const client = new UptoClient({
+      ...baseSigner,
+      signPermit2Approval,
+      ensureAllowance,
+    });
+
+    const result = await client.createPaymentPayload(2, req, {
+      extensions: {
+        [TRC20_APPROVAL_RESOURCE_SPONSORING_KEY]: {
+          info: { version: "1" },
+        },
+      },
+    });
+
+    expect(signPermit2Approval).toHaveBeenCalledWith({ token: req.asset, network: NETWORK });
+    expect(ensureAllowance).not.toHaveBeenCalled();
+    expect(result.extensions?.[TRC20_APPROVAL_RESOURCE_SPONSORING_KEY]).toMatchObject({
+      info: { from: baseSigner.address, asset: req.asset, signedTransaction: "0a02abcd" },
+    });
+  });
+
   it("negotiates the facilitator address and signs a 3-field witness", async () => {
     const chain: Chain = { balance: 10_000_000n, allowance: 10_000_000n };
     const { server, facilitator, client } = await wire(chain);
@@ -254,6 +283,25 @@ describe("upto Permit2 end-to-end (in-process)", () => {
     const verify = await facilitator.verify(payload, req);
     expect(verify.isValid).toBe(false);
     expect(verify.invalidReason).toBe("permit2_allowance_required");
+  });
+
+  it("fails closed on a malformed sponsored Approval after upto authorization validation", async () => {
+    const chain: Chain = { balance: 10_000_000n, allowance: 10_000_000n };
+    const { server, facilitator, client } = await wire(chain);
+    const req = await negotiate(server, facilitator);
+    const payload = await pay(client, req);
+    payload.extensions = {
+      [TRC20_APPROVAL_RESOURCE_SPONSORING_KEY]: { info: { version: "1" } },
+    };
+
+    const verify = await facilitator.verify(payload, req, {
+      getExtension: vi.fn(() => undefined),
+    });
+
+    expect(verify).toMatchObject({
+      isValid: false,
+      invalidReason: "approval_extension_invalid",
+    });
   });
 
   it("rejects a recipient mismatch at verify", async () => {

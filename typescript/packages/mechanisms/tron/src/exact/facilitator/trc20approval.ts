@@ -514,6 +514,7 @@ export function validateTrc20ApprovalForPayment(
  * @param approval - Strictly decoded Approval.
  * @param payload - Complete x402 payment payload.
  * @param requirements - Trusted payment requirements.
+ * @param requiredAllowance - Permit2 allowance required by the selected operation.
  * @returns Runtime request bound to the Approval and Payment.
  */
 export function buildTrc20ApprovalSponsoringRequest(
@@ -521,6 +522,7 @@ export function buildTrc20ApprovalSponsoringRequest(
   approval: DecodedTrc20Approval,
   payload: PaymentPayload,
   requirements: PaymentRequirements,
+  requiredAllowance = requirements.amount,
 ): Trc20ApprovalResourceSponsoringRequest {
   return {
     network: requirements.network,
@@ -534,6 +536,7 @@ export function buildTrc20ApprovalSponsoringRequest(
     asset: approval.asset,
     spender: approval.spender,
     amount: approval.amount,
+    requiredAllowance,
     signedTransaction: info.signedTransaction,
     paymentPayload: payload,
     paymentRequirements: requirements,

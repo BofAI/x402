@@ -27,6 +27,7 @@ function runtimeRequest(): Trc20ApprovalResourceSponsoringRequest {
     asset: TOKEN,
     spender: SPENDER,
     amount: String((1n << 256n) - 1n),
+    requiredAllowance: "1000000",
     signedTransaction: "0a02abcd",
     paymentPayload: {
       x402Version: 2,

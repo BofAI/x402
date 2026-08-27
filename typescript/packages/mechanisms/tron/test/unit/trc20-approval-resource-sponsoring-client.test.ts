@@ -6,6 +6,7 @@ import {
   TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
 } from "../../src/exact/extensions";
 import type { ClientTronSigner } from "../../src/signer";
+import { trySignTrc20ApprovalResourceSponsoringExtension } from "../../src/shared/extensions";
 
 const NETWORK = "tron:0xcd8690dc";
 const PAYER = "TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC";
@@ -42,6 +43,21 @@ function signer(allowance: bigint): ClientTronSigner {
 }
 
 describe("TRC-20 Approval Resource Sponsoring client", () => {
+  it("uses the selected Permit2 operation amount as the allowance threshold", async () => {
+    const clientSigner = signer(1_500_000n);
+
+    await expect(
+      trySignTrc20ApprovalResourceSponsoringExtension(
+        clientSigner,
+        requirements as never,
+        2_000_000n,
+        context,
+      ),
+    ).rejects.toThrow("approval_reset_required");
+
+    expect(clientSigner.signPermit2Approval).not.toHaveBeenCalled();
+  });
+
   it("signs the Approval without broadcasting when the Server advertises version 1", async () => {
     const clientSigner = signer(0n);
     const result = await new ExactTronScheme(clientSigner).createPaymentPayload(
@@ -67,6 +83,23 @@ describe("TRC-20 Approval Resource Sponsoring client", () => {
         },
       },
     });
+  });
+
+  it("signs the scheme authorization before the sponsored Approval", async () => {
+    const calls: string[] = [];
+    const clientSigner = signer(0n);
+    clientSigner.signTypedData = vi.fn(async () => {
+      calls.push("scheme-authorization");
+      return "0xpermit2-signature" as `0x${string}`;
+    });
+    clientSigner.signPermit2Approval = vi.fn(async () => {
+      calls.push("approval");
+      return SIGNED_APPROVAL;
+    });
+
+    await new ExactTronScheme(clientSigner).createPaymentPayload(2, requirements as never, context);
+
+    expect(calls).toEqual(["scheme-authorization", "approval"]);
   });
 
   it("does not create an Approval when allowance is already sufficient", async () => {

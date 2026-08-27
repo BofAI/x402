@@ -11,6 +11,8 @@ import { ExactEIP3009Payload, ExactTronPayload, isPermit2Payload } from "../../t
 import { X402_PERMIT2_PROXY_ADDRESSES } from "../../constants";
 import { verifyEIP3009, settleEIP3009 } from "./eip3009";
 import { verifyPermit2, settlePermit2 } from "./permit2";
+import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "../extensions";
+import * as errors from "./errors";
 
 /**
  * TRON facilitator implementation for the Exact payment scheme.
@@ -79,6 +81,15 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
       return verifyPermit2(this.signer, payload, requirements, rawPayload, context);
     }
 
+    if (
+      Object.prototype.hasOwnProperty.call(
+        payload.extensions ?? {},
+        TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
+      )
+    ) {
+      return { isValid: false, invalidReason: errors.APPROVAL_EXTENSION_INVALID };
+    }
+
     return verifyEIP3009(this.signer, payload, requirements, rawPayload as ExactEIP3009Payload);
   }
 
@@ -99,6 +110,20 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
 
     if (isPermit2Payload(rawPayload)) {
       return settlePermit2(this.signer, payload, requirements, rawPayload, context);
+    }
+
+    if (
+      Object.prototype.hasOwnProperty.call(
+        payload.extensions ?? {},
+        TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
+      )
+    ) {
+      return {
+        success: false,
+        network: payload.accepted.network,
+        transaction: "",
+        errorReason: errors.APPROVAL_EXTENSION_INVALID,
+      };
     }
 
     return settleEIP3009(this.signer, payload, requirements, rawPayload as ExactEIP3009Payload);

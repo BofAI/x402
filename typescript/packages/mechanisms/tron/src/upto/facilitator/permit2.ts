@@ -1,4 +1,5 @@
 import {
+  FacilitatorContext,
   PaymentPayload,
   PaymentRequirements,
   SettleResponse,
@@ -16,6 +17,15 @@ import { FacilitatorTronSigner } from "../../signer";
 import { UptoPermit2Payload } from "../../types";
 import { getTronChainId, normalizeAddressForSigning } from "../../utils";
 import * as errors from "./errors";
+import {
+  executeTrc20Sponsorship,
+  verifyTrc20Sponsorship,
+} from "../../shared/extensions/trc20ApprovalResourceSponsoring";
+
+interface UptoVerificationOptions {
+  readonly verifySponsorship?: boolean;
+  readonly requireAllowance?: boolean;
+}
 
 /**
  * Verifies an Upto Permit2 payment payload on TRON.
@@ -28,6 +38,8 @@ import * as errors from "./errors";
  * @param payload - The payment payload.
  * @param requirements - The payment requirements (amount = authorized maximum).
  * @param permit2Payload - The Upto Permit2 specific payload.
+ * @param context - Registered Facilitator extension capabilities.
+ * @param options - Internal controls for the post-delegation revalidation pass.
  * @returns The verification response.
  */
 export async function verifyUptoPermit2(
@@ -35,6 +47,8 @@ export async function verifyUptoPermit2(
   payload: PaymentPayload,
   requirements: PaymentRequirements,
   permit2Payload: UptoPermit2Payload,
+  context?: FacilitatorContext,
+  options: UptoVerificationOptions = {},
 ): Promise<VerifyResponse> {
   const payer = permit2Payload.permit2Authorization.from;
 
@@ -139,17 +153,26 @@ export async function verifyUptoPermit2(
     return { isValid: false, invalidReason: errors.PERMIT2_INVALID_SIGNATURE, payer };
   }
 
-  // Check Permit2 allowance covers the authorized maximum
-  try {
-    const allowance = (await signer.readContract({
-      address: requirements.asset,
-      abi: erc20AllowanceAbi as unknown as readonly Record<string, unknown>[],
-      functionName: "allowance",
-      args: [payer, permit2Address],
-    })) as bigint;
+  const sponsorship =
+    options.verifySponsorship === false
+      ? null
+      : await verifyTrc20Sponsorship(payload, requirements, payer, context);
+  if (sponsorship && !sponsorship.isValid) return sponsorship;
 
-    if (allowance < BigInt(requirements.amount)) {
-      return { isValid: false, invalidReason: errors.PERMIT2_ALLOWANCE_REQUIRED, payer };
+  // Check Permit2 allowance covers the authorized maximum when the Approval is
+  // not supplied through the resource-sponsoring extension.
+  try {
+    if (options.requireAllowance ?? sponsorship === null) {
+      const allowance = (await signer.readContract({
+        address: requirements.asset,
+        abi: erc20AllowanceAbi as unknown as readonly Record<string, unknown>[],
+        functionName: "allowance",
+        args: [payer, permit2Address],
+      })) as bigint;
+
+      if (allowance < BigInt(requirements.amount)) {
+        return { isValid: false, invalidReason: errors.PERMIT2_ALLOWANCE_REQUIRED, payer };
+      }
     }
   } catch {
     // If allowance check fails, proceed optimistically
@@ -190,6 +213,7 @@ export async function verifyUptoPermit2(
  * @param payload - The payment payload.
  * @param requirements - The payment requirements (amount = actual settlement amount).
  * @param permit2Payload - The Upto Permit2 specific payload.
+ * @param context - Registered Facilitator extension capabilities.
  * @returns The settlement response.
  */
 export async function settleUptoPermit2(
@@ -197,6 +221,7 @@ export async function settleUptoPermit2(
   payload: PaymentPayload,
   requirements: PaymentRequirements,
   permit2Payload: UptoPermit2Payload,
+  context?: FacilitatorContext,
 ): Promise<SettleResponse> {
   const payer = permit2Payload.permit2Authorization.from;
   const settlementAmount = BigInt(requirements.amount);
@@ -209,7 +234,13 @@ export async function settleUptoPermit2(
     amount: permit2Payload.permit2Authorization.permitted.amount,
   };
 
-  const valid = await verifyUptoPermit2(signer, payload, verifyRequirements, permit2Payload);
+  const valid = await verifyUptoPermit2(
+    signer,
+    payload,
+    verifyRequirements,
+    permit2Payload,
+    context,
+  );
   if (!valid.isValid) {
     return {
       success: false,
@@ -241,6 +272,20 @@ export async function settleUptoPermit2(
       amount: "0",
     };
   }
+
+  const sponsorshipFailure = await executeTrc20Sponsorship(
+    payload,
+    verifyRequirements,
+    payer,
+    context,
+    verifyRequirements.amount,
+    () =>
+      verifyUptoPermit2(signer, payload, verifyRequirements, permit2Payload, context, {
+        verifySponsorship: false,
+        requireAllowance: false,
+      }),
+  );
+  if (sponsorshipFailure) return sponsorshipFailure;
 
   const proxyAddress = X402_UPTO_PERMIT2_PROXY_ADDRESSES[requirements.network]!;
 

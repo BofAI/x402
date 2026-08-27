@@ -12,7 +12,10 @@ import type {
   Trc20SponsoringPreflight,
   TronResourceType,
 } from "./types";
-import type { Trc20ApprovalResourceSponsoringRequest } from "../exact/extensions";
+import type {
+  Trc20ApprovalResourceSponsoringRequest,
+  Trc20SponsorshipExecutionOptions,
+} from "../exact/extensions";
 
 const DEFAULT_ENERGY_SAFETY_BPS = 12_000n;
 const DEFAULT_BANDWIDTH_SAFETY_BPS = 11_000n;
@@ -98,7 +101,21 @@ function canonicalJson(value: unknown): string {
  * @returns Lowercase SHA-256 digest.
  */
 function requestDigest(request: Trc20ApprovalResourceSponsoringRequest): string {
-  const bytes = new TextEncoder().encode(canonicalJson(request));
+  // Version 1.1 persisted exact requests before `requiredAllowance` existed.
+  // Its default value is already bound by paymentRequirements.amount, so omit
+  // that redundant representation to keep durable retry digests compatible.
+  let normalizedRequest:
+    | Omit<Trc20ApprovalResourceSponsoringRequest, "requiredAllowance">
+    | typeof request = request;
+  if (
+    request.requiredAllowance === undefined ||
+    request.requiredAllowance === request.paymentRequirements.amount
+  ) {
+    const { requiredAllowance, ...legacyRequest } = request;
+    void requiredAllowance;
+    normalizedRequest = legacyRequest;
+  }
+  const bytes = new TextEncoder().encode(canonicalJson(normalizedRequest));
   return tronUtils.code.byteArray2hexStr(tronUtils.crypto.SHA256(bytes)).toLowerCase();
 }
 
@@ -113,12 +130,12 @@ function validatePreflight(
   request: Trc20ApprovalResourceSponsoringRequest,
   preflight: Trc20SponsoringPreflight,
 ): "approval_required" | "approval_satisfied" {
+  const requiredAllowance = BigInt(request.requiredAllowance ?? request.paymentRequirements.amount);
   if (!preflight.accountActivated) throw new SponsoringFailure("payer_account_not_activated");
   if (preflight.accountIsContract) throw new SponsoringFailure("payer_account_not_eoa");
-  if (preflight.tokenBalance < BigInt(request.paymentRequirements.amount)) {
+  if (preflight.tokenBalance < requiredAllowance) {
     throw new SponsoringFailure("insufficient_funds");
   }
-  const requiredAllowance = BigInt(request.paymentRequirements.amount);
   if (preflight.allowance === 0n) return "approval_required";
   if (preflight.allowance >= requiredAllowance) return "approval_satisfied";
   throw new SponsoringFailure("approval_reset_required");
@@ -538,9 +555,13 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
    * Runs or resumes one idempotent payer-serialized sponsorship operation.
    *
    * @param request - Sponsorship request.
+   * @param executionOptions - Scheme checks that must be repeated immediately before broadcast.
    * @returns Terminal response for the synchronous x402 settle flow.
    */
-  async function executeNewOrExisting(request: Trc20ApprovalResourceSponsoringRequest): Promise<{
+  async function executeNewOrExisting(
+    request: Trc20ApprovalResourceSponsoringRequest,
+    executionOptions?: Trc20SponsorshipExecutionOptions,
+  ): Promise<{
     success: boolean;
     approvalTransaction?: string;
     errorReason?: string;
@@ -620,6 +641,24 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
           throw new SponsoringFailure("delegated_resources_not_visible");
         }
         current = await persist(withStatus(current, "resources_visible"));
+
+        if (executionOptions?.revalidate) {
+          let revalidation;
+          try {
+            revalidation = await executionOptions.revalidate();
+          } catch {
+            throw new SponsoringFailure(
+              "scheme_revalidation_failed",
+              "payment scheme revalidation failed",
+            );
+          }
+          if (!revalidation.isValid) {
+            throw new SponsoringFailure(
+              revalidation.invalidReason ?? "scheme_revalidation_failed",
+              revalidation.invalidMessage ?? "payment scheme authorization is no longer valid",
+            );
+          }
+        }
 
         const refreshed = await options.chain.preflight(current.request);
         const approvalState = validatePreflight(current.request, refreshed);

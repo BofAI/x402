@@ -1,4 +1,8 @@
-import { PaymentRequirements, PaymentPayloadResult } from "@bankofai/x402-core/types";
+import {
+  PaymentPayloadContext,
+  PaymentRequirements,
+  PaymentPayloadResult,
+} from "@bankofai/x402-core/types";
 import { ClientTronSigner } from "../../signer";
 import { PERMIT2_ADDRESSES } from "../../constants";
 import { createNonce, getTronChainId, normalizeAddressForSigning } from "../../utils";
@@ -9,6 +13,7 @@ import {
 import { computeChannelId } from "../../shared/batch-settlement/utils";
 import { ChannelConfig, BatchSettlementDepositPayload } from "../types";
 import { signVoucher } from "./voucher";
+import { trySignTrc20ApprovalResourceSponsoringExtension } from "../../shared/extensions/resourceSponsoring";
 
 /**
  * Builds a batch deposit payload using a channel-bound Permit2 witness transfer.
@@ -20,6 +25,7 @@ import { signVoucher } from "./voucher";
  * @param depositAmount - Token amount deposited into the channel.
  * @param maxClaimableAmount - Cumulative amount signed in the voucher.
  * @param voucherSigner - Optional signer for the voucher.
+ * @param context - Optional context containing Server-declared extensions.
  * @returns Signed deposit payload and voucher.
  */
 export async function createBatchSettlementPermit2DepositPayload(
@@ -30,6 +36,7 @@ export async function createBatchSettlementPermit2DepositPayload(
   depositAmount: string,
   maxClaimableAmount: string,
   voucherSigner?: ClientTronSigner,
+  context?: PaymentPayloadContext,
 ): Promise<PaymentPayloadResult> {
   const network = paymentRequirements.network;
   const chainId = getTronChainId(network);
@@ -95,5 +102,24 @@ export async function createBatchSettlementPermit2DepositPayload(
     },
   };
 
-  return { x402Version, payload };
+  const requiredAllowance = BigInt(depositAmount);
+  const approvalExtension = await trySignTrc20ApprovalResourceSponsoringExtension(
+    signer,
+    paymentRequirements,
+    requiredAllowance,
+    context,
+  );
+  if (!approvalExtension.handled) {
+    await signer.ensureAllowance?.({
+      token: paymentRequirements.asset,
+      amount: requiredAllowance,
+      network,
+    });
+  }
+
+  return {
+    x402Version,
+    payload,
+    ...(approvalExtension.extensions ? { extensions: approvalExtension.extensions } : {}),
+  };
 }

@@ -2,6 +2,7 @@
 export const INVALID_SCHEME = "invalid_exact_tron_scheme";
 export const MISSING_TIP712_DOMAIN = "missing_tip712_domain";
 export const NETWORK_MISMATCH = "invalid_exact_tron_network_mismatch";
+export const INVALID_ASSET_TRANSFER_METHOD = "invalid_exact_tron_asset_transfer_method";
 export const INVALID_SIGNATURE = "invalid_exact_tron_payload_signature";
 export const RECIPIENT_MISMATCH = "invalid_exact_tron_payload_recipient_mismatch";
 export const VALID_BEFORE_EXPIRED = "invalid_exact_tron_payload_authorization_valid_before";

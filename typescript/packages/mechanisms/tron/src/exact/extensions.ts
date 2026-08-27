@@ -27,9 +27,22 @@ export interface Trc20ApprovalResourceSponsoringRequest {
   readonly asset: string;
   readonly spender: string;
   readonly amount: string;
+  /** Permit2 allowance required by the selected payment or deposit operation. */
+  readonly requiredAllowance?: string;
   readonly signedTransaction: string;
   readonly paymentPayload: PaymentPayload;
   readonly paymentRequirements: PaymentRequirements;
+}
+
+export interface Trc20SponsorshipRevalidationResult {
+  readonly isValid: boolean;
+  readonly invalidReason?: string;
+  readonly invalidMessage?: string;
+}
+
+export interface Trc20SponsorshipExecutionOptions {
+  /** Revalidates the payment scheme after delegation and before Approval broadcast. */
+  readonly revalidate?: () => Promise<Trc20SponsorshipRevalidationResult>;
 }
 
 export interface Trc20ApprovalResourceSponsoringRuntime {
@@ -38,7 +51,10 @@ export interface Trc20ApprovalResourceSponsoringRuntime {
     invalidReason?: string;
     invalidMessage?: string;
   }>;
-  sponsor(request: Trc20ApprovalResourceSponsoringRequest): Promise<{
+  sponsor(
+    request: Trc20ApprovalResourceSponsoringRequest,
+    options?: Trc20SponsorshipExecutionOptions,
+  ): Promise<{
     success: boolean;
     approvalTransaction?: string;
     errorReason?: string;
