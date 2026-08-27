@@ -8,12 +8,16 @@ import {
 } from "../../../../extensions/src/trc20-approval-resource-sponsoring";
 import { PERMIT2_ADDRESSES, TRON_NILE } from "../../src/constants";
 import { ExactTronScheme as ExactClient } from "../../src/exact/client/scheme";
+import { ExactTronScheme as ExactFacilitator } from "../../src/exact/facilitator";
 import {
-  ExactTronScheme as ExactFacilitator,
   createTrc20ResourceSponsoringRuntime,
   InMemoryTrc20SponsoringCoordinator,
-} from "../../src/exact/facilitator";
+} from "../../src/resource-sponsoring";
 import { ExactTronScheme as ExactServer } from "../../src/exact/server/scheme";
+import { UptoTronScheme as UptoClient } from "../../src/upto/client/scheme";
+import { UptoTronScheme as UptoFacilitator } from "../../src/upto/facilitator/scheme";
+import { BatchSettlementTronScheme as BatchClient } from "../../src/batch-settlement/client/scheme";
+import { BatchSettlementTronScheme as BatchFacilitator } from "../../src/batch-settlement/facilitator/scheme";
 import {
   createClientTronSigner,
   createFacilitatorTronSigner,
@@ -57,6 +61,11 @@ function privateKeyWallet(
 async function readAllowance(tronWeb: TronWeb, payer: string): Promise<bigint> {
   const token = await tronWeb.contract().at(USDT_NILE);
   return BigInt(await token.allowance(payer, PERMIT2_NILE).call());
+}
+
+async function readTokenBalance(tronWeb: TronWeb, payer: string): Promise<bigint> {
+  const token = await tronWeb.contract().at(USDT_NILE);
+  return BigInt(await token.balanceOf(payer).call());
 }
 
 async function waitForPackedTransaction(tronWeb: TronWeb, txID: string): Promise<void> {
@@ -165,6 +174,74 @@ const configured =
   (!!process.env.TRON_NILE_CLIENT_KEY || process.env.TRON_NILE_FRESH_PAYER === "true") &&
   !!process.env.TRON_NILE_FACILITATOR_KEY &&
   !!process.env.TRON_NILE_PAY_TO;
+
+async function createFreshSponsoringHarness() {
+  const rpcUrl = process.env.TRON_NILE_RPC_URL?.trim() || "https://api.nileex.io";
+  const resourceOwnerKey = required("TRON_NILE_FACILITATOR_KEY").replace(/^0x/, "");
+  const permissionId = Number.parseInt(process.env.TRON_NILE_FACILITATOR_PERMISSION_ID || "0", 10);
+  if (permissionId <= 0) {
+    throw new Error("TRON_NILE_FACILITATOR_PERMISSION_ID must select an Active Permission");
+  }
+
+  const payerKey = (await TronWeb.createAccount()).privateKey;
+  const payerTronWeb = new TronWeb({ fullHost: rpcUrl, privateKey: payerKey });
+  const ownerTronWeb = new TronWeb({ fullHost: rpcUrl, privateKey: resourceOwnerKey });
+  const payerWallet = privateKeyWallet(payerTronWeb, payerKey);
+  const resourceOwnerWallet = privateKeyWallet(ownerTronWeb, resourceOwnerKey);
+  const payer = await payerWallet.getAddress();
+  const resourceOwner = await resourceOwnerWallet.getAddress();
+
+  await fundFreshPayer(ownerTronWeb, resourceOwner, resourceOwnerKey, payer, permissionId);
+  await waitForActivatedAccount(payerTronWeb, payer);
+
+  const clientSigner = await createClientTronSigner(payerWallet, {
+    network: TRON_NILE,
+    rpcUrl,
+  });
+  const facilitatorSigner = await createFacilitatorTronSigner(resourceOwnerWallet, {
+    network: TRON_NILE,
+    rpcUrl,
+    permissionId,
+  });
+  const runtime = await createTrc20ResourceSponsoringRuntime({
+    network: TRON_NILE,
+    rpcUrl,
+    resourceOwnerSigner: {
+      getAddress: () => resourceOwnerWallet.getAddress(),
+      signResourceTransaction: ({ transaction }) =>
+        resourceOwnerWallet.signTransaction(transaction),
+    },
+    coordinator: new InMemoryTrc20SponsoringCoordinator(),
+    allowedAssets: [USDT_NILE],
+    confirmationMode: "packed",
+    permissionId,
+    recoveryWindowMs: 0,
+  });
+
+  return {
+    payer,
+    resourceOwner,
+    payerTronWeb,
+    ownerTronWeb,
+    clientSigner,
+    facilitatorSigner,
+    runtime,
+  };
+}
+
+async function expectResourcesRecovered(
+  harness: Awaited<ReturnType<typeof createFreshSponsoringHarness>>,
+): Promise<void> {
+  const recovery = await harness.runtime.reconcile();
+  console.info("[nile] resource recovery", recovery);
+  expect(recovery).toEqual({ examined: 1, recovered: 1 });
+  const delegated = await harness.ownerTronWeb.trx.getDelegatedResourceV2(
+    harness.resourceOwner,
+    harness.payer,
+    { confirmed: false },
+  );
+  expect(delegated.delegatedResource ?? []).toHaveLength(0);
+}
 
 describe.skipIf(!configured)("TRC-20 Approval Resource Sponsoring on Nile", () => {
   it("runs the local Server, Client, and Facilitator lifecycle on-chain", async () => {
@@ -286,5 +363,120 @@ describe.skipIf(!configured)("TRC-20 Approval Resource Sponsoring on Nile", () =
       confirmed: false,
     });
     expect(delegated.delegatedResource ?? []).toHaveLength(0);
+  }, 180_000);
+
+  it("sponsors the upto maximum and settles a smaller amount on-chain", async () => {
+    const harness = await createFreshSponsoringHarness();
+    const payTo = required("TRON_NILE_PAY_TO");
+    const maximumAmount = "5000";
+    const settlementAmount = "1000";
+    const facilitatorScheme = new UptoFacilitator(harness.facilitatorSigner);
+    const requirements = {
+      scheme: "upto",
+      network: TRON_NILE,
+      asset: USDT_NILE,
+      amount: maximumAmount,
+      payTo,
+      maxTimeoutSeconds: 600,
+      extra: facilitatorScheme.getExtra(TRON_NILE),
+    } as PaymentRequirements;
+    const payloadResult = await new UptoClient(harness.clientSigner).createPaymentPayload(
+      2,
+      requirements,
+      { extensions: declareTrc20ApprovalResourceSponsoringExtension() },
+    );
+    const paymentPayload = {
+      x402Version: 2,
+      accepted: requirements,
+      payload: payloadResult.payload,
+      extensions: payloadResult.extensions,
+    } as PaymentPayload;
+    const facilitator = new x402Facilitator()
+      .register(TRON_NILE, facilitatorScheme)
+      .registerExtension(createTrc20ApprovalResourceSponsoringExtension(harness.runtime));
+    const trxBefore = await harness.payerTronWeb.trx.getBalance(harness.payer);
+    const balanceBefore = await readTokenBalance(harness.payerTronWeb, harness.payer);
+
+    expect(paymentPayload.extensions?.trc20ApprovalResourceSponsoring).toBeDefined();
+    expect(await readAllowance(harness.payerTronWeb, harness.payer)).toBe(0n);
+    const verification = await facilitator.verify(paymentPayload, requirements);
+    console.info("[nile][upto] verification", verification);
+    expect(verification.isValid).toBe(true);
+
+    const settlement = await facilitator.settle(paymentPayload, {
+      ...requirements,
+      amount: settlementAmount,
+    });
+    console.info("[nile][upto] settlement", settlement);
+    expect(settlement).toMatchObject({ success: true, amount: settlementAmount });
+    expect(settlement.transaction).toMatch(/^[0-9a-f]{64}$/i);
+    expect(await readAllowance(harness.payerTronWeb, harness.payer)).toBeGreaterThanOrEqual(
+      BigInt(maximumAmount),
+    );
+    expect(await readTokenBalance(harness.payerTronWeb, harness.payer)).toBe(
+      balanceBefore - BigInt(settlementAmount),
+    );
+    expect(await harness.payerTronWeb.trx.getBalance(harness.payer)).toBe(trxBefore);
+    await expectResourcesRecovered(harness);
+  }, 180_000);
+
+  it("sponsors a batch-settlement Permit2 deposit on-chain", async () => {
+    const harness = await createFreshSponsoringHarness();
+    const payTo = required("TRON_NILE_PAY_TO");
+    const requestAmount = "1000";
+    const depositAmount = "5000";
+    const facilitatorScheme = new BatchFacilitator(harness.facilitatorSigner);
+    const requirements = {
+      scheme: "batch-settlement",
+      network: TRON_NILE,
+      asset: USDT_NILE,
+      amount: requestAmount,
+      payTo,
+      maxTimeoutSeconds: 600,
+      extra: {
+        assetTransferMethod: "permit2",
+        receiverAuthorizer: harness.facilitatorSigner.getAddresses()[0],
+        withdrawDelay: 900,
+      },
+    } as PaymentRequirements;
+    const payloadResult = await new BatchClient(harness.clientSigner, {
+      depositPolicy: { depositMultiplier: 5 },
+    }).createPaymentPayload(2, requirements, {
+      extensions: declareTrc20ApprovalResourceSponsoringExtension(),
+    });
+    const paymentPayload = {
+      x402Version: 2,
+      accepted: requirements,
+      payload: payloadResult.payload,
+      extensions: payloadResult.extensions,
+    } as PaymentPayload;
+    const facilitator = new x402Facilitator()
+      .register(TRON_NILE, facilitatorScheme)
+      .registerExtension(createTrc20ApprovalResourceSponsoringExtension(harness.runtime));
+    const trxBefore = await harness.payerTronWeb.trx.getBalance(harness.payer);
+    const balanceBefore = await readTokenBalance(harness.payerTronWeb, harness.payer);
+
+    expect(paymentPayload.payload).toMatchObject({
+      type: "deposit",
+      deposit: { amount: depositAmount },
+    });
+    expect(paymentPayload.extensions?.trc20ApprovalResourceSponsoring).toBeDefined();
+    expect(await readAllowance(harness.payerTronWeb, harness.payer)).toBe(0n);
+    const verification = await facilitator.verify(paymentPayload, requirements);
+    console.info("[nile][batch] verification", verification);
+    expect(verification.isValid).toBe(true);
+
+    const settlement = await facilitator.settle(paymentPayload, requirements);
+    console.info("[nile][batch] settlement", settlement);
+    expect(settlement).toMatchObject({ success: true, amount: depositAmount });
+    expect(settlement.transaction).toMatch(/^[0-9a-f]{64}$/i);
+    expect(await readAllowance(harness.payerTronWeb, harness.payer)).toBeGreaterThanOrEqual(
+      BigInt(depositAmount),
+    );
+    expect(await readTokenBalance(harness.payerTronWeb, harness.payer)).toBe(
+      balanceBefore - BigInt(depositAmount),
+    );
+    expect(await harness.payerTronWeb.trx.getBalance(harness.payer)).toBe(trxBefore);
+    await expectResourcesRecovered(harness);
   }, 180_000);
 });
