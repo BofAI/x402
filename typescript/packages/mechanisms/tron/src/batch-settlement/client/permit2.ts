@@ -13,7 +13,7 @@ import {
 import { computeChannelId } from "../../shared/batch-settlement/utils";
 import { ChannelConfig, BatchSettlementDepositPayload } from "../types";
 import { signVoucher } from "./voucher";
-import { trySignTrc20ApprovalResourceSponsoringExtension } from "../../shared/extensions/resourceSponsoring";
+import { trySignTrc20ApprovalExtension } from "../../shared/extensions/resourceSponsoring";
 
 /**
  * Builds a batch deposit payload using a channel-bound Permit2 witness transfer.
@@ -103,11 +103,11 @@ export async function createBatchSettlementPermit2DepositPayload(
   };
 
   const requiredAllowance = BigInt(depositAmount);
-  const approvalExtension = await trySignTrc20ApprovalResourceSponsoringExtension(
+  const approvalExtension = await trySignTrc20ApprovalExtension(
     signer,
     paymentRequirements,
-    requiredAllowance,
     context,
+    requiredAllowance.toString(),
   );
   if (!approvalExtension.handled) {
     await signer.ensureAllowance?.({

@@ -13,7 +13,7 @@ import { ExactPermit2Payload } from "../../types";
 import { createNonce, getTronChainId, normalizeAddressForSigning } from "../../utils";
 import {
   isTrc20ApprovalResourceSponsoringDeclared,
-  trySignTrc20ApprovalResourceSponsoringExtension,
+  trySignTrc20ApprovalExtension,
 } from "../../shared/extensions/resourceSponsoring";
 
 /**
@@ -92,11 +92,11 @@ export async function createPermit2Payload(
   };
 
   const approvalExtension = sponsorshipDeclared
-    ? await trySignTrc20ApprovalResourceSponsoringExtension(
+    ? await trySignTrc20ApprovalExtension(
         signer,
         paymentRequirements,
-        requiredAllowance,
         context,
+        requiredAllowance.toString(),
       )
     : { handled: false, extensions: undefined };
 

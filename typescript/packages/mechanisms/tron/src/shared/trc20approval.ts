@@ -1,13 +1,13 @@
 import { TronWeb, utils as tronUtils } from "tronweb";
 import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
-import { PERMIT2_ADDRESSES } from "../../constants";
-import { normalizeAddressForSigning } from "../../utils";
+import { PERMIT2_ADDRESSES } from "../constants";
+import { normalizeAddressForSigning } from "../utils";
 import {
   TRC20_APPROVAL_MAX_AMOUNT,
   TRC20_APPROVAL_RESOURCE_SPONSORING_VERSION,
   type Trc20ApprovalResourceSponsoringInfo,
   type Trc20ApprovalResourceSponsoringRequest,
-} from "./trc20ApprovalContract";
+} from "./extensions/trc20ApprovalContract";
 
 const APPROVE_SELECTOR = "095ea7b3";
 const TRIGGER_SMART_CONTRACT_TYPE = 31n;

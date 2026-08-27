@@ -6,7 +6,7 @@ import {
   TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
 } from "../../src/shared/extensions/trc20ApprovalContract";
 import type { ClientTronSigner } from "../../src/signer";
-import { trySignTrc20ApprovalResourceSponsoringExtension } from "../../src/shared/extensions";
+import { trySignTrc20ApprovalExtension } from "../../src/shared/extensions";
 
 const NETWORK = "tron:0xcd8690dc";
 const PAYER = "TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC";
@@ -47,12 +47,7 @@ describe("TRC-20 Approval Resource Sponsoring client", () => {
     const clientSigner = signer(1_500_000n);
 
     await expect(
-      trySignTrc20ApprovalResourceSponsoringExtension(
-        clientSigner,
-        requirements as never,
-        2_000_000n,
-        context,
-      ),
+      trySignTrc20ApprovalExtension(clientSigner, requirements as never, context, "2000000"),
     ).rejects.toThrow("approval_reset_required");
 
     expect(clientSigner.signPermit2Approval).not.toHaveBeenCalled();

@@ -34,15 +34,15 @@ export function isTrc20ApprovalResourceSponsoringDeclared(
  *
  * @param signer - Client signer used to read allowance and sign the Approval.
  * @param requirements - Selected Permit2 payment or deposit requirements.
- * @param requiredAllowance - Permit2 allowance required by the selected operation.
  * @param context - Server-declared extension context.
+ * @param approvalAmount - Optional Permit2 allowance required by the selected operation.
  * @returns Whether the extension handled allowance and its optional payload fields.
  */
-export async function trySignTrc20ApprovalResourceSponsoringExtension(
+export async function trySignTrc20ApprovalExtension(
   signer: ClientTronSigner,
   requirements: PaymentRequirements,
-  requiredAllowance: bigint,
   context?: PaymentPayloadContext,
+  approvalAmount?: string,
 ): Promise<Trc20ApprovalExtensionAttempt> {
   const declaration = context?.extensions?.[TRC20_APPROVAL_RESOURCE_SPONSORING_KEY] as
     | { info?: Record<string, unknown> }
@@ -56,6 +56,8 @@ export async function trySignTrc20ApprovalResourceSponsoringExtension(
   if (!permit2) {
     throw new Error(`No Permit2 contract address configured for network ${requirements.network}`);
   }
+
+  const requiredAllowance = BigInt(approvalAmount ?? requirements.amount);
 
   const allowance = BigInt(
     (await signer.readContract({

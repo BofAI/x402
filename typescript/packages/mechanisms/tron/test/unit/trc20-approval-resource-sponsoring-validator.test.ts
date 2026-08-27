@@ -8,7 +8,7 @@ import {
 import {
   decodeSignedTrc20Approval,
   validateTrc20ApprovalForPayment,
-} from "../../src/shared/extensions/trc20ApprovalTransaction";
+} from "../../src/shared/trc20approval";
 import {
   TRC20_APPROVAL_MAX_AMOUNT,
   type Trc20ApprovalResourceSponsoringInfo,

@@ -17,7 +17,7 @@ import {
 import {
   buildTrc20ApprovalSponsoringRequest,
   validateTrc20ApprovalForPayment,
-} from "./trc20ApprovalTransaction";
+} from "../trc20approval";
 
 const errors = {
   APPROVAL_EXTENSION_INVALID: "approval_extension_invalid",
