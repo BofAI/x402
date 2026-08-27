@@ -2,13 +2,14 @@
 
 ## Summary
 
-`trc20ApprovalResourceSponsoring` enables the first `exact + Permit2` payment from an activated TRON
-externally owned account (EOA) without requiring the payer to hold or burn TRX. The Client signs, but
-does not broadcast, a transaction calling `token.approve(canonicalPermit2, MaxUint256)`. The
-Facilitator validates the signed transaction, temporarily delegates the required Energy and, when
+`trc20ApprovalResourceSponsoring` enables the first supported Permit2 payment or channel deposit from
+an activated TRON externally owned account (EOA) without requiring the payer to hold or burn TRX. The
+Client signs, but does not broadcast, a transaction calling
+`token.approve(canonicalPermit2, MaxUint256)`. The Facilitator validates the signed transaction and
+the selected Scheme's payment authorization, temporarily delegates the required Energy and, when
 needed, Bandwidth to the payer, broadcasts the unchanged Approval, reclaims the delegated resource
-share through durable asynchronous recovery, and settles the Permit2 payment without waiting for
-reclamation confirmation.
+share through durable asynchronous recovery, and continues the selected settlement or deposit
+without waiting for reclamation confirmation.
 
 The extension uses the normal x402 flow. It does not add a `prepare` endpoint or require an additional
 Resource Server interaction.
@@ -17,10 +18,17 @@ Version `1` supports:
 
 - the [`exact` TRON binding](../schemes/exact/scheme_exact_tron.md) with
   `extra.assetTransferMethod = "permit2"`;
+- the [`upto` TRON binding](../schemes/upto/scheme_upto_tron.md), which always uses Permit2;
+- the Permit2 `deposit` path of the
+  [`batch-settlement` TRON binding](../schemes/batch-settlement/scheme_batch_settlement_tron.md),
+  including an initial deposit or later top-up;
 - activated, single-signature EOAs using the default owner permission;
 - an allowance of exactly zero;
 - `approve(canonicalPermit2, MaxUint256)`; and
 - temporary Stake 2.0 delegation with `lock = false`.
+
+The extension is not used for EIP-3009 transfers or for `batch-settlement` voucher, claim, settle, or
+refund payloads that do not carry a Permit2 deposit.
 
 A non-zero but insufficient allowance fails with `approval_reset_required`. This extension does not
 define a general resource-rental API, a Sponsor Fee, collateral, GasFree-account settlement, or an
@@ -44,8 +52,14 @@ A Resource Server advertises the extension in `PaymentRequired.extensions`:
         "from": { "type": "string", "pattern": "^T[1-9A-HJ-NP-Za-km-z]{33}$" },
         "asset": { "type": "string", "pattern": "^T[1-9A-HJ-NP-Za-km-z]{33}$" },
         "spender": { "type": "string", "pattern": "^T[1-9A-HJ-NP-Za-km-z]{33}$" },
-        "amount": { "const": "115792089237316195423570985008687907853269984665640564039457584007913129639935" },
-        "signedTransaction": { "type": "string", "pattern": "^(?:[0-9a-f]{2})+$", "maxLength": 16384 },
+        "amount": {
+          "const": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+        },
+        "signedTransaction": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{2})+$",
+          "maxLength": 16384
+        },
         "version": { "const": "1" }
       },
       "required": ["from", "asset", "spender", "amount", "signedTransaction", "version"]
@@ -64,8 +78,15 @@ fields.
 ## Client payload
 
 The Client adds the extension only when the Server advertised version `"1"`, the selected transfer
-method is Permit2, and the current allowance is exactly zero. When using this extension, the Client
-MUST return the signed Approval to the Facilitator and MUST NOT broadcast it itself.
+method is Permit2, the current allowance is exactly zero, and the selected path is one of:
+
+- an `exact` payment;
+- an `upto` payment; or
+- a `batch-settlement` payload with `type = "deposit"` for an initial deposit or top-up.
+
+A `batch-settlement` voucher-only or other non-deposit payload MUST NOT carry the extension. When
+using this extension, the Client MUST return the signed Approval to the Facilitator and MUST NOT
+broadcast it itself.
 
 ```json
 {
@@ -98,9 +119,19 @@ Before signing, the Client MUST construct and inspect one `TriggerSmartContract`
 - a `fee_limit` within the Client's local safety policy.
 
 The Client computes `txID = SHA-256(raw_data protobuf bytes)`, signs that digest, and serializes the
-complete transaction containing the unchanged `raw_data` and exactly one signature. The separate
-Permit2 signature remains the authority for the exact payment amount, settlement proxy, recipient,
-nonce, and deadline.
+complete transaction containing the unchanged `raw_data` and exactly one signature.
+
+The Approval authorizes only canonical Permit2 to spend the token. The separate Scheme payload
+remains authoritative for all payment-specific fields:
+
+- `exact` binds the exact amount, settlement proxy, recipient, nonce, and deadline;
+- `upto` binds the authorized maximum, upto proxy, recipient, Facilitator, validity window, nonce,
+  and deadline; and
+- `batch-settlement` binds the deposit amount, Permit2 deposit collector, and channel ID, while the
+  separately signed voucher binds the channel's cumulative claimable amount.
+
+The Client MUST construct and validate the complete Scheme payload before signing the Approval. An
+Approval alone is not a payment, deposit, or voucher authorization.
 
 ## Facilitator verification
 
@@ -124,25 +155,38 @@ Before accepting the extension, the Facilitator MUST:
 8. validate TAPOS, timestamp, expiration, and a sufficient remaining broadcast window;
 9. require `fee_limit` to cover the current Energy estimate without exceeding the Facilitator's
    local hard cap or the network maximum;
-10. verify the Permit2 payment authorization, including network, payer, asset, amount, settlement
-    proxy, `payTo`, nonce, and deadline;
-11. require allowance exactly zero for a new sponsorship, sufficient token balance, and successful
-    simulation of the exact signed Approval; and
+10. require `PaymentPayload.accepted.scheme` to match `PaymentRequirements.scheme`, require the
+    selected Scheme and payload path to be supported by version `1`, and fully verify that Scheme's
+    payload before accepting sponsorship:
+    - for `exact`, verify network, payer, asset, exact amount, settlement proxy, `payTo`, nonce, and
+      deadline;
+    - for `upto`, verify network, payer, asset, signed maximum, upto proxy, `payTo`, bound Facilitator,
+      `validAfter`, nonce, deadline, and that the requested settlement amount cannot exceed the
+      signed maximum; and
+    - for `batch-settlement`, require a Permit2 `deposit` payload and verify the channel
+      configuration and ID, payer, asset, configured deposit collector, deposit amount, Permit2
+      nonce and deadline, voucher signature, cumulative amount, and post-deposit balance bounds;
+11. require allowance exactly zero for a new sponsorship, sufficient token balance for the exact
+    payment, upto maximum, or batch deposit as applicable, and successful simulation of the exact
+    signed Approval; and
 12. estimate the required Energy and Bandwidth and reject the request when resource or sponsorship
     policy limits are exceeded.
 
 The signed transaction is immutable. The Facilitator MUST broadcast the exact bytes supplied by the
 Client and MUST require the node-returned transaction ID to equal the computed `approvalTxID`.
 
-`/verify` is read-only and MUST NOT reserve, delegate, purchase, or broadcast resources. `/settle`
-MUST repeat all mutable checks immediately before creating a chain-side effect. Any decoding,
-signature, simulation, RPC, or policy error on the sponsored path fails closed.
+`/verify` is read-only and MUST NOT reserve, delegate, purchase, broadcast, deposit, or settle.
+`/settle` MUST repeat all mutable checks immediately before creating a chain-side effect. Any
+decoding, signature, simulation, RPC, Scheme validation, or policy error on the sponsored path fails
+closed.
 
 ## Settlement and resource sponsorship
 
 The Facilitator supplies resources only after it holds both the final signed Approval and a valid
-Permit2 payment authorization. `(network, approvalTxID)` MUST identify at most one sponsorship
-operation so concurrent or retried `/settle` calls cannot create duplicate delegations.
+authorization for the selected supported Scheme. `(network, approvalTxID)` MUST identify at most one
+sponsorship operation so concurrent or retried `/settle` calls cannot create duplicate delegations.
+Scheme-specific settlement, channel, deposit, and voucher idempotency remain independently governed
+by their respective Scheme specifications and MUST NOT be replaced by the sponsorship operation key.
 
 Settlement proceeds in this order:
 
@@ -150,13 +194,13 @@ Settlement proceeds in this order:
 2. reserve sufficient sponsorship capacity under the Facilitator's local policy;
 3. submit one unlocked `DelegateResource` transaction for each required resource type;
 4. confirm the delegated Energy and Bandwidth are visible and sufficient on the payer;
-5. repeat mutable Approval and Payment checks;
+5. repeat mutable Approval and Scheme-specific payment or deposit checks;
 6. broadcast the exact payer-signed Approval;
 7. confirm successful execution and independently observe the expected allowance;
 8. durably record the recovery debt and immediately attempt to prepare, persist, and submit a
    matching `UnDelegateResource` transaction for every successful delegation;
-9. continue with the Permit2 payment settlement without waiting for `UnDelegateResource`
-   confirmation; and
+9. continue with the `exact` or `upto` Permit2 settlement, or the `batch-settlement` Permit2 deposit,
+   without waiting for `UnDelegateResource` confirmation; and
 10. asynchronously confirm or reconcile every original `UnDelegateResource` transaction before
     releasing the reserved Resource Owner capacity.
 
@@ -166,24 +210,31 @@ the required resources are visible and sufficient, and MUST NOT deliberately rel
 payer's TRX as a fallback.
 
 If allowance becomes sufficient before the Approval is broadcast, the Facilitator skips the
-Approval. Any resource already delegated MUST enter durable recovery before normal Permit2
-settlement continues. The Facilitator MUST immediately attempt to prepare, durably persist, and
+Approval. Any resource already delegated MUST enter durable recovery before the selected settlement
+or deposit continues. The Facilitator MUST immediately attempt to prepare, durably persist, and
 submit the matching `UnDelegateResource`. If preparation, persistence of the prepared action,
 broadcast, or confirmation cannot complete after the recovery debt is durable, the operation MUST
 remain recoverable and a worker MUST continue it asynchronously. Such a recovery failure MUST NOT
-turn an otherwise valid payment into a settlement failure. An implementation MUST NOT continue
-settlement if it cannot first persist the recovery debt itself.
+turn an otherwise valid payment or deposit into a settlement failure. An implementation MUST NOT
+continue settlement if it cannot first persist the recovery debt itself.
 
-After any successful delegation, Approval failure, expiration, timeout, caller disconnection, or
-settlement failure MUST NOT strand resources on the payer. If no immutable Undelegate action was
-persisted, a recovery worker MAY prepare one. Once an action is persisted and its chain result is
-unknown, the Facilitator MUST reconcile the original transaction ID before retrying or reclaiming and
-MUST NOT create a replacement while the original may still be included. A replacement Undelegate MAY
-be prepared only after the original transaction is confirmed failed.
+For `upto`, when the Resource Server selects an actual settlement amount of zero, the Facilitator
+MUST NOT delegate resources or broadcast the Approval and MUST follow the Scheme's zero-settlement
+path. For `batch-settlement`, the Approval and sponsorship operation apply only to the Permit2
+deposit or top-up; subsequent voucher-only requests use the established channel and MUST NOT repeat
+sponsorship.
 
-Delegate, Approval, Undelegate, and settlement are separate TRON transactions. Atomic or same-block
-execution is not guaranteed. The `transaction` in a successful core `SettleResponse` is the Permit2
-payment settlement transaction ID, not a delegation, Approval, or reclamation transaction ID.
+After any successful delegation, Approval failure, expiration, timeout, caller disconnection,
+settlement failure, or deposit failure MUST NOT strand resources on the payer. If no immutable
+Undelegate action was persisted, a recovery worker MAY prepare one. Once an action is persisted and
+its chain result is unknown, the Facilitator MUST reconcile the original transaction ID before
+retrying or reclaiming and MUST NOT create a replacement while the original may still be included. A
+replacement Undelegate MAY be prepared only after the original transaction is confirmed failed.
+
+Delegate, Approval, Undelegate, and the selected settlement or deposit are separate TRON
+transactions. Atomic or same-block execution is not guaranteed. The `transaction` in a successful
+core `SettleResponse` is the final `exact`/`upto` settlement or `batch-settlement` deposit transaction
+ID, not a delegation, Approval, or reclamation transaction ID.
 
 Undelegation returns the delegated stake share but does not immediately restore consumed resources.
 Unrecovered usage remains subject to TRON's recovery window, so recovering capacity MUST NOT be
@@ -203,10 +254,12 @@ visibility, use short transaction expiration, and enforce payer and global loss 
 
 ### Economic exhaustion
 
-A valid Approval does not guarantee that the later payment will succeed or reimburse sponsorship
-cost. Before delegation, each request MUST be covered by a bounded sponsorship policy, such as funded
-tenant credit or a capped platform subsidy. This extension does not charge a user fee inside
-`approve`; standard TRC-20 `approve` changes allowance and cannot simultaneously transfer a fee.
+A valid Approval does not guarantee that the later payment or batch deposit will succeed or reimburse
+sponsorship cost. Before delegation, each request MUST be covered by a bounded sponsorship policy,
+such as funded tenant credit or a capped platform subsidy. The Facilitator MUST reject sponsorship
+unless the complete Scheme-specific authorization has already passed verification. This extension
+does not charge a user fee inside `approve`; standard TRC-20 `approve` changes allowance and cannot
+simultaneously transfer a fee.
 
 ### Replay and recovery
 
@@ -235,6 +288,8 @@ remain identical to the validated unsigned transaction.
 
 - [Core x402 v2 specification](../x402-specification-v2.md)
 - [`exact` on TRON](../schemes/exact/scheme_exact_tron.md)
+- [`upto` on TRON](../schemes/upto/scheme_upto_tron.md)
+- [`batch-settlement` on TRON](../schemes/batch-settlement/scheme_batch_settlement_tron.md)
 - [TRON transaction model](https://developers.tron.network/docs/tron-protocol-transaction)
 - [TRON confirmation semantics](https://developers.tron.network/docs/confirmation-semantics)
 - [TRON signed transaction broadcast](https://developers.tron.network/reference/broadcasthex)
