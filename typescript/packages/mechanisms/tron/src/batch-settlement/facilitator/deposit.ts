@@ -240,6 +240,7 @@ export async function settleDeposit(
       payer,
       context,
       payload.deposit.amount,
+      payload.deposit.authorization.permit2Authorization?.deadline,
       () => verifyDeposit(signer, payment, payload, requirements, context, true),
     );
     if (sponsorshipFailure) return sponsorshipFailure;

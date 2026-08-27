@@ -354,7 +354,8 @@ export async function createTronWebResourceSponsoringChain(
    * @returns When the configured permission is valid for both resource operations.
    */
   async function ensureResourceOwnerPermission(): Promise<void> {
-    permissionValidation ??= (async () => {
+    if (permissionValidation) return permissionValidation;
+    const validation = (async () => {
       if (!Number.isInteger(options.permissionId) || options.permissionId <= 0) {
         throw new Error("resource_owner_permission_required");
       }
@@ -371,7 +372,13 @@ export async function createTronWebResourceSponsoringChain(
         throw new Error("resource_owner_permission_invalid");
       }
     })();
-    return permissionValidation;
+    permissionValidation = validation;
+    try {
+      await validation;
+    } catch (error) {
+      if (permissionValidation === validation) permissionValidation = undefined;
+      throw error;
+    }
   }
 
   /**

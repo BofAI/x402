@@ -279,6 +279,7 @@ export async function settleUptoPermit2(
     payer,
     context,
     verifyRequirements.amount,
+    permit2Payload.permit2Authorization.deadline,
     () =>
       verifyUptoPermit2(signer, payload, verifyRequirements, permit2Payload, context, {
         verifySponsorship: false,

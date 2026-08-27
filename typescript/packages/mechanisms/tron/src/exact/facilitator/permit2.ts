@@ -136,6 +136,7 @@ export async function settlePermit2(
     payer,
     context,
     requirements.amount,
+    permit2Payload.permit2Authorization.deadline,
     async () => {
       const authorization = await verifyPermit2Authorization(
         signer,

@@ -23,16 +23,18 @@ Version `1` supports:
   [`batch-settlement` TRON binding](../schemes/batch-settlement/scheme_batch_settlement_tron.md),
   including an initial deposit or later top-up;
 - activated, single-signature EOAs using the default owner permission;
-- an allowance of exactly zero;
+- zero allowance under the default `zero-first` Approval update strategy, or an insufficient
+  non-zero allowance only when the token is explicitly configured as `direct-overwrite`;
 - `approve(canonicalPermit2, MaxUint256)`; and
 - temporary Stake 2.0 delegation with `lock = false`.
 
 The extension is not used for EIP-3009 transfers or for `batch-settlement` voucher, claim, settle, or
 refund payloads that do not carry a Permit2 deposit.
 
-A non-zero but insufficient allowance fails with `approval_reset_required`. This extension does not
-define a general resource-rental API, a Sponsor Fee, collateral, GasFree-account settlement, or an
-external Energy-provider protocol.
+A non-zero but insufficient allowance fails with `approval_reset_required` under `zero-first`.
+The Extension never inserts an implicit `approve(0)` transaction. This extension does not define a
+general resource-rental API, a Sponsor Fee, collateral, GasFree-account settlement, or an external
+Energy-provider protocol.
 
 ## Declaration
 
@@ -43,7 +45,8 @@ A Resource Server advertises the extension in `PaymentRequired.extensions`:
   "trc20ApprovalResourceSponsoring": {
     "info": {
       "description": "The facilitator sponsors TRON Energy and Bandwidth for a pre-signed TRC-20 approve transaction.",
-      "version": "1"
+      "version": "1",
+      "minimumApprovalLifetimeSeconds": 300
     },
     "schema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -72,13 +75,16 @@ A Resource Server advertises the extension in `PaymentRequired.extensions`:
 signed TRON `Transaction` protobuf. Its exact bytes are authoritative. The redundant display fields
 `from`, `asset`, `spender`, and `amount` MUST match the independently decoded transaction.
 
-Approval lifetime and `fee_limit` bounds are local Client and Facilitator policy, not Extension wire
-fields.
+`minimumApprovalLifetimeSeconds` is Server-provided capability information. The Client MUST create a
+transaction whose remaining lifetime meets it. The Facilitator MUST independently enforce a local
+minimum and MUST NOT trust the advertised value as policy. `fee_limit` bounds remain independent
+Client and Facilitator policy and are not Client payload fields.
 
 ## Client payload
 
 The Client adds the extension only when the Server advertised version `"1"`, the selected transfer
-method is Permit2, the current allowance is exactly zero, and the selected path is one of:
+method is Permit2, the current allowance is insufficient, the token Approval policy permits an
+update, and the selected path is one of:
 
 - an `exact` payment;
 - an `upto` payment; or
@@ -107,7 +113,9 @@ broadcast it itself.
 
 The abbreviated hexadecimal value above shows the wire shape and is not a broadcastable test vector.
 
-Before signing, the Client MUST construct and inspect one `TriggerSmartContract` transaction with:
+Before any allowance read or signing operation, the Client signer MUST prove that its exact network
+equals `PaymentRequirements.network`. A sponsored Approval MUST NOT use a wildcard or unbound
+signer. Before signing, the Client MUST construct and inspect one `TriggerSmartContract` transaction with:
 
 - `owner_address` equal to the payer;
 - `contract_address` equal to the selected TRC-20 asset;
@@ -115,7 +123,7 @@ Before signing, the Client MUST construct and inspect one `TriggerSmartContract`
 - zero TRX and TRC-10 value;
 - no memo or custom `permission_id`;
 - recent TAPOS fields;
-- a short expiration; and
+- an expiration that preserves at least the Server-declared minimum remaining lifetime; and
 - a `fee_limit` within the Client's local safety policy.
 
 The Client computes `txID = SHA-256(raw_data protobuf bytes)`, signs that digest, and serializes the
@@ -166,9 +174,9 @@ Before accepting the extension, the Facilitator MUST:
     - for `batch-settlement`, require a Permit2 `deposit` payload and verify the channel
       configuration and ID, payer, asset, configured deposit collector, deposit amount, Permit2
       nonce and deadline, voucher signature, cumulative amount, and post-deposit balance bounds;
-11. require allowance exactly zero for a new sponsorship, sufficient token balance for the exact
-    payment, upto maximum, or batch deposit as applicable, and successful simulation of the exact
-    signed Approval; and
+11. require the current allowance to satisfy the configured token Approval strategy, sufficient
+    token balance for the exact payment, upto maximum, or batch deposit as applicable, and successful
+    simulation of the exact signed Approval; and
 12. estimate the required Energy and Bandwidth and reject the request when resource or sponsorship
     policy limits are exceeded.
 
@@ -180,6 +188,19 @@ Client and MUST require the node-returned transaction ID to equal the computed `
 decoding, signature, simulation, RPC, Scheme validation, or policy error on the sponsored path fails
 closed.
 
+The Approval update policy is keyed by canonical network and normalized token address:
+
+- `zero-first` permits a new Approval only when allowance is zero and rejects a non-zero insufficient
+  allowance with `approval_reset_required`;
+- `direct-overwrite` permits the canonical Max Approval over a non-zero insufficient allowance and
+  MUST be configured explicitly for that token; and
+- `unsupported` rejects the asset without signing, broadcasting, or delegating.
+
+An already sufficient allowance continues without an Approval under every strategy. Allowlisted and
+built-in supported Permit2 assets default to `zero-first`; unknown assets default to `unsupported`.
+Client self-funded Approval, Client sponsored Approval, and Facilitator admission MUST apply the same
+strategy result.
+
 ## Settlement and resource sponsorship
 
 The Facilitator supplies resources only after it holds both the final signed Approval and a valid
@@ -190,17 +211,22 @@ by their respective Scheme specifications and MUST NOT be replaced by the sponso
 
 Settlement proceeds in this order:
 
-1. estimate the Approval's Energy and Bandwidth requirements and apply bounded safety margins;
+1. reject before admission when the payment authorization deadline or Approval transaction lifetime
+   cannot cover the configured sponsorship saga, then estimate Energy and Bandwidth requirements and
+   apply bounded safety margins;
 2. reserve sufficient sponsorship capacity under the Facilitator's local policy;
 3. submit one unlocked `DelegateResource` transaction for each required resource type;
 4. confirm the delegated Energy and Bandwidth are visible and sufficient on the payer;
-5. repeat mutable Approval and Scheme-specific payment or deposit checks;
+5. repeat mutable Approval and Scheme-specific payment or deposit checks and confirm that the
+   payment deadline still covers the settlement safety margin;
 6. broadcast the exact payer-signed Approval;
 7. confirm successful execution and independently observe the expected allowance;
-8. durably record the recovery debt and immediately attempt to prepare, persist, and submit a
+8. repeat Scheme-specific authorization checks after Approval confirmation, durably record the
+   recovery debt, and immediately attempt to prepare, persist, and submit a
    matching `UnDelegateResource` transaction for every successful delegation;
-9. continue with the `exact` or `upto` Permit2 settlement, or the `batch-settlement` Permit2 deposit,
-   without waiting for `UnDelegateResource` confirmation; and
+9. perform one final Scheme validation and continue with the `exact` or `upto` Permit2 settlement,
+   or the `batch-settlement` Permit2 deposit, without waiting for `UnDelegateResource` confirmation;
+   and
 10. asynchronously confirm or reconcile every original `UnDelegateResource` transaction before
     releasing the reserved Resource Owner capacity.
 
@@ -235,6 +261,11 @@ Delegate, Approval, Undelegate, and the selected settlement or deposit are separ
 transactions. Atomic or same-block execution is not guaranteed. The `transaction` in a successful
 core `SettleResponse` is the final `exact`/`upto` settlement or `batch-settlement` deposit transaction
 ID, not a delegation, Approval, or reclamation transaction ID.
+
+On any sponsorship failure, core `SettleResponse.transaction` MUST be an empty string. A locally
+computed or merely prepared Approval transaction ID is not evidence of a submitted payment and MUST
+NOT be exposed through that field. Implementations MAY retain the Approval transaction ID internally
+for idempotency and recovery once its durable action state is known.
 
 Undelegation returns the delegated stake share but does not immediately restore consumed resources.
 Unrecovered usage remains subject to TRON's recovery window, so recovering capacity MUST NOT be

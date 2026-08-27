@@ -232,7 +232,12 @@ async function createFreshSponsoringHarness() {
 async function expectResourcesRecovered(
   harness: Awaited<ReturnType<typeof createFreshSponsoringHarness>>,
 ): Promise<void> {
-  const recovery = await harness.runtime.reconcile();
+  const deadline = Date.now() + 60_000;
+  let recovery = await harness.runtime.reconcile();
+  while (recovery.recovered === 0 && Date.now() < deadline) {
+    await new Promise(resolve => setTimeout(resolve, 1_000));
+    recovery = await harness.runtime.reconcile();
+  }
   console.info("[nile] resource recovery", recovery);
   expect(recovery).toEqual({ examined: 1, recovered: 1 });
   const delegated = await harness.ownerTronWeb.trx.getDelegatedResourceV2(
@@ -356,7 +361,12 @@ describe.skipIf(!configured)("TRC-20 Approval Resource Sponsoring on Nile", () =
       BigInt(requirements.amount),
     );
     expect(await payerTronWeb.trx.getBalance(payer)).toBe(payerTrxBefore);
-    const recovery = await runtime.reconcile();
+    const recoveryDeadline = Date.now() + 60_000;
+    let recovery = await runtime.reconcile();
+    while (recovery.recovered === 0 && Date.now() < recoveryDeadline) {
+      await new Promise(resolve => setTimeout(resolve, 1_000));
+      recovery = await runtime.reconcile();
+    }
     console.info("[nile] resource recovery", recovery);
     expect(recovery).toEqual({ examined: 1, recovered: 1 });
     const delegated = await ownerTronWeb.trx.getDelegatedResourceV2(resourceOwner, payer, {

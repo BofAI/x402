@@ -10,6 +10,7 @@ import type {
   Trc20SponsoringCoordinator,
 } from "./types";
 import type { TronResourceOwnerSigner } from "./tronWebChain";
+import { createTrc20ApprovalPolicy, type Trc20ApprovalUpdateStrategy } from "../approvalPolicy";
 
 /** High-level configuration for one network's resource-sponsoring runtime. */
 export interface CreateTrc20ResourceSponsoringRuntimeOptions {
@@ -31,6 +32,10 @@ export interface CreateTrc20ResourceSponsoringRuntimeOptions {
   readonly confirmationMode?: "packed" | "solidified";
   readonly confirmationTimeoutMs?: number;
   readonly confirmationPollIntervalMs?: number;
+  /** Additional time reserved between final Approval confirmation and settlement broadcast. */
+  readonly settlementSafetyMarginMs?: number;
+  /** Explicit per-token Approval update strategies for this network. */
+  readonly approvalStrategies?: Readonly<Record<string, Trc20ApprovalUpdateStrategy>>;
 }
 
 /**
@@ -80,11 +85,20 @@ export async function createTrc20ResourceSponsoringRuntime(
     chain,
     coordinator: options.coordinator,
     policy,
+    approvalPolicy: createTrc20ApprovalPolicy({
+      allowedAssets: { [options.network]: options.allowedAssets },
+      strategies: options.approvalStrategies
+        ? { [options.network]: options.approvalStrategies }
+        : undefined,
+    }),
     energySafetyBps: options.energySafetyBps,
     bandwidthSafetyBps: options.bandwidthSafetyBps,
     maxEnergyPerApproval: options.maxEnergyPerApproval,
     maxBandwidthPerApproval: options.maxBandwidthPerApproval,
     managementBandwidthPerAction: options.managementBandwidthPerAction,
+    minimumSponsorshipWindowMs:
+      (options.confirmationTimeoutMs ?? 90_000) * 3 + (options.settlementSafetyMarginMs ?? 15_000),
+    settlementSafetyMarginMs: options.settlementSafetyMarginMs,
   };
   return createTrc20ApprovalResourceSponsoringRuntime(runtimeOptions);
 }

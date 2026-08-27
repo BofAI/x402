@@ -107,7 +107,9 @@ function instrumentedCoordinator(persisted: Set<string>): Trc20SponsoringCoordin
   };
 }
 
-function createHarness() {
+function createHarness(
+  approvalStrategy: "zero-first" | "direct-overwrite" | "unsupported" = "zero-first",
+) {
   const persisted = new Set<string>();
   const broadcasts: string[] = [];
   const results = new Map<string, TronActionResult>();
@@ -168,7 +170,8 @@ function createHarness() {
     maxEnergyPerApproval: 1_000n,
     maxBandwidthPerApproval: 1_000n,
     managementBandwidthPerAction: 300n,
-  });
+    approvalPolicy: { strategyFor: () => approvalStrategy },
+  } as never);
   return {
     runtime,
     chain,
@@ -280,6 +283,38 @@ describe("TRC-20 resource sizing", () => {
 });
 
 describe("TRC-20 Approval resource-sponsoring runtime", () => {
+  it("rejects an insufficient payment deadline before delegating resources", async () => {
+    const harness = createHarness();
+
+    const result = await harness.runtime.sponsor(request, {
+      paymentDeadlineMs: Date.now() + 1_000,
+      revalidate: async () => ({ isValid: true }),
+    } as never);
+
+    expect(result).toMatchObject({
+      success: false,
+      errorReason: "payment_deadline_too_short",
+    });
+    expect(harness.chain.prepareDelegate).not.toHaveBeenCalled();
+    expect(harness.broadcasts).toEqual([]);
+  });
+
+  it("rejects a short Approval lifetime before delegating resources", async () => {
+    const harness = createHarness();
+
+    const result = await harness.runtime.sponsor({
+      ...request,
+      approvalExpiration: String(Date.now() + 1_000),
+    });
+
+    expect(result).toMatchObject({
+      success: false,
+      errorReason: "approval_transaction_expiring",
+    });
+    expect(harness.chain.prepareDelegate).not.toHaveBeenCalled();
+    expect(harness.broadcasts).toEqual([]);
+  });
+
   it("uses the selected operation allowance instead of the request price", async () => {
     const harness = createHarness();
     const result = await harness.runtime.verify({
@@ -292,6 +327,16 @@ describe("TRC-20 Approval resource-sponsoring runtime", () => {
       invalidReason: "insufficient_funds",
       invalidMessage: "insufficient_funds",
     });
+  });
+
+  it("permits a partial allowance only for an explicit direct-overwrite token", async () => {
+    const harness = createHarness("direct-overwrite");
+    harness.setPreflightAllowance(1n);
+
+    const result = await harness.runtime.sponsor(request);
+
+    expect(result).toEqual({ success: true, approvalTransaction: APPROVAL_TX_ID });
+    expect(harness.chain.broadcastApproval).toHaveBeenCalledTimes(1);
   });
 
   it("resumes a 1.1 exact operation when the new request carries the default allowance", async () => {
@@ -330,6 +375,31 @@ describe("TRC-20 Approval resource-sponsoring runtime", () => {
       harness.ids.undelegateBandwidth,
     ]);
     expect(harness.broadcasts).not.toContain(APPROVAL_TX_ID);
+  });
+
+  it("revalidates after Approval confirmation and reclaims before returning failure", async () => {
+    const harness = createHarness();
+    const revalidate = vi.fn().mockResolvedValueOnce({ isValid: true }).mockResolvedValueOnce({
+      isValid: false,
+      invalidReason: "scheme_authorization_expired",
+      invalidMessage: "scheme authorization expired after Approval",
+    });
+
+    const result = await harness.runtime.sponsor(request, { revalidate });
+
+    expect(result).toMatchObject({
+      success: false,
+      errorReason: "scheme_authorization_expired",
+      approvalTransaction: APPROVAL_TX_ID,
+    });
+    expect(revalidate).toHaveBeenCalledTimes(2);
+    expect(harness.broadcasts).toEqual([
+      harness.ids.delegateEnergy,
+      harness.ids.delegateBandwidth,
+      APPROVAL_TX_ID,
+      harness.ids.undelegateEnergy,
+      harness.ids.undelegateBandwidth,
+    ]);
   });
 
   it("persists, delegates, approves, and reclaims both resource legs in order", async () => {
@@ -419,6 +489,7 @@ describe("TRC-20 Approval resource-sponsoring runtime", () => {
       success: false,
       errorReason: "delegated_resources_not_visible",
     });
+    expect(result.approvalTransaction).toBeUndefined();
     expect(harness.broadcasts).toEqual([
       harness.ids.delegateEnergy,
       harness.ids.delegateBandwidth,

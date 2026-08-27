@@ -70,6 +70,12 @@ export type {
   CreateClientTronSignerOptions,
   AllowanceMode,
 } from "./signer";
+export {
+  createTrc20ApprovalPolicy,
+  type CreateTrc20ApprovalPolicyOptions,
+  type Trc20ApprovalPolicy,
+  type Trc20ApprovalUpdateStrategy,
+} from "./approvalPolicy";
 
 // Types
 export type {

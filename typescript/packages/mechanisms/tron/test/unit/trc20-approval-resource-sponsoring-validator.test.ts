@@ -310,6 +310,43 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
     expect(calls).toEqual(["verify-sponsor", "sponsor", "revalidate", "settlement"]);
   });
 
+  it("keeps the settlement transaction empty when sponsorship fails before Approval broadcast", async () => {
+    const runtime = {
+      verify: vi.fn(async () => ({ isValid: true })),
+      sponsor: vi.fn(async () => ({
+        success: false,
+        approvalTransaction: "unbroadcast-approval-id",
+        errorReason: "delegate_failed",
+      })),
+    };
+    const signer: FacilitatorTronSigner = {
+      getAddresses: () => [PAYER],
+      verifyTypedData: vi.fn(async () => true),
+      readContract: vi.fn(async () => 2_000_000n),
+      writeContract: vi.fn(),
+      waitForTransactionReceipt: vi.fn(),
+    };
+    const context = {
+      getExtension: vi.fn(() => ({
+        key: "trc20ApprovalResourceSponsoring",
+        runtime,
+      })),
+    };
+
+    const settled = await new ExactTronScheme(signer).settle(
+      sponsoredPayment(buildSignedApproval()) as never,
+      requirements as never,
+      context,
+    );
+
+    expect(settled).toMatchObject({
+      success: false,
+      transaction: "",
+      errorReason: "delegate_failed",
+    });
+    expect(signer.writeContract).not.toHaveBeenCalled();
+  });
+
   it("fails closed before sponsorship when the runtime is not registered", async () => {
     const signer: FacilitatorTronSigner = {
       getAddresses: () => [PAYER],

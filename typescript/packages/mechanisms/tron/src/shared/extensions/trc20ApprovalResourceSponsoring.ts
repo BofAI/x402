@@ -157,6 +157,7 @@ export async function verifyTrc20Sponsorship(
  * @param payer - Authenticated Permit2 payer.
  * @param context - Registered Facilitator extensions.
  * @param requiredAllowance - Permit2 allowance required by the selected operation.
+ * @param paymentDeadlineSeconds - Mutable Permit2 deadline as Unix seconds.
  * @param revalidate - Scheme-specific authorization checks repeated before Approval broadcast.
  * @returns Null on success/absence, otherwise a settlement failure.
  */
@@ -166,6 +167,7 @@ export async function executeTrc20Sponsorship(
   payer: string,
   context?: FacilitatorContext,
   requiredAllowance?: string,
+  paymentDeadlineSeconds?: string,
   revalidate?: () => Promise<Trc20SponsorshipRevalidationResult>,
 ): Promise<SettleResponse | null> {
   const resolution = resolveSponsorship(payload, requirements, payer, context, requiredAllowance);
@@ -181,19 +183,42 @@ export async function executeTrc20Sponsorship(
     };
   }
   try {
+    let paymentDeadlineMs: number | undefined;
+    if (paymentDeadlineSeconds != null) {
+      const deadline = BigInt(paymentDeadlineSeconds) * 1_000n;
+      if (deadline > BigInt(Number.MAX_SAFE_INTEGER) || deadline <= 0n) {
+        throw new Error("payment deadline is outside the safe range");
+      }
+      paymentDeadlineMs = Number(deadline);
+    }
     const result = await resolution.binding.runtime.sponsor(resolution.binding.request, {
+      paymentDeadlineMs,
       revalidate,
     });
-    return result.success
-      ? null
-      : {
+    if (!result.success) {
+      return {
+        success: false,
+        network: payload.accepted.network,
+        transaction: "",
+        errorReason: result.errorReason ?? errors.SPONSOR_EXECUTION_FAILED,
+        errorMessage: result.errorMessage,
+        payer,
+      };
+    }
+    if (revalidate) {
+      const finalValidation = await revalidate();
+      if (!finalValidation.isValid) {
+        return {
           success: false,
           network: payload.accepted.network,
-          transaction: result.approvalTransaction ?? "",
-          errorReason: result.errorReason ?? errors.SPONSOR_EXECUTION_FAILED,
-          errorMessage: result.errorMessage,
+          transaction: "",
+          errorReason: finalValidation.invalidReason ?? "scheme_revalidation_failed",
+          errorMessage: finalValidation.invalidMessage,
           payer,
         };
+      }
+    }
+    return null;
   } catch {
     return {
       success: false,

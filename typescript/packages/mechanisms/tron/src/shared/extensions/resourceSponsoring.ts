@@ -1,7 +1,9 @@
 import type { PaymentPayloadContext, PaymentRequirements } from "@bankofai/x402-core/types";
 import { erc20AllowanceAbi, PERMIT2_ADDRESSES } from "../../constants";
 import type { ClientTronSigner } from "../../signer";
+import { createTrc20ApprovalPolicy } from "../../approvalPolicy";
 import {
+  DEFAULT_TRC20_APPROVAL_LIFETIME_SECONDS,
   TRC20_APPROVAL_MAX_AMOUNT,
   TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
   TRC20_APPROVAL_RESOURCE_SPONSORING_VERSION,
@@ -51,6 +53,19 @@ export async function trySignTrc20ApprovalExtension(
   if (declaration.info?.version !== TRC20_APPROVAL_RESOURCE_SPONSORING_VERSION) {
     throw new Error("trc20ApprovalResourceSponsoring: unsupported extension version");
   }
+  if (!signer.network || signer.network !== requirements.network) {
+    throw new Error("approval_signer_network_mismatch");
+  }
+  const declaredLifetime =
+    declaration.info?.minimumApprovalLifetimeSeconds ?? DEFAULT_TRC20_APPROVAL_LIFETIME_SECONDS;
+  if (
+    !Number.isSafeInteger(declaredLifetime) ||
+    Number(declaredLifetime) <= 0 ||
+    Number(declaredLifetime) > 86_400
+  ) {
+    throw new Error("trc20ApprovalResourceSponsoring: invalid minimum Approval lifetime");
+  }
+  const minimumLifetimeSeconds = Number(declaredLifetime);
 
   const permit2 = PERMIT2_ADDRESSES[requirements.network];
   if (!permit2) {
@@ -69,7 +84,14 @@ export async function trySignTrc20ApprovalExtension(
   );
 
   if (allowance >= requiredAllowance) return { handled: true };
-  if (allowance !== 0n) {
+  const strategy = (signer.approvalPolicy ?? createTrc20ApprovalPolicy()).strategyFor(
+    requirements.network,
+    requirements.asset,
+  );
+  if (strategy === "unsupported") {
+    throw new Error("approval_asset_unsupported");
+  }
+  if (allowance !== 0n && strategy === "zero-first") {
     throw new Error("approval_reset_required");
   }
   if (!signer.signPermit2Approval) return { handled: false };
@@ -77,6 +99,7 @@ export async function trySignTrc20ApprovalExtension(
   const signedTransaction = await signer.signPermit2Approval({
     token: requirements.asset,
     network: requirements.network,
+    minimumLifetimeSeconds,
   });
   const info: Trc20ApprovalResourceSponsoringInfo = {
     from: signer.address,

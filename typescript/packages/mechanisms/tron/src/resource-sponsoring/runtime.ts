@@ -16,12 +16,15 @@ import type {
   Trc20ApprovalResourceSponsoringRequest,
   Trc20SponsorshipExecutionOptions,
 } from "../shared/extensions/trc20ApprovalContract";
+import { createTrc20ApprovalPolicy, type Trc20ApprovalPolicy } from "../approvalPolicy";
 
 const DEFAULT_ENERGY_SAFETY_BPS = 12_000n;
 const DEFAULT_BANDWIDTH_SAFETY_BPS = 11_000n;
 const DEFAULT_MAX_ENERGY = 250_000n;
 const DEFAULT_MAX_BANDWIDTH = 2_000n;
 const DEFAULT_MANAGEMENT_BANDWIDTH_PER_ACTION = 350n;
+const DEFAULT_MINIMUM_SPONSORSHIP_WINDOW_MS = 15_000;
+const DEFAULT_SETTLEMENT_SAFETY_MARGIN_MS = 6_000;
 
 /** Error carrying a stable sponsorship reason and optional durable operation state. */
 class SponsoringFailure extends Error {
@@ -124,11 +127,13 @@ function requestDigest(request: Trc20ApprovalResourceSponsoringRequest): string 
  *
  * @param request - Sponsorship request.
  * @param preflight - Current chain state.
+ * @param approvalPolicy - Token-specific Approval update policy.
  * @returns Whether a new Approval is required or already satisfied.
  */
 function validatePreflight(
   request: Trc20ApprovalResourceSponsoringRequest,
   preflight: Trc20SponsoringPreflight,
+  approvalPolicy: Trc20ApprovalPolicy,
 ): "approval_required" | "approval_satisfied" {
   const requiredAllowance = BigInt(request.requiredAllowance ?? request.paymentRequirements.amount);
   if (!preflight.accountActivated) throw new SponsoringFailure("payer_account_not_activated");
@@ -136,8 +141,10 @@ function validatePreflight(
   if (preflight.tokenBalance < requiredAllowance) {
     throw new SponsoringFailure("insufficient_funds");
   }
-  if (preflight.allowance === 0n) return "approval_required";
   if (preflight.allowance >= requiredAllowance) return "approval_satisfied";
+  const strategy = approvalPolicy.strategyFor(request.network, request.asset);
+  if (strategy === "unsupported") throw new SponsoringFailure("approval_asset_unsupported");
+  if (preflight.allowance === 0n || strategy === "direct-overwrite") return "approval_required";
   throw new SponsoringFailure("approval_reset_required");
 }
 
@@ -262,6 +269,74 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
     managementBandwidthPerAction:
       options.managementBandwidthPerAction ?? DEFAULT_MANAGEMENT_BANDWIDTH_PER_ACTION,
   };
+  const approvalPolicy = options.approvalPolicy ?? createTrc20ApprovalPolicy();
+  const minimumSponsorshipWindowMs =
+    options.minimumSponsorshipWindowMs ?? DEFAULT_MINIMUM_SPONSORSHIP_WINDOW_MS;
+  const settlementSafetyMarginMs =
+    options.settlementSafetyMarginMs ?? DEFAULT_SETTLEMENT_SAFETY_MARGIN_MS;
+  if (
+    !Number.isSafeInteger(minimumSponsorshipWindowMs) ||
+    minimumSponsorshipWindowMs <= 0 ||
+    !Number.isSafeInteger(settlementSafetyMarginMs) ||
+    settlementSafetyMarginMs <= 0
+  ) {
+    throw new Error("invalid_sponsorship_deadline_policy");
+  }
+
+  /**
+   * Rejects a payment deadline that cannot cover the requested execution window.
+   *
+   * @param executionOptions - Scheme-supplied mutable authorization controls.
+   * @param requiredWindowMs - Remaining lifetime required at this stage.
+   */
+  function assertPaymentDeadline(
+    executionOptions: Trc20SponsorshipExecutionOptions | undefined,
+    requiredWindowMs: number,
+  ): void {
+    const deadline = executionOptions?.paymentDeadlineMs;
+    if (deadline == null) return;
+    if (!Number.isSafeInteger(deadline) || deadline < Date.now() + requiredWindowMs) {
+      throw new SponsoringFailure("payment_deadline_too_short");
+    }
+  }
+
+  /**
+   * Rejects signed Approval bytes that may expire before the sponsorship saga can broadcast them.
+   *
+   * @param request - Client-signed Approval request.
+   */
+  function assertApprovalLifetime(request: Trc20ApprovalResourceSponsoringRequest): void {
+    if (BigInt(request.approvalExpiration) < BigInt(Date.now() + minimumSponsorshipWindowMs)) {
+      throw new SponsoringFailure("approval_transaction_expiring");
+    }
+  }
+
+  /**
+   * Repeats Scheme authorization checks at a mutable execution boundary.
+   *
+   * @param executionOptions - Scheme deadline and revalidation callback.
+   */
+  async function revalidateExecution(
+    executionOptions: Trc20SponsorshipExecutionOptions | undefined,
+  ): Promise<void> {
+    assertPaymentDeadline(executionOptions, settlementSafetyMarginMs);
+    if (!executionOptions?.revalidate) return;
+    let revalidation;
+    try {
+      revalidation = await executionOptions.revalidate();
+    } catch {
+      throw new SponsoringFailure(
+        "scheme_revalidation_failed",
+        "payment scheme revalidation failed",
+      );
+    }
+    if (!revalidation.isValid) {
+      throw new SponsoringFailure(
+        revalidation.invalidReason ?? "scheme_revalidation_failed",
+        revalidation.invalidMessage ?? "payment scheme authorization is no longer valid",
+      );
+    }
+  }
 
   /**
    * Computes a read-only plan and policy decision.
@@ -281,7 +356,7 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
     } catch (error) {
       throw normalizedFailure(error, "sponsor_preflight_failed", "sponsorship preflight failed");
     }
-    const approvalState = validatePreflight(request, preflight);
+    const approvalState = validatePreflight(request, preflight, approvalPolicy);
     const plan =
       approvalState === "approval_satisfied"
         ? {
@@ -527,6 +602,19 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
   }
 
   /**
+   * Returns an Approval identity only after its action may exist on-chain.
+   *
+   * @param operation - Operation whose persisted Approval action is inspected.
+   * @returns Submitted/unknown/confirmed Approval txID, or undefined before broadcast.
+   */
+  function exposedApprovalTransaction(operation: Trc20SponsoringOperation): string | undefined {
+    const status = actionFor(operation, "approval")?.status;
+    return status === "submitted" || status === "unknown" || status === "confirmed"
+      ? operation.approvalTxID
+      : undefined;
+  }
+
+  /**
    * Checks whether an Approval may still be accepted by the network.
    *
    * @param operation - Operation to inspect.
@@ -574,6 +662,8 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
         if (!current) {
           const prepared = await preview(request);
           if (prepared.approvalState === "approval_satisfied") return { success: true };
+          assertPaymentDeadline(executionOptions, minimumSponsorshipWindowMs);
+          assertApprovalLifetime(request);
           const admission = await options.coordinator.admit(
             initialOperation(request, prepared.plan, prepared.budgetUnits),
           );
@@ -606,7 +696,7 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
           if (hasUnknownAction(current)) {
             return {
               success: false,
-              approvalTransaction: current.approvalTxID,
+              approvalTransaction: exposedApprovalTransaction(current),
               errorReason: "unknown_chain_state",
               errorMessage: "original transaction state is still unknown",
             };
@@ -642,26 +732,10 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
         }
         current = await persist(withStatus(current, "resources_visible"));
 
-        if (executionOptions?.revalidate) {
-          let revalidation;
-          try {
-            revalidation = await executionOptions.revalidate();
-          } catch {
-            throw new SponsoringFailure(
-              "scheme_revalidation_failed",
-              "payment scheme revalidation failed",
-            );
-          }
-          if (!revalidation.isValid) {
-            throw new SponsoringFailure(
-              revalidation.invalidReason ?? "scheme_revalidation_failed",
-              revalidation.invalidMessage ?? "payment scheme authorization is no longer valid",
-            );
-          }
-        }
+        await revalidateExecution(executionOptions);
 
         const refreshed = await options.chain.preflight(current.request);
-        const approvalState = validatePreflight(current.request, refreshed);
+        const approvalState = validatePreflight(current.request, refreshed, approvalPolicy);
         if (approvalState === "approval_required") {
           const refreshedPlan = buildTrc20SponsoringPlan(refreshed, sizingOptions);
           if (refreshedPlan.legs.length > 0) {
@@ -679,6 +753,7 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
           }
         }
         current = await persist(withStatus(current, "approval_confirmed"));
+        await revalidateExecution(executionOptions);
         current = await beginRecovery(current);
         return { success: true, approvalTransaction: current.approvalTxID };
       } catch (error) {
@@ -715,7 +790,7 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
         });
         return {
           success: false,
-          approvalTransaction: current.approvalTxID,
+          approvalTransaction: exposedApprovalTransaction(current),
           errorReason: failure.reason,
           errorMessage: failure.message,
         };

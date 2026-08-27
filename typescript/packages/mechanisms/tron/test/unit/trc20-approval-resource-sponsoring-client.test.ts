@@ -7,8 +7,10 @@ import {
 } from "../../src/shared/extensions/trc20ApprovalContract";
 import type { ClientTronSigner } from "../../src/signer";
 import { trySignTrc20ApprovalExtension } from "../../src/shared/extensions";
+import { createTrc20ApprovalPolicy } from "../../src/approvalPolicy";
 
 const NETWORK = "tron:0xcd8690dc";
+const OTHER_NETWORK = "tron:0x2b6653dc";
 const PAYER = "TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC";
 const TOKEN = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf";
 const SIGNED_APPROVAL = "0a02abcd";
@@ -26,7 +28,11 @@ const requirements = {
 const context = {
   extensions: {
     [TRC20_APPROVAL_RESOURCE_SPONSORING_KEY]: {
-      info: { description: "Sponsor TRON resources for Approval", version: "1" },
+      info: {
+        description: "Sponsor TRON resources for Approval",
+        version: "1",
+        minimumApprovalLifetimeSeconds: 180,
+      },
       schema: {},
     },
   },
@@ -35,6 +41,7 @@ const context = {
 function signer(allowance: bigint): ClientTronSigner {
   return {
     address: PAYER,
+    network: NETWORK,
     readContract: vi.fn(async () => allowance),
     signTypedData: vi.fn(async () => "0xpermit2-signature" as `0x${string}`),
     ensureAllowance: vi.fn(async () => true),
@@ -43,6 +50,23 @@ function signer(allowance: bigint): ClientTronSigner {
 }
 
 describe("TRC-20 Approval Resource Sponsoring client", () => {
+  it("rejects a signer network mismatch before any RPC or signing call", async () => {
+    const clientSigner = signer(0n) as ClientTronSigner & { readonly network: string };
+    Object.defineProperty(clientSigner, "network", { value: NETWORK, enumerable: true });
+    const readContract = vi.mocked(clientSigner.readContract);
+
+    await expect(
+      trySignTrc20ApprovalExtension(
+        clientSigner,
+        { ...requirements, network: OTHER_NETWORK } as never,
+        context,
+      ),
+    ).rejects.toThrow("approval_signer_network_mismatch");
+
+    expect(readContract).not.toHaveBeenCalled();
+    expect(clientSigner.signPermit2Approval).not.toHaveBeenCalled();
+  });
+
   it("uses the selected Permit2 operation amount as the allowance threshold", async () => {
     const clientSigner = signer(1_500_000n);
 
@@ -64,6 +88,7 @@ describe("TRC-20 Approval Resource Sponsoring client", () => {
     expect(clientSigner.signPermit2Approval).toHaveBeenCalledWith({
       token: TOKEN,
       network: NETWORK,
+      minimumLifetimeSeconds: 180,
     });
     expect(clientSigner.ensureAllowance).not.toHaveBeenCalled();
     expect(result.extensions).toEqual({
@@ -127,6 +152,25 @@ describe("TRC-20 Approval Resource Sponsoring client", () => {
     await expect(
       new ExactTronScheme(clientSigner).createPaymentPayload(2, requirements as never, context),
     ).rejects.toThrow("approval_reset_required");
+  });
+
+  it("signs over a partial allowance only under direct-overwrite policy", async () => {
+    const clientSigner = signer(1n);
+    Object.defineProperty(clientSigner, "approvalPolicy", {
+      value: createTrc20ApprovalPolicy({
+        strategies: { [NETWORK]: { [TOKEN]: "direct-overwrite" } },
+      }),
+      enumerable: true,
+    });
+
+    const result = await new ExactTronScheme(clientSigner).createPaymentPayload(
+      2,
+      requirements as never,
+      context,
+    );
+
+    expect(clientSigner.signPermit2Approval).toHaveBeenCalledTimes(1);
+    expect(result.extensions?.[TRC20_APPROVAL_RESOURCE_SPONSORING_KEY]).toBeDefined();
   });
 
   it("rejects an unsupported extension version", async () => {

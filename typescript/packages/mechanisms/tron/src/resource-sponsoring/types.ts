@@ -2,6 +2,7 @@ import type {
   Trc20ApprovalResourceSponsoringRequest,
   Trc20ApprovalResourceSponsoringRuntime,
 } from "../shared/extensions/trc20ApprovalContract";
+import type { Trc20ApprovalPolicy } from "../approvalPolicy";
 
 /** TRON resources that can be delegated with Stake 2.0. */
 export type TronResourceType = "ENERGY" | "BANDWIDTH";
@@ -194,6 +195,8 @@ export interface Trc20ResourceSponsoringRuntimeOptions {
   readonly chain: Trc20ResourceSponsoringChain;
   readonly coordinator: Trc20SponsoringCoordinator;
   readonly policy: Trc20ResourceSponsoringPolicy;
+  /** Token Approval update policy shared with Client allowance handling. */
+  readonly approvalPolicy?: Trc20ApprovalPolicy;
   /** Safety margin applied to the exact Energy estimate. Default 12000 (120%). */
   readonly energySafetyBps?: bigint;
   /** Safety margin applied to the signed transaction Bandwidth. Default 11000 (110%). */
@@ -204,6 +207,10 @@ export interface Trc20ResourceSponsoringRuntimeOptions {
   readonly maxBandwidthPerApproval?: bigint;
   /** Reserved per Delegate/UnDelegate action. Default 350 Bandwidth. */
   readonly managementBandwidthPerAction?: bigint;
+  /** Minimum remaining payment/Approval lifetime required before admission. */
+  readonly minimumSponsorshipWindowMs?: number;
+  /** Minimum payment lifetime required at mutable execution boundaries. */
+  readonly settlementSafetyMarginMs?: number;
 }
 
 /** Runtime plus explicit background reconciliation entrypoint. */

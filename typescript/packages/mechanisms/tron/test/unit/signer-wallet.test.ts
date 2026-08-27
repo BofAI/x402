@@ -7,6 +7,7 @@ import {
 } from "../../src/signer";
 import { buildTronWeb } from "../../src/rpc";
 import { privateKeyTronWallet } from "./helpers";
+import { registerExactTronScheme } from "../../src/exact/client/register";
 
 // The factory builds TronWeb internally from the network; mock that builder so
 // tests inject a real/seeded TronWeb (was previously passed as the first arg).
@@ -63,11 +64,35 @@ describe("createClientTronSigner (wallet-only)", () => {
     const signer = await makeClient(tw, wallet);
 
     expect(signer.address).toBe(await wallet.getAddress());
+    expect(signer.network).toBe("tron:0xcd8690dc");
     const [viaSigner, viaWallet] = await Promise.all([
       signer.signTypedData(TYPED),
       wallet.signTypedData(TYPED),
     ]);
     expect(viaSigner).toBe(viaWallet);
+  });
+
+  it("registers a stock signer only for its exact network by default", async () => {
+    const signer = await makeClient(tron(), privateKeyTronWallet(tron(), PK));
+    const client = { register: vi.fn(), registerPolicy: vi.fn() };
+
+    registerExactTronScheme(client as never, { signer });
+
+    expect(client.register).toHaveBeenCalledWith("tron:0xcd8690dc", expect.anything());
+    expect(client.register).not.toHaveBeenCalledWith("tron:*", expect.anything());
+  });
+
+  it("rejects explicit registration on a different network", async () => {
+    const signer = await makeClient(tron(), privateKeyTronWallet(tron(), PK));
+    const client = { register: vi.fn(), registerPolicy: vi.fn() };
+
+    expect(() =>
+      registerExactTronScheme(client as never, {
+        signer,
+        networks: ["tron:0x2b6653dc"],
+      }),
+    ).toThrow(/cannot be registered/);
+    expect(client.register).not.toHaveBeenCalled();
   });
 
   it("delegates signing to an arbitrary wallet", async () => {

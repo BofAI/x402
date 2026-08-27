@@ -474,4 +474,97 @@ describe("TronWeb resource-sponsoring chain", () => {
     ).rejects.toThrow("resource_owner_permission_invalid");
     expect(signResourceTransaction).not.toHaveBeenCalled();
   });
+
+  it("retries Active Permission validation after a transient RPC rejection", async () => {
+    const mock = createTronWebMock();
+    const unsigned = systemTransaction("DelegateResourceContract");
+    vi.mocked(mock.tronWeb.transactionBuilder.delegateResource).mockResolvedValue(
+      unsigned as never,
+    );
+    const originalGetAccount = vi.mocked(mock.tronWeb.trx.getAccount).getMockImplementation()!;
+    let ownerAttempts = 0;
+    vi.mocked(mock.tronWeb.trx.getAccount).mockImplementation(async address => {
+      if (address === OWNER && ownerAttempts++ === 0) {
+        throw new Error("temporary RPC failure");
+      }
+      return originalGetAccount(address);
+    });
+    const chain = await createTronWebResourceSponsoringChain({
+      tronWeb: mock.tronWeb,
+      network: "tron:0xcd8690dc",
+      resourceOwnerSigner: {
+        getAddress: async () => OWNER,
+        signResourceTransaction: async ({ transaction }) => ({
+          ...transaction,
+          signature: ["11".repeat(65)],
+        }),
+      },
+      readContract: vi.fn(async () => 0n),
+      allowedAssets: [TOKEN],
+      permissionId: 2,
+    });
+    const leg = {
+      resource: "ENERGY" as const,
+      requiredUnits: 100n,
+      delegatedUnits: 100n,
+      stakeSun: 100_000n,
+    };
+
+    await expect(chain.prepareDelegate(runtimeRequest(), leg)).rejects.toThrow(
+      "temporary RPC failure",
+    );
+    await expect(chain.prepareDelegate(runtimeRequest(), leg)).resolves.toMatchObject({
+      txID: expect.any(String),
+    });
+    expect(ownerAttempts).toBe(2);
+  });
+
+  it("shares one in-flight Active Permission lookup across concurrent actions", async () => {
+    const mock = createTronWebMock();
+    const unsigned = systemTransaction("DelegateResourceContract");
+    vi.mocked(mock.tronWeb.transactionBuilder.delegateResource).mockResolvedValue(
+      unsigned as never,
+    );
+    const originalGetAccount = vi.mocked(mock.tronWeb.trx.getAccount).getMockImplementation()!;
+    let releaseOwnerLookup: (() => void) | undefined;
+    const ownerLookupBlocked = new Promise<void>(resolve => {
+      releaseOwnerLookup = resolve;
+    });
+    let ownerLookups = 0;
+    vi.mocked(mock.tronWeb.trx.getAccount).mockImplementation(async address => {
+      if (address === OWNER) {
+        ownerLookups += 1;
+        await ownerLookupBlocked;
+      }
+      return originalGetAccount(address);
+    });
+    const chain = await createTronWebResourceSponsoringChain({
+      tronWeb: mock.tronWeb,
+      network: "tron:0xcd8690dc",
+      resourceOwnerSigner: {
+        getAddress: async () => OWNER,
+        signResourceTransaction: async ({ transaction }) => ({
+          ...transaction,
+          signature: ["11".repeat(65)],
+        }),
+      },
+      readContract: vi.fn(async () => 0n),
+      allowedAssets: [TOKEN],
+      permissionId: 2,
+    });
+    const leg = {
+      resource: "ENERGY" as const,
+      requiredUnits: 100n,
+      delegatedUnits: 100n,
+      stakeSun: 100_000n,
+    };
+
+    const first = chain.prepareDelegate(runtimeRequest(), leg);
+    const second = chain.prepareDelegate(runtimeRequest(), leg);
+    await vi.waitFor(() => expect(ownerLookups).toBe(1));
+    releaseOwnerLookup?.();
+
+    await expect(Promise.all([first, second])).resolves.toHaveLength(2);
+    expect(ownerLookups).toBe(1);
+  });
 });

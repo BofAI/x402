@@ -18,10 +18,10 @@ The Extension uses the normal x402 request flow. It does not add a Prepare endpo
 
 1. **Resource Server** advertises `trc20ApprovalResourceSponsoring` in
    `PaymentRequired.extensions` for a supported TRON Permit2 route.
-2. **Client** builds the normal Permit2 payment payload. When allowance is zero and the Server
-   advertised the Extension, the TRON `exact`, `upto`, or Permit2 batch-deposit Client automatically
-   attaches a serialized, signed `approve(canonicalPermit2, MaxUint256)` transaction. The Client
-   does not broadcast it.
+2. **Client** builds the normal Permit2 payment payload. When allowance is insufficient and the
+   Server advertised the Extension, the TRON `exact`, `upto`, or Permit2 batch-deposit Client applies
+   its token Approval policy and, when permitted, automatically attaches a serialized, signed
+   `approve(canonicalPermit2, MaxUint256)` transaction. The Client does not broadcast it.
 3. **Facilitator** registers `createTrc20ApprovalResourceSponsoringExtension(runtime)`. During the
    normal `/verify` and `/settle` flow it validates the signed Approval, temporarily makes the
    required resources available, broadcasts the unchanged transaction, persists and submits the
@@ -42,12 +42,16 @@ const route = {
     extra: { assetTransferMethod: "permit2" },
   },
   extensions: {
-    ...declareTrc20ApprovalResourceSponsoringExtension(),
+    ...declareTrc20ApprovalResourceSponsoringExtension({
+      minimumApprovalLifetimeSeconds: 300,
+    }),
   },
 };
 ```
 
-The route must use `assetTransferMethod: "permit2"`. Batch use is limited to deposit/top-up payloads;
+`minimumApprovalLifetimeSeconds` tells the Client how long the signed Approval must remain
+broadcastable. The Facilitator still enforces its own local minimum and rejects a shorter transaction
+before delegating resources. The route must use `assetTransferMethod: "permit2"`. Batch use is limited to deposit/top-up payloads;
 voucher, claim, settle, refund, and EIP-3009 deposit paths do not use this Extension. Declaring the
 Extension is the only additional Resource Server integration.
 
@@ -60,7 +64,10 @@ path uses Permit2, and allowance is zero, the Client constructs and signs
 and attaches it to the payment payload. The Client does not broadcast the Approval.
 
 Use `createClientTronSigner(...)` for the standard signer setup. Custom signers must expose
-`readContract` and `signPermit2Approval`.
+`readContract`, `signPermit2Approval`, an exact `network` binding, and a compatible Approval policy.
+Known supported assets default to the conservative `zero-first` strategy: a non-zero insufficient
+allowance is rejected with `approval_reset_required`. Operators may explicitly configure
+`direct-overwrite` only for tokens known to support it; unknown assets are rejected.
 
 When the Extension is absent, the existing self-funded Approval behavior remains unchanged.
 
@@ -87,6 +94,10 @@ const resourceSponsoringRuntime = await createTrc20ResourceSponsoringRuntime({
   allowedAssets: [usdtAddress],
   permissionId: 2,
   confirmationMode: "packed",
+  approvalStrategies: {
+    // Optional and token-specific. Omit to keep the conservative zero-first policy.
+    // [usdtAddress]: "direct-overwrite",
+  },
 });
 
 const facilitator = new x402Facilitator()
@@ -99,8 +110,8 @@ const facilitator = new x402Facilitator()
 The Resource Owner must have Stake 2.0 resource capacity and a non-zero Active Permission that
 authorizes Delegate/Undelegate. `resourceOwnerSigner` receives an exact, network-bound resource
 intent plus the locally validated transaction so a remote wallet or HSM can enforce the same policy.
-The payer must be an activated EOA, the asset must be in the Facilitator allowlist, and the existing
-Permit2 allowance must be zero. These conditions are checked before sponsorship.
+The payer must be an activated EOA and the asset must be in the Facilitator allowlist. The Client and
+Facilitator apply the same token-specific Approval update strategy before sponsorship.
 
 ### Production runtime requirements
 
@@ -130,6 +141,13 @@ lifetime, but it is provisional until the block solidifies. Deployments that con
 state must bound that exposure and keep recovery active. `"solidified"` is safer but adds roughly one
 TRON finality interval to every chain action and therefore requires a correspondingly longer Client
 Approval lifetime.
+
+The runtime rejects a payment authorization whose remaining deadline cannot cover delegation,
+Approval confirmation, and the settlement safety margin. It revalidates the selected Scheme before
+Approval broadcast and again after Approval confirmation; Exact, Upto, and Batch Settlement perform
+their final validation immediately before the payment transaction is submitted. Sponsorship
+failures return an empty core `SettleResponse.transaction`; that field is reserved for a submitted
+payment settlement transaction, not a prepared Approval ID.
 
 ## ERC-20 alignment
 

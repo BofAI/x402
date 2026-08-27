@@ -9,6 +9,7 @@ import {
 import { buildTronWeb } from "./rpc";
 import { tronAddressToEvm } from "./utils";
 import { log } from "@bankofai/x402-core";
+import { createTrc20ApprovalPolicy, type Trc20ApprovalPolicy } from "./approvalPolicy";
 
 /** Allowance-ensuring strategy for {@link ClientTronSigner.ensureAllowance}. */
 export type AllowanceMode = "auto" | "skip" | "interactive";
@@ -36,6 +37,12 @@ export interface ClientTronSigner {
    * The TRON address (Base58Check format) or EVM hex address of the signer.
    */
   address: string;
+
+  /** Exact CAIP-2 network served by this signer's RPC client, when network-bound. */
+  readonly network?: string;
+
+  /** Token-specific Approval update behavior shared by all Client paths. */
+  readonly approvalPolicy?: Trc20ApprovalPolicy;
 
   /**
    * Sign EIP-712/TIP-712 typed data.
@@ -85,7 +92,11 @@ export interface ClientTronSigner {
    * The returned value is the complete signed TRON Transaction protobuf as
    * lowercase hexadecimal without a `0x` prefix.
    */
-  signPermit2Approval?(args: { token: string; network: string }): Promise<string>;
+  signPermit2Approval?(args: {
+    token: string;
+    network: string;
+    minimumLifetimeSeconds: number;
+  }): Promise<string>;
 }
 
 /**
@@ -199,6 +210,8 @@ export function toClientTronSigner(
 
   return {
     address: signer.address,
+    ...(signer.network ? { network: signer.network } : {}),
+    ...(signer.approvalPolicy ? { approvalPolicy: signer.approvalPolicy } : {}),
     signTypedData: args => signer.signTypedData(args),
     readContract,
     ...(signer.ensureAllowance ? { ensureAllowance: args => signer.ensureAllowance!(args) } : {}),
@@ -239,6 +252,8 @@ export interface CreateClientTronSignerOptions {
    * Set `"skip"` for apps that manage the Permit2 approval themselves.
    */
   allowanceMode?: AllowanceMode;
+  /** Token-specific Approval update policy; defaults to the built-in safe policy. */
+  approvalPolicy?: Trc20ApprovalPolicy;
 }
 
 /**
@@ -293,17 +308,30 @@ export async function createClientTronSigner(
   // transactions, it throws a clear error only when an approve is actually
   // required — pre-approved sign-only wallets still work.
   const signTransaction = wallet.signTransaction?.bind(wallet);
+  const approvalPolicy = opts.approvalPolicy ?? createTrc20ApprovalPolicy();
 
   return {
     ...base,
+    network: opts.network,
+    approvalPolicy,
     ensureAllowance: allowanceArgs =>
       ensurePermit2Allowance(
-        { tronWeb, ownerAddress: address, signTransaction, readContract: base.readContract },
+        {
+          tronWeb,
+          ownerAddress: address,
+          signTransaction,
+          readContract: base.readContract,
+          approvalPolicy,
+        },
         { ...allowanceArgs, mode: allowanceArgs.mode ?? opts.allowanceMode },
       ),
     ...(signTransaction
       ? {
-          signPermit2Approval: async (args: { token: string; network: string }) => {
+          signPermit2Approval: async (args: {
+            token: string;
+            network: string;
+            minimumLifetimeSeconds: number;
+          }) => {
             const permit2Address = PERMIT2_ADDRESSES[args.network];
             if (!permit2Address) {
               throw new Error(`No Permit2 contract address configured for network ${args.network}`);
@@ -318,7 +346,10 @@ export async function createClientTronSigner(
                 functionName: "approve",
                 args: [permit2Address, MAX_UINT256],
               },
-              { feeLimit: APPROVE_FEE_LIMIT_SUN },
+              {
+                feeLimit: APPROVE_FEE_LIMIT_SUN,
+                minimumLifetimeSeconds: args.minimumLifetimeSeconds,
+              },
             );
             return serializeSignedTronTransaction(signed);
           },
@@ -542,6 +573,7 @@ type ContractWriteArgs = {
  * @param options - Transaction policy options.
  * @param options.feeLimit - Maximum energy fee in SUN.
  * @param options.permissionId - Optional TRON multi-signature permission id.
+ * @param options.minimumLifetimeSeconds - Minimum remaining transaction lifetime.
  * @returns Wallet-signed transaction object.
  */
 async function buildAndSignContract(
@@ -549,7 +581,7 @@ async function buildAndSignContract(
   issuerAddress: string,
   signTransaction: SignTransactionFn,
   args: ContractWriteArgs,
-  options: { feeLimit: number; permissionId?: number },
+  options: { feeLimit: number; permissionId?: number; minimumLifetimeSeconds?: number },
 ): Promise<Record<string, unknown>> {
   const tw = tronWeb as unknown as WriteCapableTronWeb;
   const fn = findAbiFunction(args.abi, args.functionName);
@@ -576,10 +608,46 @@ async function buildAndSignContract(
   if (!built.result?.result) {
     throw new Error(`triggerSmartContract failed: ${JSON.stringify(built)}`);
   }
-  return normalizeSignedTronTransaction(
-    await signTransaction(built.transaction),
-    built.transaction,
-  );
+  const unsigned = extendTransactionLifetime(built.transaction, options.minimumLifetimeSeconds);
+  return normalizeSignedTronTransaction(await signTransaction(unsigned), unsigned);
+}
+
+/**
+ * Extends an unsigned TRON transaction and recomputes its authoritative identity.
+ *
+ * @param transaction - RPC-built unsigned transaction.
+ * @param minimumLifetimeSeconds - Required lifetime measured from the local clock.
+ * @returns The original transaction or an immutable extended transaction.
+ */
+function extendTransactionLifetime(
+  transaction: Record<string, unknown>,
+  minimumLifetimeSeconds?: number,
+): Record<string, unknown> {
+  if (minimumLifetimeSeconds == null) return transaction;
+  if (
+    !Number.isSafeInteger(minimumLifetimeSeconds) ||
+    minimumLifetimeSeconds <= 0 ||
+    minimumLifetimeSeconds > 86_400
+  ) {
+    throw new Error("minimumLifetimeSeconds must be an integer between 1 and 86400");
+  }
+  const rawData = transaction.raw_data as Record<string, unknown> | undefined;
+  if (!rawData || typeof rawData.expiration !== "number") {
+    throw new Error("TRON transaction is missing raw_data.expiration");
+  }
+  const minimumExpiration = Date.now() + minimumLifetimeSeconds * 1_000;
+  if (rawData.expiration >= minimumExpiration) return transaction;
+
+  const extended = {
+    ...transaction,
+    raw_data: { ...rawData, expiration: minimumExpiration },
+  };
+  const transactionPb = tronUtils.transaction.txJsonToPb(extended);
+  return {
+    ...extended,
+    raw_data_hex: tronUtils.transaction.txPbToRawDataHex(transactionPb).toLowerCase(),
+    txID: tronUtils.transaction.txPbToTxID(transactionPb).replace(/^0x/, "").toLowerCase(),
+  };
 }
 
 /**
@@ -728,6 +796,7 @@ async function pollTransactionPacked(tronWeb: TronWeb, hash: string): Promise<{ 
  * @param deps.ownerAddress - Token owner granting the allowance.
  * @param deps.signTransaction - Optional wallet hook for signing an approval transaction.
  * @param deps.readContract - Contract reader used to inspect the current allowance.
+ * @param deps.approvalPolicy - Token-specific Approval update policy.
  * @param args - Token, required amount (payment + fee), network, and mode.
  * @param args.token - TRC-20 token contract address.
  * @param args.amount - Required Permit2 allowance.
@@ -741,6 +810,7 @@ async function ensurePermit2Allowance(
     ownerAddress: string;
     signTransaction?: SignTransactionFn;
     readContract: ClientTronSigner["readContract"];
+    approvalPolicy: Trc20ApprovalPolicy;
   },
   args: { token: string; amount: bigint; network: string; mode?: AllowanceMode },
 ): Promise<boolean> {
@@ -772,6 +842,14 @@ async function ensurePermit2Allowance(
 
   if (current >= args.amount) {
     return true;
+  }
+
+  const strategy = deps.approvalPolicy.strategyFor(args.network, args.token);
+  if (strategy === "unsupported") {
+    throw new Error("approval_asset_unsupported");
+  }
+  if (current !== 0n && strategy === "zero-first") {
+    throw new Error("approval_reset_required");
   }
 
   // An approve is required but this wallet only signs typed data — surface a
