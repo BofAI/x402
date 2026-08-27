@@ -9,7 +9,9 @@ import {
   resolveTrc20ApprovalResourceSponsoringRuntime,
   validateTrc20ApprovalResourceSponsoringInfo,
   type Trc20ApprovalResourceSponsoringInfo,
+  type Trc20ApprovalResourceSponsoringRequest,
   type Trc20ApprovalResourceSponsoringRuntime,
+  type Trc20SponsorshipExecutionOptions,
 } from "../src/trc20-approval-resource-sponsoring";
 
 const validInfo: Trc20ApprovalResourceSponsoringInfo = {
@@ -90,5 +92,32 @@ describe("TRC-20 Approval Resource Sponsoring Extension", () => {
     expect(resolveTrc20ApprovalResourceSponsoringRuntime(extension, "tron:other")).toBe(
       defaultRuntime,
     );
+  });
+
+  it("exposes the shared required-allowance and pre-broadcast revalidation contract", async () => {
+    const request = {
+      requiredAllowance: "5000",
+    } as Trc20ApprovalResourceSponsoringRequest;
+    const runtime: Trc20ApprovalResourceSponsoringRuntime = {
+      verify: vi.fn(async () => ({ isValid: true })),
+      sponsor: vi.fn(
+        async (
+          received: Trc20ApprovalResourceSponsoringRequest,
+          options?: Trc20SponsorshipExecutionOptions,
+        ) => {
+          const revalidation = await options?.revalidate?.();
+          return {
+            success: received.requiredAllowance === "5000" && revalidation?.isValid === true,
+          };
+        },
+      ),
+    };
+    const extension = createTrc20ApprovalResourceSponsoringExtension(runtime);
+
+    const result = await extension.runtime?.sponsor(request, {
+      revalidate: async () => ({ isValid: true }),
+    });
+
+    expect(result).toEqual({ success: true });
   });
 });

@@ -14,10 +14,12 @@ export {
   type Trc20ApprovalResourceSponsoringFacilitatorExtension,
   type Trc20ApprovalResourceSponsoringInfo,
   type Trc20ApprovalResourceSponsoringRequest,
+  type Trc20ApprovalResourceSponsoringResult,
   type Trc20ApprovalResourceSponsoringRuntime,
+  type Trc20ApprovalResourceSponsoringVerification,
   type Trc20SponsorshipExecutionOptions,
   type Trc20SponsorshipRevalidationResult,
-} from "./exact/extensions";
+} from "./shared/extensions/trc20ApprovalContract";
 export {
   buildTrc20SponsoringPlan,
   createTrc20ApprovalResourceSponsoringRuntime,

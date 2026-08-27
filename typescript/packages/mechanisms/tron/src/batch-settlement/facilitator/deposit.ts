@@ -32,7 +32,7 @@ import {
   executeTrc20Sponsorship,
   verifyTrc20Sponsorship,
 } from "../../shared/extensions/trc20ApprovalResourceSponsoring";
-import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "../../exact/extensions";
+import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "../../shared/extensions/trc20ApprovalContract";
 
 const abi = batchSettlementABI as unknown as readonly Record<string, unknown>[];
 

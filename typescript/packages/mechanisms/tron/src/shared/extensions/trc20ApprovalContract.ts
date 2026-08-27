@@ -45,21 +45,27 @@ export interface Trc20SponsorshipExecutionOptions {
   readonly revalidate?: () => Promise<Trc20SponsorshipRevalidationResult>;
 }
 
+export interface Trc20ApprovalResourceSponsoringVerification {
+  readonly isValid: boolean;
+  readonly invalidReason?: string;
+  readonly invalidMessage?: string;
+}
+
+export interface Trc20ApprovalResourceSponsoringResult {
+  readonly success: boolean;
+  readonly approvalTransaction?: string;
+  readonly errorReason?: string;
+  readonly errorMessage?: string;
+}
+
 export interface Trc20ApprovalResourceSponsoringRuntime {
-  verify(request: Trc20ApprovalResourceSponsoringRequest): Promise<{
-    isValid: boolean;
-    invalidReason?: string;
-    invalidMessage?: string;
-  }>;
+  verify(
+    request: Trc20ApprovalResourceSponsoringRequest,
+  ): Promise<Trc20ApprovalResourceSponsoringVerification>;
   sponsor(
     request: Trc20ApprovalResourceSponsoringRequest,
     options?: Trc20SponsorshipExecutionOptions,
-  ): Promise<{
-    success: boolean;
-    approvalTransaction?: string;
-    errorReason?: string;
-    errorMessage?: string;
-  }>;
+  ): Promise<Trc20ApprovalResourceSponsoringResult>;
 }
 
 export interface Trc20ApprovalResourceSponsoringFacilitatorExtension {

@@ -4,7 +4,7 @@ import { ExactTronScheme } from "../../src/exact/client/scheme";
 import {
   TRC20_APPROVAL_MAX_AMOUNT,
   TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
-} from "../../src/exact/extensions";
+} from "../../src/shared/extensions/trc20ApprovalContract";
 import type { ClientTronSigner } from "../../src/signer";
 import { trySignTrc20ApprovalResourceSponsoringExtension } from "../../src/shared/extensions";
 

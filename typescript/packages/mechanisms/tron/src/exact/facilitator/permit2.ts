@@ -10,7 +10,10 @@ import { FacilitatorTronSigner } from "../../signer";
 import { ExactPermit2Payload } from "../../types";
 import * as errors from "./errors";
 import { verifyPermit2AccountState, verifyPermit2Authorization } from "./permit2Verification";
-import { executeTrc20Sponsorship, verifyTrc20Sponsorship } from "./trc20Sponsoring";
+import {
+  executeTrc20Sponsorship,
+  verifyTrc20Sponsorship,
+} from "../../shared/extensions/trc20ApprovalResourceSponsoring";
 
 /**
  * Verifies a Permit2 payment payload on TRON.

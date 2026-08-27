@@ -61,6 +61,8 @@ export interface Trc20ApprovalResourceSponsoringRequest {
   readonly asset: string;
   readonly spender: string;
   readonly amount: string;
+  /** Permit2 allowance required by the selected payment or deposit operation. */
+  readonly requiredAllowance?: string;
   readonly signedTransaction: string;
   readonly paymentPayload: PaymentPayload;
   readonly paymentRequirements: PaymentRequirements;
@@ -81,6 +83,19 @@ export interface Trc20ApprovalResourceSponsoringResult {
   errorMessage?: string;
 }
 
+/** Result of repeating Scheme checks immediately before Approval broadcast. */
+export interface Trc20SponsorshipRevalidationResult {
+  readonly isValid: boolean;
+  readonly invalidReason?: string;
+  readonly invalidMessage?: string;
+}
+
+/** Settle-time controls supplied by the shared TRON Extension integration. */
+export interface Trc20SponsorshipExecutionOptions {
+  /** Revalidates the selected Scheme after delegation and before Approval broadcast. */
+  readonly revalidate?: () => Promise<Trc20SponsorshipRevalidationResult>;
+}
+
 /**
  * Facilitator-owned runtime for chain reads, policy admission, resource
  * delegation, Approval broadcast, and resource reclamation.
@@ -91,6 +106,7 @@ export interface Trc20ApprovalResourceSponsoringRuntime {
   ): Promise<Trc20ApprovalResourceSponsoringVerification>;
   sponsor(
     request: Trc20ApprovalResourceSponsoringRequest,
+    options?: Trc20SponsorshipExecutionOptions,
   ): Promise<Trc20ApprovalResourceSponsoringResult>;
 }
 

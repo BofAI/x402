@@ -11,7 +11,7 @@ import { ExactEIP3009Payload, ExactTronPayload, isPermit2Payload } from "../../t
 import { X402_PERMIT2_PROXY_ADDRESSES } from "../../constants";
 import { verifyEIP3009, settleEIP3009 } from "./eip3009";
 import { verifyPermit2, settlePermit2 } from "./permit2";
-import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "../extensions";
+import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "../../shared/extensions/trc20ApprovalContract";
 import * as errors from "./errors";
 
 /**

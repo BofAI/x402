@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { Trc20ApprovalResourceSponsoringRequest } from "../../src/exact/extensions";
+import type { Trc20ApprovalResourceSponsoringRequest } from "../../src/shared/extensions/trc20ApprovalContract";
 import {
   buildTrc20SponsoringPlan,
   createTrc20ApprovalResourceSponsoringRuntime,

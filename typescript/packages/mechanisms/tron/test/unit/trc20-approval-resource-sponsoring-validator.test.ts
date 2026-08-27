@@ -8,11 +8,11 @@ import {
 import {
   decodeSignedTrc20Approval,
   validateTrc20ApprovalForPayment,
-} from "../../src/exact/facilitator/trc20approval";
+} from "../../src/shared/extensions/trc20ApprovalTransaction";
 import {
   TRC20_APPROVAL_MAX_AMOUNT,
   type Trc20ApprovalResourceSponsoringInfo,
-} from "../../src/exact/extensions";
+} from "../../src/shared/extensions/trc20ApprovalContract";
 import { ExactTronScheme } from "../../src/exact/facilitator/scheme";
 import type { FacilitatorTronSigner } from "../../src/signer";
 import { normalizeAddressForSigning } from "../../src/utils";

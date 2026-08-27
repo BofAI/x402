@@ -2,7 +2,7 @@ import { TronWeb, utils as tronUtils } from "tronweb";
 import { erc20AllowanceAbi, transferWithAuthorizationABI } from "../constants";
 import type { FacilitatorTronSigner } from "../signer";
 import { normalizeSignedTronTransaction, serializeSignedTronTransaction } from "../signer";
-import type { Trc20ApprovalResourceSponsoringRequest } from "../exact/extensions";
+import type { Trc20ApprovalResourceSponsoringRequest } from "../shared/extensions/trc20ApprovalContract";
 import type {
   PreparedTronAction,
   Trc20ResourceLeg,

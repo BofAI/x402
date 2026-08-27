@@ -23,7 +23,7 @@ import { executeClaimWithSignature } from "./claim";
 import { executeSettle } from "./settle";
 import { executeRefundWithSignature } from "./refund";
 import * as Errors from "../errors";
-import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "../../exact/extensions";
+import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "../../shared/extensions/trc20ApprovalContract";
 
 /**
  * Returns whether a batch envelope explicitly carries Approval sponsorship.

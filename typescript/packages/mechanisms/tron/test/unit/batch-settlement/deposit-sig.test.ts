@@ -18,7 +18,7 @@ import {
   batchPermit2WitnessTypes,
 } from "../../../src/shared/batch-settlement/constants";
 import { PERMIT2_ADDRESSES } from "../../../src/constants";
-import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "../../../src/exact/extensions";
+import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "../../../src/shared/extensions/trc20ApprovalContract";
 import { buildErc3009DepositNonce } from "../../../src/shared/batch-settlement/encoding";
 import { createBatchSettlementEIP3009DepositPayload } from "../../../src/batch-settlement/client/eip3009";
 import { createBatchSettlementPermit2DepositPayload } from "../../../src/batch-settlement/client/permit2";

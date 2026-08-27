@@ -13,7 +13,7 @@ import {
 import { buildTronWeb } from "../../src/rpc";
 import { privateKeyTronWallet } from "./helpers";
 import { uptoPermit2WitnessTypes, X402_UPTO_PERMIT2_PROXY_ADDRESSES } from "../../src/constants";
-import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "../../src/exact/extensions";
+import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "../../src/shared/extensions/trc20ApprovalContract";
 
 // The signer factories build TronWeb internally; mock that builder so each signer
 // gets a TronWeb seeded with its own key (set right before each create call).

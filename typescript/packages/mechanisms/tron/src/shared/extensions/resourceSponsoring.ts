@@ -6,7 +6,7 @@ import {
   TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
   TRC20_APPROVAL_RESOURCE_SPONSORING_VERSION,
   type Trc20ApprovalResourceSponsoringInfo,
-} from "../../exact/extensions";
+} from "./trc20ApprovalContract";
 
 export interface Trc20ApprovalExtensionAttempt {
   handled: boolean;

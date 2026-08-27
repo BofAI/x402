@@ -4,21 +4,24 @@ Part of [`@bankofai/x402-extensions`](../README.md). **Import from the package r
 `import { ... } from "@bankofai/x402-extensions"` (this module is not a separate npm export
 subpath).
 
-This Extension enables the first TRON `exact + Permit2` payment without requiring the payer to hold
-TRX. The payer signs, but does not broadcast, a canonical TRC-20 Approval. A registered Facilitator
-runtime validates the transaction, temporarily delegates the required Energy and Bandwidth,
-broadcasts the unchanged Approval, durably submits reclamation for every delegated resource share,
-and then continues with Permit2 settlement while reclamation confirmation runs asynchronously.
+This Extension enables the first supported TRON Permit2 operation without requiring the payer to
+hold TRX. Version 1 supports `exact`, `upto`, and the Permit2 deposit/top-up path of
+`batch-settlement`. The payer signs, but does not broadcast, a canonical TRC-20 Approval. A
+registered Facilitator runtime validates the transaction, temporarily delegates the required Energy
+and Bandwidth, broadcasts the unchanged Approval, durably submits reclamation for every delegated
+resource share, and then continues with the selected operation while reclamation confirmation runs
+asynchronously.
 
 The Extension uses the normal x402 request flow. It does not add a Prepare endpoint.
 
 ## End-to-end flow
 
 1. **Resource Server** advertises `trc20ApprovalResourceSponsoring` in
-   `PaymentRequired.extensions` for a TRON `exact + Permit2` route.
+   `PaymentRequired.extensions` for a supported TRON Permit2 route.
 2. **Client** builds the normal Permit2 payment payload. When allowance is zero and the Server
-   advertised the Extension, `ExactTronScheme` automatically attaches a serialized, signed
-   `approve(canonicalPermit2, MaxUint256)` transaction. The Client does not broadcast it.
+   advertised the Extension, the TRON `exact`, `upto`, or Permit2 batch-deposit Client automatically
+   attaches a serialized, signed `approve(canonicalPermit2, MaxUint256)` transaction. The Client
+   does not broadcast it.
 3. **Facilitator** registers `createTrc20ApprovalResourceSponsoringExtension(runtime)`. During the
    normal `/verify` and `/settle` flow it validates the signed Approval, temporarily makes the
    required resources available, broadcasts the unchanged transaction, persists and submits the
@@ -44,14 +47,15 @@ const route = {
 };
 ```
 
-The route must use `assetTransferMethod: "permit2"`. Declaring the Extension is the only additional
-Resource Server integration.
+The route must use `assetTransferMethod: "permit2"`. Batch use is limited to deposit/top-up payloads;
+voucher, claim, settle, refund, and EIP-3009 deposit paths do not use this Extension. Declaring the
+Extension is the only additional Resource Server integration.
 
 ## Client
 
-**You do not manually add this Extension** when using `ExactTronScheme`.
-`@bankofai/x402-tron` handles it automatically. When the Server advertises version `1` and the
-allowance is zero, the Client constructs and signs
+**You do not manually add this Extension** when using the supported TRON Client schemes.
+`@bankofai/x402-tron` handles it automatically. When the Server advertises version `1`, the selected
+path uses Permit2, and allowance is zero, the Client constructs and signs
 `approve(canonicalPermit2, MaxUint256)`, serializes the complete signed TRON Transaction protobuf,
 and attaches it to the payment payload. The Client does not broadcast the Approval.
 
@@ -73,8 +77,8 @@ import {
 } from "@bankofai/x402-extensions";
 import {
   createTrc20ResourceSponsoringRuntime,
-  ExactTronScheme,
-} from "@bankofai/x402-tron/exact/facilitator";
+} from "@bankofai/x402-tron";
+import { ExactTronScheme } from "@bankofai/x402-tron/exact/facilitator";
 
 const resourceSponsoringRuntime = await createTrc20ResourceSponsoringRuntime({
   network,
@@ -103,10 +107,10 @@ Permit2 allowance must be zero. These conditions are checked before sponsorship.
 The TRON mechanism performs strict protobuf, transaction-signature, Approval-template, and Payment
 binding checks before invoking the runtime. `runtime.verify()` must remain read-only.
 `runtime.sponsor()` owns durable idempotency, policy admission, resource estimation and reservation,
-DelegateResource, resource visibility, immutable Approval broadcast, allowance confirmation,
-durable UnDelegateResource submission, and unknown-state recovery. It returns success after Approval
-allowance is observable and every successful delegation has durable recovery debt; it does not wait
-for UnDelegateResource confirmation.
+DelegateResource, resource visibility, pre-broadcast Scheme revalidation, immutable Approval
+broadcast, allowance confirmation, durable UnDelegateResource submission, and unknown-state
+recovery. It returns success after Approval allowance is observable and every successful delegation
+has durable recovery debt; it does not wait for UnDelegateResource confirmation.
 
 `durableCoordinator` is an intentional deployment boundary. It must atomically enforce
 `(network, approvalTxID)` idempotency, one active resource mutation per payer, Resource Owner

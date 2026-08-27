@@ -7,7 +7,7 @@ import {
   TRC20_APPROVAL_RESOURCE_SPONSORING_VERSION,
   type Trc20ApprovalResourceSponsoringInfo,
   type Trc20ApprovalResourceSponsoringRequest,
-} from "../extensions";
+} from "./trc20ApprovalContract";
 
 const APPROVE_SELECTOR = "095ea7b3";
 const TRIGGER_SMART_CONTRACT_TYPE = 31n;

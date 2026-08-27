@@ -15,7 +15,7 @@ import type {
 import type {
   Trc20ApprovalResourceSponsoringRequest,
   Trc20SponsorshipExecutionOptions,
-} from "../exact/extensions";
+} from "../shared/extensions/trc20ApprovalContract";
 
 const DEFAULT_ENERGY_SAFETY_BPS = 12_000n;
 const DEFAULT_BANDWIDTH_SAFETY_BPS = 11_000n;

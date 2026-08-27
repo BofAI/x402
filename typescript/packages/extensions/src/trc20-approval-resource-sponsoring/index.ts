@@ -5,6 +5,8 @@ export type {
   Trc20ApprovalResourceSponsoringRequest,
   Trc20ApprovalResourceSponsoringVerification,
   Trc20ApprovalResourceSponsoringResult,
+  Trc20SponsorshipExecutionOptions,
+  Trc20SponsorshipRevalidationResult,
   Trc20ApprovalResourceSponsoringRuntime,
   Trc20ApprovalResourceSponsoringFacilitatorExtension,
 } from "./types";
