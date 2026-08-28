@@ -47,7 +47,7 @@ const route = {
 };
 ```
 
-The version 1 Client SDK constructs an Approval with at least 300 seconds of remaining lifetime. The
+The version 1 Client SDK constructs an Approval with at least 600 seconds of remaining lifetime. The
 Facilitator independently enforces its local saga window and rejects a shorter transaction before
 delegating resources. The route must use `assetTransferMethod: "permit2"`. Batch use is limited to
 deposit/top-up payloads; voucher, claim, settle, refund, and EIP-3009 deposit paths do not use this
@@ -137,8 +137,8 @@ resource debt and do not retroactively fail a successful Permit2 payment.
 `confirmationMode: "packed"` keeps the multi-transaction Approval path within a short transaction
 lifetime, but it is provisional until the block solidifies. Deployments that continue after packed
 state must bound that exposure and keep recovery active. `"solidified"` is safer but adds roughly one
-TRON finality interval to every chain action and therefore requires a correspondingly longer Client
-Approval lifetime.
+TRON finality interval to every chain action; the fixed 600-second Client Approval lifetime leaves
+additional room for that mode and for normal request forwarding or RPC delay.
 
 The runtime rejects a payment authorization whose remaining deadline cannot cover delegation,
 Approval confirmation, and the settlement safety margin. It revalidates the selected Scheme before

@@ -211,7 +211,7 @@ describe("batch-settlement deposit authorizations (TRON)", () => {
     expect(signPermit2Approval).toHaveBeenCalledWith({
       token: ASSET,
       network: NETWORK,
-      minimumLifetimeSeconds: 300,
+      minimumLifetimeSeconds: 600,
     });
     expect(result.extensions?.[TRC20_APPROVAL_RESOURCE_SPONSORING_KEY]).toMatchObject({
       info: { asset: ASSET, signedTransaction: "0a02abcd" },

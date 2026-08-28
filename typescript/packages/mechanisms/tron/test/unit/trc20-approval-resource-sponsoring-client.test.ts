@@ -87,7 +87,7 @@ describe("TRC-20 Approval Resource Sponsoring client", () => {
     expect(clientSigner.signPermit2Approval).toHaveBeenCalledWith({
       token: TOKEN,
       network: NETWORK,
-      minimumLifetimeSeconds: 300,
+      minimumLifetimeSeconds: 600,
     });
     expect(clientSigner.ensureAllowance).not.toHaveBeenCalled();
     expect(result.extensions).toEqual({

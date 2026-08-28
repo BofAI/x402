@@ -154,7 +154,7 @@ describe("upto Permit2 end-to-end (in-process)", () => {
     expect(signPermit2Approval).toHaveBeenCalledWith({
       token: req.asset,
       network: NETWORK,
-      minimumLifetimeSeconds: 300,
+      minimumLifetimeSeconds: 600,
     });
     expect(ensureAllowance).not.toHaveBeenCalled();
     expect(result.extensions?.[TRC20_APPROVAL_RESOURCE_SPONSORING_KEY]).toMatchObject({

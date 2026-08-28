@@ -74,7 +74,7 @@ A Resource Server advertises the extension in `PaymentRequired.extensions`:
 signed TRON `Transaction` protobuf. Its exact bytes are authoritative. The redundant display fields
 `from`, `asset`, `spender`, and `amount` MUST match the independently decoded transaction.
 
-The version 1 Client MUST create a signed Approval with at least 300 seconds of remaining transaction
+The version 1 Client MUST create a signed Approval with at least 600 seconds of remaining transaction
 lifetime. This is a fixed Client SDK requirement, not Server-provided capability information. The
 Facilitator MUST independently enforce its locally configured saga window before delegation.
 `fee_limit` bounds remain independent Client and Facilitator policy and are not Client payload fields.
@@ -122,7 +122,7 @@ signer. Before signing, the Client MUST construct and inspect one `TriggerSmartC
 - zero TRX and TRC-10 value;
 - no memo or custom `permission_id`;
 - recent TAPOS fields;
-- an expiration that preserves at least the Server-declared minimum remaining lifetime; and
+- an expiration that preserves at least the fixed version 1 Client lifetime; and
 - a `fee_limit` within the Client's local safety policy.
 
 The Client computes `txID = SHA-256(raw_data protobuf bytes)`, signs that digest, and serializes the
