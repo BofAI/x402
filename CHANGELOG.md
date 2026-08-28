@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Adopted `develop` as the integration branch and retained `main` for stable releases.
+- Added enforced pull request routes for development, release, and hotfix branches.
+- Added pull request CI for formatting, linting, build, and unit tests.
+
+### Removed
+
+- Removed the root `legacy/` archive containing the retired Python SDK, old TypeScript SDK, and
+  superseded examples and specifications. The compatibility npm packages under
+  `typescript/packages/legacy/` remain supported by the current workspace.
+
 ## [1.1.0] - 2026-08-25
 
 ### Upgrade notes

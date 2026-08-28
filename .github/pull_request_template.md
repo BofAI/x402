@@ -20,16 +20,20 @@ Please describe the tests you've performed to verify your changes.
 Include relevant code samples, unit test cases, or screenshots if applicable.
 
 For TypeScript: Run `pnpm test` from the `/typescript` directory
-For Python: Run `uv run pytest` from the `/python/x402` directory
 -->
+
+## Branch route
+
+- [ ] Normal development targets `develop`
+- [ ] Only `release_*`, legacy `release/*`, or `hotfix/*` targets `main`
 
 ## Checklist
 
 - [ ] I have formatted and linted my code
 - [ ] All new and existing tests pass
+- [ ] I added a Changeset for publishable package changes, or this PR does not require one
 - [ ] My commits are signed (required for merge) -- you may need to rebase if you initially pushed unsigned commits
 
 <!--
 For TypeScript: Run `pnpm lint` from `/typescript`
-For Python: Run `uvx ruff check && uvx ruff format --check` from `/python/x402`
 -->

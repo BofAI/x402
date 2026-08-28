@@ -26,9 +26,15 @@ By participating in this project, you agree to abide by our Code of Conduct. We 
 
 - Fill in the required template (if available).
 - Do not include more than one fix/feature per pull request.
+- Start normal work from `develop` and open the pull request back to `develop`.
+- Use `release_*` or `hotfix/*` branches for pull requests to `main`; never merge `develop`
+  directly into `main`.
 - Ensure that the tests pass and the code adheres to the project's coding standards.
 - Update the documentation if you've made changes to the API or added new features.
 - Commit messages follow `<type>(<scope>): <description>` (see [.claude/rules/common/conventions.md](.claude/rules/common/conventions.md)).
+
+See [BRANCHING.md](BRANCHING.md) for the complete development, release, back-merge, and hotfix
+workflow.
 
 ---
 
@@ -36,7 +42,7 @@ By participating in this project, you agree to abide by our Code of Conduct. We 
 
 ### Prerequisites
 
-- **Node.js**: 20+
+- **Node.js**: 22+
 - **pnpm**: >= 11 (workspace package manager)
 - **A wallet**: a TRON wallet with TRX (Nile/Shasta testnets) and/or a BSC wallet with BNB, for gas.
 
@@ -45,7 +51,6 @@ By participating in this project, you agree to abide by our Code of Conduct. We 
 - **SDK**: [`typescript/`](typescript/CLAUDE.md) — pnpm/turbo monorepo, packages published as `@bankofai/x402-*` (`core`, `mechanisms/{evm,tron}`, `extensions`, `http/*`, `mcp`).
 - **Examples**: [`examples/typescript/`](examples/typescript/) — runnable client/server/facilitator trios per scheme.
 - **Agent rules & reviewers**: [`.claude/`](.claude/rules/CLAUDE.md) — conventions and specialized review subagents.
-- **Legacy**: [`legacy/`](legacy/) — previous-generation Python + TypeScript SDK, reference-only and **slated for removal**. Don't build on it.
 
 ---
 

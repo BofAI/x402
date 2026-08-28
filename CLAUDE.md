@@ -6,32 +6,31 @@ This file tells Claude Code how to work in this repository.
 
 x402 is an open-source SDK for the **x402 open payment standard** — an HTTP `402 Payment Required` challenge-response protocol for serverless on-chain payments. Three roles participate: **Client** (payer), **Server** (resource provider), **Facilitator** (on-chain settlement).
 
-This repository hosts the BankofAI SDK (Python + TypeScript), the reference facilitator bindings, on-chain mechanisms for TRON and EVM, and the protocol specs.
+This repository hosts the TypeScript BankofAI SDK, reference facilitator bindings, on-chain
+mechanisms for TRON and EVM, runnable examples, and the protocol specs.
 
 ## Components
 
-Each component has its own `CLAUDE.md` (where present) with build/test commands and conventions.
-
-> The `legacy/` tree holds the previous-generation SDK (Python + old TypeScript + e2e), kept only as reference and **slated for removal**. New work lives in `typescript/` and `examples/`.
+Each component has its own guidance with build/test commands and conventions where needed.
 
 | Path | Language | Purpose |
 |---|---|---|
-| [legacy/python/x402/](legacy/python/x402/) | Python | SDK: client, server (FastAPI/Flask), facilitator, mechanisms (EVM + TRON). |
-| [legacy/typescript/](legacy/typescript/) | TypeScript | SDK: fetch client, server middleware, facilitator, mechanisms (EVM + TRON). |
-| [legacy/specs/](legacy/specs/) | Markdown | Protocol specs (`protocol.md`, `roles.md`, `config.md`, `schemes/*.md`) + in-flight feature specs (`NNN-<slug>/`). Read **first** when touching wire formats. Mirrors upstream `x402-foundation/x402/specs/` layout. |
+| [typescript/](typescript/) | TypeScript | Current SDK monorepo: core, EVM/TRON mechanisms, extensions, HTTP adapters, and MCP. |
+| [specs/](specs/) | Markdown | Normative v2 protocol, transport, scheme, and extension specifications. Read **first** when touching wire formats. |
+| [examples/typescript/](examples/typescript/) | TypeScript | Runnable client, server, facilitator, logging, and MCP examples. |
 | [docs/solutions.md](docs/solutions.md) | Markdown | Hard-won debugging knowledge. **Read before investigating bugs in related areas.** |
-| [legacy/examples/](legacy/examples/) | Mixed | Smoke tests and integration examples. |
-| [legacy/integration/](legacy/integration/) | Python | Generic step runner used by `legacy/e2e/scenarios/`. |
-| [legacy/e2e/](legacy/e2e/) | Python | End-to-end scenarios (mock facilitator + resource server + client). See [legacy/e2e/README.md](legacy/e2e/README.md). Wired into CI via `check_e2e.yml`. |
-| [tron-contribution/](tron-contribution/) | Markdown | Upstream contribution planning for `x402-foundation/x402`. |
 
 ## Key reading order (new contributor)
 
-1. [legacy/specs/protocol.md](legacy/specs/protocol.md) — wire format, headers, encoding
-2. [legacy/specs/roles.md](legacy/specs/roles.md) — Client / Server / Facilitator; **payment selection pipeline** (policy hook at step 5)
-3. [legacy/specs/config.md](legacy/specs/config.md) — network + contract registry
-4. Scheme spec for the scheme you are touching: [`schemes/exact.md`](legacy/specs/schemes/exact.md) · [`schemes/exact-permit.md`](legacy/specs/schemes/exact-permit.md) · [`schemes/exact-gasfree.md`](legacy/specs/schemes/exact-gasfree.md)
-5. [docs/solutions.md](docs/solutions.md) — bug-avoidance checklist (TRON address hex, GasFree deadline bounds, balance source, etc.)
+1. [specs/x402-specification-v2.md](specs/x402-specification-v2.md) — shared wire objects,
+   facilitator API, discovery, and security rules
+2. Transport spec for the surface you are touching: [HTTP](specs/transports-v2/http.md) or
+   [MCP](specs/transports-v2/mcp.md)
+3. Scheme overview and network binding under [specs/schemes/](specs/schemes/)
+4. [specs/CONTRIBUTING.md](specs/CONTRIBUTING.md) — normative documentation rules and review
+   checklist
+5. [docs/solutions.md](docs/solutions.md) — bug-avoidance checklist (TRON address hex, GasFree
+   deadline bounds, balance source, etc.)
 
 ## Conventions
 
@@ -41,6 +40,15 @@ Each component has its own `CLAUDE.md` (where present) with build/test commands 
 - **Network identifiers**: CAIP-2 `eip155:<chainId>` for EVM; `tron:<hexChainId>` for TRON (e.g. `tron:0xcd8690dc` for Nile).
 - **Mechanism registration**: `tron:0xcd8690dc` (exact match, higher priority) beats `tron:*` (wildcard, lower priority).
 - **Commit messages**: `<type>(<scope>): <description>` — e.g. `fix(tron): preserve raw_data_hex in tron approvals`.
+
+## Branch workflow
+
+- Start normal development, documentation, maintenance, and upstream-sync branches from `develop`
+  and open them back to `develop`.
+- Treat `main` as stable release history. Only `release_*`, legacy `release/*`, and `hotfix/*`
+  branches may target `main`.
+- Never open `develop` directly into `main`.
+- Follow [BRANCHING.md](BRANCHING.md) for release back-merges, hotfixes, and branch retention.
 
 ## AI-native development
 
@@ -56,7 +64,9 @@ This repo uses a Claude-Code-native layout: rules, commands, and agents that let
 | [.claude/commands/x402/](.claude/commands/x402/) | Slash-command wizards (`/x402:compound`) |
 | [.claude/agents/](.claude/agents/) | Specialized subagents (`code-reviewer`, `security-reviewer`) |
 
-Each major component also has its own `CLAUDE.md` with build/test commands and local conventions: [legacy/python/x402/](legacy/python/x402/CLAUDE.md), [legacy/typescript/](legacy/typescript/CLAUDE.md), [legacy/e2e/](legacy/e2e/CLAUDE.md), [legacy/examples/](legacy/examples/CLAUDE.md), [docs/](docs/CLAUDE.md), [legacy/specs/](legacy/specs/CLAUDE.md), [legacy/integration/](legacy/integration/CLAUDE.md).
+Component-specific instructions live in [typescript/CLAUDE.md](typescript/CLAUDE.md),
+[docs/CLAUDE.md](docs/CLAUDE.md), [specs/CONTRIBUTING.md](specs/CONTRIBUTING.md), and
+[.claude/rules/CLAUDE.md](.claude/rules/CLAUDE.md).
 
 ## Safety rules
 
