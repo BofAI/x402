@@ -3,6 +3,7 @@ name: Audit PR
 on:
   pull_request:
     branches:
+      - develop
       - main
     types: [opened, synchronize, reopened, ready_for_review]
   issue_comment:
@@ -30,10 +31,11 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Check required tools
         run: |
-          which zip
+          which git
           which jq
           which python3
 
@@ -42,8 +44,47 @@ jobs:
         shell: bash
         run: |
           ARCHIVE_NAME="${{ github.event.repository.name }}.zip"
-          rm -f "/tmp/${ARCHIVE_NAME}"
-          zip -r "/tmp/${ARCHIVE_NAME}" .
+          ARCHIVE_PATH="/tmp/${ARCHIVE_NAME}"
+          rm -f "${ARCHIVE_PATH}"
+          git archive --format=zip --output="${ARCHIVE_PATH}" HEAD
+          python3 - "${ARCHIVE_PATH}" <<'PY'
+          import subprocess
+          import sys
+          import zipfile
+          from pathlib import PurePosixPath
+
+          archive_path = sys.argv[1]
+          tracked_files = {
+              path
+              for path in subprocess.check_output(
+                  ["git", "ls-tree", "-r", "--name-only", "-z", "HEAD"],
+                  text=True,
+              ).split("\0")
+              if path
+          }
+          attribute_input = ("\0".join(sorted(tracked_files)) + "\0").encode()
+          attribute_output = subprocess.run(
+              ["git", "check-attr", "-z", "export-subst", "--stdin"],
+              input=attribute_input,
+              check=True,
+              capture_output=True,
+          ).stdout.split(b"\0")
+          attribute_values = attribute_output[2::3]
+          if any(value not in {b"unspecified", b"unset", b""} for value in attribute_values):
+              raise SystemExit("Audit archive content can be changed by export-subst")
+
+          with zipfile.ZipFile(archive_path) as archive:
+              members = archive.namelist()
+              if not members:
+                  raise SystemExit("Audit archive is empty")
+              if archive.testzip() is not None:
+                  raise SystemExit("Audit archive is corrupt")
+              if any(".git" in PurePosixPath(name).parts for name in members):
+                  raise SystemExit("Audit archive contains Git metadata")
+              archived_files = {name for name in members if not name.endswith("/")}
+              if archived_files != tracked_files:
+                  raise SystemExit("Audit archive does not contain exactly the tracked files")
+          PY
           echo "archive_name=${ARCHIVE_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Submit audit job
@@ -184,10 +225,11 @@ jobs:
         with:
           ref: ${{ steps.pr.outputs.head_sha }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Check required tools
         run: |
-          which zip
+          which git
           which jq
           which python3
 
@@ -196,8 +238,47 @@ jobs:
         shell: bash
         run: |
           ARCHIVE_NAME="${{ github.event.repository.name }}.zip"
-          rm -f "/tmp/${ARCHIVE_NAME}"
-          zip -r "/tmp/${ARCHIVE_NAME}" .
+          ARCHIVE_PATH="/tmp/${ARCHIVE_NAME}"
+          rm -f "${ARCHIVE_PATH}"
+          git archive --format=zip --output="${ARCHIVE_PATH}" HEAD
+          python3 - "${ARCHIVE_PATH}" <<'PY'
+          import subprocess
+          import sys
+          import zipfile
+          from pathlib import PurePosixPath
+
+          archive_path = sys.argv[1]
+          tracked_files = {
+              path
+              for path in subprocess.check_output(
+                  ["git", "ls-tree", "-r", "--name-only", "-z", "HEAD"],
+                  text=True,
+              ).split("\0")
+              if path
+          }
+          attribute_input = ("\0".join(sorted(tracked_files)) + "\0").encode()
+          attribute_output = subprocess.run(
+              ["git", "check-attr", "-z", "export-subst", "--stdin"],
+              input=attribute_input,
+              check=True,
+              capture_output=True,
+          ).stdout.split(b"\0")
+          attribute_values = attribute_output[2::3]
+          if any(value not in {b"unspecified", b"unset", b""} for value in attribute_values):
+              raise SystemExit("Audit archive content can be changed by export-subst")
+
+          with zipfile.ZipFile(archive_path) as archive:
+              members = archive.namelist()
+              if not members:
+                  raise SystemExit("Audit archive is empty")
+              if archive.testzip() is not None:
+                  raise SystemExit("Audit archive is corrupt")
+              if any(".git" in PurePosixPath(name).parts for name in members):
+                  raise SystemExit("Audit archive contains Git metadata")
+              archived_files = {name for name in members if not name.endswith("/")}
+              if archived_files != tracked_files:
+                  raise SystemExit("Audit archive does not contain exactly the tracked files")
+          PY
           echo "archive_name=${ARCHIVE_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Submit audit job

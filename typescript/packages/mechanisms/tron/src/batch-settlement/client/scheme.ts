@@ -115,7 +115,6 @@ export class BatchSettlementTronScheme implements SchemeNetworkClient {
     paymentRequirements: PaymentRequirements,
     context?: PaymentPayloadContext,
   ): Promise<PaymentPayloadResult> {
-    void context;
     const deps = this.deps();
     const config = buildChannelConfig(deps, paymentRequirements);
     const channelId = computeChannelId(config, paymentRequirements.network);
@@ -172,6 +171,7 @@ export class BatchSettlementTronScheme implements SchemeNetworkClient {
           depositAmount,
           maxClaimableAmount,
           this.voucherSigner,
+          context,
         );
       }
 

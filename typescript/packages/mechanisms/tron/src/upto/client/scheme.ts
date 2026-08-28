@@ -41,10 +41,7 @@ export class UptoTronScheme implements SchemeNetworkClient {
     paymentRequirements: PaymentRequirements,
     context?: PaymentPayloadContext,
   ): Promise<PaymentPayloadResult> {
-    // Mark unused parameters to satisfy linter
-    void context;
-
-    return createUptoPermit2Payload(this.signer, x402Version, paymentRequirements);
+    return createUptoPermit2Payload(this.signer, x402Version, paymentRequirements, context);
   }
 
   /**

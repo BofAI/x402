@@ -23,6 +23,20 @@ import { executeClaimWithSignature } from "./claim";
 import { executeSettle } from "./settle";
 import { executeRefundWithSignature } from "./refund";
 import * as Errors from "../errors";
+import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "../../shared/extensions/trc20ApprovalContract";
+
+/**
+ * Returns whether a batch envelope explicitly carries Approval sponsorship.
+ *
+ * @param payload - Batch payment envelope to inspect.
+ * @returns Whether the Approval sponsorship key is present.
+ */
+function carriesApprovalSponsoring(payload: PaymentPayload): boolean {
+  return Object.prototype.hasOwnProperty.call(
+    payload.extensions ?? {},
+    TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
+  );
+}
 
 /**
  * Facilitator-side implementation of the `batch-settlement` scheme for TRON networks.
@@ -86,7 +100,6 @@ export class BatchSettlementTronScheme implements SchemeNetworkFacilitator {
     requirements: PaymentRequirements,
     context?: FacilitatorContext,
   ): Promise<VerifyResponse> {
-    void context;
     const rawPayload = payload.payload;
 
     if (
@@ -100,7 +113,10 @@ export class BatchSettlementTronScheme implements SchemeNetworkFacilitator {
     }
 
     if (isBatchSettlementDepositPayload(rawPayload)) {
-      return verifyDeposit(this.signer, payload, rawPayload, requirements);
+      return verifyDeposit(this.signer, payload, rawPayload, requirements, context);
+    }
+    if (carriesApprovalSponsoring(payload)) {
+      return { isValid: false, invalidReason: "approval_extension_invalid" };
     }
     if (isBatchSettlementVoucherPayload(rawPayload)) {
       return verifyVoucher(this.signer, rawPayload, requirements, rawPayload.channelConfig);
@@ -125,11 +141,38 @@ export class BatchSettlementTronScheme implements SchemeNetworkFacilitator {
     requirements: PaymentRequirements,
     context?: FacilitatorContext,
   ): Promise<SettleResponse> {
-    void context;
     const rawPayload = payload.payload;
 
+    if (
+      payload.accepted.scheme !== BATCH_SETTLEMENT_SCHEME ||
+      requirements.scheme !== BATCH_SETTLEMENT_SCHEME
+    ) {
+      return {
+        success: false,
+        errorReason: Errors.ErrInvalidScheme,
+        transaction: "",
+        network: requirements.network,
+      };
+    }
+    if (payload.accepted.network !== requirements.network) {
+      return {
+        success: false,
+        errorReason: Errors.ErrNetworkMismatch,
+        transaction: "",
+        network: requirements.network,
+      };
+    }
+
     if (isBatchSettlementDepositPayload(rawPayload)) {
-      return settleDeposit(this.signer, payload, rawPayload, requirements);
+      return settleDeposit(this.signer, payload, rawPayload, requirements, context);
+    }
+    if (carriesApprovalSponsoring(payload)) {
+      return {
+        success: false,
+        errorReason: "approval_extension_invalid",
+        transaction: "",
+        network: requirements.network,
+      };
     }
     if (isBatchSettlementClaimPayload(rawPayload)) {
       return executeClaimWithSignature(

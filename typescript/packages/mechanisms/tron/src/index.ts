@@ -7,6 +7,46 @@ export {
   getPermit2AllowanceReadParams,
   type Permit2AllowanceParams,
 } from "./exact/client/permit2Helpers";
+export {
+  TRC20_APPROVAL_MAX_AMOUNT,
+  TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
+  TRC20_APPROVAL_RESOURCE_SPONSORING_VERSION,
+  type Trc20ApprovalResourceSponsoringFacilitatorExtension,
+  type Trc20ApprovalResourceSponsoringInfo,
+  type Trc20ApprovalResourceSponsoringRequest,
+  type Trc20ApprovalResourceSponsoringResult,
+  type Trc20ApprovalResourceSponsoringRuntime,
+  type Trc20ApprovalResourceSponsoringVerification,
+  type Trc20SponsorshipExecutionOptions,
+  type Trc20SponsorshipRevalidationResult,
+} from "./shared/extensions/trc20ApprovalContract";
+export {
+  buildTrc20SponsoringPlan,
+  createTrc20ApprovalResourceSponsoringRuntime,
+  createTrc20ResourceSponsoringRuntime,
+  createStaticTrc20ResourceSponsoringPolicy,
+  createTronWebResourceSponsoringChain,
+  InMemoryTrc20SponsoringCoordinator,
+  resourceUnitsToStakeSun,
+  type InMemoryTrc20SponsoringCoordinatorOptions,
+  type CreateTrc20ResourceSponsoringRuntimeOptions,
+  type StaticTrc20ResourceSponsoringPolicyOptions,
+  type ManagedTrc20ApprovalResourceSponsoringRuntime,
+  type PreparedTronAction,
+  type Trc20ResourceLeg,
+  type Trc20ResourceSponsoringChain,
+  type Trc20ResourceSponsoringPolicy,
+  type Trc20ResourceSponsoringRuntimeOptions,
+  type Trc20SponsoringCoordinator,
+  type Trc20SponsoringOperation,
+  type Trc20SponsoringPlan,
+  type Trc20SponsoringPreflight,
+  type TronResourceSnapshot,
+  type TronResourceOwnerActionIntent,
+  type TronResourceOwnerSigner,
+  type TronResourceType,
+  type TronWebResourceSponsoringChainOptions,
+} from "./resource-sponsoring";
 
 // Upto client
 export { UptoTronScheme } from "./upto/client/scheme";
@@ -17,6 +57,8 @@ export {
   createClientTronSigner,
   createFacilitatorTronSigner,
   createAuthorizerTronSigner,
+  normalizeSignedTronTransaction,
+  serializeSignedTronTransaction,
 } from "./signer";
 export type {
   ClientTronSigner,
@@ -28,6 +70,12 @@ export type {
   CreateClientTronSignerOptions,
   AllowanceMode,
 } from "./signer";
+export {
+  createTrc20ApprovalPolicy,
+  type CreateTrc20ApprovalPolicyOptions,
+  type Trc20ApprovalPolicy,
+  type Trc20ApprovalUpdateStrategy,
+} from "./approvalPolicy";
 
 // Types
 export type {

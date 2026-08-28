@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { TronWeb, utils as tronUtils } from "tronweb";
 import {
   createClientTronSigner,
   type ClientTronWallet,
@@ -7,6 +8,7 @@ import {
 import { buildTronWeb } from "../../src/rpc";
 import { ExactTronScheme } from "../../src/exact/client/scheme";
 import { PERMIT2_ADDRESSES } from "../../src/constants";
+import { createTrc20ApprovalPolicy } from "../../src/approvalPolicy";
 
 // The factory builds TronWeb internally from the network; mock that builder so
 // tests inject a fake TronWeb (was previously passed as the first arg).
@@ -115,6 +117,57 @@ describe("ClientTronSigner.ensureAllowance", () => {
     expect(broadcast).toHaveBeenCalledWith({ raw_data: 1, signature: ["ab"] });
   });
 
+  it("fails closed for a partial allowance instead of overwriting it implicitly", async () => {
+    const trigger = vi.fn();
+    const signer = await makeClientSigner(
+      fakeTronWeb({ allowance: 1n, trigger }),
+      typedWallet({ signTransaction: vi.fn() }),
+    );
+
+    await expect(
+      signer.ensureAllowance!({ token: TOKEN, amount: 1_000_000n, network: NETWORK }),
+    ).rejects.toThrow("approval_reset_required");
+    expect(trigger).not.toHaveBeenCalled();
+  });
+
+  it("overwrites a partial allowance only when the token policy explicitly permits it", async () => {
+    const trigger = vi.fn(async () => ({ result: { result: true }, transaction: { raw_data: 1 } }));
+    const broadcast = vi.fn(async () => ({ result: true, txid: "0xdirect" }));
+    const txInfo = vi.fn(async () => ({ blockNumber: 1, receipt: { result: "SUCCESS" } }));
+    const signer = await makeClientSigner(
+      fakeTronWeb({ allowance: 1n, trigger, broadcast, txInfo }),
+      typedWallet({
+        signTransaction: async tx => ({ ...tx, signature: ["ab"] }),
+      }),
+      {
+        approvalPolicy: createTrc20ApprovalPolicy({
+          strategies: { [NETWORK]: { [TOKEN]: "direct-overwrite" } },
+        }),
+      },
+    );
+
+    await expect(
+      signer.ensureAllowance!({ token: TOKEN, amount: 1_000_000n, network: NETWORK }),
+    ).resolves.toBe(true);
+    expect(trigger).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects an unsupported token before asking the wallet to sign", async () => {
+    const trigger = vi.fn();
+    const wallet = typedWallet({ signTransaction: vi.fn() });
+    const signer = await makeClientSigner(fakeTronWeb({ allowance: 0n, trigger }), wallet, {
+      approvalPolicy: createTrc20ApprovalPolicy({
+        strategies: { [NETWORK]: { [TOKEN]: "unsupported" } },
+      }),
+    });
+
+    await expect(
+      signer.ensureAllowance!({ token: TOKEN, amount: 1_000_000n, network: NETWORK }),
+    ).rejects.toThrow("approval_asset_unsupported");
+    expect(trigger).not.toHaveBeenCalled();
+    expect(wallet.signTransaction).not.toHaveBeenCalled();
+  });
+
   it("skips the read and broadcast entirely when mode is 'skip'", async () => {
     const allowanceSpy = vi.fn(() => ({ call: async () => 0n }));
     const trigger = vi.fn();
@@ -168,6 +221,69 @@ describe("ClientTronSigner.ensureAllowance", () => {
     await expect(
       signer.ensureAllowance!({ token: TOKEN, amount: 1_000_000n, network: NETWORK }),
     ).rejects.toThrow(/did not succeed/);
+  });
+});
+
+describe("ClientTronSigner.signPermit2Approval", () => {
+  it("extends the unsigned Approval before handing it to the wallet", async () => {
+    const now = 1_800_000_000_000;
+    vi.spyOn(Date, "now").mockReturnValue(now);
+    let transactionToSign: Record<string, unknown> | undefined;
+    const unsigned = {
+      visible: false,
+      raw_data: {
+        contract: [
+          {
+            parameter: {
+              value: {
+                owner_address: TronWeb.address.toHex(OWNER),
+                contract_address: TronWeb.address.toHex(TOKEN),
+                data: "095ea7b3",
+              },
+              type_url: "type.googleapis.com/protocol.TriggerSmartContract",
+            },
+            type: "TriggerSmartContract",
+          },
+        ],
+        ref_block_bytes: "1234",
+        ref_block_hash: "0011223344556677",
+        expiration: now + 60_000,
+        timestamp: now,
+        fee_limit: 100_000_000,
+      },
+    };
+    const transactionPb = tronUtils.transaction.txJsonToPb(unsigned);
+    const trigger = vi.fn(async () => ({
+      result: { result: true },
+      transaction: {
+        ...unsigned,
+        txID: tronUtils.transaction.txPbToTxID(transactionPb).replace(/^0x/, ""),
+        raw_data_hex: tronUtils.transaction.txPbToRawDataHex(transactionPb),
+      },
+    }));
+    const signTransaction = vi.fn(async (transaction: Record<string, unknown>) => {
+      transactionToSign = transaction;
+      throw new Error("wallet-stop");
+    });
+    const signer = await makeClientSigner(
+      fakeTronWeb({ allowance: 0n, trigger }),
+      typedWallet({ signTransaction }),
+    );
+
+    await expect(
+      (
+        signer.signPermit2Approval as unknown as (args: {
+          token: string;
+          network: string;
+          minimumLifetimeSeconds: number;
+        }) => Promise<string>
+      )({ token: TOKEN, network: NETWORK, minimumLifetimeSeconds: 180 }),
+    ).rejects.toThrow("wallet-stop");
+
+    expect(
+      (transactionToSign?.raw_data as { expiration: number }).expiration,
+    ).toBeGreaterThanOrEqual(now + 180_000);
+    vi.restoreAllMocks();
   });
 });
 

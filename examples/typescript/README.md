@@ -94,6 +94,28 @@ atomic units, or a `$` price ≤ the advertised max); the middleware settles tha
 amount and strips the header. BSC uses USDC, TRON Nile uses USDT — both Permit2
 (one-time `approve(Permit2)`).
 
+## TRON Approval Resource Sponsoring scenario
+
+A Nile-only trio in which the payer signs the one-time TRC-20 Approval offline and the Facilitator
+temporarily delegates Energy/Bandwidth, broadcasts the unchanged Approval, records recovery debt,
+and starts resource reclamation before continuing Permit2 settlement.
+
+| Example | Role | Port |
+|---|---|---|
+| [`facilitator/tron-sponsoring`](facilitator/tron-sponsoring) | manages resource sponsorship and recovery | 4042 |
+| [`servers/tron-sponsoring`](servers/tron-sponsoring) | sells `GET /weather` and declares the Extension | 4041 |
+| [`clients/tron-sponsoring`](clients/tron-sponsoring) | signs the Approval and pays without holding TRX | — |
+
+```bash
+cp .env-tron-sponsoring.example .env-tron-sponsoring
+pnpm dev:tron-sponsoring-facilitator
+pnpm dev:tron-sponsoring-server
+pnpm dev:tron-sponsoring-client
+```
+
+The shared scenario file selects separate payer and Resource Owner IDs from `agent-wallet`; it does
+not contain private keys. Never reuse one wallet for both roles.
+
 ## Supported chains & tokens
 
 | Chain | Network | Token | Scheme | One-time approve | User pays gas? |
@@ -188,6 +210,7 @@ four lines run side by side and you only fill in what you run:
 | gasfree | `.env-gasfree.example` → `.env-gasfree` | `clients/gasfree`, `servers/gasfree`, `facilitator/gasfree` |
 | batch-settlement | `.env-batch.example` → `.env-batch` | `clients/batch-settlement`, `servers/batch-settlement`, `facilitator/batch-settlement` |
 | upto | `.env-upto.example` → `.env-upto` | `clients/upto`, `servers/upto`, `facilitator/upto` |
+| TRON resource sponsoring | `.env-tron-sponsoring.example` → `.env-tron-sponsoring` | `clients/tron-sponsoring`, `servers/tron-sponsoring`, `facilitator/tron-sponsoring` |
 
 ```bash
 pnpm install               # links the in-repo SDK packages (see pnpm-workspace.yaml)

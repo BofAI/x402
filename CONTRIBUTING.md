@@ -26,9 +26,19 @@ By participating in this project, you agree to abide by our Code of Conduct. We 
 
 - Fill in the required template (if available).
 - Do not include more than one fix/feature per pull request.
+- Start normal work from `develop` and open the pull request back to `develop`.
+- Use `release_*` or `hotfix/*` branches for pull requests to `main`; never merge `develop`
+  directly into `main`.
 - Ensure that the tests pass and the code adheres to the project's coding standards.
 - Update the documentation if you've made changes to the API or added new features.
 - Commit messages follow `<type>(<scope>): <description>` (see [.claude/rules/common/conventions.md](.claude/rules/common/conventions.md)).
+- PR titles must use `type(scope): description`, contain 10-72 characters, start the description
+  with a lowercase letter or number, and not end with a period. Allowed types are `feat`, `fix`,
+  `refactor`, `docs`, `style`, `test`, `chore`, `ci`, `perf`, `build`, and `revert`.
+- The PR template's Description section must explain what and why in at least 20 characters.
+
+See [BRANCHING.md](BRANCHING.md) for the complete development, release, back-merge, and hotfix
+workflow.
 
 ---
 
@@ -36,7 +46,7 @@ By participating in this project, you agree to abide by our Code of Conduct. We 
 
 ### Prerequisites
 
-- **Node.js**: 20+
+- **Node.js**: 22+
 - **pnpm**: >= 11 (workspace package manager)
 - **A wallet**: a TRON wallet with TRX (Nile/Shasta testnets) and/or a BSC wallet with BNB, for gas.
 
