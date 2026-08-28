@@ -1,4 +1,5 @@
 import {
+  FacilitatorContext,
   PaymentPayload,
   PaymentRequirements,
   VerifyResponse,
@@ -27,6 +28,11 @@ import {
   verifyPermit2DepositAuthorization,
 } from "./deposit-permit2";
 import * as Errors from "../errors";
+import {
+  executeTrc20Sponsorship,
+  verifyTrc20Sponsorship,
+} from "../../shared/extensions/trc20ApprovalResourceSponsoring";
+import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "../../shared/extensions/trc20ApprovalContract";
 
 const abi = batchSettlementABI as unknown as readonly Record<string, unknown>[];
 
@@ -82,6 +88,8 @@ function resolveDepositExecution(
  * @param payment - Full payment envelope (unused; reserved for interface parity).
  * @param payload - The full deposit payload.
  * @param requirements - Server payment requirements.
+ * @param context - Registered Facilitator extension capabilities.
+ * @param skipSponsorship - Skips recursive Extension verification during pre-broadcast revalidation.
  * @returns A {@link VerifyResponse} with channel state in `extra` on success.
  */
 export async function verifyDeposit(
@@ -89,8 +97,9 @@ export async function verifyDeposit(
   payment: PaymentPayload,
   payload: BatchSettlementDepositPayload,
   requirements: PaymentRequirements,
+  context?: FacilitatorContext,
+  skipSponsorship = false,
 ): Promise<VerifyResponse> {
-  void payment;
   const network = requirements.network;
   const config = payload.channelConfig;
   const payer = config.payer;
@@ -101,13 +110,26 @@ export async function verifyDeposit(
   }
 
   const transferMethod = resolveDepositTransferMethod(payload, requirements);
+  const carriesSponsorship = Object.prototype.hasOwnProperty.call(
+    payment.extensions ?? {},
+    TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
+  );
+  if (carriesSponsorship && transferMethod !== "permit2") {
+    return { isValid: false, invalidReason: "approval_extension_invalid", payer };
+  }
   if (transferMethod === "permit2" && !payload.deposit.authorization.permit2Authorization) {
     return { isValid: false, invalidReason: Errors.ErrInvalidPayloadType, payer };
   }
 
   const methodErr =
     transferMethod === "permit2"
-      ? await verifyPermit2DepositAuthorization(signer, payload, requirements, network)
+      ? await verifyPermit2DepositAuthorization(
+          signer,
+          payload,
+          requirements,
+          network,
+          !carriesSponsorship,
+        )
       : await verifyEip3009DepositAuthorization(signer, payload, requirements, network);
   if (methodErr) {
     return methodErr;
@@ -152,6 +174,17 @@ export async function verifyDeposit(
     return { isValid: false, invalidReason: Errors.ErrCumulativeAmountBelowClaimed, payer };
   }
 
+  if (transferMethod === "permit2" && !skipSponsorship) {
+    const sponsorship = await verifyTrc20Sponsorship(
+      payment,
+      requirements,
+      payer,
+      context,
+      payload.deposit.amount,
+    );
+    if (sponsorship && !sponsorship.isValid) return sponsorship;
+  }
+
   return {
     isValid: true,
     payer,
@@ -172,6 +205,7 @@ export async function verifyDeposit(
  * @param payment - Full payment envelope (unused; reserved for interface parity).
  * @param payload - The deposit payload.
  * @param requirements - Server payment requirements.
+ * @param context - Registered Facilitator extension capabilities.
  * @returns A {@link SettleResponse} with the transaction hash and updated channel state.
  */
 export async function settleDeposit(
@@ -179,13 +213,14 @@ export async function settleDeposit(
   payment: PaymentPayload,
   payload: BatchSettlementDepositPayload,
   requirements: PaymentRequirements,
+  context?: FacilitatorContext,
 ): Promise<SettleResponse> {
   const network = requirements.network;
   const { deposit, voucher } = payload;
   const config = payload.channelConfig;
   const payer = config.payer;
 
-  const verified = await verifyDeposit(signer, payment, payload, requirements);
+  const verified = await verifyDeposit(signer, payment, payload, requirements, context);
   if (!verified.isValid) {
     const reason = verified.invalidReason ?? Errors.ErrInvalidPayloadType;
     return {
@@ -196,6 +231,19 @@ export async function settleDeposit(
       network,
       payer: verified.payer,
     };
+  }
+
+  if (resolveDepositTransferMethod(payload, requirements) === "permit2") {
+    const sponsorshipFailure = await executeTrc20Sponsorship(
+      payment,
+      requirements,
+      payer,
+      context,
+      payload.deposit.amount,
+      payload.deposit.authorization.permit2Authorization?.deadline,
+      () => verifyDeposit(signer, payment, payload, requirements, context, true),
+    );
+    if (sponsorshipFailure) return sponsorshipFailure;
   }
 
   try {

@@ -18,9 +18,11 @@ import {
   batchPermit2WitnessTypes,
 } from "../../../src/shared/batch-settlement/constants";
 import { PERMIT2_ADDRESSES } from "../../../src/constants";
+import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "../../../src/shared/extensions/trc20ApprovalContract";
 import { buildErc3009DepositNonce } from "../../../src/shared/batch-settlement/encoding";
 import { createBatchSettlementEIP3009DepositPayload } from "../../../src/batch-settlement/client/eip3009";
 import { createBatchSettlementPermit2DepositPayload } from "../../../src/batch-settlement/client/permit2";
+import { BatchSettlementTronScheme as BatchSettlementFacilitator } from "../../../src/batch-settlement/facilitator/scheme";
 import type {
   BatchSettlementDepositPayload,
   ChannelConfig,
@@ -82,6 +84,7 @@ describe("batch-settlement deposit authorizations (TRON)", () => {
     vi.mocked(buildTronWeb).mockReturnValue(tronWeb);
     signer = await createClientTronSigner(privateKeyTronWallet(tronWeb, PAYER_PK), {
       network: NETWORK,
+      allowanceMode: "skip",
     });
     payerHex = tronAddressToEvm(signer.address);
     config = {
@@ -179,5 +182,107 @@ describe("batch-settlement deposit authorizations (TRON)", () => {
       signature: auth.signature,
     });
     expect(ok).toBe(true);
+  });
+
+  it("uses the Permit2 deposit amount when creating a sponsored Approval", async () => {
+    const signPermit2Approval = vi.fn(async () => "0a02abcd");
+    const sponsoredSigner: ClientTronSigner = {
+      ...signer,
+      readContract: vi.fn(async () => 0n),
+      signPermit2Approval,
+      ensureAllowance: vi.fn(async () => true),
+    };
+
+    const result = await createBatchSettlementPermit2DepositPayload(
+      sponsoredSigner,
+      2,
+      requirements,
+      config,
+      "5000",
+      "1000",
+      undefined,
+      {
+        extensions: {
+          [TRC20_APPROVAL_RESOURCE_SPONSORING_KEY]: { info: { version: "1" } },
+        },
+      },
+    );
+
+    expect(signPermit2Approval).toHaveBeenCalledWith({
+      token: ASSET,
+      network: NETWORK,
+      minimumLifetimeSeconds: 600,
+    });
+    expect(result.extensions?.[TRC20_APPROVAL_RESOURCE_SPONSORING_KEY]).toMatchObject({
+      info: { asset: ASSET, signedTransaction: "0a02abcd" },
+    });
+    expect(sponsoredSigner.ensureAllowance).not.toHaveBeenCalled();
+  });
+
+  it("fails closed on a malformed sponsored Approval after Permit2 deposit validation", async () => {
+    const result = await createBatchSettlementPermit2DepositPayload(
+      signer,
+      2,
+      requirements,
+      config,
+      "5000",
+      "1000",
+    );
+    const facilitatorSigner: FacilitatorTronSigner = {
+      ...verifyOnlyFacilitatorSigner(),
+      async readContract(args) {
+        if (args.functionName === "allowance") return 5000n;
+        if (args.functionName === "balanceOf") return 10_000n;
+        if (args.functionName === "channels") return [0n, 0n];
+        if (args.functionName === "pendingWithdrawals") return [0n, 0n];
+        if (args.functionName === "refundNonce") return 0n;
+        throw new Error(`unexpected read ${args.functionName}`);
+      },
+    };
+    const payment = {
+      x402Version: 2,
+      accepted: requirements,
+      payload: result.payload,
+      extensions: {
+        [TRC20_APPROVAL_RESOURCE_SPONSORING_KEY]: { info: { version: "1" } },
+      },
+    };
+
+    const verified = await new BatchSettlementFacilitator(facilitatorSigner).verify(
+      payment as never,
+      requirements as never,
+      { getExtension: vi.fn(() => undefined) },
+    );
+
+    expect(verified).toMatchObject({
+      isValid: false,
+      invalidReason: "approval_extension_invalid",
+    });
+  });
+
+  it("rejects a settle envelope whose accepted scheme does not match batch-settlement", async () => {
+    const result = await createBatchSettlementPermit2DepositPayload(
+      signer,
+      2,
+      requirements,
+      config,
+      "5000",
+      "1000",
+    );
+    const payment = {
+      x402Version: 2,
+      accepted: { ...requirements, scheme: "exact" },
+      payload: result.payload,
+    };
+
+    const settled = await new BatchSettlementFacilitator(verifyOnlyFacilitatorSigner()).settle(
+      payment as never,
+      requirements as never,
+    );
+
+    expect(settled).toMatchObject({
+      success: false,
+      errorReason: "invalid_batch_settlement_tron_scheme",
+    });
   });
 });

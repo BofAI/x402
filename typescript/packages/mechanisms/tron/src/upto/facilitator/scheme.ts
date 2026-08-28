@@ -72,14 +72,18 @@ export class UptoTronScheme implements SchemeNetworkFacilitator {
     requirements: PaymentRequirements,
     context?: FacilitatorContext,
   ): Promise<VerifyResponse> {
-    void context;
-
     const rawPayload = payload.payload as Record<string, unknown>;
     if (!isUptoPermit2Payload(rawPayload)) {
       return { isValid: false, invalidReason: errors.UNSUPPORTED_PAYLOAD_TYPE, payer: "" };
     }
 
-    return verifyUptoPermit2(this.signer, payload, requirements, rawPayload as UptoPermit2Payload);
+    return verifyUptoPermit2(
+      this.signer,
+      payload,
+      requirements,
+      rawPayload as UptoPermit2Payload,
+      context,
+    );
   }
 
   /**
@@ -95,8 +99,6 @@ export class UptoTronScheme implements SchemeNetworkFacilitator {
     requirements: PaymentRequirements,
     context?: FacilitatorContext,
   ): Promise<SettleResponse> {
-    void context;
-
     const rawPayload = payload.payload as Record<string, unknown>;
     if (!isUptoPermit2Payload(rawPayload)) {
       return {
@@ -108,6 +110,12 @@ export class UptoTronScheme implements SchemeNetworkFacilitator {
       };
     }
 
-    return settleUptoPermit2(this.signer, payload, requirements, rawPayload as UptoPermit2Payload);
+    return settleUptoPermit2(
+      this.signer,
+      payload,
+      requirements,
+      rawPayload as UptoPermit2Payload,
+      context,
+    );
   }
 }

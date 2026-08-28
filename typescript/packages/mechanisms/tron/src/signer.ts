@@ -9,6 +9,7 @@ import {
 import { buildTronWeb } from "./rpc";
 import { tronAddressToEvm } from "./utils";
 import { log } from "@bankofai/x402-core";
+import { createTrc20ApprovalPolicy, type Trc20ApprovalPolicy } from "./approvalPolicy";
 
 /** Allowance-ensuring strategy for {@link ClientTronSigner.ensureAllowance}. */
 export type AllowanceMode = "auto" | "skip" | "interactive";
@@ -37,13 +38,19 @@ export interface ClientTronSigner {
    */
   address: string;
 
+  /** Exact CAIP-2 network served by this signer's RPC client, when network-bound. */
+  readonly network?: string;
+
+  /** Token-specific Approval update behavior shared by all Client paths. */
+  readonly approvalPolicy?: Trc20ApprovalPolicy;
+
   /**
    * Sign EIP-712/TIP-712 typed data.
    * The domain and message addresses should already be in EVM hex format.
    */
   signTypedData(args: {
     domain: Record<string, unknown>;
-    types: Record<string, Array<{ name: string; type: string }>>;
+    types: Record<string, ReadonlyArray<{ name: string; type: string }>>;
     primaryType: string;
     message: Record<string, unknown>;
   }): Promise<`0x${string}`>;
@@ -76,6 +83,20 @@ export interface ClientTronSigner {
     network: string;
     mode?: AllowanceMode;
   }): Promise<boolean>;
+
+  /**
+   * Build and sign, but do not broadcast, the canonical
+   * `approve(Permit2, MaxUint256)` transaction used by
+   * `trc20ApprovalResourceSponsoring`.
+   *
+   * The returned value is the complete signed TRON Transaction protobuf as
+   * lowercase hexadecimal without a `0x` prefix.
+   */
+  signPermit2Approval?(args: {
+    token: string;
+    network: string;
+    minimumLifetimeSeconds: number;
+  }): Promise<string>;
 }
 
 /**
@@ -117,7 +138,7 @@ export interface FacilitatorTronSigner {
   verifyTypedData(args: {
     address: string;
     domain: Record<string, unknown>;
-    types: Record<string, Array<{ name: string; type: string }>>;
+    types: Record<string, ReadonlyArray<{ name: string; type: string }>>;
     primaryType: string;
     message: Record<string, unknown>;
     signature: `0x${string}`;
@@ -189,8 +210,14 @@ export function toClientTronSigner(
 
   return {
     address: signer.address,
+    ...(signer.network ? { network: signer.network } : {}),
+    ...(signer.approvalPolicy ? { approvalPolicy: signer.approvalPolicy } : {}),
     signTypedData: args => signer.signTypedData(args),
     readContract,
+    ...(signer.ensureAllowance ? { ensureAllowance: args => signer.ensureAllowance!(args) } : {}),
+    ...(signer.signPermit2Approval
+      ? { signPermit2Approval: args => signer.signPermit2Approval!(args) }
+      : {}),
   };
 }
 
@@ -225,6 +252,8 @@ export interface CreateClientTronSignerOptions {
    * Set `"skip"` for apps that manage the Permit2 approval themselves.
    */
   allowanceMode?: AllowanceMode;
+  /** Token-specific Approval update policy; defaults to the built-in safe policy. */
+  approvalPolicy?: Trc20ApprovalPolicy;
 }
 
 /**
@@ -279,14 +308,53 @@ export async function createClientTronSigner(
   // transactions, it throws a clear error only when an approve is actually
   // required — pre-approved sign-only wallets still work.
   const signTransaction = wallet.signTransaction?.bind(wallet);
+  const approvalPolicy = opts.approvalPolicy ?? createTrc20ApprovalPolicy();
 
   return {
     ...base,
+    network: opts.network,
+    approvalPolicy,
     ensureAllowance: allowanceArgs =>
       ensurePermit2Allowance(
-        { tronWeb, ownerAddress: address, signTransaction, readContract: base.readContract },
+        {
+          tronWeb,
+          ownerAddress: address,
+          signTransaction,
+          readContract: base.readContract,
+          approvalPolicy,
+        },
         { ...allowanceArgs, mode: allowanceArgs.mode ?? opts.allowanceMode },
       ),
+    ...(signTransaction
+      ? {
+          signPermit2Approval: async (args: {
+            token: string;
+            network: string;
+            minimumLifetimeSeconds: number;
+          }) => {
+            const permit2Address = PERMIT2_ADDRESSES[args.network];
+            if (!permit2Address) {
+              throw new Error(`No Permit2 contract address configured for network ${args.network}`);
+            }
+            const signed = await buildAndSignContract(
+              tronWeb,
+              address,
+              signTransaction,
+              {
+                address: args.token,
+                abi: erc20ApproveAbi as unknown as readonly Record<string, unknown>[],
+                functionName: "approve",
+                args: [permit2Address, MAX_UINT256],
+              },
+              {
+                feeLimit: APPROVE_FEE_LIMIT_SUN,
+                minimumLifetimeSeconds: args.minimumLifetimeSeconds,
+              },
+            );
+            return serializeSignedTronTransaction(signed);
+          },
+        }
+      : {}),
   };
 }
 
@@ -299,7 +367,7 @@ export interface TronAuthorizerSignerLike {
   address: string;
   signTypedData(args: {
     domain: Record<string, unknown>;
-    types: Record<string, Array<{ name: string; type: string }>>;
+    types: Record<string, ReadonlyArray<{ name: string; type: string }>>;
     primaryType: string;
     message: Record<string, unknown>;
   }): Promise<`0x${string}`>;
@@ -437,12 +505,29 @@ function findAbiFunction(abi: readonly Record<string, unknown>[], name: string):
  * @param unsigned - The original unsigned transaction.
  * @returns A transaction object ready to broadcast.
  */
-function toSignedTransaction(
+export function normalizeSignedTronTransaction(
   result: string | Record<string, unknown>,
   unsigned: Record<string, unknown>,
 ): Record<string, unknown> {
+  const normalizeSignatures = (transaction: Record<string, unknown>): Record<string, unknown> => {
+    const signatures = transaction.signature;
+    if (!Array.isArray(signatures)) return transaction;
+    return {
+      ...transaction,
+      signature: signatures.map(signature => {
+        if (typeof signature !== "string") return signature;
+        const prefix = signature.startsWith("0x") ? "0x" : "";
+        const hex = signature.slice(prefix.length);
+        if (!/^[0-9a-fA-F]{130}$/.test(hex)) return signature;
+        const recovery = Number.parseInt(hex.slice(-2), 16);
+        if (recovery !== 27 && recovery !== 28) return signature;
+        return `${prefix}${hex.slice(0, -2)}${(recovery - 27).toString(16).padStart(2, "0")}`;
+      }),
+    };
+  };
+
   if (typeof result !== "string") {
-    return result;
+    return normalizeSignatures(result);
   }
   const trimmed = result.trim();
   if (trimmed.startsWith("{")) {
@@ -455,11 +540,11 @@ function toSignedTransaction(
       );
     }
     if (Array.isArray((parsed as { signature?: unknown }).signature)) {
-      return { ...unsigned, ...parsed };
+      return normalizeSignatures({ ...unsigned, ...parsed });
     }
-    return parsed;
+    return normalizeSignatures(parsed);
   }
-  return { ...unsigned, signature: [trimmed.replace(/^0x/, "")] };
+  return normalizeSignatures({ ...unsigned, signature: [trimmed.replace(/^0x/, "")] });
 }
 
 /** Wallet hook that signs a built TRON transaction for broadcast. */
@@ -467,41 +552,42 @@ type SignTransactionFn = (
   transaction: Record<string, unknown>,
 ) => Promise<string | Record<string, unknown>>;
 
+type ContractWriteArgs = {
+  address: string;
+  abi: readonly Record<string, unknown>[];
+  functionName: string;
+  args: readonly unknown[];
+};
+
 /**
- * Build a contract-write tx, hand it to the wallet to sign (the key never
- * enters the SDK), then broadcast it. Shared by the facilitator settlement path
- * and the client one-time Permit2 approve.
+ * Build a contract write and obtain the wallet-signed transaction without broadcasting it.
  *
- * @param tronWeb - The TronWeb instance used to build and broadcast.
- * @param issuerAddress - The transaction owner/issuer (pays the on-chain fee).
+ * @param tronWeb - The TronWeb instance used to build the transaction.
+ * @param issuerAddress - The transaction owner/issuer.
  * @param signTransaction - Wallet hook that signs the built transaction.
- * @param args - The contract address, ABI, function name, and positional args.
+ * @param args - Contract call arguments.
  * @param args.address - Contract address.
  * @param args.abi - Contract ABI.
  * @param args.functionName - Contract function name.
  * @param args.args - Positional contract arguments.
- * @param options - Fee limit (SUN) and optional multi-sig permission id.
+ * @param options - Transaction policy options.
  * @param options.feeLimit - Maximum energy fee in SUN.
  * @param options.permissionId - Optional TRON multi-signature permission id.
- * @returns The broadcast transaction id.
+ * @param options.minimumLifetimeSeconds - Minimum remaining transaction lifetime.
+ * @returns Wallet-signed transaction object.
  */
-async function buildSignAndBroadcast(
+async function buildAndSignContract(
   tronWeb: TronWeb,
   issuerAddress: string,
   signTransaction: SignTransactionFn,
-  args: {
-    address: string;
-    abi: readonly Record<string, unknown>[];
-    functionName: string;
-    args: readonly unknown[];
-  },
-  options: { feeLimit: number; permissionId?: number },
-): Promise<string> {
+  args: ContractWriteArgs,
+  options: { feeLimit: number; permissionId?: number; minimumLifetimeSeconds?: number },
+): Promise<Record<string, unknown>> {
   const tw = tronWeb as unknown as WriteCapableTronWeb;
   const fn = findAbiFunction(args.abi, args.functionName);
   const selector = buildFunctionSelector(fn);
   const parameters = encodeTriggerParameters(fn, args.args);
-  log.debug("x402 tron: build+broadcast start", {
+  log.debug("x402 tron: build+sign start", {
     contract: args.address,
     method: args.functionName,
     issuer: issuerAddress,
@@ -520,14 +606,97 @@ async function buildSignAndBroadcast(
     issuerAddress,
   );
   if (!built.result?.result) {
-    log.error("x402 tron: triggerSmartContract failed", {
-      contract: args.address,
-      method: args.functionName,
-      response: JSON.stringify(built),
-    });
     throw new Error(`triggerSmartContract failed: ${JSON.stringify(built)}`);
   }
-  const signed = toSignedTransaction(await signTransaction(built.transaction), built.transaction);
+  const unsigned = extendTransactionLifetime(built.transaction, options.minimumLifetimeSeconds);
+  return normalizeSignedTronTransaction(await signTransaction(unsigned), unsigned);
+}
+
+/**
+ * Extends an unsigned TRON transaction and recomputes its authoritative identity.
+ *
+ * @param transaction - RPC-built unsigned transaction.
+ * @param minimumLifetimeSeconds - Required lifetime measured from the local clock.
+ * @returns The original transaction or an immutable extended transaction.
+ */
+function extendTransactionLifetime(
+  transaction: Record<string, unknown>,
+  minimumLifetimeSeconds?: number,
+): Record<string, unknown> {
+  if (minimumLifetimeSeconds == null) return transaction;
+  if (
+    !Number.isSafeInteger(minimumLifetimeSeconds) ||
+    minimumLifetimeSeconds <= 0 ||
+    minimumLifetimeSeconds > 86_400
+  ) {
+    throw new Error("minimumLifetimeSeconds must be an integer between 1 and 86400");
+  }
+  const rawData = transaction.raw_data as Record<string, unknown> | undefined;
+  if (!rawData || typeof rawData.expiration !== "number") {
+    throw new Error("TRON transaction is missing raw_data.expiration");
+  }
+  const minimumExpiration = Date.now() + minimumLifetimeSeconds * 1_000;
+  if (rawData.expiration >= minimumExpiration) return transaction;
+
+  const extended = {
+    ...transaction,
+    raw_data: { ...rawData, expiration: minimumExpiration },
+  };
+  const transactionPb = tronUtils.transaction.txJsonToPb(extended);
+  return {
+    ...extended,
+    raw_data_hex: tronUtils.transaction.txPbToRawDataHex(transactionPb).toLowerCase(),
+    txID: tronUtils.transaction.txPbToTxID(transactionPb).replace(/^0x/, "").toLowerCase(),
+  };
+}
+
+/**
+ * Serialize a signed TRON transaction object into its complete protobuf wire bytes.
+ *
+ * @param transaction - Wallet-signed TRON transaction object.
+ * @returns Complete signed Transaction protobuf as lowercase hex.
+ */
+export function serializeSignedTronTransaction(transaction: Record<string, unknown>): string {
+  const signatures = transaction.signature;
+  if (!Array.isArray(signatures) || signatures.length !== 1 || typeof signatures[0] !== "string") {
+    throw new Error("TRON Approval requires exactly one transaction signature");
+  }
+  const signature = signatures[0].replace(/^0x/, "").toLowerCase();
+  if (!/^[0-9a-f]{130}$/.test(signature)) {
+    throw new Error("TRON Approval signature must be 65-byte hexadecimal");
+  }
+
+  const transactionPb = tronUtils.transaction.txJsonToPb(transaction) as {
+    addSignature(bytes: Uint8Array): void;
+    serializeBinary(): Uint8Array;
+  };
+  transactionPb.addSignature(Uint8Array.from(tronUtils.code.hexStr2byteArray(signature)));
+  return tronUtils.code.byteArray2hexStr(transactionPb.serializeBinary()).toLowerCase();
+}
+
+/**
+ * Build a contract-write tx, hand it to the wallet to sign (the key never
+ * enters the SDK), then broadcast it. Shared by the facilitator settlement path
+ * and the client one-time Permit2 approve.
+ *
+ * @param tronWeb - The TronWeb instance used to build and broadcast.
+ * @param issuerAddress - The transaction owner/issuer (pays the on-chain fee).
+ * @param signTransaction - Wallet hook that signs the built transaction.
+ * @param args - The contract address, ABI, function name, and positional args.
+ * @param options - Fee limit (SUN) and optional multi-sig permission id.
+ * @param options.feeLimit - Maximum Energy burn in SUN.
+ * @param options.permissionId - Optional TRON permission id.
+ * @returns The broadcast transaction id.
+ */
+async function buildSignAndBroadcast(
+  tronWeb: TronWeb,
+  issuerAddress: string,
+  signTransaction: SignTransactionFn,
+  args: ContractWriteArgs,
+  options: { feeLimit: number; permissionId?: number },
+): Promise<string> {
+  const tw = tronWeb as unknown as WriteCapableTronWeb;
+  const signed = await buildAndSignContract(tronWeb, issuerAddress, signTransaction, args, options);
   const broadcast = await tw.trx.sendRawTransaction(signed);
   if (!broadcast.result) {
     log.error("x402 tron: broadcast rejected", {
@@ -627,6 +796,7 @@ async function pollTransactionPacked(tronWeb: TronWeb, hash: string): Promise<{ 
  * @param deps.ownerAddress - Token owner granting the allowance.
  * @param deps.signTransaction - Optional wallet hook for signing an approval transaction.
  * @param deps.readContract - Contract reader used to inspect the current allowance.
+ * @param deps.approvalPolicy - Token-specific Approval update policy.
  * @param args - Token, required amount (payment + fee), network, and mode.
  * @param args.token - TRC-20 token contract address.
  * @param args.amount - Required Permit2 allowance.
@@ -640,6 +810,7 @@ async function ensurePermit2Allowance(
     ownerAddress: string;
     signTransaction?: SignTransactionFn;
     readContract: ClientTronSigner["readContract"];
+    approvalPolicy: Trc20ApprovalPolicy;
   },
   args: { token: string; amount: bigint; network: string; mode?: AllowanceMode },
 ): Promise<boolean> {
@@ -671,6 +842,14 @@ async function ensurePermit2Allowance(
 
   if (current >= args.amount) {
     return true;
+  }
+
+  const strategy = deps.approvalPolicy.strategyFor(args.network, args.token);
+  if (strategy === "unsupported") {
+    throw new Error("approval_asset_unsupported");
+  }
+  if (current !== 0n && strategy === "zero-first") {
+    throw new Error("approval_reset_required");
   }
 
   // An approve is required but this wallet only signs typed data — surface a
@@ -751,9 +930,12 @@ export async function createFacilitatorTronSigner(
       return method(...args.args).call();
     },
     async verifyTypedData(args) {
+      const mutableTypes = Object.fromEntries(
+        Object.entries(args.types).map(([name, fields]) => [name, [...fields]]),
+      );
       const recovered = tronUtils.typedData.verifyTypedData(
         args.domain,
-        args.types,
+        mutableTypes,
         args.message,
         args.signature,
       );

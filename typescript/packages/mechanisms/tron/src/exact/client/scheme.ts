@@ -43,14 +43,11 @@ export class ExactTronScheme implements SchemeNetworkClient {
     paymentRequirements: PaymentRequirements,
     context?: PaymentPayloadContext,
   ): Promise<PaymentPayloadResult> {
-    // Mark unused parameters to satisfy linter
-    void context;
-
     const assetTransferMethod =
       (paymentRequirements.extra?.assetTransferMethod as AssetTransferMethod) ?? "eip3009";
 
     if (assetTransferMethod === "permit2") {
-      return createPermit2Payload(this.signer, x402Version, paymentRequirements);
+      return createPermit2Payload(this.signer, x402Version, paymentRequirements, context);
     }
 
     return createEIP3009Payload(this.signer, x402Version, paymentRequirements);
