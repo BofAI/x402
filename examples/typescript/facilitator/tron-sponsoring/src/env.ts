@@ -13,5 +13,10 @@ type TronFacilitatorWallet = Wallet & FacilitatorTronWallet
  * @returns A TRON facilitator wallet for Nile.
  */
 export async function resolveTronFacilitatorWallet(): Promise<TronFacilitatorWallet> {
-  return (await resolveWallet({ network: TRON_NILE })) as TronFacilitatorWallet
+  const walletId = process.env.TRON_SPONSORING_RESOURCE_OWNER_WALLET_ID?.trim()
+  if (!walletId) throw new Error('TRON_SPONSORING_RESOURCE_OWNER_WALLET_ID is required')
+  return (await resolveWallet({
+    network: TRON_NILE,
+    walletId,
+  })) as TronFacilitatorWallet
 }

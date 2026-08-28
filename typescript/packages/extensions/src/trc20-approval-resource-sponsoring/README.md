@@ -134,11 +134,41 @@ and on a schedule so prepared, submitted, unknown, and every non-terminal lifecy
 even when the original HTTP request or process disappears. Recovery confirmation failures remain
 resource debt and do not retroactively fail a successful Permit2 payment.
 
+Coordinator failures are fail-closed. If admission or a state transition cannot be persisted, the
+runtime does not execute the subsequent chain action. If `listRecoverable` fails, `reconcile()`
+rejects so the worker can alert and retry; a failure while reconciling one durable operation leaves
+that operation non-terminal for a later pass. Operators must monitor both the worker and the age of
+recovery debt. A temporary storage outage is recoverable after the coordinator returns. Permanent
+loss or corruption of coordinator data cannot be repaired from memory: operators must rebuild the
+receiver set from TRON's delegated-resource account index, compare it with Resource Owner activity,
+and submit validated UnDelegateResource transactions before restoring capacity. The SDK does not
+provide a production database implementation because storage and replica coordination are a
+deployment concern, but losing the durable coordinator is never treated as a clean state.
+
 `confirmationMode: "packed"` keeps the multi-transaction Approval path within a short transaction
 lifetime, but it is provisional until the block solidifies. Deployments that continue after packed
 state must bound that exposure and keep recovery active. `"solidified"` is safer but adds roughly one
 TRON finality interval to every chain action; the fixed 600-second Client Approval lifetime leaves
 additional room for that mode and for normal request forwarding or RPC delay.
+
+### Settlement latency
+
+The sponsored path is intentionally longer than a payment whose Permit2 allowance already exists.
+With `confirmationMode: "packed"`, a Nile confirmation is commonly observed in roughly 3–6 seconds.
+One delegated resource therefore adds about 6–15 seconds for DelegateResource plus Approval; when
+both Energy and Bandwidth are needed, two sequential delegations plus Approval commonly add about
+9–20 seconds, including ordinary RPC and persistence overhead. Compared with a self-funded first
+payment that already waits for Approval, the incremental cost is normally the delegation
+confirmation time. UnDelegateResource submission is recorded and started before success is returned,
+but its confirmation is asynchronous and does not extend the settlement response.
+
+These figures are operational expectations, not protocol guarantees. With the default 90-second
+confirmation timeout, the synchronous sponsorship ceiling is two DelegateResource confirmations
+plus one Approval confirmation and the 15-second settlement margin: 285 seconds. The final Permit2
+settlement receipt has its own 90-second timeout, so the full HTTP request can approach 375 seconds
+in the timeout case. Admission rejects payment authorizations whose remaining deadline cannot cover
+the configured sponsorship window. `"solidified"` adds approximately one finality interval to each
+confirmed action and must be sized separately.
 
 The runtime rejects a payment authorization whose remaining deadline cannot cover delegation,
 Approval confirmation, and the settlement safety margin. It revalidates the selected Scheme before

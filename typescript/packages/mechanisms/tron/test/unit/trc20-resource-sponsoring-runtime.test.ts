@@ -418,6 +418,15 @@ describe("TRC-20 Approval resource-sponsoring runtime", () => {
     ]);
   });
 
+  it("fails closed without broadcasting when persistence is unavailable", async () => {
+    const harness = createHarness();
+    vi.spyOn(harness.coordinator, "save").mockRejectedValue(new Error("storage unavailable"));
+
+    await expect(harness.runtime.sponsor(request)).rejects.toThrow("storage unavailable");
+
+    expect(harness.broadcasts).toEqual([]);
+  });
+
   it("deduplicates concurrent retries by network, payer, and approval txID", async () => {
     const harness = createHarness();
     const results = await Promise.all([
@@ -619,6 +628,34 @@ describe("TRC-20 Approval resource-sponsoring runtime", () => {
     harness.results.set(harness.ids.undelegateBandwidth, "confirmed");
     const reconciled = await harness.runtime.reconcile();
     expect(reconciled).toEqual({ examined: 1, recovered: 1 });
+  });
+
+  it("keeps an operation recoverable after a temporary reconciliation persistence failure", async () => {
+    const harness = createHarness();
+    await harness.coordinator.admit(seededOperation("approval_confirmed"));
+    vi.spyOn(harness.coordinator, "save").mockRejectedValueOnce(
+      new Error("storage temporarily unavailable"),
+    );
+
+    const interrupted = await harness.runtime.reconcile();
+    const retried = await harness.runtime.reconcile();
+
+    expect(interrupted).toEqual({ examined: 1, recovered: 0 });
+    expect(retried).toEqual({ examined: 1, recovered: 1 });
+    expect(harness.broadcasts).toEqual([
+      harness.ids.undelegateEnergy,
+      harness.ids.undelegateBandwidth,
+    ]);
+  });
+
+  it("surfaces a recovery scan persistence outage to the worker", async () => {
+    const harness = createHarness();
+    vi.spyOn(harness.coordinator, "listRecoverable").mockRejectedValueOnce(
+      new Error("storage unavailable"),
+    );
+
+    await expect(harness.runtime.reconcile()).rejects.toThrow("storage unavailable");
+    expect(harness.broadcasts).toEqual([]);
   });
 
   it("replaces an Undelegate only after the original is confirmed failed", async () => {

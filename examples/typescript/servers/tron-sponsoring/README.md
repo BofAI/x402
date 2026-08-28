@@ -5,7 +5,9 @@ This Nile-only Server advertises one `exact + Permit2` USDT payment and declares
 settlement to the standalone Facilitator.
 
 ```bash
-cp .env.example .env
+cd ../../
+cp .env-tron-sponsoring.example .env-tron-sponsoring
+cd servers/tron-sponsoring
 pnpm dev
 ```
 
