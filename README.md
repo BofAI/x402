@@ -201,7 +201,9 @@ Use `pnpm build:release` before `pnpm pack` or `pnpm publish`. The forced build 
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+We welcome contributions! Start normal work from `develop` and submit it back to `develop`.
+Stable releases reach `main` through a `release_*` branch. See [CONTRIBUTING.md](./CONTRIBUTING.md)
+and [BRANCHING.md](./BRANCHING.md) for the complete workflow.
 
 ## License
 

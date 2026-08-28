@@ -42,6 +42,15 @@ Each component has its own `CLAUDE.md` (where present) with build/test commands 
 - **Mechanism registration**: `tron:0xcd8690dc` (exact match, higher priority) beats `tron:*` (wildcard, lower priority).
 - **Commit messages**: `<type>(<scope>): <description>` — e.g. `fix(tron): preserve raw_data_hex in tron approvals`.
 
+## Branch workflow
+
+- Start normal development, documentation, maintenance, and upstream-sync branches from `develop`
+  and open them back to `develop`.
+- Treat `main` as stable release history. Only `release_*` and `hotfix/*` branches may target
+  `main`.
+- Never open `develop` directly into `main`.
+- Follow [BRANCHING.md](BRANCHING.md) for release back-merges, hotfixes, and branch retention.
+
 ## AI-native development
 
 This repo uses a Claude-Code-native layout: rules, commands, and agents that let Claude (and other agents following the same conventions) contribute safely without reading every file first.
