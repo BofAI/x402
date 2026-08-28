@@ -10,6 +10,7 @@ See here for instructions: https://docs.github.com/en/authentication/managing-co
 
 <!--
 Please provide a clear and concise description of what the changes are, and why they are needed.
+The completed Description section must contain at least 20 characters.
 Include a link to the issue this PR addresses, if applicable (e.g. "Closes #123").
 -->
 
@@ -25,7 +26,7 @@ For TypeScript: Run `pnpm test` from the `/typescript` directory
 ## Branch route
 
 - [ ] Normal development targets `develop`
-- [ ] Only `release_*`, legacy `release/*`, or `hotfix/*` targets `main`
+- [ ] Only `release_*` or `hotfix/*` targets `main`
 
 ## Checklist
 

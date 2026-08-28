@@ -45,8 +45,8 @@ Each component has its own guidance with build/test commands and conventions whe
 
 - Start normal development, documentation, maintenance, and upstream-sync branches from `develop`
   and open them back to `develop`.
-- Treat `main` as stable release history. Only `release_*`, legacy `release/*`, and `hotfix/*`
-  branches may target `main`.
+- Treat `main` as stable release history. Only `release_*` and `hotfix/*` branches may target
+  `main`.
 - Never open `develop` directly into `main`.
 - Follow [BRANCHING.md](BRANCHING.md) for release back-merges, hotfixes, and branch retention.
 

@@ -29,13 +29,14 @@ When `develop` is ready for release:
 1. Create `release_vX.Y.Z` from `develop`.
 2. Apply version changes, consume Changesets, update release notes, and complete regression testing
    on the release branch.
-3. Open `release_vX.Y.Z` into `main` and merge it with a merge commit.
-4. Tag and publish from the resulting `main` commit.
-5. Merge the release branch back into `develop` when it contains release-only changes.
-6. Retain the release branch permanently for traceability.
+3. If regression identifies a bug, merge its fix directly into the release branch and repeat the
+   regression test.
+4. Open `release_vX.Y.Z` into `main` and merge it with a merge commit.
+5. Tag and publish from the resulting `main` commit.
+6. Merge the release branch back into `develop` after the release passes regression.
+7. Retain the release branch permanently as the release snapshot.
 
-Existing `release/*` branches are accepted during migration, but new releases should use
-`release_vX.Y.Z`. Never open `develop` directly into `main`.
+Release branches must use the `release_*` pattern. Never open `develop` directly into `main`.
 
 ## Hotfix branches
 
@@ -52,8 +53,8 @@ Retain the hotfix branch until both merges are complete.
 | Source | Target | Purpose |
 | --- | --- | --- |
 | Development branch | `develop` | Normal development |
-| `release_*` or legacy `release/*` | `main` | Stable release |
-| `release_*` or legacy `release/*` | `develop` | Release back-merge |
+| `release_*` | `main` | Stable release |
+| `release_*` | `develop` | Mandatory release back-merge |
 | `hotfix/*` | `main` | Production hotfix |
 | `hotfix/*` | `develop` | Hotfix back-merge |
 

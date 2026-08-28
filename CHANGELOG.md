@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Adopted `develop` as the integration branch and retained `main` for stable releases.
 - Added enforced pull request routes for development, release, and hotfix branches.
+- Added automated pull request title and description validation.
 - Added pull request CI for formatting, linting, build, and unit tests.
 
 ### Removed

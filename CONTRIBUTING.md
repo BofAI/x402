@@ -32,6 +32,10 @@ By participating in this project, you agree to abide by our Code of Conduct. We 
 - Ensure that the tests pass and the code adheres to the project's coding standards.
 - Update the documentation if you've made changes to the API or added new features.
 - Commit messages follow `<type>(<scope>): <description>` (see [.claude/rules/common/conventions.md](.claude/rules/common/conventions.md)).
+- PR titles must use `type(scope): description`, contain 10-72 characters, start the description
+  with a lowercase letter or number, and not end with a period. Allowed types are `feat`, `fix`,
+  `refactor`, `docs`, `style`, `test`, `chore`, `ci`, `perf`, `build`, and `revert`.
+- The PR template's Description section must explain what and why in at least 20 characters.
 
 See [BRANCHING.md](BRANCHING.md) for the complete development, release, back-merge, and hotfix
 workflow.

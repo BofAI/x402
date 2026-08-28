@@ -15,5 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
       - name: Validate pull request route
         run: sh scripts/check_branch_policy.sh "${{ github.base_ref }}" "${{ github.head_ref }}"

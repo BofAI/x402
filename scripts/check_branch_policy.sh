@@ -12,7 +12,7 @@ fi
 case "$base_branch" in
   develop)
     case "$head_branch" in
-      feature/*|feat/*|fix/*|docs/*|chore/*|refactor/*|test/*|perf/*|ci/*|sync/*|release_*|release/*|hotfix/*) ;;
+      feature/*|feat/*|fix/*|docs/*|chore/*|refactor/*|test/*|perf/*|ci/*|sync/*|release_*|hotfix/*) ;;
       *)
         printf 'PRs to develop must come from a development, release, or hotfix branch; got %s.\n' \
           "$head_branch" >&2
@@ -22,9 +22,9 @@ case "$base_branch" in
     ;;
   main)
     case "$head_branch" in
-      release_*|release/*|hotfix/*) ;;
+      release_*|hotfix/*) ;;
       *)
-        printf 'PRs to main must come from release_* (or legacy release/*) or hotfix/*; got %s.\n' \
+        printf 'PRs to main must come from release_* or hotfix/*; got %s.\n' \
           "$head_branch" >&2
         exit 1
         ;;
