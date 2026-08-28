@@ -1,9 +1,6 @@
 <!--
 Thanks for contributing to x402!
 Please fill out the information below to help reviewers understand your changes.
-
-Note: We require commit signing.
-See here for instructions: https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification
 -->
 
 ## Description
@@ -33,7 +30,6 @@ For TypeScript: Run `pnpm test` from the `/typescript` directory
 - [ ] I have formatted and linted my code
 - [ ] All new and existing tests pass
 - [ ] I added a Changeset for publishable package changes, or this PR does not require one
-- [ ] My commits are signed (required for merge) -- you may need to rebase if you initially pushed unsigned commits
 
 <!--
 For TypeScript: Run `pnpm lint` from `/typescript`
