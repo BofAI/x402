@@ -25,15 +25,12 @@ const validInfo: Trc20ApprovalResourceSponsoringInfo = {
 
 describe("TRC-20 Approval Resource Sponsoring Extension", () => {
   it("declares the canonical extension key and schema", () => {
-    const declaration = (
-      declareTrc20ApprovalResourceSponsoringExtension as unknown as (options: {
-        minimumApprovalLifetimeSeconds: number;
-      }) => ReturnType<typeof declareTrc20ApprovalResourceSponsoringExtension>
-    )({ minimumApprovalLifetimeSeconds: 180 });
+    const declaration = declareTrc20ApprovalResourceSponsoringExtension();
     expect(TRC20_APPROVAL_RESOURCE_SPONSORING.key).toBe("trc20ApprovalResourceSponsoring");
-    expect(declaration.trc20ApprovalResourceSponsoring.info).toMatchObject({
+    expect(declaration.trc20ApprovalResourceSponsoring.info).toEqual({
+      description:
+        "The facilitator sponsors TRON Energy and Bandwidth for a pre-signed TRC-20 approve transaction.",
       version: "1",
-      minimumApprovalLifetimeSeconds: 180,
     });
     expect(declaration.trc20ApprovalResourceSponsoring.schema).toMatchObject({
       type: "object",

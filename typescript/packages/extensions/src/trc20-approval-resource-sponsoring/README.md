@@ -42,18 +42,16 @@ const route = {
     extra: { assetTransferMethod: "permit2" },
   },
   extensions: {
-    ...declareTrc20ApprovalResourceSponsoringExtension({
-      minimumApprovalLifetimeSeconds: 300,
-    }),
+    ...declareTrc20ApprovalResourceSponsoringExtension(),
   },
 };
 ```
 
-`minimumApprovalLifetimeSeconds` tells the Client how long the signed Approval must remain
-broadcastable. The Facilitator still enforces its own local minimum and rejects a shorter transaction
-before delegating resources. The route must use `assetTransferMethod: "permit2"`. Batch use is limited to deposit/top-up payloads;
-voucher, claim, settle, refund, and EIP-3009 deposit paths do not use this Extension. Declaring the
-Extension is the only additional Resource Server integration.
+The version 1 Client SDK constructs an Approval with at least 300 seconds of remaining lifetime. The
+Facilitator independently enforces its local saga window and rejects a shorter transaction before
+delegating resources. The route must use `assetTransferMethod: "permit2"`. Batch use is limited to
+deposit/top-up payloads; voucher, claim, settle, refund, and EIP-3009 deposit paths do not use this
+Extension. Declaring the Extension is the only additional Resource Server integration.
 
 ## Client
 

@@ -12,9 +12,6 @@ export const TRC20_APPROVAL_RESOURCE_SPONSORING = {
 /** Current wire-schema version. */
 export const TRC20_APPROVAL_RESOURCE_SPONSORING_VERSION = "1";
 
-/** Safe default lifetime requested for a pre-signed Approval transaction. */
-export const DEFAULT_TRC20_APPROVAL_LIFETIME_SECONDS = 300;
-
 /** Unlimited TRC-20 approval amount (`type(uint256).max`). */
 export const TRC20_APPROVAL_MAX_AMOUNT =
   "115792089237316195423570985008687907853269984665640564039457584007913129639935";
@@ -41,8 +38,6 @@ export interface Trc20ApprovalResourceSponsoringServerInfo {
   readonly [key: string]: unknown;
   readonly description: string;
   readonly version: string;
-  /** Minimum remaining lifetime required for the pre-signed Approval. */
-  readonly minimumApprovalLifetimeSeconds: number;
 }
 
 /** Extension declaration/payload envelope. */

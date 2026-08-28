@@ -45,8 +45,7 @@ A Resource Server advertises the extension in `PaymentRequired.extensions`:
   "trc20ApprovalResourceSponsoring": {
     "info": {
       "description": "The facilitator sponsors TRON Energy and Bandwidth for a pre-signed TRC-20 approve transaction.",
-      "version": "1",
-      "minimumApprovalLifetimeSeconds": 300
+      "version": "1"
     },
     "schema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -75,10 +74,10 @@ A Resource Server advertises the extension in `PaymentRequired.extensions`:
 signed TRON `Transaction` protobuf. Its exact bytes are authoritative. The redundant display fields
 `from`, `asset`, `spender`, and `amount` MUST match the independently decoded transaction.
 
-`minimumApprovalLifetimeSeconds` is Server-provided capability information. The Client MUST create a
-transaction whose remaining lifetime meets it. The Facilitator MUST independently enforce a local
-minimum and MUST NOT trust the advertised value as policy. `fee_limit` bounds remain independent
-Client and Facilitator policy and are not Client payload fields.
+The version 1 Client MUST create a signed Approval with at least 300 seconds of remaining transaction
+lifetime. This is a fixed Client SDK requirement, not Server-provided capability information. The
+Facilitator MUST independently enforce its locally configured saga window before delegation.
+`fee_limit` bounds remain independent Client and Facilitator policy and are not Client payload fields.
 
 ## Client payload
 

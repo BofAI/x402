@@ -2,7 +2,8 @@ import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/ty
 
 export const TRC20_APPROVAL_RESOURCE_SPONSORING_KEY = "trc20ApprovalResourceSponsoring" as const;
 export const TRC20_APPROVAL_RESOURCE_SPONSORING_VERSION = "1" as const;
-export const DEFAULT_TRC20_APPROVAL_LIFETIME_SECONDS = 300;
+/** Fixed minimum signed-transaction lifetime required by Extension version 1. */
+export const TRC20_APPROVAL_LIFETIME_SECONDS = 300;
 export const TRC20_APPROVAL_MAX_AMOUNT =
   "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 

@@ -55,13 +55,13 @@ The Scheme will perform one final authorization verification directly before the
 
 Deadline failures retain standard x402 failure semantics and trigger resource recovery when delegation has already happened.
 
-## 2. Approval lifetime negotiation
+## 2. Approval lifetime enforcement
 
-The Server Extension declaration will include `minimumApprovalLifetimeSeconds`. The value is based on the Facilitator confirmation mode and confirmation timeout and is part of the version 1 Extension capability information.
+The version 1 Client uses a fixed 300-second minimum lifetime for the signed Approval. This value is a Client SDK protocol default and is not carried in the Server Extension declaration.
 
-The Client will validate this value and pass it to `signPermit2Approval`. The stock signer will build the canonical Approval and extend its transaction expiration so its remaining lifetime meets the declared minimum.
+The Client passes the fixed value to `signPermit2Approval`. The stock signer builds the canonical Approval and extends its transaction expiration so its remaining lifetime meets that minimum.
 
-The Facilitator will independently parse the signed Approval expiration and reject it before delegation if it does not satisfy its locally configured minimum. Server information is advisory to the Client; Facilitator policy remains authoritative.
+The Facilitator independently parses the signed Approval expiration and rejects it before delegation if it does not satisfy its locally configured saga window. Facilitator policy remains authoritative.
 
 Both `packed` and `solidified` are supported. No confirmation mode silently lowers the lifetime requirement.
 

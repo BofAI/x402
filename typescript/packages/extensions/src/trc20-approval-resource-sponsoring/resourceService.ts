@@ -1,5 +1,4 @@
 import {
-  DEFAULT_TRC20_APPROVAL_LIFETIME_SECONDS,
   TRC20_APPROVAL_MAX_AMOUNT,
   TRC20_APPROVAL_RESOURCE_SPONSORING,
   TRC20_APPROVAL_RESOURCE_SPONSORING_VERSION,
@@ -28,29 +27,18 @@ export const trc20ApprovalResourceSponsoringSchema: Record<string, unknown> = {
 /**
  * Declares TRC-20 Approval Resource Sponsoring in PaymentRequired.extensions.
  *
- * @param options - Server capability settings.
- * @param options.minimumApprovalLifetimeSeconds - Minimum signed Approval lifetime requested.
  * @returns Extension declaration keyed by its canonical identifier.
  */
-export function declareTrc20ApprovalResourceSponsoringExtension(
-  options: { readonly minimumApprovalLifetimeSeconds?: number } = {},
-): Record<string, Trc20ApprovalResourceSponsoringExtension> {
-  const minimumApprovalLifetimeSeconds =
-    options.minimumApprovalLifetimeSeconds ?? DEFAULT_TRC20_APPROVAL_LIFETIME_SECONDS;
-  if (
-    !Number.isSafeInteger(minimumApprovalLifetimeSeconds) ||
-    minimumApprovalLifetimeSeconds <= 0 ||
-    minimumApprovalLifetimeSeconds > 86_400
-  ) {
-    throw new Error("minimumApprovalLifetimeSeconds must be an integer between 1 and 86400");
-  }
+export function declareTrc20ApprovalResourceSponsoringExtension(): Record<
+  string,
+  Trc20ApprovalResourceSponsoringExtension
+> {
   return {
     [TRC20_APPROVAL_RESOURCE_SPONSORING.key]: {
       info: {
         description:
           "The facilitator sponsors TRON Energy and Bandwidth for a pre-signed TRC-20 approve transaction.",
         version: TRC20_APPROVAL_RESOURCE_SPONSORING_VERSION,
-        minimumApprovalLifetimeSeconds,
       },
       schema: trc20ApprovalResourceSponsoringSchema,
     },

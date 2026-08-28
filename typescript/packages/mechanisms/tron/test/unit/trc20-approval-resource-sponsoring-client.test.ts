@@ -31,6 +31,7 @@ const context = {
       info: {
         description: "Sponsor TRON resources for Approval",
         version: "1",
+        // Legacy or unknown Server fields must not control Client transaction lifetime.
         minimumApprovalLifetimeSeconds: 180,
       },
       schema: {},
@@ -88,7 +89,7 @@ describe("TRC-20 Approval Resource Sponsoring client", () => {
     expect(clientSigner.signPermit2Approval).toHaveBeenCalledWith({
       token: TOKEN,
       network: NETWORK,
-      minimumLifetimeSeconds: 180,
+      minimumLifetimeSeconds: 300,
     });
     expect(clientSigner.ensureAllowance).not.toHaveBeenCalled();
     expect(result.extensions).toEqual({

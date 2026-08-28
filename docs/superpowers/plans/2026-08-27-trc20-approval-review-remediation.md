@@ -158,7 +158,7 @@ git add typescript/packages/mechanisms/tron/src/signer.ts typescript/packages/me
 git commit -m "fix(tron): bind sponsored approvals to signer network"
 ```
 
-### Task 3: Approval lifetime negotiation and pre-delegation enforcement
+### Task 3: Fixed Approval lifetime and pre-delegation enforcement
 
 **Files:**
 
@@ -175,23 +175,23 @@ git commit -m "fix(tron): bind sponsored approvals to signer network"
 
 **Interfaces:**
 
-- Declaration info gains validated `minimumApprovalLifetimeSeconds: number`.
-- `signPermit2Approval` gains `minimumLifetimeSeconds: number`.
-- Runtime/factory retains an authoritative `minimumApprovalBroadcastWindowMs` and exposes the same minimum through the declaration factory.
+- The version 1 Server declaration remains limited to description and version.
+- `signPermit2Approval` receives the fixed protocol value `minimumLifetimeSeconds: 300` from the Client SDK.
+- Runtime/factory retains an authoritative `minimumApprovalBroadcastWindowMs` and enforces it independently before delegation.
 
 - [ ] **Step 1: Write failing lifetime tests**
 
 Cover three observable behaviors:
 
 ```ts
-expect(declaration.trc20ApprovalResourceSponsoring.info.minimumApprovalLifetimeSeconds).toBe(180);
-expect(signPermit2Approval).toHaveBeenCalledWith({ token, network, minimumLifetimeSeconds: 180 });
+expect(declaration.trc20ApprovalResourceSponsoring.info).toEqual({ description, version: "1" });
+expect(signPermit2Approval).toHaveBeenCalledWith({ token, network, minimumLifetimeSeconds: 300 });
 await expect(chain.preflight(shortApprovalRequest)).rejects.toThrow(
   "approval_transaction_expiring",
 );
 ```
 
-Also build a stock signed transaction and assert its expiration is at least the requested lifetime from the controlled clock.
+Also build a stock signed transaction and assert its expiration is at least the fixed version 1 lifetime from the controlled clock.
 
 - [ ] **Step 2: Run focused tests and verify RED**
 
@@ -202,11 +202,11 @@ pnpm exec vitest run test/trc20-approval-resource-sponsoring.test.ts
 pnpm exec vitest run test/unit/trc20-approval-resource-sponsoring-client.test.ts test/unit/trc20-resource-sponsoring-tronweb.test.ts
 ```
 
-Run the first command in `typescript/packages/extensions` and the second in `typescript/packages/mechanisms/tron`. Expected: missing declaration/signing capability and short-lifetime behavior failures.
+Run the first command in `typescript/packages/extensions` and the second in `typescript/packages/mechanisms/tron`. Expected: the old Server lifetime field, Server-controlled Client value, and short-lifetime behavior fail.
 
-- [ ] **Step 3: Implement additive capability and signer expiration**
+- [ ] **Step 3: Implement fixed Client lifetime and signer expiration**
 
-Validate the declaration value as a positive safe integer. Pass it through the shared helper. After TronWeb builds the Approval, extend expiration only when required; reparse the result and fail if the resulting transaction remains too short.
+Keep the Server declaration free of lifetime configuration. Pass the fixed version 1 value through the shared Client helper. After TronWeb builds the Approval, extend expiration only when required; reparse the result and fail if the resulting transaction remains too short.
 
 The Facilitator continues to enforce its local millisecond minimum independently of Client data.
 
@@ -425,7 +425,7 @@ Expected: all TRON tests pass.
 
 - [ ] **Step 3: Update protocol and package documentation**
 
-Document `minimumApprovalLifetimeSeconds`, exact signer network binding, saga deadline admission, strategy behavior, and empty settlement transaction failures. Keep examples free of private keys and environment values.
+Document the fixed 300-second Client Approval lifetime, exact signer network binding, saga deadline admission, strategy behavior, and empty settlement transaction failures. Keep examples free of private keys and environment values.
 
 - [ ] **Step 4: Run relevant workspace checks**
 
