@@ -31,8 +31,6 @@ const context = {
       info: {
         description: "Sponsor TRON resources for Approval",
         version: "1",
-        // Legacy or unknown Server fields must not control Client transaction lifetime.
-        minimumApprovalLifetimeSeconds: 180,
       },
       schema: {},
     },
