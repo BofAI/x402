@@ -27,18 +27,18 @@ TRON 已经对齐 EVM 的主要协议骨架：`exact`、`upto`、`batch-settleme
 
 | 优先级 | 能力 | 判断 |
 | --- | --- | --- |
-| P0 | 统一 `settlement_pending` 与交易哈希保留语义 | 应直接借鉴 EVM 的通用 receipt 状态机 |
+| P0 | 统一 `settlement_pending` 与交易哈希保留语义 | SDK 默认等待 90 秒且可配置；持久化和自动对账由 facilitator 服务负责 |
 | P0 | exact/upto/batch 验证阶段链上模拟、合约存在性检查、fail-closed | 当前 TRON 存在 optimistic verify，应尽快收紧 |
 | P0 | batch-settlement channelId 绑定、验证后原子预留、并发清理 | 大部分逻辑与链无关，可按 EVM 实现移植 |
 | P1 | batch 文件/Redis 持久化 | 可复用 EVM 设计，但必须先完成 channelId 安全校验 |
 | P1 | 默认资产反向查询和未知 decimals 处理 | 小改动，高正确性收益 |
-| P1/P2 | Permit2 approval sponsoring | 借鉴扩展模型，不能直接复制 EVM 预签交易格式 |
+| 已实现 | TRC-20 Approval resource sponsoring | 已采用 TRON-specific 预签交易、TAPOS/expiration 校验和资源委托恢复模型 |
 | P2 | auth-capture | 需先有 TVM escrow/collector 合约和审计，不能只移植 SDK client |
 | 不直接移植 | ERC-1271、ERC-6492、ERC-7702、EVM calldata suffix | 属于 EVM 账户或 calldata 语义，应设计 TRON 等价能力 |
 
 ## 2. 分析基线与说明
 
-- 当前分支：`main`
+- 分析基线分支：`main`
 - 当前提交：`3be4d46b`
 - 发布标签：`v1.1.0`
 - 分析日期：2026-08-27
@@ -180,6 +180,26 @@ if (receipt.status !== "success") {
 | receipt 明确为 `reverted` | 终态失败，保留 txid |
 | receipt wait 超时、RPC 异常、receipt 后处理异常 | `settlement_pending`，保留 txid |
 
+TRON receipt 等待预算必须可配置，并保持当前默认行为：
+
+```ts
+const DEFAULT_CONFIRMATION_TIMEOUT_MS = 90_000;
+
+createFacilitatorTronSigner(wallet, {
+  network,
+  confirmationTimeoutMs: 90_000,
+});
+```
+
+- 未配置时默认等待 90 秒；
+- 部署方可以按其 HTTP 和网关 deadline 调低或调高；
+- 单次 RPC 异常在剩余预算内继续重试，不立即判定 pending；
+- 预算耗尽且已有合法 txid 时返回 `settlement_pending`；
+- 广播被拒绝、txid 为空或不是规范 64 位十六进制字符串时终态失败；
+- `settlement_pending` 是非终态结果，调用方不得因此创建新支付或重播原交易。
+
+确认层级继续采用当前 packed receipt，以较低延迟获得 `SUCCESS`/`REVERT`；等待 solidified receipt 可以作为未来的高安全配置，但不作为本阶段默认行为。
+
 所有已广播路径都应复用：
 
 - exact EIP-3009 / Permit2；
@@ -187,13 +207,126 @@ if (receipt.status !== "success") {
 - batch deposit / claim / settle / refund；
 - client 一次性 Permit2 approve，如调用侧需要向用户表达 pending。
 
-### 5.3 验收测试
+### 5.3 SDK 与 facilitator 服务的责任边界
 
+`x402` SDK 保持无状态，只负责：
+
+- 广播交易并取得 txid；
+- 在可配置预算内等待 receipt；
+- 区分 `success`、`reverted` 和 `settlement_pending`；
+- 保留并校验 txid；
+- 返回 receipt logs，供 scheme 校验实际链上效果；
+- 绝不因为 receipt 未知而重新广播交易。
+
+SDK 不负责数据库、settlement 历史查询、后台 worker、多实例任务锁、重启恢复或交易状态 HTTP API。SDK 无法也不应根据数据库判断一笔授权是否已有 pending；该判断只能由调用 SDK 的 facilitator 服务完成。
+
+持久化和自动对账属于部署侧 facilitator 服务。BankofAI 的实现位于独立的 `x402-facilitator` 仓库，该服务已经提供 settlement 数据库和 `GET /payments/tx/{hash}`。第一版不新增通用 x402 `/status` 协议，而是在该服务中增强现有能力：
+
+1. exact/upto `/settle` 在调用 SDK 前，从 payload 提取 `network + scheme + asset + payer + nonce` authorization identity 并查询 settlement；
+2. 已有 `pending` 时直接重建并返回原 `settlement_pending + txid`，已有 `success` 时直接返回原成功结果，不再次调用 SDK；已有带 txid 的 `reverted/failed` 也返回原终态，只有没有 txid 的广播前失败允许重试；
+3. 没有已有记录时才调用 SDK settle；SDK 返回 `settlement_pending + txid` 时保存 `status = pending`，不能保存成普通 `failed`；
+4. 后台 reconciliation worker 持续查询原 txid，绝不重播；
+5. receipt 成功且效果校验通过后更新为 `success`；
+6. receipt 明确 revert 后更新为 `reverted`；
+7. RPC 暂时不可用或交易仍未打包时保持 `pending` 并退避重试；
+8. 调用方通过现有 `GET /payments/tx/{hash}` 查询最终状态；查询 pending 记录时可以执行一次惰性刷新；
+9. worker 在服务重启后重新扫描数据库中的 pending；多实例可以重复执行只读 receipt 查询，但状态更新必须使用 `WHERE id = ? AND status = 'pending'` 之类的 compare-and-set，不能覆盖已经写入的终态；
+10. receipt 超过运营告警阈值仍无法确认时保持 pending，不因本地 TTL 自动改成失败；只有明确 revert、可靠的未落链证据，或 receipt 与预期效果明确不匹配等确定性证据才能写入失败终态；
+11. 数据库保存失败不能改变链上事实；响应仍保留 txid，同时记录高优先级告警，供调用方继续查询链上状态。
+
+建议 facilitator settlement 状态至少区分：
+
+```text
+pending   已广播且有 txid，但链上效果未知
+success   receipt 成功且效果校验通过
+reverted  receipt 明确链上失败
+failed    广播前失败，或 receipt 成功但明确未发生预期支付效果
+```
+
+batch-settlement 当前没有可用于 settlement 表查询的逐笔 nonce，不能套用 exact/upto 的 authorization identity 预查。第一版继续以 Resource Server 的 channel reservation 作为 batch 并发控制；`x402-facilitator` 只在获得 txid 后按 txid 持久化和对账，不为 batch 新增数据库 identity 字段。
+
+第一版不通过数据库 migration 或分布式锁消除 exact/upto 的跨实例“同时查无记录”窗口。极端并发下可能广播两笔使用同一 authorization 的交易，但链上 nonce 保证至多一笔成功，另一笔终态 revert；这是第一版明确接受的资源浪费限制，不得描述为可能重复扣款。若后续要求广播本身 exactly-once，需要独立设计广播前 durable operation 和跨实例串行化。
+
+第一版也明确接受“广播成功后、pending 记录入库前进程崩溃”的恢复窗口。reconciliation worker 只保证已经持久化为 pending 的记录可在重启后恢复；本阶段不为此增加 broadcast callback、预写 `settling` operation 或数据库 migration。交易广播日志必须保留 txid 并触发进程异常告警。若后续要求覆盖该窗口，应单独设计广播时 durable hook，而不能让 SDK 直接访问数据库。
+
+Resource Server 不直接实现 TRON receipt 解析，也不自动重付；它保存 pending txid，并查询 facilitator 服务的交易记录。若未来需要让不同 facilitator 实现共享同一状态查询协议，再单独把该能力提升到 core 接口。
+
+超时配置必须留出响应传输余量。通用 `HTTPFacilitatorClient` 默认请求超时从 90 秒调整为 120 秒，TRON confirmation timeout 保持默认 90 秒。部署时仍应满足：
+
+```text
+TRON confirmation timeout < Resource Server 到 facilitator 的 HTTP timeout < 外层网关 timeout
+```
+
+默认组合为 TRON confirmation timeout 90 秒、facilitator HTTP timeout 120 秒；外层网关必须更长。部署方覆盖任一值时仍需保留足够余量，否则调用方可能先收到 HTTP timeout，拿不到 facilitator 已持有的 txid。
+
+### 5.4 `x402-facilitator` 第一版改动范围
+
+第一版复用现有 `settlements` 表，不要求数据库迁移。当前表已经包含 `tx_hash`、`status`、`error_reason` 和 `created_at`，且 `status` 为 `VARCHAR`，足以保存 `pending`、`success`、`reverted` 和 `failed`。具体改动为：
+
+- `src/server.ts`
+  - exact/upto `/settle` 在调用 SDK 前查询已有 authorization settlement；pending/success 以及带 txid 的 reverted/failed 直接返回原结果；
+  - batch 不执行 nonce-based 预查，继续依赖 Resource Server channel reservation；
+  - `/settle` 将 `errorReason === "settlement_pending"` 映射为 `status = "pending"`，不再保存成 `failed`；
+  - `GET /payments/tx/{hash}` 继续返回数据库记录；对 pending 记录可触发一次只读惰性刷新；
+- `src/db/index.ts`
+  - 复用 authorization identity 查询支持 exact/upto settle 前检查；
+  - 增加批量读取 pending settlement 的查询；
+  - 增加按 settlement id/txid 的 compare-and-set 终态更新，只允许 `pending -> success|reverted|failed`；
+- `src/settlement-reconciler.ts`（新增）
+  - 定时扫描 pending，按 network 查询原 txid；
+  - 只查询 receipt，绝不调用广播或 settlement；
+  - RPC 异常或仍未打包时保留 pending，等待下一轮；
+- `src/tron-receipt.ts`（新增或复用 SDK 导出的只读 primitive）
+  - 封装 `wallet/gettransactioninfobyid` 查询和 `success|reverted|pending` 解析；
+  - 复用与 SDK 一致的 txid、packed receipt 和效果校验语义；
+  - receipt 成功后解码原广播交易的 target/calldata，并校验 receipt logs 是否实现该交易编码的 token、payer、recipient 和 amount；再用现有 settlement 的 asset、payer、amount 做可用的交叉校验，不新增数据库字段；
+  - calldata/logs 暂时不完整时保持 pending，明确与预期效果不匹配时更新为 failed；
+- `src/runtime.ts`、`src/index.ts`
+  - 在数据库和网络配置就绪后启动 worker；
+  - 在 shutdown 中先停止 worker，再关闭数据库连接；
+- `src/config.ts` 与环境配置
+  - 增加 worker enable、扫描间隔和 batch size 的有界配置；
+- tests
+  - 覆盖 pending 持久化、重启恢复、RPC 异常、终态更新、惰性刷新、多个 worker 条件更新和 no-rebroadcast。
+
+第一版不持久化 worker lease、attempt count、`next_reconcile_at` 或 `updated_at`。多个实例重复查询同一 txid 是可接受的只读开销；compare-and-set 保证迟到结果不能把 `success/reverted` 改回 pending 或相互覆盖。不得在数据库事务或行锁内执行远程 RPC。
+
+第一版也不持久化原始 `paymentRequirements.payTo` 或完整规范化支付效果。因此异步 worker 能证明“receipt logs 与 facilitator 实际广播的交易一致”，并能与已保存的 asset、payer、amount 交叉校验，但不能在进程重启后重新证明“广播交易中的 recipient 与最初 HTTP 请求完全一致”。同步 settle 路径仍应在内存中完成完整效果校验；若后续要求异步路径也恢复原始请求级证明，需要新增 `pay_to` 或 canonical effect 字段并执行显式 migration。
+
+如果后续需要严格限制跨实例重复查询、指数退避、长期 pending 告警或详细审计，再通过显式 `ALTER TABLE`/版本化 migration 增加 lease、attempt、next retry 和 resolved timestamp 字段。仅修改 Drizzle schema 或 `CREATE TABLE IF NOT EXISTS` 不会升级已有生产表，因此这些能力不得在没有迁移的情况下假设字段存在。
+
+### 5.5 验收测试
+
+- 未配置时 receipt 等待预算为 90 秒，自定义 `confirmationTimeoutMs` 能正确覆盖；
 - receipt 超时返回 `settlement_pending` 和原 txid；
 - RPC 抛错返回 `settlement_pending`；
 - 明确 revert 返回 scheme-specific terminal error；
 - 空 txid/无效 txid 不得返回 pending；
-- receipt 成功但效果校验抛错时返回 pending，而不是误报成功。
+- receipt 成功但效果校验抛错时返回 pending，而不是误报成功；
+- pending 路径不得再次调用广播接口；
+- exact/upto 已有 pending 或 success 时 facilitator 服务直接返回原记录，不调用 SDK settle；
+- exact/upto 已有带 txid 的 reverted/failed 时返回原终态，不调用 SDK settle；没有 txid 的广播前失败不阻止后续重试；
+- batch 不使用空 nonce 做 authorization 去重；
+- 两个跨实例请求同时查无记录时，链上 authorization nonce 保证至多一笔成功；
+- facilitator 服务将 pending 保存为 `pending` 而不是 `failed`；
+- reconciliation 将 pending 原子推进为 `success`、`reverted` 或有确定性证据的 `failed`；
+- receipt success 只有在原交易 target/calldata 与 logs 一致，且现有 settlement 字段的交叉校验通过后才能推进为 success；数据不完整时保持 pending，明确不匹配时推进为 failed；
+- pending 超过运营告警阈值时告警但不因本地 TTL 自动失败；
+- 多个 worker 可以重复只读查询，但只能有一个 compare-and-set 成功推进终态，且都不能重播交易；
+- `GET /payments/tx/{hash}` 返回最新 reconciliation 状态；
+- `HTTPFacilitatorClient` 默认 timeout 为 120 秒，并在 TRON 默认 90 秒 confirmation timeout 后收到包含 txid 的 pending 响应。
+
+### 5.6 规范同步
+
+`settlement_pending` 是跨服务可观察的非终态语义，不能只作为源码内部错误常量存在。阶段 A 必须同步更新：
+
+- `specs/x402-specification-v2.md`：定义已广播但链上效果未知的非终态 settlement 结果；
+- `specs/schemes/exact/scheme_exact_tron.md`：加入 `settlement_pending`、txid 保留和禁止重播；
+- `specs/schemes/upto/scheme_upto_tron.md`：加入同样语义；
+- `specs/schemes/batch-settlement/scheme_batch_settlement_tron.md`：加入 pending 与 channel reconciliation 规则；
+- facilitator API 文档：说明 `GET /payments/tx/{hash}` 返回的 `pending|success|reverted|failed` 状态。
+
+第一版保持现有 `SettleResponse` wire shape：`success: false`、`errorReason: "settlement_pending"`、`transaction: <txid>`，不新增通用 `/status` endpoint 或新的顶层状态字段。
 
 ## 6. P0：验证阶段链上模拟与 fail-closed
 
@@ -233,12 +366,14 @@ exact EIP-3009 的 balance 读取同样会在失败后继续。结果是 RPC 故
 
 ### 6.3 settle re-verify
 
-可沿用 EVM 模型：
+沿用 EVM 的分路径默认值：
 
 - 第一次公开 verify 默认执行模拟；
-- settle 前重新验证签名和字段；
-- 是否再次模拟由 facilitator 配置控制，避免重复 RPC 成本；
-- 对高风险或长队列场景允许开启 `simulateInSettle`。
+- settle 前始终重新验证签名和字段；
+- exact settle re-verify 默认不重复模拟，`simulateInSettle = false`；
+- upto settle re-verify 默认重复模拟，`simulateInSettle = true`；
+- batch deposit/claim/settle/refund 在各自广播前执行模拟；
+- facilitator 配置可以覆盖 exact/upto 默认值，但关闭模拟不能恢复 optimistic RPC error 行为；所有建立验证状态所需的 RPC 读取仍然 fail closed。
 
 ## 7. P0：移植 batch-settlement 并发与存储安全模型
 
@@ -278,7 +413,39 @@ EVM 当前行为是：
 - voucher 使用 TRON typed-data recover；
 - 合约地址按 TRON network registry 解析。
 
-### 7.3 必须补充的测试
+### 7.3 settlement pending 与 reservation
+
+batch 链上操作已经广播但返回 `settlement_pending` 时，不能按普通 settle failure 立即清理 reservation，否则同一 channel 的新请求可能在原交易终态未知时进入；也不能只依赖普通 reservation TTL 到期后无条件释放。
+
+Resource Server 应将 reservation 转换为可持久化的 reconciliation 状态，至少保存：
+
+```text
+channelId + pendingId + txid + operation + state=reconciling
+```
+
+后续处理规则：
+
+- facilitator 交易状态仍为 `pending`：保持 channel busy；
+- facilitator 状态变为 `success`：按原操作提交 channel 状态；
+- facilitator 状态变为 `reverted`：仅释放 pendingId 匹配的 reservation；
+- facilitator 状态变为 `failed`：保持 reconciling 并告警，第一版不自动 commit 或 release；当前单一 `failed` 状态不足以证明释放后一定不会与未知链上效果冲突；
+- 查询 facilitator 失败：fail closed，继续保持 reconciling；
+- 清理旧请求不得删除后来请求的 pending marker。
+
+交易 receipt 的后台确认由 `x402-facilitator` 负责；channel reservation 的 commit/release 由拥有 batch storage 的 Resource Server 负责。facilitator worker 不直接修改 Resource Server 的 channel storage。
+
+为避免 TRON mechanism 依赖 BankofAI 特定 HTTP API，`BatchSettlementTronSchemeServerConfig` 增加可注入的状态解析器：
+
+```ts
+settlementStatusResolver?: (
+  network: Network,
+  txid: string,
+) => Promise<"pending" | "success" | "reverted" | "failed">;
+```
+
+SDK 只定义并调用该回调，不实现 `/payments/tx/{hash}` 客户端。部署应用负责用 `x402-facilitator` 的现有查询接口实现 resolver。为了向后兼容，该字段在类型上可选；一旦 batch 进入 reconciling 而 resolver 未配置，Resource Server 必须 fail closed、保持 channel busy 并记录配置告警，不能按 TTL 释放 reservation。
+
+### 7.4 必须补充的测试
 
 - 非 `0x + 64 hex` channelId 在任何存储访问前拒绝；
 - channelId 与 channelConfig 不匹配时拒绝；
@@ -288,7 +455,14 @@ EVM 当前行为是：
 - 过期 reservation 可被替换；
 - storage.get/update 抛错时 fail closed；
 - extension 在 after-verify 阶段 abort 时清理 reservation；
-- 清理旧请求不能删除新请求的 pending marker。
+- 清理旧请求不能删除新请求的 pending marker；
+- batch settle pending 时 reservation 转为 reconciling 而不是被清理；
+- reconciliation success 后提交 channel 状态；
+- reconciliation reverted 后精确释放原 reservation；
+- reconciliation failed 时保持 reconciling，等待人工处置；
+- RPC/服务查询失败时不得释放 reconciling reservation；
+- resolver 未配置时保持 reconciling 并发出配置告警；
+- reservation TTL 到期不能绕过未决 txid 的链上对账。
 
 ## 8. P1：持久化和资产元数据
 
@@ -312,26 +486,22 @@ TRON 当前 `findDefaultAsset` 使用 Base58 字符串精确比较，而其他�
 - 未知 token 的 `getAssetDecimals` 返回 `undefined`，不默认假设 6 位；
 - 只有 display-only 场景可以由 core 回退到 6 位，实际 `$...` settlement override 必须知道精确 decimals。
 
-## 9. 条件借鉴能力
+## 9. 基线后进展与条件借鉴能力
 
-### 9.1 Permit2 approval sponsoring
+### 9.1 TRC-20 Approval resource sponsoring（已实现）
 
-EVM 有两条 allowance 补齐路径：
+本文分析基线之后，TRON 已实现 `trc20ApprovalResourceSponsoring` version 1。该实现没有复制 EVM RLP approval extension，而是采用 TRON-specific 完整签名交易和资源委托 saga：
 
-1. token 支持 EIP-2612 时，client 签 permit，facilitator 原子调用 `settleWithPermit`；
-2. token 不支持 EIP-2612 时，client 提交预签 ERC-20 approval 交易，扩展 signer 广播 approval + settle。
+- client 签署但不广播 `approve(canonicalPermit2, MAX_UINT256)`；
+- facilitator 严格解析完整 protobuf、签名、owner、calldata、TAPOS、timestamp、expiration 和 fee limit；
+- `/verify` 保持只读，`/settle` 在重复 mutable checks 后临时委托 Energy/Bandwidth；
+- facilitator 广播 client 提供的原始签名交易，并要求节点返回的 txid 与本地计算一致；
+- allowance 生效后继续 exact/upto settlement 或 batch Permit2 deposit；
+- 资源回收通过独立 durable reconciliation 处理，不与本节的 payment receipt worker 混用。
 
-TRON 可以借鉴扩展协商、验证和多交易执行接口，但不能直接复制第二条路径：TRON 交易包含 TAPOS、expiration 等短期链上下文，预签交易的有效期和重播模型不同于 EVM RLP 交易。
+version 1 支持 exact Permit2、upto Permit2 和 batch-settlement Permit2 deposit/top-up；不用于 EIP-3009、voucher、claim、settle 或 refund。默认 zero-first approval policy，不隐式插入 `approve(0)`。
 
-建议先调研：
-
-- 目标 TRC-20 是否真实支持 `permit()`；
-- relayer 是否能安全代付 approval；
-- approval 与 settle 是否可通过代理合约原子完成；
-- 预签 TRON transaction 在 HTTP 重试和队列延迟下的有效窗口；
-- GasFree provider 是否能覆盖首次 allowance 建立。
-
-mainstream TRON USDT/USDD 通常不支持 EIP-2612，因此该项优先级低于验证和 pending 语义。
+该能力视为已完成的独立扩展，不再列入本路线图的可行性调研。它仍需遵守本章新增的 payment `settlement_pending` 语义，但 Approval、DelegateResource 和 UnDelegateResource 的多交易状态保留在扩展自己的 operation/recovery 模型中，不能把非支付 txid 写入 `SettleResponse.transaction`。
 
 ### 9.2 auth-capture
 
@@ -367,10 +537,17 @@ mainstream TRON USDT/USDD 通常不支持 EIP-2612，因此该项优先级低于
 
 ### 阶段 A：可靠性闭环
 
-1. 新增 TRON receipt helper；
-2. exact/upto/batch 全面采用 `settlement_pending`；
-3. 扩展 receipt 返回 logs；
-4. 增加 invalid txid、timeout、RPC error、revert 回归测试。
+1. 为 TRON signer 增加可配置 `confirmationTimeoutMs`，默认 90 秒；
+2. 新增 TRON receipt helper；
+3. exact/upto/batch 全面采用 `settlement_pending` 并保留 txid；
+4. 扩展 receipt 返回 logs；
+5. 增加 invalid txid、timeout、RPC error、revert 和 no-rebroadcast 回归测试；
+6. 在 `x402-facilitator` 将 pending 持久化为独立状态；
+7. 在 `x402-facilitator` 增加 reconciliation worker，并复用 `/payments/tx/{hash}` 查询最终状态；
+8. 第一版复用现有 settlement 字段和 compare-and-set，不引入数据库迁移；
+9. exact/upto settle 前查询已有 pending/success 和带 txid 的失败终态；batch 继续依赖 Resource Server reservation；
+10. 将 `HTTPFacilitatorClient` 默认 timeout 调整为 120 秒，并要求外层网关大于该值；
+11. 同步更新 x402 v2、TRON exact/upto/batch specs 和 facilitator API 文档。
 
 ### 阶段 B：验证安全
 
@@ -386,14 +563,15 @@ mainstream TRON USDT/USDD 通常不支持 EIP-2612，因此该项优先级低于
 2. verify-before-reserve；
 3. atomic busy/stale handling；
 4. failure/abort cleanup；
-5. 并发和存储失败测试。
+5. pending reservation 转换为 reconciling，并根据 facilitator 最终状态 commit/release；
+6. 注入 `settlementStatusResolver`，未配置或查询失败时 fail closed；
+7. 并发、存储失败和 reconciliation 测试。
 
 ### 阶段 D：产品能力
 
 1. 文件/Redis storage；
 2. 默认资产查询规范化；
-3. TRON approval sponsoring 可行性验证；
-4. auth-capture 合约和协议设计。
+3. auth-capture 合约和协议设计。
 
 ## 12. 关键源码索引
 
@@ -418,3 +596,23 @@ TRON：
 - `typescript/packages/mechanisms/tron/src/batch-settlement/server/scheme.ts`
 - `typescript/packages/mechanisms/tron/src/shared/defaultAssets.ts`
 - `typescript/packages/mechanisms/tron/src/shared/tokens.ts`
+- `typescript/packages/mechanisms/tron/src/resource-sponsoring/`
+
+协议规范：
+
+- `specs/x402-specification-v2.md`
+- `specs/schemes/exact/scheme_exact_tron.md`
+- `specs/schemes/upto/scheme_upto_tron.md`
+- `specs/schemes/batch-settlement/scheme_batch_settlement_tron.md`
+- `specs/extensions/trc20_approval_resource_sponsoring.md`
+
+Core 与部署服务：
+
+- `typescript/packages/core/src/http/httpFacilitatorClient.ts`
+- `x402-facilitator/src/server.ts`（独立仓库）
+- `x402-facilitator/src/db/index.ts`（独立仓库）
+- `x402-facilitator/src/db/schema.ts`（独立仓库）
+- `x402-facilitator/src/runtime.ts`（独立仓库）
+- `x402-facilitator/src/index.ts`（独立仓库）
+- `x402-facilitator/src/settlement-reconciler.ts`（独立仓库，待新增）
+- `x402-facilitator/src/tron-receipt.ts`（独立仓库，待新增）

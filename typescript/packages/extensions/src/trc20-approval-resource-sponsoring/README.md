@@ -167,8 +167,10 @@ confirmation timeout, the synchronous sponsorship ceiling is two DelegateResourc
 plus one Approval confirmation and the 15-second settlement margin: 285 seconds. The final Permit2
 settlement receipt has its own 90-second timeout, so the full HTTP request can approach 375 seconds
 in the timeout case. Admission rejects payment authorizations whose remaining deadline cannot cover
-the configured sponsorship window. `"solidified"` adds approximately one finality interval to each
-confirmed action and must be sized separately.
+the configured sponsorship window. The resource server, facilitator, and outer gateway HTTP
+timeouts must therefore be configured above this computed ceiling; the core client's 120-second
+default only covers the ordinary single-transaction TRON settlement path. `"solidified"` adds
+approximately one finality interval to each confirmed action and must be sized separately.
 
 The runtime rejects a payment authorization whose remaining deadline cannot cover delegation,
 Approval confirmation, and the settlement safety margin. It revalidates the selected Scheme before

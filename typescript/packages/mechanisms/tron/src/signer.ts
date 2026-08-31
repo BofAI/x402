@@ -7,12 +7,18 @@ import {
   erc20ApproveAbi,
 } from "./constants";
 import { buildTronWeb } from "./rpc";
-import { tronAddressToEvm } from "./utils";
+import { isValidTronTxHash, tronAddressToEvm } from "./utils";
 import { log } from "@bankofai/x402-core";
 import { createTrc20ApprovalPolicy, type Trc20ApprovalPolicy } from "./approvalPolicy";
 
 /** Allowance-ensuring strategy for {@link ClientTronSigner.ensureAllowance}. */
 export type AllowanceMode = "auto" | "skip" | "interactive";
+
+/** Default time budget for observing a packed TRON receipt. */
+export const DEFAULT_CONFIRMATION_TIMEOUT_MS = 90_000;
+
+/** Upper bound imposed by JavaScript's signed 32-bit timer implementation. */
+const MAX_CONFIRMATION_TIMEOUT_MS = 2_147_483_647;
 
 /** Unlimited approval amount (`type(uint256).max`), the canonical Permit2 grant. */
 const MAX_UINT256 = (1n << 256n) - 1n;
@@ -157,7 +163,20 @@ export interface FacilitatorTronSigner {
   /**
    * Wait for a transaction to be confirmed on-chain.
    */
-  waitForTransactionReceipt(args: { hash: string }): Promise<{ status: string }>;
+  waitForTransactionReceipt(args: { hash: string }): Promise<TronTransactionReceipt>;
+}
+
+/** Raw TRON event log fields surfaced for scheme-level payment-effect validation. */
+export interface TronTransactionLog {
+  address?: string;
+  topics?: readonly string[];
+  data?: string;
+}
+
+/** Packed receipt result used by every TRON settlement path. */
+export interface TronTransactionReceipt {
+  status: "success" | "reverted" | "pending";
+  logs?: readonly TronTransactionLog[];
 }
 
 type ReadContractCapable = Pick<ClientTronSigner, "readContract">;
@@ -415,6 +434,11 @@ export interface FacilitatorTronSignerOptions {
   feeLimit?: number;
   /** TRON permission id for multi-sig facilitator accounts (e.g. 2 = active). */
   permissionId?: number;
+  /**
+   * Maximum time to wait for a packed receipt, in milliseconds.
+   * Defaults to 90 seconds.
+   */
+  confirmationTimeoutMs?: number;
 }
 
 type AbiTypeNode = { name?: string; type: string; components?: readonly AbiTypeNode[] };
@@ -706,28 +730,71 @@ async function buildSignAndBroadcast(
     });
     throw new Error(`sendRawTransaction failed: ${JSON.stringify(broadcast)}`);
   }
-  if (!broadcast.txid) {
-    // Broadcast reported success but returned no txid; the caller would then
-    // poll an empty hash and stall until timeout. Fail fast instead.
-    log.error("x402 tron: broadcast returned no txid", {
+  if (!isValidTronTxHash(broadcast.txid)) {
+    // Broadcast reported success but returned no usable txid; without one the
+    // caller cannot reconcile an indeterminate settlement. Fail terminally.
+    log.error("x402 tron: broadcast returned invalid txid", {
       contract: args.address,
       method: args.functionName,
       response: JSON.stringify(broadcast),
     });
-    throw new Error(`sendRawTransaction returned no txid: ${JSON.stringify(broadcast)}`);
+    throw new Error(`sendRawTransaction returned invalid txid: ${JSON.stringify(broadcast)}`);
   }
+  const txid = broadcast.txid.replace(/^0x/i, "").toLowerCase();
   log.info("x402 tron: broadcast ok", {
     contract: args.address,
     method: args.functionName,
-    txid: broadcast.txid,
+    txid,
   });
-  return broadcast.txid;
+  return txid;
 }
 
 type TronTxInfo = {
   blockNumber?: number;
   receipt?: { result?: string };
+  log?: readonly TronTransactionLog[];
 };
+
+/**
+ * Resolve and validate a caller-supplied packed-receipt timeout.
+ *
+ * @param value - Configured timeout, or undefined to use the default.
+ * @returns The validated confirmation timeout in milliseconds.
+ */
+function resolveConfirmationTimeoutMs(value: number | undefined): number {
+  const timeoutMs = value ?? DEFAULT_CONFIRMATION_TIMEOUT_MS;
+  if (
+    !Number.isSafeInteger(timeoutMs) ||
+    timeoutMs <= 0 ||
+    timeoutMs > MAX_CONFIRMATION_TIMEOUT_MS
+  ) {
+    throw new Error(
+      `confirmationTimeoutMs must be a positive integer no greater than ${MAX_CONFIRMATION_TIMEOUT_MS}, got ${timeoutMs}`,
+    );
+  }
+  return timeoutMs;
+}
+
+/**
+ * Await a single RPC request without allowing it to exceed the remaining budget.
+ *
+ * @param request - Receipt RPC request to await.
+ * @param timeoutMs - Remaining confirmation budget in milliseconds.
+ * @returns The RPC response when it completes within the remaining budget.
+ */
+async function requestWithin<T>(request: Promise<T>, timeoutMs: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      request,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("TRON receipt RPC timed out")), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
 
 /**
  * Poll TRON for a transaction's confirmed result via the fullNode
@@ -747,22 +814,32 @@ type TronTxInfo = {
  *
  * @param tronWeb - The TronWeb instance used to read the transaction.
  * @param hash - The transaction id to wait for.
+ * @param timeoutMs - Total confirmation budget in milliseconds.
  * @returns `success` / `reverted` once the result is stable, or `pending` on timeout.
  */
-async function pollTransactionPacked(tronWeb: TronWeb, hash: string): Promise<{ status: string }> {
-  const timeoutMs = 90_000;
+async function pollTransactionPacked(
+  tronWeb: TronWeb,
+  hash: string,
+  timeoutMs: number = DEFAULT_CONFIRMATION_TIMEOUT_MS,
+): Promise<TronTransactionReceipt> {
+  if (!isValidTronTxHash(hash)) {
+    throw new Error(`invalid TRON transaction id: ${hash}`);
+  }
+  const rpcHash = hash.replace(/^0x/i, "").toLowerCase();
   const delayMs = 3_000;
   const deadline = Date.now() + timeoutMs;
 
   while (Date.now() < deadline) {
-    await new Promise(resolve => setTimeout(resolve, delayMs));
     let info: TronTxInfo | null = null;
     try {
-      info = (await tronWeb.fullNode.request(
-        "wallet/gettransactioninfobyid",
-        { value: hash },
-        "post",
-      )) as TronTxInfo | null;
+      info = await requestWithin(
+        tronWeb.fullNode.request(
+          "wallet/gettransactioninfobyid",
+          { value: rpcHash },
+          "post",
+        ) as Promise<TronTxInfo | null>,
+        Math.max(1, deadline - Date.now()),
+      );
     } catch {
       // Not yet confirmed / transient node or rate-limit error — keep polling.
     }
@@ -776,8 +853,12 @@ async function pollTransactionPacked(tronWeb: TronWeb, hash: string): Promise<{ 
         status,
         contractRet: result,
       });
-      return { status };
+      return { status, ...(info.log ? { logs: info.log } : {}) };
     }
+
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) break;
+    await new Promise(resolve => setTimeout(resolve, Math.min(delayMs, remainingMs)));
   }
 
   log.warn("x402 tron: tx confirm timeout (pending)", { hash, timeoutMs });
@@ -912,6 +993,7 @@ export async function createFacilitatorTronSigner(
   const tronWeb = buildTronWeb(opts.network, { rpcUrl: opts.rpcUrl, apiKey: opts.apiKey });
   const address = await wallet.getAddress();
   const feeLimit = opts.feeLimit ?? DEFAULT_FEE_LIMIT_SUN;
+  const confirmationTimeoutMs = resolveConfirmationTimeoutMs(opts.confirmationTimeoutMs);
 
   // Reads and tx building need a default issuer address; set it without a key.
   (tronWeb as unknown as WriteCapableTronWeb).setAddress(address);
@@ -954,7 +1036,7 @@ export async function createFacilitatorTronSigner(
       // Confirm at packed speed (~3s) rather than solidification (~57s on Nile).
       // `getTransaction.ret[0].contractRet` carries the execution result as soon
       // as the settle tx is packed; TRON does not reorg packed blocks in practice.
-      return pollTransactionPacked(tronWeb, args.hash);
+      return pollTransactionPacked(tronWeb, args.hash, confirmationTimeoutMs);
     },
   });
 }

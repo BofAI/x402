@@ -1,6 +1,9 @@
 import { TronWeb } from "tronweb";
 import { TRON_CHAIN_IDS } from "./constants";
 
+/** Maximum length of an error message exposed through a protocol response. */
+const MAX_ERROR_MESSAGE_LENGTH = 256;
+
 /**
  * Get the numeric chain ID for a TRON network identifier.
  *
@@ -107,4 +110,30 @@ export function normalizeAddressForSigning(address: string): `0x${string}` {
     return `0x${address.slice(2).toLowerCase()}` as `0x${string}`;
   }
   throw new Error(`Unrecognized address format: ${address}`);
+}
+
+/**
+ * Checks whether a signer-supplied TRON transaction id can be reconciled onchain.
+ *
+ * TronGrid normally returns an unprefixed 32-byte hexadecimal txid. An optional
+ * `0x` prefix is accepted for compatibility with wallet adapters, but the all-zero
+ * placeholder is rejected.
+ *
+ * @param hash - Candidate transaction id.
+ * @returns Whether the value is a non-zero 32-byte hexadecimal transaction id.
+ */
+export function isValidTronTxHash(hash: unknown): hash is string {
+  if (typeof hash !== "string") return false;
+  const normalized = hash.replace(/^0x/i, "");
+  return /^[0-9a-fA-F]{64}$/.test(normalized) && !/^0+$/.test(normalized);
+}
+
+/**
+ * Bounds node and wallet error text before returning it through x402 responses.
+ *
+ * @param message - Raw error text.
+ * @returns At most 256 characters of the original message.
+ */
+export function truncateErrorMessage(message: string): string {
+  return message.slice(0, MAX_ERROR_MESSAGE_LENGTH);
 }

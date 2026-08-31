@@ -135,8 +135,13 @@ cryptographic and term checks remain mandatory, and settlement is authoritative.
   value, validAfter, validBefore, nonce, v, r, s)`.
 - Permit2: the facilitator calls `x402ExactPermit2Proxy.settle(permit, owner, witness, signature)`.
 
-The facilitator waits for a successful receipt and returns the TRON transaction ID. It MUST re-run
-verification immediately before broadcasting.
+The facilitator waits for a receipt using a configurable confirmation budget (90 seconds by
+default) and returns the TRON transaction ID. It MUST re-run verification immediately before
+broadcasting. If the budget expires, receipt RPC fails, or receipt effect processing is
+indeterminate after broadcast, it returns `success: false`, `errorReason: "settlement_pending"`,
+and the original transaction ID. An explicit revert is terminal and also preserves the transaction
+ID. A caller MUST reconcile the original transaction and MUST NOT rebroadcast the authorization in
+response to `settlement_pending`.
 
 ## Error Codes
 
@@ -144,7 +149,7 @@ Stable reasons include `invalid_exact_tron_scheme`, `invalid_exact_tron_network_
 `invalid_exact_tron_payload_signature`, `invalid_exact_tron_payload_recipient_mismatch`,
 `invalid_exact_tron_payload_authorization_value_mismatch`, `invalid_permit2_spender`,
 `permit2_amount_mismatch`, `permit2_token_mismatch`, `permit2_allowance_required`,
-`insufficient_funds`, `invalid_transaction_state`, and `transaction_failed`.
+`insufficient_funds`, `invalid_transaction_state`, `settlement_pending`, and `transaction_failed`.
 
 ## Security Considerations
 

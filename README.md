@@ -88,7 +88,7 @@ client.register("eip155:97", new ExactEvmScheme(signer));
 
 ### Server (Seller)
 
-Build a resource server with `createResourceServer` (from `@bankofai/x402-core`), point it at a facilitator via `HTTPFacilitatorClient` (`@bankofai/x402-core/server`), and protect routes with the framework middleware — e.g. `paymentMiddlewareFromHTTPServer` from `@bankofai/x402-express`. The server is keyless (it only holds a payout address). Facilitator requests default to a 90-second timeout; set `timeoutMs` explicitly when your chain or deployment needs a different bound. See [`examples/typescript/servers/express`](examples/typescript/servers/express) for the full wiring.
+Build a resource server with `createResourceServer` (from `@bankofai/x402-core`), point it at a facilitator via `HTTPFacilitatorClient` (`@bankofai/x402-core/server`), and protect routes with the framework middleware — e.g. `paymentMiddlewareFromHTTPServer` from `@bankofai/x402-express`. The server is keyless (it only holds a payout address). Facilitator requests default to a 120-second timeout; set `timeoutMs` explicitly when your chain or deployment needs a different bound. See [`examples/typescript/servers/express`](examples/typescript/servers/express) for the full wiring.
 
 ### Facilitator
 

@@ -59,6 +59,7 @@ export {
   createAuthorizerTronSigner,
   normalizeSignedTronTransaction,
   serializeSignedTronTransaction,
+  DEFAULT_CONFIRMATION_TIMEOUT_MS,
 } from "./signer";
 export type {
   ClientTronSigner,
@@ -69,6 +70,8 @@ export type {
   FacilitatorTronSignerOptions,
   CreateClientTronSignerOptions,
   AllowanceMode,
+  TronTransactionLog,
+  TronTransactionReceipt,
 } from "./signer";
 export {
   createTrc20ApprovalPolicy,
@@ -143,4 +146,8 @@ export {
   evmAddressToTron,
   isTronAddress,
   normalizeAddressForSigning,
+  isValidTronTxHash,
 } from "./utils";
+
+// Shared settlement receipt semantics
+export { SETTLEMENT_PENDING } from "./shared/settleReceipt";

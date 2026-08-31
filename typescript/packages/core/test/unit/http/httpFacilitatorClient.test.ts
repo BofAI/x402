@@ -25,8 +25,8 @@ describe("HTTPFacilitatorClient", () => {
     vi.unstubAllGlobals();
   });
 
-  it("defaults facilitator requests to a 90-second timeout", () => {
-    expect(new HTTPFacilitatorClient({ url: "https://facilitator.test" }).timeoutMs).toBe(90_000);
+  it("defaults facilitator requests to a 120-second timeout", () => {
+    expect(new HTTPFacilitatorClient({ url: "https://facilitator.test" }).timeoutMs).toBe(120_000);
     expect(
       new HTTPFacilitatorClient({ url: "https://facilitator.test", timeoutMs: 12_345 }).timeoutMs,
     ).toBe(12_345);
