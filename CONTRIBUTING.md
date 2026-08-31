@@ -55,7 +55,6 @@ workflow.
 - **SDK**: [`typescript/`](typescript/CLAUDE.md) — pnpm/turbo monorepo, packages published as `@bankofai/x402-*` (`core`, `mechanisms/{evm,tron}`, `extensions`, `http/*`, `mcp`).
 - **Examples**: [`examples/typescript/`](examples/typescript/) — runnable client/server/facilitator trios per scheme.
 - **Agent rules & reviewers**: [`.claude/`](.claude/rules/CLAUDE.md) — conventions and specialized review subagents.
-- **Legacy**: [`legacy/`](legacy/) — previous-generation Python + TypeScript SDK, reference-only and **slated for removal**. Don't build on it.
 
 ---
 

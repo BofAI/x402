@@ -2,7 +2,7 @@
 
 This is the rules knowledge base. Every file here is a **self-contained rule sheet** Claude loads on demand when the touched code matches its scope. Rules override defaults; CLAUDE.md at the repo root sets the floor.
 
-The SDK is a **TypeScript-only** pnpm/turbo monorepo under [typescript/](../../typescript/CLAUDE.md). `core` and `mechanisms/evm` are **upstream forks** (keep byte-identical, additions go in overlays); `mechanisms/tron` is in-house. There is no Python in the current SDK. (The previous-generation Python + old TypeScript code lives under `legacy/` and is slated for removal — these rules do **not** cover it.)
+The SDK is a **TypeScript-only** pnpm/turbo monorepo under [typescript/](../../typescript/CLAUDE.md). `core` and `mechanisms/evm` are **upstream forks** (keep byte-identical, additions go in overlays); `mechanisms/tron` is in-house. There is no Python in the current SDK.
 
 ## When Claude reads what
 
