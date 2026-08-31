@@ -60,3 +60,15 @@ Retain the hotfix branch until both merges are complete.
 | `hotfix/*` | `develop` | Hotfix back-merge |
 
 The `source-and-target` workflow enforces these routes.
+
+## Audit workflow
+
+Automatic pull-request Audit is disabled by default while the self-hosted
+runner is unavailable. Leave the repository variable `AUDIT_AUTO_ENABLED`
+unset, or set it to a value other than `true`, to keep the Audit check as a
+successful no-op on GitHub-hosted infrastructure.
+
+Set `AUDIT_AUTO_ENABLED=true` only after the runner is healthy. Automatic Audit
+then runs only for branches in this repository; fork pull requests remain on
+the no-op path. Authorized users listed in `AUDIT_ALLOWED_USERS` can continue
+to request the existing self-hosted workflow with `/audit-pr`.
