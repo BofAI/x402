@@ -18,7 +18,7 @@ const TOKEN = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf";
 const SPENDER = "TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h";
 
 const request: Trc20ApprovalResourceSponsoringRequest = {
-  network: "tron:0xcd8690dc",
+  network: "tron:3448148188",
   approvalTxID: APPROVAL_TX_ID,
   approvalTimestamp: String(Date.now()),
   approvalExpiration: String(Date.now() + 120_000),
@@ -35,7 +35,7 @@ const request: Trc20ApprovalResourceSponsoringRequest = {
     x402Version: 2,
     accepted: {
       scheme: "exact",
-      network: "tron:0xcd8690dc",
+      network: "tron:3448148188",
       asset: TOKEN,
       amount: "1000000",
       payTo: PAYER,
@@ -45,7 +45,7 @@ const request: Trc20ApprovalResourceSponsoringRequest = {
   },
   paymentRequirements: {
     scheme: "exact",
-    network: "tron:0xcd8690dc",
+    network: "tron:3448148188",
     asset: TOKEN,
     amount: "1000000",
     payTo: PAYER,

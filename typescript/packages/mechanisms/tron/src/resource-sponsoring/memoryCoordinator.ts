@@ -3,6 +3,7 @@ import type {
   Trc20SponsoringCoordinator,
   Trc20SponsoringOperation,
 } from "./types";
+import { tronNetworksEqual } from "../network";
 
 /** Capacity limits for the development/test coordinator. */
 export interface InMemoryTrc20SponsoringCoordinatorOptions {
@@ -137,7 +138,7 @@ export class InMemoryTrc20SponsoringCoordinator implements Trc20SponsoringCoordi
 
     const activeForPayer = [...this.operations.values()].find(
       candidate =>
-        candidate.network === operation.network &&
+        tronNetworksEqual(candidate.network, operation.network) &&
         candidate.payer === operation.payer &&
         candidate.key !== operation.key &&
         candidate.status !== "recovered" &&

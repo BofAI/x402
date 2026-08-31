@@ -37,8 +37,8 @@ Each component has its own guidance with build/test commands and conventions whe
 - **Addresses, selectors, event topics**: lowercase-normalized everywhere. TRON addresses are converted to **0x-prefixed EVM hex** before any EIP-712/TIP-712 signing — see [docs/solutions.md entry #1](docs/solutions.md).
 - **Payment ID**: 16 random bytes, encoded as `0x` + 32 hex chars, signed as `bytes16`.
 - **HTTP header encoding**: `Base64(UTF-8(JSON.stringify(object)))` for `PAYMENT-REQUIRED`, `PAYMENT-SIGNATURE`, `PAYMENT-RESPONSE`.
-- **Network identifiers**: CAIP-2 `eip155:<chainId>` for EVM; `tron:<hexChainId>` for TRON (e.g. `tron:0xcd8690dc` for Nile).
-- **Mechanism registration**: `tron:0xcd8690dc` (exact match, higher priority) beats `tron:*` (wildcard, lower priority).
+- **Network identifiers**: CAIP-2 `eip155:<chainId>` for EVM; `tron:<decimalChainId>` for TRON (e.g. `tron:3448148188` for Nile). Deprecated `tron:0x...` values are accepted only as compatibility inputs.
+- **Mechanism registration**: `tron:3448148188` (exact match, higher priority) beats `tron:*` (wildcard, lower priority).
 - **Commit messages**: `<type>(<scope>): <description>` — e.g. `fix(tron): preserve raw_data_hex in tron approvals`.
 
 ## Branch workflow

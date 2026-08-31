@@ -9,8 +9,8 @@ import type { ClientTronSigner } from "../../src/signer";
 import { trySignTrc20ApprovalExtension } from "../../src/shared/extensions";
 import { createTrc20ApprovalPolicy } from "../../src/approvalPolicy";
 
-const NETWORK = "tron:0xcd8690dc";
-const OTHER_NETWORK = "tron:0x2b6653dc";
+const NETWORK = "tron:3448148188";
+const OTHER_NETWORK = "tron:728126428";
 const PAYER = "TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC";
 const TOKEN = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf";
 const SIGNED_APPROVAL = "0a02abcd";

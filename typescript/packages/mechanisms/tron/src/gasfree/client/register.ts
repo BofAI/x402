@@ -1,5 +1,6 @@
 import { x402Client, PaymentPolicy } from "@bankofai/x402-core/client";
 import { Network } from "@bankofai/x402-core/types";
+import { normalizeTronNetwork } from "../../network";
 import { ClientTronSigner } from "../../signer";
 import { GasFreeAPIClient, createGasFreeApiClients } from "../../shared/gasfree/api";
 import { GASFREE_API_BASE_URLS } from "../../shared/gasfree/config";
@@ -50,7 +51,9 @@ export function registerExactGasFreeTronScheme(
   const scheme = new ExactGasFreeTronScheme(config.signer, { apiClients });
 
   if (config.networks && config.networks.length > 0) {
-    config.networks.forEach(network => client.register(network, scheme));
+    config.networks.forEach(network =>
+      client.register(normalizeTronNetwork(network) as Network, scheme),
+    );
   } else {
     client.register("tron:*", scheme);
   }

@@ -29,7 +29,7 @@ const EVM_AUTHORIZER = "0x1111111111111111111111111111111111111111";
 function tronAccept(): PaymentRequirements {
   return {
     scheme: "batch-settlement",
-    network: "tron:0xcd8690dc",
+    network: "tron:3448148188",
     asset: "TGjgvdTWWrybVLaVeFqSyVqJQWjxqRYbaK",
     amount: "1000000",
     payTo: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",

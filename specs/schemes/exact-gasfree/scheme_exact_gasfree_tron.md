@@ -10,9 +10,9 @@ fails, and returns the resulting TRON transaction ID.
 
 | Network | GasFreeController | Beacon | Default relayer base URL |
 | --- | --- | --- | --- |
-| `tron:0x2b6653dc` | `TFFAMQLZybALaLb4uxHA9RBE7pxhUAjF3U` | `TSP9UW6FQhT76XD2jWA6ipGMx3yGbjDffP` | `https://facilitator.bankofai.io/mainnet` |
-| `tron:0xcd8690dc` | `THQGuFzL87ZqhxkgqYEryRAd7gqFqL5rdc` | `TLtCGmaxH3PbuaF6kbybwteZcHptEdgQGC` | `https://facilitator.bankofai.io/nile` |
-| `tron:0x94a9059e` | `TQghdCeVDA6CnuNVTUhfaAyPfTetqZWNpm` | `TQ1jvA3nLDMDNbJoMPLzTPoqAg8NvZ5CCW` | `https://facilitator.bankofai.io/shasta` |
+| `tron:728126428` | `TFFAMQLZybALaLb4uxHA9RBE7pxhUAjF3U` | `TSP9UW6FQhT76XD2jWA6ipGMx3yGbjDffP` | `https://facilitator.bankofai.io/mainnet` |
+| `tron:3448148188` | `THQGuFzL87ZqhxkgqYEryRAd7gqFqL5rdc` | `TLtCGmaxH3PbuaF6kbybwteZcHptEdgQGC` | `https://facilitator.bankofai.io/nile` |
+| `tron:2494104990` | `TQghdCeVDA6CnuNVTUhfaAyPfTetqZWNpm` | `TQ1jvA3nLDMDNbJoMPLzTPoqAg8NvZ5CCW` | `https://facilitator.bankofai.io/shasta` |
 
 Deployments MAY override the relayer URL, but MUST retain the controller associated with the selected
 network unless using a separately specified GasFree deployment.
@@ -30,7 +30,7 @@ NOT be advertised as `extra.fee`.
   "x402Version": 2,
   "accepted": {
     "scheme": "exact_gasfree",
-    "network": "tron:0xcd8690dc",
+    "network": "tron:3448148188",
     "amount": "1000",
     "asset": "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
     "payTo": "TReceiverAddress",

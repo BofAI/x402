@@ -1,5 +1,6 @@
 import { x402Client, PaymentPolicy } from "@bankofai/x402-core/client";
 import { Network } from "@bankofai/x402-core/types";
+import { normalizeTronNetwork, tronNetworksEqual } from "../../network";
 import { ClientTronSigner } from "../../signer";
 import { ExactTronScheme } from "./scheme";
 
@@ -34,15 +35,15 @@ export function registerExactTronScheme(
 
   if (config.networks && config.networks.length > 0) {
     config.networks.forEach(network => {
-      if (config.signer.network && network !== config.signer.network) {
+      if (config.signer.network && !tronNetworksEqual(network, config.signer.network)) {
         throw new Error(
           `TRON signer network ${config.signer.network} cannot be registered for ${network}`,
         );
       }
-      client.register(network, tronScheme);
+      client.register(normalizeTronNetwork(network) as Network, tronScheme);
     });
   } else if (config.signer.network) {
-    client.register(config.signer.network as Network, tronScheme);
+    client.register(normalizeTronNetwork(config.signer.network) as Network, tronScheme);
   } else {
     client.register("tron:*", tronScheme);
   }

@@ -29,7 +29,7 @@ Then pay it with the fetch client (`../../clients/fetch`).
 | Chain | Network | Tokens advertised | payTo env |
 |---|---|---|---|
 | EVM | `eip155:97` (BSC testnet) | DHLU (eip3009), USDC (permit2) | `EVM_ADDRESS` |
-| TRON | `tron:0xcd8690dc` | USDT, USDD (permit2) | `TRON_ADDRESS` |
+| TRON | `tron:3448148188` | USDT, USDD (permit2) | `TRON_ADDRESS` |
 
 Tokens are configured per network in `src/chains/evm.ts` (`EVM_TOKENS`) and
 `src/chains/tron.ts`. BSC USDC needs a one-time Permit2 approve, advertised via

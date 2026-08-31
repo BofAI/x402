@@ -1,6 +1,7 @@
 import type { PaymentPayloadContext, PaymentRequirements } from "@bankofai/x402-core/types";
 import { erc20AllowanceAbi, PERMIT2_ADDRESSES } from "../../constants";
 import type { ClientTronSigner } from "../../signer";
+import { tronNetworksEqual } from "../../network";
 import { createTrc20ApprovalPolicy } from "../../approvalPolicy";
 import {
   TRC20_APPROVAL_LIFETIME_SECONDS,
@@ -53,7 +54,7 @@ export async function trySignTrc20ApprovalExtension(
   if (declaration.info?.version !== TRC20_APPROVAL_RESOURCE_SPONSORING_VERSION) {
     throw new Error("trc20ApprovalResourceSponsoring: unsupported extension version");
   }
-  if (!signer.network || signer.network !== requirements.network) {
+  if (!signer.network || !tronNetworksEqual(signer.network, requirements.network)) {
     throw new Error("approval_signer_network_mismatch");
   }
   const permit2 = PERMIT2_ADDRESSES[requirements.network];

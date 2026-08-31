@@ -2,7 +2,7 @@
 
 Connects to an MCP server over SSE and calls its tools. On a 402, the SDK pays
 automatically using whichever registered scheme matches the server's offered
-network — **BSC testnet** (`eip155:97`) or **TRON Nile** (`tron:0xcd8690dc`).
+network — **BSC testnet** (`eip155:97`) or **TRON Nile** (`tron:3448148188`).
 
 Both chains are registered in one `createx402MCPClient({ schemes })` call; the
 payment-selection pipeline filters by the offered network and picks a match. Each
