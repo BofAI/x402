@@ -1,10 +1,11 @@
 import { TronWeb } from "tronweb";
 import { TRON_CHAIN_IDS } from "./constants";
+import { normalizeTronNetwork } from "./network";
 
 /**
  * Get the numeric chain ID for a TRON network identifier.
  *
- * @param network - The network identifier in CAIP-2 format (e.g., "tron:0xcd8690dc")
+ * @param network - The network identifier in CAIP-2 format (e.g., "tron:3448148188")
  * @returns The numeric chain ID
  * @throws Error if the network is not a recognized TRON network
  */
@@ -13,7 +14,7 @@ export function getTronChainId(network: string): number {
     throw new Error(`Unsupported network format: ${network} (expected tron:*)`);
   }
 
-  const chainId = TRON_CHAIN_IDS[network];
+  const chainId = TRON_CHAIN_IDS[normalizeTronNetwork(network)];
   if (chainId === undefined) {
     throw new Error(`Unknown TRON network: ${network}`);
   }

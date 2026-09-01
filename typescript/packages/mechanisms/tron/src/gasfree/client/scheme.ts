@@ -16,6 +16,7 @@ import {
 } from "../../shared/gasfree/api";
 import { assembleGasFreeTransaction } from "../../shared/gasfree/assemble";
 import { findDefaultAsset } from "../../shared/defaultAssets";
+import { getTronNetworkValue, tronNetworksEqual, TRON_MAINNET } from "../../network";
 
 /**
  * Options for the GasFree client scheme.
@@ -36,7 +37,7 @@ export interface ExactGasFreeSchemeOptions {
  * @returns The min/max deltas in seconds.
  */
 function getDeadlineBounds(network: string): { minDelta: number; maxDelta: number } {
-  if (network === "tron:0x2b6653dc") {
+  if (tronNetworksEqual(network, TRON_MAINNET)) {
     return { minDelta: 55, maxDelta: 595 };
   }
   return { minDelta: 55, maxDelta: 3595 };
@@ -199,7 +200,7 @@ export class ExactGasFreeTronScheme implements SchemeNetworkClient {
    * @returns The relayer API client.
    */
   private getApiClient(network: string): GasFreeAPIClient {
-    const client = this.options.apiClients[network];
+    const client = getTronNetworkValue(this.options.apiClients, network);
     if (!client) {
       throw new Error(`GasFree is not configured for network: ${network}`);
     }

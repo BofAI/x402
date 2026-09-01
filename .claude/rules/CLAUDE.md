@@ -35,7 +35,7 @@ When multiple rule files apply, read all of them before editing. Rules are layer
 │   └── exact-gasfree.md    # TRON GasFree custodial + TIP-712 relayer
 ├── networks/
 │   ├── evm.md              # eip155:<chainId>, contracts, signing
-│   └── tron.md             # tron:<hexChainId>, TIP-712 hex-address rule, GasFree link
+│   └── tron.md             # tron:<decimalChainId>, TIP-712 hex-address rule, GasFree link
 ├── typescript/
 │   └── conventions.md      # pnpm/turbo, ESM, viem/tronweb, fork+overlay, signer factories
 └── testing/

@@ -18,6 +18,7 @@ import {
 import { BATCH_SETTLEMENT_SCHEME, voucherTypes } from "../../shared/batch-settlement/constants";
 import type { ChannelConfig } from "../types";
 import { createNonce, normalizeAddressForSigning } from "../../utils";
+import { tronNetworksEqual } from "../../network";
 import {
   computeChannelId,
   getBatchSettlementTip712Domain,
@@ -219,7 +220,8 @@ export async function handleEnrichPaymentRequiredResponse(
 
   const accept = ctx.requirements.find(
     req =>
-      req.scheme === BATCH_SETTLEMENT_SCHEME && req.network === paymentPayload.accepted.network,
+      req.scheme === BATCH_SETTLEMENT_SCHEME &&
+      tronNetworksEqual(req.network, paymentPayload.accepted.network),
   );
   if (!accept) {
     return;

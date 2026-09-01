@@ -74,7 +74,7 @@ Use these templates:
 
 - Use **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** in their RFC 2119 sense.
 - Use `x402Version: 2` as a JSON number, never a string.
-- Use CAIP-2 identifiers: `eip155:<chain-id>` for EVM and `tron:<hex-chain-id>` for TRON.
+- Use CAIP-2 identifiers: `eip155:<chain-id>` for EVM and `tron:<decimal-chain-id>` for TRON.
 - Express token amounts as base-10 strings in atomic units.
 - Keep Base58Check TRON addresses on the wire unless a binding explicitly requires 20-byte hex for
   typed-data construction.

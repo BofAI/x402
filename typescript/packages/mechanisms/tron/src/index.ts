@@ -144,3 +144,4 @@ export {
   isTronAddress,
   normalizeAddressForSigning,
 } from "./utils";
+export { normalizeTronNetwork, tronNetworksEqual, getTronNetworkValue } from "./network";

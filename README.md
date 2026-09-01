@@ -56,7 +56,7 @@ const wallet = /* resolve your @bankofai/agent-wallet */;
 // Permit2 approve that USDT/USDD need. When TRON_GRID_API_KEY is unset, mainnet
 // RPC falls back to a BankofAI-operated endpoint.
 const signer = await createClientTronSigner(wallet, {
-  network: "tron:0xcd8690dc",
+  network: "tron:3448148188",
   apiKey: process.env.TRON_GRID_API_KEY,
 });
 
@@ -146,9 +146,9 @@ x402 currently supports TRC-20 tokens on the TRON network and BEP-20 tokens on t
 
 | Network | ID | Status | Recommended For |
 |---------|----|--------|-----------------|
-| **TRON Nile** | `tron:0xcd8690dc` | Testnet | **Development & Testing** |
-| **TRON Shasta** | `tron:0x94a9059e` | Testnet | Alternative Testing |
-| **TRON Mainnet** | `tron:0x2b6653dc` | Mainnet | Production |
+| **TRON Nile** | `tron:3448148188` | Testnet | **Development & Testing** |
+| **TRON Shasta** | `tron:2494104990` | Testnet | Alternative Testing |
+| **TRON Mainnet** | `tron:728126428` | Mainnet | Production |
 | **BSC Testnet** | `eip155:97` | Testnet | **Development & Testing** |
 | **BSC Mainnet** | `eip155:56` | Mainnet | Production |
 

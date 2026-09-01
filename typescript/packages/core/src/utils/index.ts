@@ -120,7 +120,15 @@ const networkPatternToRegExp = (pattern: Network): RegExp => {
   return new RegExp(`^${source}$`);
 };
 
+const normalizeNetworkForMatching = (network: Network): string => {
+  const tronHexReference = /^tron:0x([0-9a-f]+)$/i.exec(network)?.[1];
+  return tronHexReference ? `tron:${BigInt(`0x${tronHexReference}`).toString(10)}` : network;
+};
+
 export const networkMatchesPattern = (pattern: Network, network: Network): boolean => {
+  if (!pattern.includes("*")) {
+    return normalizeNetworkForMatching(pattern) === normalizeNetworkForMatching(network);
+  }
   return networkPatternToRegExp(pattern).test(network);
 };
 

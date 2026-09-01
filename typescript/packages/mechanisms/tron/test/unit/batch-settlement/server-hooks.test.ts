@@ -29,7 +29,7 @@ import * as Errors from "../../../src/batch-settlement/errors";
  * These are pure logic over an in-memory channel store; no chain access.
  */
 
-const NETWORK = "tron:0xcd8690dc";
+const NETWORK = "tron:3448148188";
 const PAYER_PK = "da146374a75310b9666e834ee4ad0866d6f4035967bfc76217c5a495fff9f0d0";
 const RECEIVER = "0x9876543210987654321098765432109876543210";
 const RECEIVER_AUTHORIZER = "0x1111111111111111111111111111111111111111";

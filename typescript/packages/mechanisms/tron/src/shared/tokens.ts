@@ -1,5 +1,6 @@
 import type { AssetAmount, Network } from "@bankofai/x402-core/types";
 import { convertToTokenAmount as convertCoreTokenAmount } from "@bankofai/x402-core/utils";
+import { normalizeTronNetwork, TRON_MAINNET, TRON_NILE, TRON_SHASTA } from "../network";
 
 /**
  * Token registry for TRON networks.
@@ -38,11 +39,11 @@ export interface TokenInfo {
 /**
  * Built-in TRC-20 tokens indexed by CAIP-2 network and uppercased symbol.
  *
- * Note: `tron:0x2b6653dc`, `tron:0xcd8690dc`, and `tron:0x94a9059e` have Permit2 +
+ * Note: Mainnet, Nile, and Shasta have Permit2 +
  * x402Permit2Proxy deployments, so their tokens default to `permit2`.
  */
 const TOKENS: Record<string, Record<string, TokenInfo>> = {
-  "tron:0x2b6653dc": {
+  [TRON_MAINNET]: {
     USDT: {
       address: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
       decimals: 6,
@@ -60,7 +61,7 @@ const TOKENS: Record<string, Record<string, TokenInfo>> = {
       assetTransferMethod: "permit2",
     },
   },
-  "tron:0xcd8690dc": {
+  [TRON_NILE]: {
     USDT: {
       address: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
       decimals: 6,
@@ -78,7 +79,7 @@ const TOKENS: Record<string, Record<string, TokenInfo>> = {
       assetTransferMethod: "permit2",
     },
   },
-  "tron:0x94a9059e": {
+  [TRON_SHASTA]: {
     USDT: {
       address: "TG3XXyExBkPp9nzdajDZsozEu4BkaSJozs",
       decimals: 6,
@@ -107,12 +108,12 @@ export function getDefaultAssetSymbol(): string {
 /**
  * Get token info by network and symbol (case-insensitive).
  *
- * @param network - CAIP-2 network identifier (e.g. "tron:0xcd8690dc").
+ * @param network - CAIP-2 network identifier (e.g. "tron:3448148188").
  * @param symbol - Token symbol (e.g. "USDT"); matched case-insensitively.
  * @returns The token info, or undefined if not registered.
  */
 export function getToken(network: Network, symbol: string): TokenInfo | undefined {
-  return TOKENS[network]?.[symbol.toUpperCase()];
+  return TOKENS[normalizeTronNetwork(network)]?.[symbol.toUpperCase()];
 }
 
 /**
@@ -123,7 +124,7 @@ export function getToken(network: Network, symbol: string): TokenInfo | undefine
  * @returns The token info, or undefined if no token matches.
  */
 export function findByAddress(network: Network, address: string): TokenInfo | undefined {
-  const tokens = TOKENS[network];
+  const tokens = TOKENS[normalizeTronNetwork(network)];
   if (!tokens) return undefined;
   const lower = address.toLowerCase();
   return Object.values(tokens).find(t => t.address.toLowerCase() === lower);
@@ -136,7 +137,7 @@ export function findByAddress(network: Network, address: string): TokenInfo | un
  * @returns A map of symbol to token info (empty object if none registered).
  */
 export function getNetworkTokens(network: Network): Record<string, TokenInfo> {
-  return TOKENS[network] ?? {};
+  return TOKENS[normalizeTronNetwork(network)] ?? {};
 }
 
 /**
@@ -146,10 +147,11 @@ export function getNetworkTokens(network: Network): Record<string, TokenInfo> {
  * @param token - The token info to register; keyed by its uppercased symbol.
  */
 export function registerToken(network: Network, token: TokenInfo): void {
-  if (!TOKENS[network]) {
-    TOKENS[network] = {};
+  const canonicalNetwork = normalizeTronNetwork(network);
+  if (!TOKENS[canonicalNetwork]) {
+    TOKENS[canonicalNetwork] = {};
   }
-  TOKENS[network][token.symbol.toUpperCase()] = token;
+  TOKENS[canonicalNetwork][token.symbol.toUpperCase()] = token;
 }
 
 /**
@@ -208,7 +210,7 @@ export function convertToTokenAmount(decimalAmount: string, decimals: number): s
  *
  * @param price - `"<decimal-amount> <symbol>"` (e.g. `"1.25 USDT"`).
  *                Whitespace-tolerant; symbol lookup is case-insensitive.
- * @param network - CAIP-2 network identifier (e.g. `"tron:0xcd8690dc"`).
+ * @param network - CAIP-2 network identifier (e.g. `"tron:3448148188"`).
  * @returns The asset amount in smallest units, with token metadata in `extra`.
  * @throws If the format is invalid, the amount is not a non-negative decimal,
  *         the token is not registered, or the amount has more decimal places
