@@ -15,10 +15,6 @@ import {
   verifyTrc20Sponsorship,
 } from "../../shared/extensions/trc20ApprovalResourceSponsoring";
 import { waitAndReturnSettleResponse } from "../../shared/settleReceipt";
-import {
-  createTronSettlementReconciliationContext,
-  validateTronSettlementReceipt,
-} from "../../reconciliation";
 
 /**
  * Verifies a Permit2 payment payload on TRON.
@@ -77,7 +73,6 @@ async function submitPermit2Settlement(
     BigInt(authorization.witness.validAfter),
   ] as const;
   try {
-    const reconciliationContext = createTronSettlementReconciliationContext(payload, requirements);
     const transaction = await signer.writeContract({
       address: X402_PERMIT2_PROXY_ADDRESSES[requirements.network]!,
       abi: x402ExactPermit2ProxyABI as unknown as readonly Record<string, unknown>[],
@@ -86,9 +81,6 @@ async function submitPermit2Settlement(
     });
     return waitAndReturnSettleResponse(signer, transaction, payload.accepted.network, payer, {
       failedStatusReason: errors.INVALID_TRANSACTION_STATE,
-      responseExtra: { reconciliationContext },
-      validateReceipt: receipt =>
-        validateTronSettlementReceipt(receipt, transaction, reconciliationContext),
     });
   } catch (error: unknown) {
     return {

@@ -7,11 +7,6 @@ import { getBatchSettlementAddress } from "../../shared/batch-settlement/constan
 import { toBigInt } from "./utils";
 import * as Errors from "../errors";
 import { waitAndReturnSettleResponse } from "../../shared/settleReceipt";
-import {
-  assessTronSettlementReceipt,
-  createTronBatchSettlementReconciliationContext,
-  validateTronSettlementReceipt,
-} from "../../reconciliation";
 
 const abi = batchSettlementABI as unknown as readonly Record<string, unknown>[];
 
@@ -65,6 +60,7 @@ export async function executeSettle(
   const receiver = normalizeAddressForSigning(payload.receiver);
   const token = normalizeAddressForSigning(payload.token);
 
+  let preSettled: bigint;
   try {
     const [totalClaimed, totalSettled] = await readReceiver(signer, address, receiver, token);
     if (totalClaimed <= totalSettled) {
@@ -76,6 +72,7 @@ export async function executeSettle(
         network,
       };
     }
+    preSettled = totalSettled;
   } catch (e) {
     return {
       success: false,
@@ -87,37 +84,20 @@ export async function executeSettle(
   }
 
   try {
-    const callArgs = [receiver, token] as const;
-    const reconciliationContext = createTronBatchSettlementReconciliationContext({
-      operation: "settle",
-      network,
-      asset: token,
-      payTo: receiver,
-      target: address,
-      functionName: "settle",
-      args: callArgs,
-      effect: { type: "settled", contract: address, receiver, token },
-    });
     const tx = await signer.writeContract({
       address,
       abi,
       functionName: "settle",
-      args: callArgs,
+      args: [receiver, token],
     });
 
-    let settledAmount: string | undefined;
     return waitAndReturnSettleResponse(signer, tx, network, undefined, {
       failedStatusReason: Errors.ErrSettleTransactionFailed,
-      responseExtra: { reconciliationContext },
-      validateReceipt: receipt => {
-        const failure = validateTronSettlementReceipt(receipt, tx, reconciliationContext);
-        if (!failure) {
-          const assessment = assessTronSettlementReceipt(receipt, reconciliationContext);
-          settledAmount = assessment.status === "match" ? assessment.amount : undefined;
-        }
-        return failure;
+      onSuccess: async () => {
+        const [, postSettled] = await readReceiver(signer, address, receiver, token);
+        const amount = postSettled > preSettled ? (postSettled - preSettled).toString() : "0";
+        return { success: true, transaction: tx, network, amount };
       },
-      onSuccess: () => ({ success: true, transaction: tx, network, amount: settledAmount! }),
     });
   } catch (e) {
     return {

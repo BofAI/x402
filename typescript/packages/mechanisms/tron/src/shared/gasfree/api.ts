@@ -64,21 +64,20 @@ export interface GasFreeSubmitResponseData {
 }
 
 /**
- * GasFree polling error that preserves relayer recovery metadata.
+ * GasFree polling error that preserves a relayer-observed transaction hash.
  *
- * `terminal` distinguishes an explicit relayer/on-chain failure from an
- * indeterminate timeout or RPC failure. `transaction` is present whenever the
- * relayer exposed an on-chain hash before polling stopped.
+ * The hash lets settlement report the same post-broadcast uncertainty as the
+ * EVM receipt path without introducing a separate reconciliation protocol.
  */
 export class GasFreeTransactionStatusError extends Error {
   readonly name = "GasFreeTransactionStatusError";
 
   /**
-   * Create a recoverable GasFree polling error.
+   * Create an error carrying the last transaction observed by the relayer.
    *
-   * @param message - Failure description.
-   * @param traceId - Relayer trace id being polled.
-   * @param transaction - Last transaction hash exposed by the relayer.
+   * @param message - Polling failure description.
+   * @param traceId - Relayer trace identifier.
+   * @param transaction - Last relayer-observed transaction ID, if any.
    * @param terminal - Whether the relayer reported an explicit terminal failure.
    */
   constructor(

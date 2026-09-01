@@ -11,11 +11,6 @@ import { UptoPermit2Payload, isUptoPermit2Payload } from "../../types";
 import { X402_UPTO_PERMIT2_PROXY_ADDRESSES } from "../../constants";
 import { verifyUptoPermit2, settleUptoPermit2 } from "./permit2";
 import * as errors from "./errors";
-import {
-  parseTronSettlementReconciliationContext,
-  reconcileTronSettlement,
-  type TronReconciliationOptions,
-} from "../../reconciliation";
 
 /**
  * TRON facilitator implementation for the Upto payment scheme.
@@ -122,26 +117,5 @@ export class UptoTronScheme implements SchemeNetworkFacilitator {
       rawPayload as UptoPermit2Payload,
       context,
     );
-  }
-
-  /**
-   * Reconcile an already-broadcast upto settlement from solidified chain data.
-   * This path is strictly read-only and never broadcasts.
-   *
-   * @param transaction - Original settlement transaction id
-   * @param reconciliationContext - Persisted upto reconciliation context
-   * @param options - Single-query timeout and cancellation signal
-   * @returns Final success/failure, or settlement_pending while indeterminate
-   */
-  async reconcile(
-    transaction: string,
-    reconciliationContext: unknown,
-    options?: TronReconciliationOptions,
-  ): Promise<SettleResponse> {
-    const parsedContext = parseTronSettlementReconciliationContext(reconciliationContext);
-    if (parsedContext.scheme !== "upto") {
-      throw new Error("invalid upto reconciliation context scheme");
-    }
-    return reconcileTronSettlement(this.signer, transaction, parsedContext, options);
   }
 }

@@ -116,25 +116,10 @@ The facilitator MUST:
 The facilitator re-verifies, performs a best-effort balance check for `amount + maxFee` at
 `gasfreeAddress`, submits the message and signature to `POST /api/v1/gasfree/submit`, and polls the
 returned trace ID. Success requires a terminal success/on-chain state and a non-empty transaction
-hash. If status polling becomes indeterminate after the relayer exposes a transaction hash, the
-facilitator returns `settlement_pending` with that hash. An explicit relayer/on-chain failure also
-preserves an available hash and returns `gasfree_transaction_failed`.
-
-Every valid response that carries an on-chain hash also carries a versioned
-`extra.reconciliationContext`. Relayer values MUST pass the SDK's TRON transaction-hash validator;
-a malformed non-empty value is returned as `gasfree_invalid_transaction_hash`, never as success or
-pending. The facilitator scheme exposes a read-only `reconcile(transaction, reconciliationContext)`
-method, and the shared `createTronSettlementReconciliationContext`,
-`parseTronSettlementReconciliationContext`, and `reconcileTronSettlement` helpers support
-`exact_gasfree`. The parser MUST validate the persisted schema version and fields before any chain
-read. Reconciliation performs one bounded SolidityNode query attempt, requires the top-level call
-target to be the network's GasFreeController, and matches the signed-value TRC-20 `Transfer` from
-`gasfreeAddress` to the required receiver. It MUST NOT poll or retry; the calling Facilitator owns
-retry/backoff and can supply a per-attempt timeout and `AbortSignal`. Because the third-party relayer
-owns the exact controller calldata encoding, the durable context constrains the controller target
-and signed transfer effect rather than an SDK-generated calldata hash.
-Missing or malformed call/log fields remain `settlement_pending`; only a complete, explicit
-mismatch is terminal.
+hash that is a valid TRON transaction ID. If polling becomes indeterminate after the relayer has
+exposed a valid transaction ID, settlement returns `settlement_pending` with that transaction ID.
+This matches the receipt-timeout behavior of the other settlement schemes and does not imply a
+Facilitator-managed reconciliation workflow.
 
 ## Error Codes
 
@@ -142,8 +127,8 @@ Stable reasons include `invalid_exact_gasfree_scheme`, `invalid_exact_gasfree_ne
 `missing_gasfree_payload`, `gasfree_token_mismatch`, `gasfree_amount_mismatch`,
 `gasfree_payto_mismatch`, `gasfree_fee_to_mismatch`, `gasfree_expired`,
 `invalid_gasfree_signature`, `insufficient_funds`, `gasfree_api_no_response`,
-`gasfree_missing_transaction_hash`, `gasfree_provider_list_unavailable`, `settlement_pending`, and
-`gasfree_transaction_failed`.
+`gasfree_missing_transaction_hash`, `gasfree_invalid_transaction_hash`,
+`gasfree_transaction_failed`, `settlement_pending`, and `gasfree_provider_list_unavailable`.
 
 Relayer transport errors may be returned as `errorReason` text by the current implementation.
 

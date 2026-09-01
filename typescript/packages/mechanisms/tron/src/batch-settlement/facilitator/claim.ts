@@ -8,10 +8,6 @@ import { signClaimBatch } from "../../shared/batch-settlement/authorizerSigner";
 import { toContractChannelConfig } from "./utils";
 import * as Errors from "../errors";
 import { waitAndReturnSettleResponse } from "../../shared/settleReceipt";
-import {
-  createTronBatchSettlementReconciliationContext,
-  validateTronSettlementReceipt,
-} from "../../reconciliation";
 
 const abi = batchSettlementABI as unknown as readonly Record<string, unknown>[];
 
@@ -82,28 +78,16 @@ export async function executeClaimWithSignature(
   }
 
   try {
-    const address = getBatchSettlementAddress(network);
-    const callArgs = [claimArgs, sig] as const;
-    const reconciliationContext = createTronBatchSettlementReconciliationContext({
-      operation: "claim",
-      network,
-      target: address,
-      functionName: "claimWithSignature",
-      args: callArgs,
-      effect: { type: "none" },
-    });
     const tx = await signer.writeContract({
-      address,
+      address: getBatchSettlementAddress(network),
       abi,
       functionName: "claimWithSignature",
-      args: callArgs,
+      args: [claimArgs, sig],
     });
 
     return waitAndReturnSettleResponse(signer, tx, network, undefined, {
       failedStatusReason: Errors.ErrClaimTransactionFailed,
       amount: "",
-      responseExtra: { reconciliationContext },
-      validateReceipt: receipt => validateTronSettlementReceipt(receipt, tx, reconciliationContext),
     });
   } catch (e) {
     return {

@@ -11,15 +11,8 @@ import { ExactGasFreePayload } from "../../types";
 import { isValidTronTxHash, normalizeAddressForSigning } from "../../utils";
 import { GasFreeAPIClient, GasFreeTransactionStatusError } from "../../shared/gasfree/api";
 import { assembleGasFreeTransaction } from "../../shared/gasfree/assemble";
-import * as errors from "./errors";
 import { SETTLEMENT_PENDING } from "../../shared/settleReceipt";
-import {
-  createTronSettlementReconciliationContext,
-  parseTronSettlementReconciliationContext,
-  reconcileTronSettlement,
-  type TronReconciliationOptions,
-  type TronSettlementReconciliationContext,
-} from "../../reconciliation";
+import * as errors from "./errors";
 
 /**
  * TRON facilitator for the `exact_gasfree` scheme.
@@ -132,19 +125,6 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
     }
 
     const payer = gf.gasfree.user;
-    let reconciliationContext: TronSettlementReconciliationContext;
-    try {
-      reconciliationContext = createTronSettlementReconciliationContext(payload, requirements);
-    } catch (err) {
-      return {
-        success: false,
-        errorReason: errors.TRANSACTION_FAILED,
-        errorMessage: err instanceof Error ? err.message : String(err),
-        transaction: "",
-        network: requirements.network,
-        payer,
-      };
-    }
 
     // Resolve the relayer client — may throw if the network is not configured.
     // verify() normally catches this earlier, but guard defensively.
@@ -211,13 +191,7 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
         };
       }
 
-      return {
-        success: true,
-        transaction: result.txnHash,
-        network: requirements.network,
-        payer,
-        extra: { reconciliationContext },
-      };
+      return { success: true, transaction: result.txnHash, network: requirements.network, payer };
     } catch (err) {
       if (
         err instanceof GasFreeTransactionStatusError &&
@@ -241,7 +215,6 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
           transaction: err.transaction ?? "",
           network: requirements.network,
           payer,
-          extra: { reconciliationContext },
         };
       }
       return {
@@ -252,26 +225,6 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
         payer,
       };
     }
-  }
-
-  /**
-   * Reconcile an already-relayed GasFree transaction from solidified chain data.
-   *
-   * @param transaction - Relayer-provided on-chain transaction id.
-   * @param reconciliationContext - Persisted exact_gasfree reconciliation context.
-   * @param options - Single-query timeout and cancellation signal.
-   * @returns Final success/failure, or settlement_pending while indeterminate.
-   */
-  async reconcile(
-    transaction: string,
-    reconciliationContext: unknown,
-    options?: TronReconciliationOptions,
-  ): Promise<SettleResponse> {
-    const parsedContext = parseTronSettlementReconciliationContext(reconciliationContext);
-    if (parsedContext.scheme !== "exact_gasfree") {
-      throw new Error("invalid exact_gasfree reconciliation context scheme");
-    }
-    return reconcileTronSettlement(this.signer, transaction, parsedContext, options);
   }
 
   /**

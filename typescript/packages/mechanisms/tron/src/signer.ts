@@ -17,9 +17,6 @@ export type AllowanceMode = "auto" | "skip" | "interactive";
 /** Default time budget for observing a packed TRON receipt. */
 export const DEFAULT_CONFIRMATION_TIMEOUT_MS = 90_000;
 
-/** Default bound for one receipt query performed by reconciliation. */
-export const DEFAULT_RECEIPT_QUERY_TIMEOUT_MS = 10_000;
-
 /** Upper bound imposed by JavaScript's signed 32-bit timer implementation. */
 const MAX_CONFIRMATION_TIMEOUT_MS = 2_147_483_647;
 
@@ -164,35 +161,10 @@ export interface FacilitatorTronSigner {
   }): Promise<string>;
 
   /**
-   * Wait for a transaction receipt at the requested finality.
-   *
-   * `packed` is the low-latency FullNode view. `solidified` is the irreversible
-   * SolidityNode view intended for reconciliation and final accounting.
+   * Wait for a transaction to be confirmed on-chain.
    */
-  waitForTransactionReceipt(args: {
-    hash: string;
-    finality?: TronTransactionFinality;
-  }): Promise<TronTransactionReceipt>;
-
-  /**
-   * Read a transaction receipt once without polling or retrying.
-   *
-   * Signers that support reconciliation should implement this method. It is
-   * optional so existing settlement-only signer adapters remain compatible.
-   */
-  getTransactionReceipt?(args: TronTransactionReceiptQuery): Promise<TronTransactionReceipt>;
+  waitForTransactionReceipt(args: { hash: string }): Promise<TronTransactionReceipt>;
 }
-
-/** One bounded receipt lookup with no SDK-level retry or backoff. */
-export interface TronTransactionReceiptQuery {
-  readonly hash: string;
-  readonly finality?: TronTransactionFinality;
-  readonly timeoutMs?: number;
-  readonly signal?: AbortSignal;
-}
-
-/** TRON transaction confirmation level. */
-export type TronTransactionFinality = "packed" | "solidified";
 
 /** Raw TRON event log fields surfaced for scheme-level payment-effect validation. */
 export interface TronTransactionLog {
@@ -201,17 +173,9 @@ export interface TronTransactionLog {
   data?: string;
 }
 
-/** Top-level smart-contract call recovered from the transaction body. */
-export interface TronTransactionCall {
-  contractAddress: string;
-  data: string;
-}
-
-/** Receipt result used by TRON settlement and read-only reconciliation paths. */
+/** Packed receipt result used by every TRON settlement path. */
 export interface TronTransactionReceipt {
   status: "success" | "reverted" | "pending";
-  finality?: TronTransactionFinality;
-  call?: TronTransactionCall;
   logs?: readonly TronTransactionLog[];
 }
 
@@ -791,21 +755,6 @@ type TronTxInfo = {
   log?: readonly TronTransactionLog[];
 };
 
-type TronTxBody = {
-  raw_data?: {
-    contract?: readonly {
-      type?: string;
-      parameter?: {
-        type_url?: string;
-        value?: {
-          contract_address?: string;
-          data?: string;
-        };
-      };
-    }[];
-  };
-};
-
 const TERMINAL_RECEIPT_FAILURES = new Set([
   "REVERT",
   "BAD_JUMP_DESTINATION",
@@ -824,25 +773,7 @@ const TERMINAL_RECEIPT_FAILURES = new Set([
 ]);
 
 /**
- * Extract the single TriggerSmartContract call needed for effect validation.
- *
- * @param body - Transaction body returned by FullNode or SolidityNode.
- * @returns The called contract and calldata, or undefined when incomplete.
- */
-function extractTransactionCall(body: TronTxBody | null): TronTransactionCall | undefined {
-  const contracts = body?.raw_data?.contract;
-  if (!contracts || contracts.length !== 1) return undefined;
-  const contract = contracts[0];
-  const value = contract?.parameter?.value;
-  const isTriggerSmartContract =
-    contract?.type === "TriggerSmartContract" ||
-    contract?.parameter?.type_url?.endsWith(".TriggerSmartContract") === true;
-  if (!isTriggerSmartContract || !value?.contract_address || !value.data) return undefined;
-  return { contractAddress: value.contract_address, data: value.data };
-}
-
-/**
- * Resolve and validate a caller-supplied receipt timeout.
+ * Resolve and validate a caller-supplied packed-receipt timeout.
  *
  * @param value - Configured timeout, or undefined to use the default.
  * @returns The validated confirmation timeout in milliseconds.
@@ -862,198 +793,95 @@ function resolveConfirmationTimeoutMs(value: number | undefined): number {
 }
 
 /**
- * Resolve and validate a caller-supplied one-shot receipt query timeout.
- *
- * @param value - Configured timeout, or undefined to use the default.
- * @returns The validated query timeout in milliseconds.
- */
-function resolveReceiptQueryTimeoutMs(value: number | undefined): number {
-  const timeoutMs = value ?? DEFAULT_RECEIPT_QUERY_TIMEOUT_MS;
-  if (
-    !Number.isSafeInteger(timeoutMs) ||
-    timeoutMs <= 0 ||
-    timeoutMs > MAX_CONFIRMATION_TIMEOUT_MS
-  ) {
-    throw new Error(
-      `receiptQueryTimeoutMs must be a positive integer no greater than ${MAX_CONFIRMATION_TIMEOUT_MS}, got ${timeoutMs}`,
-    );
-  }
-  return timeoutMs;
-}
-
-/**
- * Convert an aborted signal into a stable Error instance.
- *
- * @param signal - Aborted signal carrying an optional reason.
- * @returns The signal reason when it is an Error, otherwise a stable abort error.
- */
-function receiptAbortError(signal: AbortSignal): Error {
-  return signal.reason instanceof Error
-    ? signal.reason
-    : new Error("TRON receipt query was aborted");
-}
-
-/**
  * Await a single RPC request without allowing it to exceed the remaining budget.
  *
  * @param request - Receipt RPC request to await.
  * @param timeoutMs - Remaining confirmation budget in milliseconds.
- * @param signal - Optional caller cancellation signal.
  * @returns The RPC response when it completes within the remaining budget.
  */
-async function requestWithin<T>(
-  request: Promise<T>,
-  timeoutMs: number,
-  signal?: AbortSignal,
-): Promise<T> {
-  if (signal?.aborted) throw receiptAbortError(signal);
+async function requestWithin<T>(request: Promise<T>, timeoutMs: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
-  let abortListener: (() => void) | undefined;
   try {
     return await Promise.race([
       request,
       new Promise<never>((_, reject) => {
         timer = setTimeout(() => reject(new Error("TRON receipt RPC timed out")), timeoutMs);
       }),
-      ...(signal
-        ? [
-            new Promise<never>((_, reject) => {
-              abortListener = () => reject(receiptAbortError(signal));
-              signal.addEventListener("abort", abortListener, { once: true });
-            }),
-          ]
-        : []),
     ]);
   } finally {
     if (timer) clearTimeout(timer);
-    if (signal && abortListener) signal.removeEventListener("abort", abortListener);
   }
 }
 
 /**
- * Read one TRON receipt and its original contract call without polling.
+ * Poll TRON for a transaction's confirmed result via the fullNode
+ * `gettransactioninfobyid` endpoint.
+ *
+ * Unlike `getTransaction` (which returns a preconfirm `contractRet` that can
+ * transiently read REVERT on mainnet), this endpoint only populates
+ * `blockNumber` once the tx is packed into a block (~3-6s). The
+ * `receipt.result` field then carries the execution status for that provisional
+ * FullNode head. This mirrors tronpy's
+ * `get_transaction_info`, which uses the same fullNode endpoint.
+ *
+ * (tronweb's own `trx.getTransactionInfo` reaches the solidityNode variant
+ * `walletsolidity/gettransactioninfobyid`, which only returns after the block
+ * solidifies (~19 confirmations / ~60s) — too slow. Calling the fullNode
+ * endpoint directly avoids that delay while staying accurate.)
  *
  * @param tronWeb - The TronWeb instance used to read the transaction.
- * @param hash - Transaction id to query.
- * @param timeoutMs - Total bound shared by receipt and transaction-body reads.
- * @param finality - Packed or solidified RPC source.
- * @param signal - Optional caller cancellation signal.
- * @returns The current receipt classification after one query attempt.
+ * @param hash - The transaction id to wait for.
+ * @param timeoutMs - Total confirmation budget in milliseconds.
+ * @returns `success` / `reverted` once packed, or `pending` when still indeterminate.
  */
-async function getTransactionReceiptOnce(
+async function pollTransactionPacked(
   tronWeb: TronWeb,
   hash: string,
-  timeoutMs: number,
-  finality: TronTransactionFinality,
-  signal?: AbortSignal,
+  timeoutMs: number = DEFAULT_CONFIRMATION_TIMEOUT_MS,
 ): Promise<TronTransactionReceipt> {
   if (!isValidTronTxHash(hash)) {
     throw new Error(`invalid TRON transaction id: ${hash}`);
   }
   const rpcHash = hash.replace(/^0x/i, "").toLowerCase();
-  const deadline = Date.now() + timeoutMs;
-  const provider = finality === "solidified" ? tronWeb.solidityNode : tronWeb.fullNode;
-  const namespace = finality === "solidified" ? "walletsolidity" : "wallet";
-  const info = await requestWithin(
-    provider.request(
-      `${namespace}/gettransactioninfobyid`,
-      { value: rpcHash },
-      "post",
-    ) as Promise<TronTxInfo | null>,
-    timeoutMs,
-    signal,
-  );
-
-  if (info?.blockNumber == null) return { status: "pending", finality };
-
-  const result = info.receipt?.result;
-  if (result === "SUCCESS") {
-    let body: TronTxBody | null = null;
-    try {
-      body = await requestWithin(
-        provider.request(
-          `${namespace}/gettransactionbyid`,
-          { value: rpcHash },
-          "post",
-        ) as Promise<TronTxBody | null>,
-        Math.max(1, deadline - Date.now()),
-        signal,
-      );
-    } catch (error) {
-      if (signal?.aborted) throw error;
-      // Status remains usable; scheme validation treats absent call data as indeterminate.
-    }
-    const call = extractTransactionCall(body);
-    log.info("x402 tron: tx receipt observed", {
-      hash,
-      status: "success",
-      finality,
-      contractRet: result,
-    });
-    return {
-      status: "success",
-      finality,
-      ...(call ? { call } : {}),
-      ...(info.log ? { logs: info.log } : {}),
-    };
-  }
-
-  if (result && TERMINAL_RECEIPT_FAILURES.has(result)) {
-    log.warn("x402 tron: tx receipt observed", {
-      hash,
-      status: "reverted",
-      finality,
-      contractRet: result,
-    });
-    return { status: "reverted", finality };
-  }
-
-  log.info("x402 tron: tx receipt incomplete", {
-    hash,
-    finality,
-    contractRet: result,
-  });
-  return { status: "pending", finality };
-}
-
-/**
- * Poll TRON for a transaction receipt and its original smart-contract call.
- *
- * Packed mode reads the low-latency FullNode head and is provisional.
- * Solidified mode reads SolidityNode and is suitable for final reconciliation.
- * A successful receipt also fetches the transaction body so scheme code can
- * verify the called contract/calldata in addition to emitted effects.
- *
- * @param tronWeb - The TronWeb instance used to read the transaction.
- * @param hash - The transaction id to wait for.
- * @param timeoutMs - Total confirmation budget in milliseconds.
- * @param finality - Packed or solidified confirmation source.
- * @returns The observed receipt, or `pending` when the result remains incomplete.
- */
-async function pollTransaction(
-  tronWeb: TronWeb,
-  hash: string,
-  timeoutMs: number = DEFAULT_CONFIRMATION_TIMEOUT_MS,
-  finality: TronTransactionFinality = "packed",
-): Promise<TronTransactionReceipt> {
-  if (!isValidTronTxHash(hash)) {
-    throw new Error(`invalid TRON transaction id: ${hash}`);
-  }
   const delayMs = 3_000;
   const deadline = Date.now() + timeoutMs;
 
   while (Date.now() < deadline) {
-    const remainingBeforeQuery = Math.max(1, deadline - Date.now());
+    let info: TronTxInfo | null = null;
     try {
-      const receipt = await getTransactionReceiptOnce(
-        tronWeb,
-        hash,
-        remainingBeforeQuery,
-        finality,
+      info = await requestWithin(
+        tronWeb.fullNode.request(
+          "wallet/gettransactioninfobyid",
+          { value: rpcHash },
+          "post",
+        ) as Promise<TronTxInfo | null>,
+        Math.max(1, deadline - Date.now()),
       );
-      if (receipt.status !== "pending") return receipt;
     } catch {
       // Not yet confirmed / transient node or rate-limit error — keep polling.
+    }
+    if (info?.blockNumber != null) {
+      const result = info.receipt?.result;
+      if (result === "SUCCESS") {
+        log.info("x402 tron: tx packed", {
+          hash,
+          status: "success",
+          contractRet: result,
+        });
+        return { status: "success", ...(info.log ? { logs: info.log } : {}) };
+      }
+      if (result && TERMINAL_RECEIPT_FAILURES.has(result)) {
+        log.warn("x402 tron: tx packed", {
+          hash,
+          status: "reverted",
+          contractRet: result,
+        });
+        return { status: "reverted" };
+      }
+      log.info("x402 tron: tx receipt incomplete", {
+        hash,
+        contractRet: result,
+      });
     }
 
     const remainingMs = deadline - Date.now();
@@ -1061,8 +889,8 @@ async function pollTransaction(
     await new Promise(resolve => setTimeout(resolve, Math.min(delayMs, remainingMs)));
   }
 
-  log.warn("x402 tron: tx confirm timeout (pending)", { hash, timeoutMs, finality });
-  return { status: "pending", finality };
+  log.warn("x402 tron: tx confirm timeout (pending)", { hash, timeoutMs });
+  return { status: "pending" };
 }
 
 /**
@@ -1159,7 +987,7 @@ async function ensurePermit2Allowance(
 
   // Confirm at packed speed (~3s), not solidification (~60s): the allowance is
   // live once the approve is packed, which is all the following payment needs.
-  const receipt = await pollTransaction(deps.tronWeb, txid);
+  const receipt = await pollTransactionPacked(deps.tronWeb, txid);
   if (receipt.status !== "success") {
     throw new Error(`Permit2 approval did not succeed (status=${receipt.status}, tx=${txid})`);
   }
@@ -1233,16 +1061,9 @@ export async function createFacilitatorTronSigner(
       });
     },
     async waitForTransactionReceipt(args) {
-      return pollTransaction(tronWeb, args.hash, confirmationTimeoutMs, args.finality ?? "packed");
-    },
-    async getTransactionReceipt(args) {
-      return getTransactionReceiptOnce(
-        tronWeb,
-        args.hash,
-        resolveReceiptQueryTimeoutMs(args.timeoutMs),
-        args.finality ?? "packed",
-        args.signal,
-      );
+      // Match the EVM signer behavior: wait for a low-latency execution receipt,
+      // not consensus finality. Callers receive settlement_pending on timeout.
+      return pollTransactionPacked(tronWeb, args.hash, confirmationTimeoutMs);
     },
   });
 }

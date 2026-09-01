@@ -12,7 +12,6 @@ import {
 } from "../../src/signer";
 import { buildTronWeb } from "../../src/rpc";
 import { privateKeyTronWallet } from "./helpers";
-import { successfulSettlementReceipt } from "./helpers/settlementReceipt";
 import { uptoPermit2WitnessTypes, X402_UPTO_PERMIT2_PROXY_ADDRESSES } from "../../src/constants";
 import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "../../src/shared/extensions/trc20ApprovalContract";
 
@@ -80,19 +79,14 @@ async function facilitatorSigner(
 ): Promise<FacilitatorTronSigner> {
   vi.mocked(buildTronWeb).mockReturnValue(tron(FAC_PK));
   const wallet = { getAddress: () => addr(FAC_PK), signTransaction: async () => ({}) };
-  let settlementWrite: Parameters<FacilitatorTronSigner["writeContract"]>[0] | undefined;
   return {
     ...(await createFacilitatorTronSigner(wallet, { network: NETWORK })),
     readContract: readStub(chain),
     writeContract: async (args: { args: readonly unknown[] }) => {
       if (capture) capture.args = args.args;
-      settlementWrite = args as Parameters<FacilitatorTronSigner["writeContract"]>[0];
       return FAKE_TX;
     },
-    waitForTransactionReceipt: async () => {
-      if (!settlementWrite) throw new Error("missing settlement write");
-      return successfulSettlementReceipt(settlementWrite);
-    },
+    waitForTransactionReceipt: async () => ({ status: "success" }),
   };
 }
 
