@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { createHash } from "node:crypto";
 import type { Trc20ApprovalResourceSponsoringRequest } from "../../src/shared/extensions/trc20ApprovalContract";
 import {
   buildTrc20SponsoringPlan,
@@ -52,6 +53,40 @@ const request: Trc20ApprovalResourceSponsoringRequest = {
     maxTimeoutSeconds: 600,
   },
 };
+
+function requestForNetwork(
+  network: Trc20ApprovalResourceSponsoringRequest["paymentRequirements"]["network"],
+): Trc20ApprovalResourceSponsoringRequest {
+  return {
+    ...request,
+    network,
+    paymentPayload: {
+      ...request.paymentPayload,
+      accepted: { ...request.paymentPayload.accepted, network },
+    },
+    paymentRequirements: { ...request.paymentRequirements, network },
+  };
+}
+
+function canonicalJson(value: unknown): string {
+  if (typeof value === "bigint") return JSON.stringify(value.toString());
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  const record = value as Record<string, unknown>;
+  return `{${Object.keys(record)
+    .sort()
+    .map(key => `${JSON.stringify(key)}:${canonicalJson(record[key])}`)
+    .join(",")}}`;
+}
+
+function legacyRequestDigest(value: Trc20ApprovalResourceSponsoringRequest): string {
+  const { requiredAllowance, ...legacyRequest } = value;
+  const boundRequest =
+    requiredAllowance === undefined || requiredAllowance === value.paymentRequirements.amount
+      ? legacyRequest
+      : value;
+  return createHash("sha256").update(canonicalJson(boundRequest)).digest("hex");
+}
 
 function preflight(): Trc20SponsoringPreflight {
   return {
@@ -352,6 +387,57 @@ describe("TRC-20 Approval resource-sponsoring runtime", () => {
     expect(first.success).toBe(true);
     expect(retried).toMatchObject({ success: true });
     expect(retried).not.toHaveProperty("errorReason", "approval_transaction_reused");
+  });
+
+  it("uses one durable operation for hexadecimal and decimal network representations", async () => {
+    const harness = createHarness();
+    harness.results.set(harness.ids.undelegateEnergy, "unknown");
+    harness.results.set(harness.ids.undelegateBandwidth, "unknown");
+    const admit = vi.spyOn(harness.coordinator, "admit");
+
+    const first = await harness.runtime.sponsor(requestForNetwork("tron:0xcd8690dc"));
+    const retried = await harness.runtime.sponsor(request);
+
+    expect(first.success).toBe(true);
+    expect(retried).toMatchObject({ success: true });
+    expect(admit).toHaveBeenCalledTimes(1);
+    expect(admit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: `tron:3448148188:${APPROVAL_TX_ID}`,
+        network: "tron:3448148188",
+        request: expect.objectContaining({
+          network: "tron:3448148188",
+          paymentPayload: expect.objectContaining({
+            accepted: expect.objectContaining({ network: "tron:3448148188" }),
+          }),
+          paymentRequirements: expect.objectContaining({ network: "tron:3448148188" }),
+        }),
+      }),
+    );
+  });
+
+  it("resumes an operation persisted with a legacy key and digest", async () => {
+    const harness = createHarness();
+    harness.results.set(harness.ids.undelegateEnergy, "unknown");
+    harness.results.set(harness.ids.undelegateBandwidth, "unknown");
+    const legacyRequest = requestForNetwork("tron:0xcd8690dc");
+    const originalAdmit = harness.coordinator.admit.bind(harness.coordinator);
+    const admit = vi.spyOn(harness.coordinator, "admit").mockImplementation(operation =>
+      originalAdmit({
+        ...operation,
+        key: `tron:0xcd8690dc:${APPROVAL_TX_ID}`,
+        network: "tron:0xcd8690dc",
+        request: legacyRequest,
+        requestDigest: legacyRequestDigest(legacyRequest),
+      }),
+    );
+
+    const first = await harness.runtime.sponsor(request);
+    const retried = await harness.runtime.sponsor(request);
+
+    expect(first.success).toBe(true);
+    expect(retried).toMatchObject({ success: true });
+    expect(admit).toHaveBeenCalledTimes(1);
   });
 
   it("revalidates the scheme after delegation and reclaims without broadcasting Approval", async () => {

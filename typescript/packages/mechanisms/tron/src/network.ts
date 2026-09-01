@@ -51,6 +51,26 @@ export function tronNetworksEqual(left: string, right: string): boolean {
 }
 
 /**
+ * Lists canonical and deprecated representations that may identify the same
+ * durable TRON record. Canonical decimal form is always first.
+ *
+ * @param network - Decimal identifier or deprecated hexadecimal alias.
+ * @returns Representations to try when reading existing persisted state.
+ */
+export function getTronNetworkRepresentations(network: string): readonly string[] {
+  const canonical = normalizeTronNetwork(network);
+  const representations = new Set<string>([canonical]);
+  const decimalReference = /^tron:(\d+)$/.exec(canonical)?.[1];
+  if (decimalReference) {
+    const hexadecimalReference = BigInt(decimalReference).toString(16);
+    representations.add(`tron:0x${hexadecimalReference}`);
+    representations.add(`tron:0x${hexadecimalReference.toUpperCase()}`);
+  }
+  representations.add(network);
+  return [...representations];
+}
+
+/**
  * Resolve a value from a network-keyed record using decimal or legacy hex.
  * This also supports caller-owned records that still contain only hex keys.
  *

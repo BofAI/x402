@@ -27,8 +27,8 @@ describe("token registry lookups", () => {
   });
 
   it("accepts deprecated hexadecimal network aliases", () => {
-    expect(getToken("tron:3448148188", "USDT")?.address).toBe(USDT_NILE);
-    expect(getNetworkTokens("tron:3448148188")).toBe(getNetworkTokens("tron:3448148188"));
+    expect(getToken("tron:0xcd8690dc", "USDT")?.address).toBe(USDT_NILE);
+    expect(getNetworkTokens("tron:0xcd8690dc")).toBe(getNetworkTokens("tron:3448148188"));
   });
 
   it("resolves tokens by address case-insensitively", () => {

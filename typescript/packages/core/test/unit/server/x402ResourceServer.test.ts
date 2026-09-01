@@ -444,6 +444,36 @@ describe("x402ResourceServer", () => {
       expect(mockScheme.parsePriceCalls[0].network).toBe("test:network");
     });
 
+    it("accepts a legacy TRON network and emits the facilitator's decimal identifier", async () => {
+      const mockClient = new MockFacilitatorClient(
+        buildSupportedResponse({
+          kinds: [
+            {
+              x402Version: 2,
+              scheme: "test-scheme",
+              network: "tron:3448148188" as Network,
+            },
+          ],
+        }),
+      );
+
+      const server = new x402ResourceServer(mockClient);
+      const mockScheme = new MockSchemeNetworkServer("test-scheme");
+
+      server.register("tron:3448148188" as Network, mockScheme);
+      await server.initialize();
+
+      const requirements = await server.buildPaymentRequirements({
+        scheme: "test-scheme",
+        payTo: "recipient",
+        price: "$5.00",
+        network: "tron:0xcd8690dc" as Network,
+      });
+
+      expect(requirements[0].network).toBe("tron:3448148188");
+      expect(mockScheme.parsePriceCalls[0].network).toBe("tron:3448148188");
+    });
+
     it("should call enhancePaymentRequirements", async () => {
       const mockClient = new MockFacilitatorClient(
         buildSupportedResponse({
@@ -3092,6 +3122,27 @@ describe("x402ResourceServer", () => {
       const supportedKind = server.getSupportedKind(2, "solana:mainnet" as Network, "exact");
 
       expect(supportedKind).toBeUndefined();
+    });
+
+    it("should match a deprecated hexadecimal TRON identifier", async () => {
+      const mockClient = new MockFacilitatorClient(
+        buildSupportedResponse({
+          kinds: [
+            {
+              x402Version: 2,
+              scheme: "exact",
+              network: "tron:3448148188" as Network,
+            },
+          ],
+        }),
+      );
+
+      const server = new x402ResourceServer(mockClient);
+      await server.initialize();
+
+      const supportedKind = server.getSupportedKind(2, "tron:0xcd8690dc" as Network, "exact");
+
+      expect(supportedKind?.network).toBe("tron:3448148188");
     });
 
     it("should return facilitator extensions", async () => {

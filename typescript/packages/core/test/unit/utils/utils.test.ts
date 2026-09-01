@@ -35,7 +35,7 @@ describe("Utils", () => {
       schemes.set("exact", "tronImpl");
       map.set("tron:3448148188", schemes);
 
-      const result = findSchemesByNetwork(map, "tron:3448148188" as Network);
+      const result = findSchemesByNetwork(map, "tron:0xcd8690dc" as Network);
 
       expect(result?.get("exact")).toBe("tronImpl");
     });

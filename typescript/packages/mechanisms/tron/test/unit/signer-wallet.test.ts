@@ -85,13 +85,13 @@ describe("createClientTronSigner (wallet-only)", () => {
   it("normalizes deprecated hexadecimal signer and registration networks", async () => {
     vi.mocked(buildTronWeb).mockReturnValue(tron());
     const signer = await createClientTronSigner(privateKeyTronWallet(tron(), PK), {
-      network: "tron:3448148188",
+      network: "tron:0xcd8690dc",
     });
     const client = { register: vi.fn(), registerPolicy: vi.fn() };
 
     registerExactTronScheme(client as never, {
       signer,
-      networks: ["tron:3448148188"],
+      networks: ["tron:0xcd8690dc"],
     });
 
     expect(signer.network).toBe("tron:3448148188");

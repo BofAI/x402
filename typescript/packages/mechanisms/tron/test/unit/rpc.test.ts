@@ -27,7 +27,7 @@ describe("resolveTronRpcUrl", () => {
   });
 
   it("accepts the deprecated hexadecimal nile alias", () => {
-    expect(resolveTronRpcUrl("tron:3448148188")).toBe("https://api.nileex.io");
+    expect(resolveTronRpcUrl("tron:0xcd8690dc")).toBe("https://api.nileex.io");
   });
 
   it("uses the key-less fallback for mainnet/shasta when no API key is set", () => {
