@@ -15,6 +15,7 @@ import {
 } from "../../src/signer";
 import { buildTronWeb } from "../../src/rpc";
 import { privateKeyTronWallet } from "./helpers";
+import { successfulSettlementReceipt } from "./helpers/settlementReceipt";
 import type { ExactGasFreePayload, ExactPermit2Payload } from "../../src/types";
 import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
 
@@ -79,11 +80,18 @@ async function facilitatorSigner(chain: Chain): Promise<FacilitatorTronSigner> {
   // here because these tests override writeContract.
   vi.mocked(buildTronWeb).mockReturnValue(tron(FAC_PK));
   const wallet = { getAddress: () => addr(FAC_PK), signTransaction: async () => ({}) };
+  let settlementWrite: Parameters<FacilitatorTronSigner["writeContract"]>[0] | undefined;
   return {
     ...(await createFacilitatorTronSigner(wallet, { network: NETWORK })),
     readContract: readStub(chain),
-    writeContract: async () => FAKE_TX,
-    waitForTransactionReceipt: async () => ({ status: "success" }),
+    writeContract: async args => {
+      settlementWrite = args;
+      return FAKE_TX;
+    },
+    waitForTransactionReceipt: async () => {
+      if (!settlementWrite) throw new Error("missing settlement write");
+      return successfulSettlementReceipt(settlementWrite);
+    },
   };
 }
 

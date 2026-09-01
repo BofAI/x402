@@ -34,6 +34,10 @@ import {
 } from "../../shared/extensions/trc20ApprovalResourceSponsoring";
 import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "../../shared/extensions/trc20ApprovalContract";
 import { waitAndReturnSettleResponse } from "../../shared/settleReceipt";
+import {
+  createTronBatchSettlementReconciliationContext,
+  validateTronSettlementReceipt,
+} from "../../reconciliation";
 
 const abi = batchSettlementABI as unknown as readonly Record<string, unknown>[];
 
@@ -249,21 +253,45 @@ export async function settleDeposit(
 
   try {
     const execution = resolveDepositExecution(payload, requirements);
+    const address = getBatchSettlementAddress(network);
+    const callArgs = [
+      toContractChannelConfig(config),
+      BigInt(deposit.amount),
+      normalizeAddressForSigning(execution.collector),
+      execution.collectorData,
+    ] as const;
+    const reconciliationContext = createTronBatchSettlementReconciliationContext({
+      operation: "deposit",
+      network,
+      payer,
+      asset: requirements.asset,
+      payTo: config.receiver,
+      amount: deposit.amount,
+      target: address,
+      functionName: "deposit",
+      args: callArgs,
+      effect: {
+        type: "transfer",
+        transfer: {
+          token: requirements.asset,
+          from: payer,
+          to: address,
+          amount: deposit.amount,
+        },
+      },
+    });
 
     const tx = await signer.writeContract({
-      address: getBatchSettlementAddress(network),
+      address,
       abi,
       functionName: "deposit",
-      args: [
-        toContractChannelConfig(config),
-        BigInt(deposit.amount),
-        normalizeAddressForSigning(execution.collector),
-        execution.collectorData,
-      ],
+      args: callArgs,
     });
 
     return waitAndReturnSettleResponse(signer, tx, network, payer, {
       failedStatusReason: Errors.ErrDepositTransactionFailed,
+      responseExtra: { reconciliationContext },
+      validateReceipt: receipt => validateTronSettlementReceipt(receipt, tx, reconciliationContext),
       onSuccess: async () => {
         const expectedMinBalance =
           BigInt(String(verified.extra?.balance ?? "0")) + BigInt(deposit.amount);

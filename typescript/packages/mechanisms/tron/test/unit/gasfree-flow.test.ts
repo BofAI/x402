@@ -4,8 +4,16 @@ import { ExactGasFreeTronScheme as ClientScheme } from "../../src/gasfree/client
 import { ExactGasFreeTronScheme as FacilitatorScheme } from "../../src/gasfree/facilitator/scheme";
 import type { ClientTronSigner, FacilitatorTronSigner } from "../../src/signer";
 import type { ExactGasFreePayload } from "../../src/types";
-import type { GasFreeAddressInfo, GasFreeProvider } from "../../src/shared/gasfree/api";
+import {
+  GasFreeAPIClient,
+  GasFreeTransactionStatusError,
+  type GasFreeAddressInfo,
+  type GasFreeProvider,
+} from "../../src/shared/gasfree/api";
 import { filterAffordableRequirements } from "../../src/shared/balance";
+import { getGasFreeControllerAddress } from "../../src/shared/gasfree/config";
+import { createTronSettlementReconciliationContext } from "../../src/reconciliation";
+import { normalizeAddressForSigning } from "../../src/utils";
 
 /**
  * GasFree client/facilitator behavior with mocked signers and relayer (F1).
@@ -21,6 +29,7 @@ const ASSET = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf"; // Nile USDT (6 decimals)
 const PROVIDER = addr("0000000000000000000000000000000000000000000000000000000000000002");
 const GASFREE_ADDR = addr("0000000000000000000000000000000000000000000000000000000000000003");
 const STRANGER = addr("0000000000000000000000000000000000000000000000000000000000000009");
+const TX = "ab".repeat(32);
 
 function account(overrides: Partial<GasFreeAddressInfo> = {}): GasFreeAddressInfo {
   return {
@@ -69,7 +78,7 @@ function api(acct: GasFreeAddressInfo, extra: Record<string, unknown> = {}) {
     getProviders: vi.fn(async () => [{ address: PROVIDER }] as unknown as GasFreeProvider[]),
     getNonce: vi.fn(async () => acct.nonce),
     getStatus: vi.fn(async () => null),
-    waitForSuccess: vi.fn(async () => ({ txnHash: "0xhash" }) as never),
+    waitForSuccess: vi.fn(async () => ({ txnHash: TX }) as never),
     submit: vi.fn(async () => "trace-xyz"),
     ...extra,
   };
@@ -328,9 +337,55 @@ describe("GasFree facilitator settle", () => {
       requirements(),
     );
     expect(r.success).toBe(true);
-    expect(r.transaction).toBe("0xhash");
+    expect(r.transaction).toBe(TX);
     expect(a.submit).toHaveBeenCalledWith(goodPayload().gasfree, "0xsig");
   });
+
+  it("rejects a malformed transaction hash returned as successful", async () => {
+    const a = api(account(), {
+      waitForSuccess: vi.fn(async () => ({ txnHash: "not-a-txid" }) as never),
+    });
+    const fac = new FacilitatorScheme(facilitatorSigner(), { [NETWORK]: a as never });
+
+    const result = await fac.settle(
+      { accepted: requirements(), payload: goodPayload() } as never,
+      requirements(),
+    );
+
+    expect(result).toMatchObject({
+      success: false,
+      errorReason: "gasfree_invalid_transaction_hash",
+      transaction: "",
+    });
+  });
+
+  it.each([false, true])(
+    "rejects a malformed transaction hash carried by a polling error (terminal=%s)",
+    async terminal => {
+      const a = api(account(), {
+        waitForSuccess: vi.fn(async () => {
+          throw new GasFreeTransactionStatusError(
+            "status polling failed",
+            "trace-xyz",
+            "not-a-txid",
+            terminal,
+          );
+        }),
+      });
+      const fac = new FacilitatorScheme(facilitatorSigner(), { [NETWORK]: a as never });
+
+      const result = await fac.settle(
+        { accepted: requirements(), payload: goodPayload() } as never,
+        requirements(),
+      );
+
+      expect(result).toMatchObject({
+        success: false,
+        errorReason: "gasfree_invalid_transaction_hash",
+        transaction: "",
+      });
+    },
+  );
 
   it("fails settle when verification fails", async () => {
     const fac = new FacilitatorScheme(facilitatorSigner({ verify: false }), {
@@ -354,6 +409,116 @@ describe("GasFree facilitator settle", () => {
     );
     expect(r.success).toBe(false);
     expect(r.errorReason).toBe("insufficient_funds");
+  });
+
+  it("preserves a relayer-known tx hash when status polling is indeterminate", async () => {
+    const a = api(account(), {
+      waitForSuccess: vi.fn(async () => {
+        throw new GasFreeTransactionStatusError("status polling failed", "trace-xyz", TX, false);
+      }),
+    });
+    const fac = new FacilitatorScheme(facilitatorSigner(), { [NETWORK]: a as never });
+
+    const r = await fac.settle(
+      { accepted: requirements(), payload: goodPayload() } as never,
+      requirements(),
+    );
+
+    expect(r).toMatchObject({
+      success: false,
+      errorReason: "settlement_pending",
+      transaction: TX,
+      extra: {
+        reconciliationContext: {
+          version: 1,
+          scheme: "exact_gasfree",
+          transfer: {
+            token: normalizeAddressForSigning(ASSET),
+            from: normalizeAddressForSigning(GASFREE_ADDR),
+            to: normalizeAddressForSigning(PAY_TO),
+            amount: "1000",
+          },
+        },
+      },
+    });
+  });
+
+  it("reconciles a GasFree tx read-only from the controller call and Transfer effect", async () => {
+    const signer = facilitatorSigner();
+    const controller = normalizeAddressForSigning(getGasFreeControllerAddress(NETWORK));
+    const token = normalizeAddressForSigning(ASSET);
+    const from = normalizeAddressForSigning(GASFREE_ADDR);
+    const to = normalizeAddressForSigning(PAY_TO);
+    vi.mocked(signer.waitForTransactionReceipt).mockResolvedValue({
+      status: "success",
+      finality: "solidified",
+      call: { contractAddress: `41${controller.slice(2)}`, data: "12345678" },
+      logs: [
+        {
+          address: token.slice(2),
+          topics: [
+            "ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+            from.slice(2).padStart(64, "0"),
+            to.slice(2).padStart(64, "0"),
+          ],
+          data: BigInt(1000).toString(16).padStart(64, "0"),
+        },
+      ],
+    });
+    const fac = new FacilitatorScheme(signer, { [NETWORK]: api(account()) as never });
+    const payment = { accepted: requirements(), payload: goodPayload() } as never;
+    const persistedContext = JSON.parse(
+      JSON.stringify(createTronSettlementReconciliationContext(payment, requirements())),
+    );
+
+    const result = await fac.reconcile(TX, persistedContext);
+
+    expect(result).toMatchObject({ success: true, transaction: TX, amount: "1000" });
+    expect(signer.waitForTransactionReceipt).toHaveBeenCalledWith({
+      hash: TX,
+      finality: "solidified",
+    });
+    expect(signer.writeContract).not.toHaveBeenCalled();
+  });
+
+  it("preserves a relayer-known tx hash for a terminal GasFree failure", async () => {
+    const a = api(account(), {
+      waitForSuccess: vi.fn(async () => {
+        throw new GasFreeTransactionStatusError("on-chain failure", "trace-xyz", TX, true);
+      }),
+    });
+    const fac = new FacilitatorScheme(facilitatorSigner(), { [NETWORK]: a as never });
+
+    const r = await fac.settle(
+      { accepted: requirements(), payload: goodPayload() } as never,
+      requirements(),
+    );
+
+    expect(r).toMatchObject({
+      success: false,
+      errorReason: "gasfree_transaction_failed",
+      transaction: TX,
+    });
+  });
+});
+
+describe("GasFree status polling recovery metadata", () => {
+  it("carries the last observed tx hash through a later RPC failure", async () => {
+    const client = new GasFreeAPIClient("https://example.invalid");
+    vi.spyOn(client, "getStatus")
+      .mockResolvedValueOnce({
+        state: "CONFIRMING",
+        txnState: "NOT_ON_CHAIN",
+        txnHash: TX,
+      } as never)
+      .mockRejectedValueOnce(new Error("rpc unavailable"));
+
+    await expect(client.waitForSuccess("trace-xyz", 10_000, 0, 1)).rejects.toMatchObject({
+      name: "GasFreeTransactionStatusError",
+      traceId: "trace-xyz",
+      transaction: TX,
+      terminal: false,
+    });
   });
 });
 

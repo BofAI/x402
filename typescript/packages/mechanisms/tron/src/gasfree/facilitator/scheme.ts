@@ -8,10 +8,17 @@ import {
 } from "@bankofai/x402-core/types";
 import { FacilitatorTronSigner } from "../../signer";
 import { ExactGasFreePayload } from "../../types";
-import { normalizeAddressForSigning } from "../../utils";
-import { GasFreeAPIClient } from "../../shared/gasfree/api";
+import { isValidTronTxHash, normalizeAddressForSigning } from "../../utils";
+import { GasFreeAPIClient, GasFreeTransactionStatusError } from "../../shared/gasfree/api";
 import { assembleGasFreeTransaction } from "../../shared/gasfree/assemble";
 import * as errors from "./errors";
+import { SETTLEMENT_PENDING } from "../../shared/settleReceipt";
+import {
+  createTronSettlementReconciliationContext,
+  parseTronSettlementReconciliationContext,
+  reconcileTronSettlement,
+  type TronSettlementReconciliationContext,
+} from "../../reconciliation";
 
 /**
  * TRON facilitator for the `exact_gasfree` scheme.
@@ -124,6 +131,19 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
     }
 
     const payer = gf.gasfree.user;
+    let reconciliationContext: TronSettlementReconciliationContext;
+    try {
+      reconciliationContext = createTronSettlementReconciliationContext(payload, requirements);
+    } catch (err) {
+      return {
+        success: false,
+        errorReason: errors.TRANSACTION_FAILED,
+        errorMessage: err instanceof Error ? err.message : String(err),
+        transaction: "",
+        network: requirements.network,
+        payer,
+      };
+    }
 
     // Resolve the relayer client — may throw if the network is not configured.
     // verify() normally catches this earlier, but guard defensively.
@@ -179,9 +199,50 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
           payer,
         };
       }
+      if (!isValidTronTxHash(result.txnHash)) {
+        return {
+          success: false,
+          errorReason: errors.INVALID_TRANSACTION_HASH,
+          errorMessage: "GasFree relayer returned an invalid transaction hash",
+          transaction: "",
+          network: requirements.network,
+          payer,
+        };
+      }
 
-      return { success: true, transaction: result.txnHash, network: requirements.network, payer };
+      return {
+        success: true,
+        transaction: result.txnHash,
+        network: requirements.network,
+        payer,
+        extra: { reconciliationContext },
+      };
     } catch (err) {
+      if (
+        err instanceof GasFreeTransactionStatusError &&
+        err.transaction !== undefined &&
+        !isValidTronTxHash(err.transaction)
+      ) {
+        return {
+          success: false,
+          errorReason: errors.INVALID_TRANSACTION_HASH,
+          errorMessage: "GasFree relayer returned an invalid transaction hash",
+          transaction: "",
+          network: requirements.network,
+          payer,
+        };
+      }
+      if (err instanceof GasFreeTransactionStatusError && (err.terminal || err.transaction)) {
+        return {
+          success: false,
+          errorReason: err.terminal ? errors.TRANSACTION_FAILED : SETTLEMENT_PENDING,
+          errorMessage: err.message,
+          transaction: err.transaction ?? "",
+          network: requirements.network,
+          payer,
+          extra: { reconciliationContext },
+        };
+      }
       return {
         success: false,
         errorReason: err instanceof Error ? err.message : String(err),
@@ -190,6 +251,28 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
         payer,
       };
     }
+  }
+
+  /**
+   * Reconcile an already-relayed GasFree transaction from solidified chain data.
+   *
+   * @param transaction - Relayer-provided on-chain transaction id.
+   * @param contextOrPayload - Persisted context, or the original signed payload.
+   * @param requirements - Original requirements when rebuilding a legacy context.
+   * @returns Final success/failure, or settlement_pending while indeterminate.
+   */
+  async reconcile(
+    transaction: string,
+    contextOrPayload: unknown,
+    requirements?: PaymentRequirements,
+  ): Promise<SettleResponse> {
+    const reconciliationContext = requirements
+      ? createTronSettlementReconciliationContext(contextOrPayload as PaymentPayload, requirements)
+      : parseTronSettlementReconciliationContext(contextOrPayload);
+    if (reconciliationContext.scheme !== "exact_gasfree") {
+      throw new Error("invalid exact_gasfree reconciliation context scheme");
+    }
+    return reconcileTronSettlement(this.signer, transaction, reconciliationContext);
   }
 
   /**

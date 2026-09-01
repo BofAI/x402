@@ -20,6 +20,7 @@ import { UptoTronScheme as UptoFacilitator } from "../../src/upto/facilitator/sc
 import { BatchSettlementTronScheme as BatchFacilitator } from "../../src/batch-settlement/facilitator/scheme";
 import { computeChannelId } from "../../src/shared/batch-settlement/utils";
 import { PERMIT2_DEPOSIT_COLLECTOR_ADDRESSES } from "../../src/shared/batch-settlement/constants";
+import { successfulSettlementReceipt } from "./helpers/settlementReceipt";
 
 const NETWORK = "tron:0xcd8690dc";
 const PRIVATE_KEY = "4f3edf983ac63ad7c24ee152a7494471b2a18551b7117f7f7f3f2c47c8f6e5ad";
@@ -29,6 +30,7 @@ const PERMIT2 = PERMIT2_ADDRESSES[NETWORK]!;
 const SETTLEMENT_TX = "de".repeat(32);
 const UPTO_SETTLEMENT_TX = "ad".repeat(32);
 const DEPOSIT_TX = "be".repeat(32);
+const PERMIT2_SIGNATURE = `0x${"aa".repeat(65)}`;
 
 function concat(...chunks: Uint8Array[]): Uint8Array {
   const result = new Uint8Array(chunks.reduce((sum, chunk) => sum + chunk.length, 0));
@@ -182,7 +184,7 @@ function sponsoredPayment(signedTransaction: string) {
     x402Version: 2,
     accepted: requirements,
     payload: {
-      signature: "0xpermit2-signature",
+      signature: PERMIT2_SIGNATURE,
       permit2Authorization: {
         from: PAYER,
         permitted: { token: TOKEN, amount: requirements.amount },
@@ -269,6 +271,7 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
 
   it("uses read-only runtime verification and executes sponsorship before settlement", async () => {
     const calls: string[] = [];
+    let settlementWrite: Parameters<FacilitatorTronSigner["writeContract"]>[0] | undefined;
     const runtime = {
       verify: vi.fn(async () => {
         calls.push("verify-sponsor");
@@ -286,11 +289,15 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
       getAddresses: () => [PAYER],
       verifyTypedData: vi.fn(async () => true),
       readContract: vi.fn(async () => 2_000_000n),
-      writeContract: vi.fn(async () => {
+      writeContract: vi.fn(async args => {
         calls.push("settlement");
+        settlementWrite = args;
         return SETTLEMENT_TX;
       }),
-      waitForTransactionReceipt: vi.fn(async () => ({ status: "success" })),
+      waitForTransactionReceipt: vi.fn(async () => {
+        if (!settlementWrite) throw new Error("missing settlement write");
+        return successfulSettlementReceipt(settlementWrite);
+      }),
     };
     const context = {
       getExtension: vi.fn(() => ({
@@ -402,6 +409,7 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
 
   it("sponsors an upto maximum before a positive settlement and skips sponsorship for zero", async () => {
     const calls: string[] = [];
+    let settlementWrite: Parameters<FacilitatorTronSigner["writeContract"]>[0] | undefined;
     const runtime = {
       verify: vi.fn(async request => {
         calls.push("verify-sponsor");
@@ -423,11 +431,15 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
         if (args.functionName === "balanceOf") return 2_000_000n;
         throw new Error(`unexpected read ${args.functionName}`);
       }),
-      writeContract: vi.fn(async () => {
+      writeContract: vi.fn(async args => {
         calls.push("settlement");
+        settlementWrite = args;
         return UPTO_SETTLEMENT_TX;
       }),
-      waitForTransactionReceipt: vi.fn(async () => ({ status: "success" })),
+      waitForTransactionReceipt: vi.fn(async () => {
+        if (!settlementWrite) throw new Error("missing settlement write");
+        return successfulSettlementReceipt(settlementWrite);
+      }),
     };
     const uptoRequirements = {
       ...requirements,
@@ -438,7 +450,7 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
       x402Version: 2,
       accepted: uptoRequirements,
       payload: {
-        signature: "0xpermit2-signature",
+        signature: PERMIT2_SIGNATURE,
         permit2Authorization: {
           from: PAYER,
           permitted: { token: TOKEN, amount: "1000000" },
@@ -480,6 +492,7 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
     const calls: string[] = [];
     let channelBalance = 0n;
     let receiptStatus: "success" | "pending" = "success";
+    let settlementWrite: Parameters<FacilitatorTronSigner["writeContract"]>[0] | undefined;
     const runtime = {
       verify: vi.fn(async request => {
         calls.push("verify-sponsor");
@@ -504,12 +517,17 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
         if (args.functionName === "refundNonce") return 0n;
         throw new Error(`unexpected read ${args.functionName}`);
       }),
-      writeContract: vi.fn(async () => {
+      writeContract: vi.fn(async args => {
         calls.push("deposit");
+        settlementWrite = args;
         channelBalance = 5_000n;
         return DEPOSIT_TX;
       }),
-      waitForTransactionReceipt: vi.fn(async () => ({ status: receiptStatus })),
+      waitForTransactionReceipt: vi.fn(async () =>
+        receiptStatus === "success"
+          ? successfulSettlementReceipt(settlementWrite!)
+          : { status: "pending" },
+      ),
     };
     const config = {
       payer: normalizeAddressForSigning(PAYER),
@@ -590,6 +608,12 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
       success: false,
       errorReason: "settlement_pending",
       transaction: DEPOSIT_TX,
+      extra: {
+        reconciliationContext: {
+          scheme: "batch-settlement",
+          operation: "deposit",
+        },
+      },
     });
     expect(calls).toEqual(["verify-sponsor", "sponsor", "revalidate", "deposit"]);
   });

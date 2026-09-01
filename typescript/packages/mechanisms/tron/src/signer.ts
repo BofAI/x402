@@ -161,10 +161,19 @@ export interface FacilitatorTronSigner {
   }): Promise<string>;
 
   /**
-   * Wait for a transaction to be confirmed on-chain.
+   * Wait for a transaction receipt at the requested finality.
+   *
+   * `packed` is the low-latency FullNode view. `solidified` is the irreversible
+   * SolidityNode view intended for reconciliation and final accounting.
    */
-  waitForTransactionReceipt(args: { hash: string }): Promise<TronTransactionReceipt>;
+  waitForTransactionReceipt(args: {
+    hash: string;
+    finality?: TronTransactionFinality;
+  }): Promise<TronTransactionReceipt>;
 }
+
+/** TRON transaction confirmation level. */
+export type TronTransactionFinality = "packed" | "solidified";
 
 /** Raw TRON event log fields surfaced for scheme-level payment-effect validation. */
 export interface TronTransactionLog {
@@ -173,9 +182,17 @@ export interface TronTransactionLog {
   data?: string;
 }
 
-/** Packed receipt result used by every TRON settlement path. */
+/** Top-level smart-contract call recovered from the transaction body. */
+export interface TronTransactionCall {
+  contractAddress: string;
+  data: string;
+}
+
+/** Receipt result used by TRON settlement and read-only reconciliation paths. */
 export interface TronTransactionReceipt {
   status: "success" | "reverted" | "pending";
+  finality?: TronTransactionFinality;
+  call?: TronTransactionCall;
   logs?: readonly TronTransactionLog[];
 }
 
@@ -755,8 +772,58 @@ type TronTxInfo = {
   log?: readonly TronTransactionLog[];
 };
 
+type TronTxBody = {
+  raw_data?: {
+    contract?: readonly {
+      type?: string;
+      parameter?: {
+        type_url?: string;
+        value?: {
+          contract_address?: string;
+          data?: string;
+        };
+      };
+    }[];
+  };
+};
+
+const TERMINAL_RECEIPT_FAILURES = new Set([
+  "REVERT",
+  "BAD_JUMP_DESTINATION",
+  "OUT_OF_MEMORY",
+  "PRECOMPILED_CONTRACT",
+  "STACK_TOO_SMALL",
+  "STACK_TOO_LARGE",
+  "ILLEGAL_OPERATION",
+  "STACK_OVERFLOW",
+  "OUT_OF_ENERGY",
+  "OUT_OF_TIME",
+  "JVM_STACK_OVER_FLOW",
+  "UNKNOWN",
+  "TRANSFER_FAILED",
+  "INVALID_CODE",
+]);
+
 /**
- * Resolve and validate a caller-supplied packed-receipt timeout.
+ * Extract the single TriggerSmartContract call needed for effect validation.
+ *
+ * @param body - Transaction body returned by FullNode or SolidityNode.
+ * @returns The called contract and calldata, or undefined when incomplete.
+ */
+function extractTransactionCall(body: TronTxBody | null): TronTransactionCall | undefined {
+  const contracts = body?.raw_data?.contract;
+  if (!contracts || contracts.length !== 1) return undefined;
+  const contract = contracts[0];
+  const value = contract?.parameter?.value;
+  const isTriggerSmartContract =
+    contract?.type === "TriggerSmartContract" ||
+    contract?.parameter?.type_url?.endsWith(".TriggerSmartContract") === true;
+  if (!isTriggerSmartContract || !value?.contract_address || !value.data) return undefined;
+  return { contractAddress: value.contract_address, data: value.data };
+}
+
+/**
+ * Resolve and validate a caller-supplied receipt timeout.
  *
  * @param value - Configured timeout, or undefined to use the default.
  * @returns The validated confirmation timeout in milliseconds.
@@ -797,30 +864,24 @@ async function requestWithin<T>(request: Promise<T>, timeoutMs: number): Promise
 }
 
 /**
- * Poll TRON for a transaction's confirmed result via the fullNode
- * `gettransactioninfobyid` endpoint.
+ * Poll TRON for a transaction receipt and its original smart-contract call.
  *
- * Unlike `getTransaction` (which returns a preconfirm `contractRet` that can
- * transiently read REVERT on mainnet), this endpoint only populates
- * `blockNumber` once the tx is packed into a confirmed block (~3-6s). The
- * `receipt.result` field then carries the authoritative final status — no
- * preconfirm window, no false REVERT. This mirrors tronpy's
- * `get_transaction_info`, which uses the same fullNode endpoint.
- *
- * (tronweb's own `trx.getTransactionInfo` reaches the solidityNode variant
- * `walletsolidity/gettransactioninfobyid`, which only returns after the block
- * solidifies (~19 confirmations / ~60s) — too slow. Calling the fullNode
- * endpoint directly avoids that delay while staying accurate.)
+ * Packed mode reads the low-latency FullNode head and is provisional.
+ * Solidified mode reads SolidityNode and is suitable for final reconciliation.
+ * A successful receipt also fetches the transaction body so scheme code can
+ * verify the called contract/calldata in addition to emitted effects.
  *
  * @param tronWeb - The TronWeb instance used to read the transaction.
  * @param hash - The transaction id to wait for.
  * @param timeoutMs - Total confirmation budget in milliseconds.
- * @returns `success` / `reverted` once the result is stable, or `pending` on timeout.
+ * @param finality - Packed or solidified confirmation source.
+ * @returns The observed receipt, or `pending` when the result remains incomplete.
  */
-async function pollTransactionPacked(
+async function pollTransaction(
   tronWeb: TronWeb,
   hash: string,
   timeoutMs: number = DEFAULT_CONFIRMATION_TIMEOUT_MS,
+  finality: TronTransactionFinality = "packed",
 ): Promise<TronTransactionReceipt> {
   if (!isValidTronTxHash(hash)) {
     throw new Error(`invalid TRON transaction id: ${hash}`);
@@ -828,13 +889,15 @@ async function pollTransactionPacked(
   const rpcHash = hash.replace(/^0x/i, "").toLowerCase();
   const delayMs = 3_000;
   const deadline = Date.now() + timeoutMs;
+  const provider = finality === "solidified" ? tronWeb.solidityNode : tronWeb.fullNode;
+  const namespace = finality === "solidified" ? "walletsolidity" : "wallet";
 
   while (Date.now() < deadline) {
     let info: TronTxInfo | null = null;
     try {
       info = await requestWithin(
-        tronWeb.fullNode.request(
-          "wallet/gettransactioninfobyid",
+        provider.request(
+          `${namespace}/gettransactioninfobyid`,
           { value: rpcHash },
           "post",
         ) as Promise<TronTxInfo | null>,
@@ -843,17 +906,51 @@ async function pollTransactionPacked(
     } catch {
       // Not yet confirmed / transient node or rate-limit error — keep polling.
     }
-    // blockNumber is populated only once the tx is packed into a confirmed
-    // block — no preconfirm window. The receipt.result is then authoritative.
-    if (info?.blockNumber) {
-      const result = info.receipt?.result ?? "";
-      const status = result === "SUCCESS" ? "success" : "reverted";
-      log[status === "success" ? "info" : "warn"]("x402 tron: tx confirmed", {
-        hash,
-        status,
-        contractRet: result,
-      });
-      return { status, ...(info.log ? { logs: info.log } : {}) };
+    if (info?.blockNumber != null) {
+      const result = info.receipt?.result;
+      if (result === "SUCCESS") {
+        let body: TronTxBody | null = null;
+        try {
+          body = await requestWithin(
+            provider.request(
+              `${namespace}/gettransactionbyid`,
+              { value: rpcHash },
+              "post",
+            ) as Promise<TronTxBody | null>,
+            Math.max(1, deadline - Date.now()),
+          );
+        } catch {
+          // Receipt status is still usable by callers that do not validate effects.
+          // Scheme validators treat the absent call data as indeterminate.
+        }
+        const call = extractTransactionCall(body);
+        log.info("x402 tron: tx receipt observed", {
+          hash,
+          status: "success",
+          finality,
+          contractRet: result,
+        });
+        return {
+          status: "success",
+          finality,
+          ...(call ? { call } : {}),
+          ...(info.log ? { logs: info.log } : {}),
+        };
+      } else if (result && TERMINAL_RECEIPT_FAILURES.has(result)) {
+        log.warn("x402 tron: tx receipt observed", {
+          hash,
+          status: "reverted",
+          finality,
+          contractRet: result,
+        });
+        return { status: "reverted", finality };
+      } else {
+        log.info("x402 tron: tx receipt incomplete", {
+          hash,
+          finality,
+          contractRet: result,
+        });
+      }
     }
 
     const remainingMs = deadline - Date.now();
@@ -861,8 +958,8 @@ async function pollTransactionPacked(
     await new Promise(resolve => setTimeout(resolve, Math.min(delayMs, remainingMs)));
   }
 
-  log.warn("x402 tron: tx confirm timeout (pending)", { hash, timeoutMs });
-  return { status: "pending" };
+  log.warn("x402 tron: tx confirm timeout (pending)", { hash, timeoutMs, finality });
+  return { status: "pending", finality };
 }
 
 /**
@@ -959,7 +1056,7 @@ async function ensurePermit2Allowance(
 
   // Confirm at packed speed (~3s), not solidification (~60s): the allowance is
   // live once the approve is packed, which is all the following payment needs.
-  const receipt = await pollTransactionPacked(deps.tronWeb, txid);
+  const receipt = await pollTransaction(deps.tronWeb, txid);
   if (receipt.status !== "success") {
     throw new Error(`Permit2 approval did not succeed (status=${receipt.status}, tx=${txid})`);
   }
@@ -1033,10 +1130,7 @@ export async function createFacilitatorTronSigner(
       });
     },
     async waitForTransactionReceipt(args) {
-      // Confirm at packed speed (~3s) rather than solidification (~57s on Nile).
-      // `getTransaction.ret[0].contractRet` carries the execution result as soon
-      // as the settle tx is packed; TRON does not reorg packed blocks in practice.
-      return pollTransactionPacked(tronWeb, args.hash, confirmationTimeoutMs);
+      return pollTransaction(tronWeb, args.hash, confirmationTimeoutMs, args.finality ?? "packed");
     },
   });
 }

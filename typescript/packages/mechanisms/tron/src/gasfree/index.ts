@@ -3,6 +3,7 @@ export { ExactGasFreeTronScheme } from "./client/scheme";
 // GasFree shared primitives
 export {
   GasFreeAPIClient,
+  GasFreeTransactionStatusError,
   createGasFreeApiClients,
   type GasFreeAddressInfo,
   type GasFreeAsset,
@@ -23,3 +24,13 @@ export {
   getGasFreeApiBaseUrl,
   getGasFreeDomain,
 } from "../shared/gasfree/config";
+export {
+  assessTronSettlementReceipt,
+  createTronSettlementReconciliationContext,
+  parseTronSettlementReconciliationContext,
+  reconcileTronSettlement,
+  INVALID_TRANSACTION_EFFECT,
+  TRON_SETTLEMENT_RECONCILIATION_CONTEXT_VERSION,
+  type TronGasFreeSettlementReconciliationContextV1,
+  type TronSettlementReceiptAssessment,
+} from "../reconciliation";

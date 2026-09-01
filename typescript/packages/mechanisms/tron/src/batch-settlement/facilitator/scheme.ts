@@ -24,6 +24,10 @@ import { executeSettle } from "./settle";
 import { executeRefundWithSignature } from "./refund";
 import * as Errors from "../errors";
 import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "../../shared/extensions/trc20ApprovalContract";
+import {
+  parseTronSettlementReconciliationContext,
+  reconcileTronSettlement,
+} from "../../reconciliation";
 
 /**
  * Returns whether a batch envelope explicitly carries Approval sponsorship.
@@ -200,5 +204,23 @@ export class BatchSettlementTronScheme implements SchemeNetworkFacilitator {
       transaction: "",
       network: requirements.network,
     };
+  }
+
+  /**
+   * Reconcile one already-broadcast batch operation without modifying channel storage.
+   *
+   * The context is returned in `SettleResponse.extra.reconciliationContext` by
+   * every broadcast batch path, so callers can persist it with the txid.
+   *
+   * @param transaction - Original batch operation transaction id.
+   * @param reconciliationContext - Persisted operation-specific validation context.
+   * @returns Solidified final result, or settlement_pending while indeterminate.
+   */
+  async reconcile(transaction: string, reconciliationContext: unknown): Promise<SettleResponse> {
+    const parsedContext = parseTronSettlementReconciliationContext(reconciliationContext);
+    if (parsedContext.scheme !== "batch-settlement") {
+      throw new Error("invalid batch-settlement reconciliation context scheme");
+    }
+    return reconcileTronSettlement(this.signer, transaction, parsedContext);
   }
 }

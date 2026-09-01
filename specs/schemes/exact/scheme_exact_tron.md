@@ -135,13 +135,27 @@ cryptographic and term checks remain mandatory, and settlement is authoritative.
   value, validAfter, validBefore, nonce, v, r, s)`.
 - Permit2: the facilitator calls `x402ExactPermit2Proxy.settle(permit, owner, witness, signature)`.
 
-The facilitator waits for a receipt using a configurable confirmation budget (90 seconds by
-default) and returns the TRON transaction ID. It MUST re-run verification immediately before
-broadcasting. If the budget expires, receipt RPC fails, or receipt effect processing is
-indeterminate after broadcast, it returns `success: false`, `errorReason: "settlement_pending"`,
-and the original transaction ID. An explicit revert is terminal and also preserves the transaction
-ID. A caller MUST reconcile the original transaction and MUST NOT rebroadcast the authorization in
-response to `settlement_pending`.
+The synchronous settlement path reads a low-latency FullNode packed receipt using a configurable
+confirmation budget (90 seconds by default) and returns the TRON transaction ID. A packed result is
+provisional, not solidified finality. Before returning packed success, the facilitator MUST match
+the transaction target and calldata and MUST find the expected TRC-20 `Transfer` event for the
+asset, payer, recipient, and amount.
+
+If the budget expires, receipt RPC fails, or receipt/call/effect data is incomplete after
+broadcast, it returns `success: false`, `errorReason: "settlement_pending"`, and the original
+transaction ID. An explicit packed revert preserves the transaction ID but MUST still be treated as
+provisional by durable accounting. A caller MUST reconcile the original transaction and MUST NOT
+rebroadcast the authorization in response to `settlement_pending`.
+
+The SDK exposes a read-only `reconcile` method on the facilitator scheme, plus
+`createTronSettlementReconciliationContext`, `parseTronSettlementReconciliationContext`, and
+`reconcileTronSettlement` for applications that persist a versioned validation context. Persisted
+input MUST pass runtime schema and version validation before any chain read. Reconciliation MUST
+query SolidityNode solidified data and revalidate the target, calldata, and Transfer effect; it MUST
+NOT broadcast.
+The SDK also includes the versioned context in `SettleResponse.extra.reconciliationContext` for
+durable storage. Missing or malformed event fields are indeterminate and remain pending; only a
+complete receipt that proves the effect absent or different returns `invalid_transaction_effect`.
 
 ## Error Codes
 
@@ -149,7 +163,8 @@ Stable reasons include `invalid_exact_tron_scheme`, `invalid_exact_tron_network_
 `invalid_exact_tron_payload_signature`, `invalid_exact_tron_payload_recipient_mismatch`,
 `invalid_exact_tron_payload_authorization_value_mismatch`, `invalid_permit2_spender`,
 `permit2_amount_mismatch`, `permit2_token_mismatch`, `permit2_allowance_required`,
-`insufficient_funds`, `invalid_transaction_state`, `settlement_pending`, and `transaction_failed`.
+`insufficient_funds`, `invalid_transaction_state`, `invalid_transaction_effect`,
+`settlement_pending`, and `transaction_failed`.
 
 ## Security Considerations
 

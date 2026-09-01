@@ -13,6 +13,11 @@ import { verifyEIP3009, settleEIP3009 } from "./eip3009";
 import { verifyPermit2, settlePermit2 } from "./permit2";
 import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "../../shared/extensions/trc20ApprovalContract";
 import * as errors from "./errors";
+import {
+  createTronSettlementReconciliationContext,
+  parseTronSettlementReconciliationContext,
+  reconcileTronSettlement,
+} from "../../reconciliation";
 
 /**
  * TRON facilitator implementation for the Exact payment scheme.
@@ -127,5 +132,28 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
     }
 
     return settleEIP3009(this.signer, payload, requirements, rawPayload as ExactEIP3009Payload);
+  }
+
+  /**
+   * Reconcile an already-broadcast exact settlement from solidified chain data.
+   * This path is strictly read-only and never calls the settlement write path.
+   *
+   * @param transaction - Original settlement transaction id
+   * @param contextOrPayload - Persisted context, or the original payment payload
+   * @param requirements - Original requirements when rebuilding a legacy context
+   * @returns Final success/failure, or settlement_pending while indeterminate
+   */
+  async reconcile(
+    transaction: string,
+    contextOrPayload: unknown,
+    requirements?: PaymentRequirements,
+  ): Promise<SettleResponse> {
+    const reconciliationContext = requirements
+      ? createTronSettlementReconciliationContext(contextOrPayload as PaymentPayload, requirements)
+      : parseTronSettlementReconciliationContext(contextOrPayload);
+    if (reconciliationContext.scheme !== "exact") {
+      throw new Error("invalid exact reconciliation context scheme");
+    }
+    return reconcileTronSettlement(this.signer, transaction, reconciliationContext);
   }
 }

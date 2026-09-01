@@ -70,6 +70,8 @@ export type {
   FacilitatorTronSignerOptions,
   CreateClientTronSignerOptions,
   AllowanceMode,
+  TronTransactionCall,
+  TronTransactionFinality,
   TronTransactionLog,
   TronTransactionReceipt,
 } from "./signer";
@@ -151,3 +153,23 @@ export {
 
 // Shared settlement receipt semantics
 export { SETTLEMENT_PENDING } from "./shared/settleReceipt";
+export {
+  assessTronSettlementReceipt,
+  createTronBatchSettlementReconciliationContext,
+  createTronSettlementReconciliationContext,
+  parseTronSettlementReconciliationContext,
+  reconcileTronSettlement,
+  INVALID_TRANSACTION_EFFECT,
+  TRON_SETTLEMENT_RECONCILIATION_CONTEXT_VERSION,
+  type CreateTronBatchSettlementReconciliationContextOptions,
+  type TronBatchSettlementExpectedEffectV1,
+  type TronBatchSettlementOperation,
+  type TronBatchSettlementReconciliationContextV1,
+  type TronDirectSettlementReconciliationContextV1,
+  type TronExpectedCallV1,
+  type TronExpectedTransferV1,
+  type TronGasFreeSettlementReconciliationContextV1,
+  type TronSettlementReceiptAssessment,
+  type TronSettlementReconciliationContext,
+  type TronSettlementReconciliationContextV1,
+} from "./reconciliation";

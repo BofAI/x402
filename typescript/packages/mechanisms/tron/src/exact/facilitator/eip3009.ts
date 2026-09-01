@@ -9,6 +9,10 @@ import { FacilitatorTronSigner } from "../../signer";
 import { ExactEIP3009Payload } from "../../types";
 import { getTronChainId, normalizeAddressForSigning } from "../../utils";
 import { waitAndReturnSettleResponse } from "../../shared/settleReceipt";
+import {
+  createTronSettlementReconciliationContext,
+  validateTronSettlementReceipt,
+} from "../../reconciliation";
 import * as errors from "./errors";
 
 /**
@@ -140,6 +144,7 @@ export async function settleEIP3009(
   }
 
   try {
+    const reconciliationContext = createTronSettlementReconciliationContext(payload, requirements);
     const sig = tronPayload.signature!;
     const cleanSig = sig.startsWith("0x") ? sig.slice(2) : sig;
     const r = `0x${cleanSig.slice(0, 64)}`;
@@ -165,6 +170,8 @@ export async function settleEIP3009(
 
     return waitAndReturnSettleResponse(signer, tx, payload.accepted.network, payer, {
       failedStatusReason: errors.INVALID_TRANSACTION_STATE,
+      responseExtra: { reconciliationContext },
+      validateReceipt: receipt => validateTronSettlementReceipt(receipt, tx, reconciliationContext),
     });
   } catch (err) {
     return {

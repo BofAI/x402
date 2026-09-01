@@ -15,6 +15,11 @@ import { buildVoucherClaimArgs } from "./claim";
 import { waitAndReturnSettleResponse } from "../../shared/settleReceipt";
 import { readChannelState, toContractChannelConfig } from "./utils";
 import * as Errors from "../errors";
+import {
+  createTronBatchSettlementReconciliationContext,
+  type TronBatchSettlementReconciliationContextV1,
+  validateTronSettlementReceipt,
+} from "../../reconciliation";
 
 const abi = batchSettlementABI as unknown as readonly Record<string, unknown>[];
 
@@ -132,6 +137,16 @@ export async function executeRefundWithSignature(
         network,
       };
     }
+    if (refundableAmount === null) {
+      return {
+        success: false,
+        errorReason: Errors.ErrRefundAmountInvalid,
+        errorMessage: "Refund amount cannot be reconciled from the current channel state",
+        transaction: "",
+        network,
+        payer: payload.channelConfig.payer,
+      };
+    }
 
     const hasClientSig = payload.refundAuthorizerSignature !== undefined;
     const authorizerMismatch = authorizerSigner
@@ -178,6 +193,7 @@ export async function executeRefundWithSignature(
     ];
 
     let tx: string;
+    let reconciliationContext: TronBatchSettlementReconciliationContextV1;
     if (payload.claims.length > 0) {
       const claimSig =
         payload.claimAuthorizerSignature ??
@@ -198,14 +214,55 @@ export async function executeRefundWithSignature(
         claimSig,
       ]);
       const refundCalldata = encodeFunctionData(abi, "refundWithSignature", refundArgs);
+      const callArgs = [[claimCalldata, refundCalldata]] as const;
+      reconciliationContext = createTronBatchSettlementReconciliationContext({
+        operation: "refund",
+        network,
+        payer: payload.channelConfig.payer,
+        asset: payload.channelConfig.token,
+        payTo: payload.channelConfig.payer,
+        amount: refundableAmount.toString(),
+        target: address,
+        functionName: "multicall",
+        args: callArgs,
+        effect: {
+          type: "transfer",
+          transfer: {
+            token: payload.channelConfig.token,
+            from: address,
+            to: payload.channelConfig.payer,
+            amount: refundableAmount.toString(),
+          },
+        },
+      });
 
       tx = await signer.writeContract({
         address,
         abi,
         functionName: "multicall",
-        args: [[claimCalldata, refundCalldata]],
+        args: callArgs,
       });
     } else {
+      reconciliationContext = createTronBatchSettlementReconciliationContext({
+        operation: "refund",
+        network,
+        payer: payload.channelConfig.payer,
+        asset: payload.channelConfig.token,
+        payTo: payload.channelConfig.payer,
+        amount: refundableAmount.toString(),
+        target: address,
+        functionName: "refundWithSignature",
+        args: refundArgs,
+        effect: {
+          type: "transfer",
+          transfer: {
+            token: payload.channelConfig.token,
+            from: address,
+            to: payload.channelConfig.payer,
+            amount: refundableAmount.toString(),
+          },
+        },
+      });
       tx = await signer.writeContract({
         address,
         abi,
@@ -216,6 +273,8 @@ export async function executeRefundWithSignature(
 
     return waitAndReturnSettleResponse(signer, tx, network, payload.channelConfig.payer, {
       failedStatusReason: Errors.ErrRefundTransactionFailed,
+      responseExtra: { reconciliationContext },
+      validateReceipt: receipt => validateTronSettlementReceipt(receipt, tx, reconciliationContext),
       onSuccess: () => {
         const refundDetails = buildRefundExtra(payload, channelId, preState);
         return {

@@ -92,20 +92,29 @@ then verifies again. It rejects `actualAmount > signedMaximum`.
 - For `actualAmount == 0`, it returns success with an empty transaction ID and `amount: "0"`; no
   nonce is consumed on-chain.
 
-For a nonzero settlement, the facilitator waits for a receipt using a configurable confirmation
-budget (90 seconds by default). If the budget expires, receipt RPC fails, or receipt effect
-processing is indeterminate after broadcast, it returns `success: false`,
-`errorReason: "settlement_pending"`, and the original transaction ID. An explicit revert is
-terminal and also preserves the transaction ID. A caller MUST reconcile the original transaction
-and MUST NOT rebroadcast the authorization in response to `settlement_pending`.
+For a nonzero settlement, the synchronous path reads a low-latency FullNode packed receipt using a
+configurable confirmation budget (90 seconds by default). Packed status is provisional. Before
+returning packed success, the facilitator MUST match the upto proxy target and exact calldata and
+MUST find the expected TRC-20 `Transfer` event for the actual settlement amount.
+
+If the budget expires, receipt RPC fails, or receipt/call/effect data is incomplete after
+broadcast, it returns `success: false`, `errorReason: "settlement_pending"`, and the original
+transaction ID. A caller MUST reconcile the original transaction and MUST NOT rebroadcast the
+authorization. The facilitator scheme's read-only `reconcile` method, or the exported
+`parseTronSettlementReconciliationContext` and `reconcileTronSettlement` helpers with its versioned
+context, runtime-validates persisted input, queries SolidityNode solidified data, and repeats target,
+calldata, and effect validation without broadcasting.
+The versioned context is also returned in `SettleResponse.extra.reconciliationContext`. Event
+validation is three-state: incomplete or malformed logs remain pending, while only a complete,
+explicit effect mismatch is terminal.
 
 ## Error Codes
 
 Stable reasons include `invalid_upto_tron_scheme`, `invalid_upto_tron_network_mismatch`,
 `unsupported_payload_type`, `invalid_permit2_spender`, `invalid_permit2_facilitator`,
 `permit2_amount_mismatch`, `permit2_token_mismatch`, `permit2_allowance_required`,
-`upto_settlement_exceeds_amount`, `insufficient_funds`, `settlement_pending`, and
-`transaction_failed`.
+`upto_settlement_exceeds_amount`, `insufficient_funds`, `invalid_transaction_effect`,
+`settlement_pending`, and `transaction_failed`.
 
 ## Security Considerations
 

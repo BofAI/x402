@@ -22,6 +22,10 @@ import {
   verifyTrc20Sponsorship,
 } from "../../shared/extensions/trc20ApprovalResourceSponsoring";
 import { waitAndReturnSettleResponse } from "../../shared/settleReceipt";
+import {
+  createTronSettlementReconciliationContext,
+  validateTronSettlementReceipt,
+} from "../../reconciliation";
 
 interface UptoVerificationOptions {
   readonly verifySponsorship?: boolean;
@@ -292,6 +296,7 @@ export async function settleUptoPermit2(
   const proxyAddress = X402_UPTO_PERMIT2_PROXY_ADDRESSES[requirements.network]!;
 
   try {
+    const reconciliationContext = createTronSettlementReconciliationContext(payload, requirements);
     const permitTuple = [
       [
         permit2Payload.permit2Authorization.permitted.token,
@@ -317,6 +322,8 @@ export async function settleUptoPermit2(
     return waitAndReturnSettleResponse(signer, tx, payload.accepted.network, payer, {
       failedStatusReason: errors.INVALID_TRANSACTION_STATE,
       amount: settlementAmount.toString(),
+      responseExtra: { reconciliationContext },
+      validateReceipt: receipt => validateTronSettlementReceipt(receipt, tx, reconciliationContext),
     });
   } catch (err) {
     return {

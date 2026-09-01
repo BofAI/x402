@@ -142,6 +142,23 @@ receipt RPC fails, or receipt effect processing is indeterminate after broadcast
 revert is terminal and also preserves the transaction ID. The original transaction MUST be
 reconciled and MUST NOT be rebroadcast.
 
+Every broadcast response includes `extra.reconciliationContext`, built from the finalized call
+arguments before broadcast (including facilitator-generated authorizer signatures). The facilitator
+scheme exposes `reconcile(transaction, reconciliationContext)`, which queries only SolidityNode
+solidified transaction data and never changes Resource Server channel storage. Persisted input is
+first checked by the SDK's `parseTronSettlementReconciliationContext`, including its schema version.
+It verifies the exact batch contract target and calldata for deposit, claim, settle, and refund;
+deposit/refund additionally match their TRC-20 `Transfer`, settle matches the receiver/token `Settled`
+event and recovers its
+actual amount, and claim relies on the successful exact contract call because it has no token-transfer
+effect.
+
+Receipt effects use a three-state result: `match`, `definite_mismatch`, or `indeterminate`. Missing
+fields, malformed topics/data, and parsing failures are indeterminate and remain
+`settlement_pending`; only complete solidified data that proves an expected effect absent or wrong is
+terminal. Batch contexts are keyed by transaction hash and operation, not by an empty exact/upto
+authorization nonce.
+
 When an operation returns `settlement_pending`, the resource server MUST retain the corresponding
 channel reservation until the original transaction reaches a terminal status. It commits channel
 state after confirmed success and releases only the matching reservation after confirmed revert.

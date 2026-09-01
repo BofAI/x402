@@ -34,6 +34,7 @@ function fakeTronWeb(
   triggerSpy: ReturnType<typeof vi.fn>,
   broadcastSpy: ReturnType<typeof vi.fn>,
   txInfoSpy: ReturnType<typeof vi.fn> = vi.fn(),
+  soliditySpy: ReturnType<typeof vi.fn> = vi.fn(),
 ) {
   return {
     setAddress: vi.fn(),
@@ -44,6 +45,7 @@ function fakeTronWeb(
       getTransaction: vi.fn(async () => ({ ret: [{ contractRet: "REVERT" }] })),
     },
     fullNode: { request: txInfoSpy },
+    solidityNode: { request: soliditySpy },
   } as never;
 }
 
@@ -101,14 +103,29 @@ describe("createFacilitatorTronSigner — wallet path", () => {
     expect(broadcast).toHaveBeenCalledWith({ raw_data: 1, signature: ["abcd"] });
   });
 
-  it("uses the packed receipt instead of a transient preconfirm REVERT", async () => {
+  it("returns an explicitly provisional packed receipt and its call data", async () => {
     vi.useFakeTimers();
     try {
-      const txInfo = vi.fn(async () => ({
-        blockNumber: 84_101_804,
-        receipt: { result: "SUCCESS" },
-        log: [{ address: "41abc", topics: ["topic"], data: "data" }],
-      }));
+      const txInfo = vi.fn(async (endpoint: string) =>
+        endpoint.endsWith("gettransactioninfobyid")
+          ? {
+              blockNumber: 84_101_804,
+              receipt: { result: "SUCCESS" },
+              log: [{ address: "41abc", topics: ["topic"], data: "data" }],
+            }
+          : {
+              raw_data: {
+                contract: [
+                  {
+                    type: "TriggerSmartContract",
+                    parameter: {
+                      value: { contract_address: "41abc", data: "deadbeef" },
+                    },
+                  },
+                ],
+              },
+            },
+      );
       const tw = fakeTronWeb(vi.fn(), vi.fn(), txInfo);
       const signer = await makeFacilitatorSigner(tw, {
         getAddress: () => FAC_ADDR,
@@ -120,10 +137,19 @@ describe("createFacilitatorTronSigner — wallet path", () => {
 
       await expect(receiptPromise).resolves.toEqual({
         status: "success",
+        finality: "packed",
+        call: { contractAddress: "41abc", data: "deadbeef" },
         logs: [{ address: "41abc", topics: ["topic"], data: "data" }],
       });
-      expect(txInfo).toHaveBeenCalledWith(
+      expect(txInfo).toHaveBeenNthCalledWith(
+        1,
         "wallet/gettransactioninfobyid",
+        { value: TX_ID },
+        "post",
+      );
+      expect(txInfo).toHaveBeenNthCalledWith(
+        2,
+        "wallet/gettransactionbyid",
         { value: TX_ID },
         "post",
       );
@@ -149,7 +175,7 @@ describe("createFacilitatorTronSigner — wallet path", () => {
       const receiptPromise = signer.waitForTransactionReceipt({ hash: TX_ID });
       await vi.advanceTimersByTimeAsync(6_000);
 
-      await expect(receiptPromise).resolves.toEqual({ status: "pending" });
+      await expect(receiptPromise).resolves.toEqual({ status: "pending", finality: "packed" });
       expect(txInfo).toHaveBeenCalledTimes(2);
     } finally {
       vi.useRealTimers();
@@ -175,7 +201,7 @@ describe("createFacilitatorTronSigner — wallet path", () => {
       const receiptPromise = signer.waitForTransactionReceipt({ hash: TX_ID });
       await vi.advanceTimersByTimeAsync(DEFAULT_CONFIRMATION_TIMEOUT_MS);
 
-      await expect(receiptPromise).resolves.toEqual({ status: "pending" });
+      await expect(receiptPromise).resolves.toEqual({ status: "pending", finality: "packed" });
     } finally {
       vi.useRealTimers();
     }
@@ -187,7 +213,17 @@ describe("createFacilitatorTronSigner — wallet path", () => {
       const txInfo = vi
         .fn()
         .mockRejectedValueOnce(new Error("temporary RPC error"))
-        .mockResolvedValueOnce({ blockNumber: 1, receipt: { result: "SUCCESS" } });
+        .mockResolvedValueOnce({ blockNumber: 1, receipt: { result: "SUCCESS" } })
+        .mockResolvedValueOnce({
+          raw_data: {
+            contract: [
+              {
+                type: "TriggerSmartContract",
+                parameter: { value: { contract_address: "41abc", data: "deadbeef" } },
+              },
+            ],
+          },
+        });
       const signer = await makeFacilitatorSigner(
         fakeTronWeb(vi.fn(), vi.fn(), txInfo),
         {
@@ -200,8 +236,12 @@ describe("createFacilitatorTronSigner — wallet path", () => {
       const receiptPromise = signer.waitForTransactionReceipt({ hash: TX_ID });
       await vi.advanceTimersByTimeAsync(3_000);
 
-      await expect(receiptPromise).resolves.toEqual({ status: "success" });
-      expect(txInfo).toHaveBeenCalledTimes(2);
+      await expect(receiptPromise).resolves.toEqual({
+        status: "success",
+        finality: "packed",
+        call: { contractAddress: "41abc", data: "deadbeef" },
+      });
+      expect(txInfo).toHaveBeenCalledTimes(3);
     } finally {
       vi.useRealTimers();
     }
@@ -223,8 +263,92 @@ describe("createFacilitatorTronSigner — wallet path", () => {
       const receiptPromise = signer.waitForTransactionReceipt({ hash: TX_ID });
       await vi.advanceTimersByTimeAsync(6_000);
 
-      await expect(receiptPromise).resolves.toEqual({ status: "pending" });
+      await expect(receiptPromise).resolves.toEqual({ status: "pending", finality: "packed" });
       expect(txInfo).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it.each([undefined, "DEFAULT"])(
+    "keeps an incomplete receipt result (%s) pending",
+    async result => {
+      vi.useFakeTimers();
+      try {
+        const txInfo = vi.fn(async () => ({
+          blockNumber: 1,
+          receipt: result === undefined ? {} : { result },
+        }));
+        const signer = await makeFacilitatorSigner(
+          fakeTronWeb(vi.fn(), vi.fn(), txInfo),
+          {
+            getAddress: () => FAC_ADDR,
+            signTransaction: async tx => tx,
+          },
+          { confirmationTimeoutMs: 6_000 },
+        );
+
+        const receiptPromise = signer.waitForTransactionReceipt({ hash: TX_ID });
+        await vi.advanceTimersByTimeAsync(6_000);
+
+        await expect(receiptPromise).resolves.toEqual({ status: "pending", finality: "packed" });
+      } finally {
+        vi.useRealTimers();
+      }
+    },
+  );
+
+  it("queries SolidityNode when solidified finality is requested", async () => {
+    vi.useFakeTimers();
+    try {
+      const fullNode = vi.fn();
+      const solidityNode = vi.fn(async (endpoint: string) =>
+        endpoint.endsWith("gettransactioninfobyid")
+          ? { blockNumber: 84_101_804, receipt: { result: "SUCCESS" }, log: [] }
+          : {
+              raw_data: {
+                contract: [
+                  {
+                    type: "TriggerSmartContract",
+                    parameter: {
+                      value: { contract_address: "41abc", data: "deadbeef" },
+                    },
+                  },
+                ],
+              },
+            },
+      );
+      const signer = await makeFacilitatorSigner(
+        fakeTronWeb(vi.fn(), vi.fn(), fullNode, solidityNode),
+        {
+          getAddress: () => FAC_ADDR,
+          signTransaction: async tx => tx,
+        },
+      );
+
+      const receiptPromise = signer.waitForTransactionReceipt({
+        hash: TX_ID,
+        finality: "solidified",
+      });
+      await vi.runAllTimersAsync();
+
+      await expect(receiptPromise).resolves.toMatchObject({
+        status: "success",
+        finality: "solidified",
+      });
+      expect(fullNode).not.toHaveBeenCalled();
+      expect(solidityNode).toHaveBeenNthCalledWith(
+        1,
+        "walletsolidity/gettransactioninfobyid",
+        { value: TX_ID },
+        "post",
+      );
+      expect(solidityNode).toHaveBeenNthCalledWith(
+        2,
+        "walletsolidity/gettransactionbyid",
+        { value: TX_ID },
+        "post",
+      );
     } finally {
       vi.useRealTimers();
     }

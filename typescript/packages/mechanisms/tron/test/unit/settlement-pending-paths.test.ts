@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { utils as tronUtils } from "tronweb";
 import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
 import type { FacilitatorTronSigner } from "../../src/signer";
 import { settleEIP3009 } from "../../src/exact/facilitator/eip3009";
@@ -13,6 +14,8 @@ import {
   X402_UPTO_PERMIT2_PROXY_ADDRESSES,
 } from "../../src/constants";
 import { normalizeAddressForSigning } from "../../src/utils";
+import { BatchSettlementTronScheme } from "../../src/batch-settlement/facilitator/scheme";
+import type { TronBatchSettlementReconciliationContextV1 } from "../../src/reconciliation";
 
 const NETWORK = "tron:0xcd8690dc";
 const TX = "ef".repeat(32);
@@ -164,7 +167,55 @@ describe("TRON settlement paths preserve pending txids", () => {
       success: false,
       errorReason: "settlement_pending",
       transaction: TX,
+      extra: {
+        reconciliationContext: {
+          scheme: "batch-settlement",
+          operation: "claim",
+        },
+      },
     });
+  });
+
+  it("reconciles a persisted batch claim context without broadcasting", async () => {
+    const broadcastSigner = pendingSigner();
+    const pending = await executeClaimWithSignature(
+      broadcastSigner,
+      {
+        type: "claim",
+        claims: [],
+        claimAuthorizerSignature: `0x${"66".repeat(65)}`,
+      },
+      requirements,
+      undefined,
+    );
+    const context = pending.extra
+      ?.reconciliationContext as TronBatchSettlementReconciliationContextV1;
+    const write = vi.mocked(broadcastSigner.writeContract).mock.calls[0]![0];
+    const iface = new tronUtils.ethersUtils.Interface(write.abi);
+    const target = normalizeAddressForSigning(write.address);
+    const reconciliationSigner = pendingSigner();
+    vi.mocked(reconciliationSigner.writeContract).mockRejectedValue(
+      new Error("reconciliation must not broadcast"),
+    );
+    vi.mocked(reconciliationSigner.waitForTransactionReceipt).mockResolvedValue({
+      status: "success",
+      finality: "solidified",
+      call: {
+        contractAddress: `41${target.slice(2)}`,
+        data: iface.encodeFunctionData(write.functionName, [...write.args]).replace(/^0x/, ""),
+      },
+      logs: [],
+    });
+    const scheme = new BatchSettlementTronScheme(reconciliationSigner);
+
+    const result = await scheme.reconcile(TX, context);
+
+    expect(result).toMatchObject({ success: true, transaction: TX, amount: "" });
+    expect(reconciliationSigner.waitForTransactionReceipt).toHaveBeenCalledWith({
+      hash: TX,
+      finality: "solidified",
+    });
+    expect(reconciliationSigner.writeContract).not.toHaveBeenCalled();
   });
 
   it("maps batch settle pending without performing the post-receipt read", async () => {
@@ -181,8 +232,76 @@ describe("TRON settlement paths preserve pending txids", () => {
       success: false,
       errorReason: "settlement_pending",
       transaction: TX,
+      extra: {
+        reconciliationContext: {
+          scheme: "batch-settlement",
+          operation: "settle",
+        },
+      },
     });
     expect(readContract).toHaveBeenCalledTimes(1);
+  });
+
+  it("derives the batch settle amount from a validated Settled event", async () => {
+    let write: Parameters<FacilitatorTronSigner["writeContract"]>[0] | undefined;
+    const signer: FacilitatorTronSigner = {
+      getAddresses: () => [PAYER],
+      readContract: vi.fn(async () => [100n, 0n]),
+      verifyTypedData: vi.fn(async () => true),
+      writeContract: vi.fn(async args => {
+        write = args;
+        return TX;
+      }),
+      waitForTransactionReceipt: vi.fn(async () => {
+        const call = write!;
+        const target = normalizeAddressForSigning(call.address);
+        const receiver = normalizeAddressForSigning(RECEIVER);
+        const token = normalizeAddressForSigning(TOKEN);
+        const iface = new tronUtils.ethersUtils.Interface(call.abi);
+        const settledTopic = tronUtils.ethersUtils
+          .keccak256(tronUtils.ethersUtils.toUtf8Bytes("Settled(address,address,address,uint128)"))
+          .replace(/^0x/, "");
+        return {
+          status: "success" as const,
+          finality: "packed" as const,
+          call: {
+            contractAddress: `41${target.slice(2)}`,
+            data: iface.encodeFunctionData(call.functionName, [...call.args]).replace(/^0x/, ""),
+          },
+          logs: [
+            {
+              address: target.slice(2),
+              topics: [
+                settledTopic,
+                receiver.slice(2).padStart(64, "0"),
+                token.slice(2).padStart(64, "0"),
+                normalizeAddressForSigning(PAYER).slice(2).padStart(64, "0"),
+              ],
+              data: BigInt(100).toString(16).padStart(64, "0"),
+            },
+          ],
+        };
+      }),
+    };
+
+    const result = await executeSettle(
+      signer,
+      { type: "settle", receiver: RECEIVER, token: TOKEN },
+      requirements,
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      transaction: TX,
+      amount: "100",
+      extra: {
+        reconciliationContext: {
+          scheme: "batch-settlement",
+          operation: "settle",
+        },
+      },
+    });
+    expect(signer.readContract).toHaveBeenCalledTimes(1);
   });
 
   it("maps batch refund pending", async () => {
@@ -228,6 +347,12 @@ describe("TRON settlement paths preserve pending txids", () => {
       errorReason: "settlement_pending",
       transaction: TX,
       payer: PAYER,
+      extra: {
+        reconciliationContext: {
+          scheme: "batch-settlement",
+          operation: "refund",
+        },
+      },
     });
   });
 });
