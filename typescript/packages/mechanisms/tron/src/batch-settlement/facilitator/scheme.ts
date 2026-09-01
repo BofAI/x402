@@ -27,6 +27,7 @@ import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "../../shared/extensions/
 import {
   parseTronSettlementReconciliationContext,
   reconcileTronSettlement,
+  type TronReconciliationOptions,
 } from "../../reconciliation";
 
 /**
@@ -214,13 +215,18 @@ export class BatchSettlementTronScheme implements SchemeNetworkFacilitator {
    *
    * @param transaction - Original batch operation transaction id.
    * @param reconciliationContext - Persisted operation-specific validation context.
+   * @param options - Single-query timeout and cancellation signal.
    * @returns Solidified final result, or settlement_pending while indeterminate.
    */
-  async reconcile(transaction: string, reconciliationContext: unknown): Promise<SettleResponse> {
+  async reconcile(
+    transaction: string,
+    reconciliationContext: unknown,
+    options?: TronReconciliationOptions,
+  ): Promise<SettleResponse> {
     const parsedContext = parseTronSettlementReconciliationContext(reconciliationContext);
     if (parsedContext.scheme !== "batch-settlement") {
       throw new Error("invalid batch-settlement reconciliation context scheme");
     }
-    return reconcileTronSettlement(this.signer, transaction, parsedContext);
+    return reconcileTronSettlement(this.signer, transaction, parsedContext, options);
   }
 }

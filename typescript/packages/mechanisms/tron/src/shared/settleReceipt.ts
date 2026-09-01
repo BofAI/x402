@@ -15,7 +15,7 @@ export interface WaitForSettleReceiptOptions {
   failedStatusReason?: string;
   /** Settled amount attached to the default success response. */
   amount?: string;
-  /** Required receipt source. Reconciliation uses `solidified`; settle defaults to packed. */
+  /** Required receipt source. Synchronous settlement defaults to packed. */
   finality?: TronTransactionFinality;
   /** Durable metadata to attach to every post-broadcast response. */
   responseExtra?: Record<string, unknown>;
@@ -23,6 +23,14 @@ export interface WaitForSettleReceiptOptions {
   validateReceipt?: (receipt: TronTransactionReceipt) => SettleResponse | undefined;
   /** Builds a custom success response, including any post-receipt state reads. */
   onSuccess?: (receipt: TronTransactionReceipt) => SettleResponse | Promise<SettleResponse>;
+}
+
+/** Options for one bounded receipt read without polling. */
+export interface ReadForSettleReceiptOptions extends WaitForSettleReceiptOptions {
+  /** Maximum duration of the single receipt/body lookup. */
+  timeoutMs: number;
+  /** Caller cancellation used by background workers during graceful shutdown. */
+  signal?: AbortSignal;
 }
 
 /**
@@ -46,6 +54,139 @@ export async function waitAndReturnSettleResponse(
   payer: string | undefined,
   options: WaitForSettleReceiptOptions = {},
 ): Promise<SettleResponse> {
+  const invalidResponse = invalidTransactionResponse(tx, network, payer, options);
+  if (invalidResponse) return invalidResponse;
+
+  let receipt: TronTransactionReceipt;
+  try {
+    receipt = await signer.waitForTransactionReceipt({
+      hash: tx,
+      ...(options.finality ? { finality: options.finality } : {}),
+    });
+  } catch (error) {
+    return settlementPendingResponse(tx, network, payer, error, options.responseExtra);
+  }
+
+  return settleResponseFromReceipt(receipt, tx, network, payer, options);
+}
+
+/**
+ * Read and classify an already-broadcast transaction exactly once.
+ *
+ * Unlike {@link waitAndReturnSettleResponse}, this function never polls. The
+ * caller owns retry, backoff, concurrency, and scheduling.
+ *
+ * @param signer - Signer exposing an optional one-shot receipt reader.
+ * @param tx - Transaction id returned by the broadcast operation.
+ * @param network - Network on which the transaction was broadcast.
+ * @param payer - Payer address, when known.
+ * @param options - Single-query bound plus receipt-classification behavior.
+ * @returns Settlement response from the current solidified view.
+ */
+export async function readAndReturnSettleResponse(
+  signer: Pick<FacilitatorTronSigner, "getTransactionReceipt">,
+  tx: string,
+  network: Network,
+  payer: string | undefined,
+  options: ReadForSettleReceiptOptions,
+): Promise<SettleResponse> {
+  const invalidResponse = invalidTransactionResponse(tx, network, payer, options);
+  if (invalidResponse) return invalidResponse;
+  if (!signer.getTransactionReceipt) {
+    throw new Error("TRON reconciliation requires signer.getTransactionReceipt");
+  }
+  if (options.signal?.aborted) {
+    throw options.signal.reason instanceof Error
+      ? options.signal.reason
+      : new Error("TRON reconciliation was aborted");
+  }
+
+  let receipt: TronTransactionReceipt;
+  try {
+    receipt = await receiptQueryWithin(
+      signer.getTransactionReceipt({
+        hash: tx,
+        ...(options.finality ? { finality: options.finality } : {}),
+        timeoutMs: options.timeoutMs,
+        ...(options.signal ? { signal: options.signal } : {}),
+      }),
+      options.timeoutMs,
+      options.signal,
+    );
+  } catch (error) {
+    if (options.signal?.aborted) throw error;
+    return settlementPendingResponse(tx, network, payer, error, options.responseExtra);
+  }
+
+  return settleResponseFromReceipt(receipt, tx, network, payer, options);
+}
+
+/**
+ * Enforce the SDK-level bound even when a custom signer ignores query options.
+ *
+ * @param query - In-flight one-shot signer query.
+ * @param timeoutMs - Maximum duration for this attempt.
+ * @param signal - Optional worker cancellation signal.
+ * @returns The query result within the caller's bound.
+ */
+async function receiptQueryWithin<T>(
+  query: Promise<T>,
+  timeoutMs: number,
+  signal?: AbortSignal,
+): Promise<T> {
+  if (signal?.aborted) {
+    throw signal.reason instanceof Error
+      ? signal.reason
+      : new Error("TRON reconciliation was aborted");
+  }
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let abortListener: (() => void) | undefined;
+  try {
+    return await Promise.race([
+      query,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error("TRON reconciliation receipt query timed out")),
+          timeoutMs,
+        );
+      }),
+      ...(signal
+        ? [
+            new Promise<never>((_, reject) => {
+              abortListener = () =>
+                reject(
+                  signal.reason instanceof Error
+                    ? signal.reason
+                    : new Error("TRON reconciliation was aborted"),
+                );
+              signal.addEventListener("abort", abortListener, { once: true });
+            }),
+          ]
+        : []),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+    if (signal && abortListener) signal.removeEventListener("abort", abortListener);
+  }
+}
+
+/**
+ * Map one observed receipt into terminal or pending protocol semantics.
+ *
+ * @param receipt - Receipt returned by a wait or one-shot read.
+ * @param tx - Original transaction id.
+ * @param network - Settlement network.
+ * @param payer - Settlement payer, when known.
+ * @param options - Scheme-specific classification behavior.
+ * @returns Settlement response derived from the receipt.
+ */
+async function settleResponseFromReceipt(
+  receipt: TronTransactionReceipt,
+  tx: string,
+  network: Network,
+  payer: string | undefined,
+  options: WaitForSettleReceiptOptions,
+): Promise<SettleResponse> {
   const {
     failedStatusReason = "invalid_transaction_state",
     amount,
@@ -54,35 +195,13 @@ export async function waitAndReturnSettleResponse(
     validateReceipt,
     onSuccess,
   } = options;
-
-  if (!isValidTronTxHash(tx)) {
-    return {
-      success: false,
-      errorReason: failedStatusReason,
-      errorMessage: `signer returned an invalid transaction hash: ${String(tx)}`,
-      transaction: "",
-      network,
-      payer,
-    };
-  }
-
-  let receipt: TronTransactionReceipt;
-  try {
-    receipt = await signer.waitForTransactionReceipt({
-      hash: tx,
-      ...(finality ? { finality } : {}),
-    });
-  } catch (error) {
-    return settlementPendingResponse(tx, network, payer, error, responseExtra);
-  }
-
   try {
     if (receipt.status === "pending") {
       return settlementPendingResponse(
         tx,
         network,
         payer,
-        new Error("transaction receipt remained pending within the confirmation budget"),
+        new Error("transaction receipt is not available at the requested finality"),
         responseExtra,
       );
     }
@@ -128,6 +247,32 @@ export async function waitAndReturnSettleResponse(
   } catch (error) {
     return settlementPendingResponse(tx, network, payer, error, responseExtra);
   }
+}
+
+/**
+ * Reject an invalid signer-supplied transaction id before any receipt query.
+ *
+ * @param tx - Candidate transaction id.
+ * @param network - Settlement network.
+ * @param payer - Settlement payer, when known.
+ * @param options - Scheme-specific failure reason.
+ * @returns Terminal invalid-hash response, or undefined for a valid id.
+ */
+function invalidTransactionResponse(
+  tx: string,
+  network: Network,
+  payer: string | undefined,
+  options: WaitForSettleReceiptOptions,
+): SettleResponse | undefined {
+  if (isValidTronTxHash(tx)) return undefined;
+  return {
+    success: false,
+    errorReason: options.failedStatusReason ?? "invalid_transaction_state",
+    errorMessage: `signer returned an invalid transaction hash: ${String(tx)}`,
+    transaction: "",
+    network,
+    payer,
+  };
 }
 
 /**

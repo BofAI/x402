@@ -17,6 +17,7 @@ import {
   createTronSettlementReconciliationContext,
   parseTronSettlementReconciliationContext,
   reconcileTronSettlement,
+  type TronReconciliationOptions,
   type TronSettlementReconciliationContext,
 } from "../../reconciliation";
 
@@ -257,22 +258,20 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
    * Reconcile an already-relayed GasFree transaction from solidified chain data.
    *
    * @param transaction - Relayer-provided on-chain transaction id.
-   * @param contextOrPayload - Persisted context, or the original signed payload.
-   * @param requirements - Original requirements when rebuilding a legacy context.
+   * @param reconciliationContext - Persisted exact_gasfree reconciliation context.
+   * @param options - Single-query timeout and cancellation signal.
    * @returns Final success/failure, or settlement_pending while indeterminate.
    */
   async reconcile(
     transaction: string,
-    contextOrPayload: unknown,
-    requirements?: PaymentRequirements,
+    reconciliationContext: unknown,
+    options?: TronReconciliationOptions,
   ): Promise<SettleResponse> {
-    const reconciliationContext = requirements
-      ? createTronSettlementReconciliationContext(contextOrPayload as PaymentPayload, requirements)
-      : parseTronSettlementReconciliationContext(contextOrPayload);
-    if (reconciliationContext.scheme !== "exact_gasfree") {
+    const parsedContext = parseTronSettlementReconciliationContext(reconciliationContext);
+    if (parsedContext.scheme !== "exact_gasfree") {
       throw new Error("invalid exact_gasfree reconciliation context scheme");
     }
-    return reconcileTronSettlement(this.signer, transaction, reconciliationContext);
+    return reconcileTronSettlement(this.signer, transaction, parsedContext, options);
   }
 
   /**

@@ -144,10 +144,12 @@ reconciled and MUST NOT be rebroadcast.
 
 Every broadcast response includes `extra.reconciliationContext`, built from the finalized call
 arguments before broadcast (including facilitator-generated authorizer signatures). The facilitator
-scheme exposes `reconcile(transaction, reconciliationContext)`, which queries only SolidityNode
-solidified transaction data and never changes Resource Server channel storage. Persisted input is
-first checked by the SDK's `parseTronSettlementReconciliationContext`, including its schema version.
-It verifies the exact batch contract target and calldata for deposit, claim, settle, and refund;
+scheme exposes `reconcile(transaction, reconciliationContext, options)`, which performs one bounded
+SolidityNode query attempt and never changes Resource Server channel storage. It does not poll,
+sleep, retry, or apply backoff; the calling Facilitator owns scheduling and can pass a per-attempt
+timeout and `AbortSignal`. Persisted input is first checked by the SDK's
+`parseTronSettlementReconciliationContext`, including its schema version. It verifies the exact batch
+contract target and calldata for deposit, claim, settle, and refund;
 deposit/refund additionally match their TRC-20 `Transfer`, settle matches the receiver/token `Settled`
 event and recovers its
 actual amount, and claim relies on the successful exact contract call because it has no token-transfer

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createFacilitatorTronSigner,
   DEFAULT_CONFIRMATION_TIMEOUT_MS,
+  DEFAULT_RECEIPT_QUERY_TIMEOUT_MS,
   type FacilitatorTronWallet,
 } from "../../src/signer";
 import { buildTronWeb } from "../../src/rpc";
@@ -349,6 +350,114 @@ describe("createFacilitatorTronSigner — wallet path", () => {
         { value: TX_ID },
         "post",
       );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("reads a solidified receipt once without polling", async () => {
+    vi.useFakeTimers();
+    try {
+      expect(DEFAULT_RECEIPT_QUERY_TIMEOUT_MS).toBe(10_000);
+      const fullNode = vi.fn();
+      const solidityNode = vi.fn(async () => ({}));
+      const signer = await makeFacilitatorSigner(
+        fakeTronWeb(vi.fn(), vi.fn(), fullNode, solidityNode),
+        {
+          getAddress: () => FAC_ADDR,
+          signTransaction: async tx => tx,
+        },
+      );
+
+      const receipt = await signer.getTransactionReceipt!({
+        hash: TX_ID,
+        finality: "solidified",
+      });
+
+      expect(receipt).toEqual({ status: "pending", finality: "solidified" });
+      expect(fullNode).not.toHaveBeenCalled();
+      expect(solidityNode).toHaveBeenCalledTimes(1);
+      expect(solidityNode).toHaveBeenCalledWith(
+        "walletsolidity/gettransactioninfobyid",
+        { value: TX_ID },
+        "post",
+      );
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not retry a failed one-shot receipt query", async () => {
+    const solidityNode = vi.fn(async () => {
+      throw new Error("rpc unavailable");
+    });
+    const signer = await makeFacilitatorSigner(
+      fakeTronWeb(vi.fn(), vi.fn(), vi.fn(), solidityNode),
+      {
+        getAddress: () => FAC_ADDR,
+        signTransaction: async tx => tx,
+      },
+    );
+
+    await expect(
+      signer.getTransactionReceipt!({ hash: TX_ID, finality: "solidified" }),
+    ).rejects.toThrow("rpc unavailable");
+    expect(solidityNode).toHaveBeenCalledTimes(1);
+  });
+
+  it("bounds a one-shot receipt query", async () => {
+    vi.useFakeTimers();
+    try {
+      const solidityNode = vi.fn(() => new Promise(() => undefined));
+      const signer = await makeFacilitatorSigner(
+        fakeTronWeb(vi.fn(), vi.fn(), vi.fn(), solidityNode),
+        {
+          getAddress: () => FAC_ADDR,
+          signTransaction: async tx => tx,
+        },
+      );
+
+      const receiptPromise = signer.getTransactionReceipt!({
+        hash: TX_ID,
+        finality: "solidified",
+        timeoutMs: 500,
+      });
+      const expectation = expect(receiptPromise).rejects.toThrow("TRON receipt RPC timed out");
+      await vi.advanceTimersByTimeAsync(500);
+
+      await expectation;
+      expect(solidityNode).toHaveBeenCalledTimes(1);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("cancels a one-shot receipt query during worker shutdown", async () => {
+    vi.useFakeTimers();
+    try {
+      const solidityNode = vi.fn(() => new Promise(() => undefined));
+      const signer = await makeFacilitatorSigner(
+        fakeTronWeb(vi.fn(), vi.fn(), vi.fn(), solidityNode),
+        {
+          getAddress: () => FAC_ADDR,
+          signTransaction: async tx => tx,
+        },
+      );
+      const controller = new AbortController();
+
+      const receiptPromise = signer.getTransactionReceipt!({
+        hash: TX_ID,
+        finality: "solidified",
+        signal: controller.signal,
+      });
+      const expectation = expect(receiptPromise).rejects.toThrow("worker shutdown");
+      controller.abort(new Error("worker shutdown"));
+
+      await expectation;
+      expect(solidityNode).toHaveBeenCalledTimes(1);
+      expect(vi.getTimerCount()).toBe(0);
     } finally {
       vi.useRealTimers();
     }

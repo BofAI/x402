@@ -32,6 +32,7 @@ function pendingSigner(
     verifyTypedData: vi.fn(async () => true),
     writeContract: vi.fn(async () => TX),
     waitForTransactionReceipt: vi.fn(async () => ({ status: "pending" })),
+    getTransactionReceipt: vi.fn(async () => ({ status: "pending" })),
   };
 }
 
@@ -197,7 +198,7 @@ describe("TRON settlement paths preserve pending txids", () => {
     vi.mocked(reconciliationSigner.writeContract).mockRejectedValue(
       new Error("reconciliation must not broadcast"),
     );
-    vi.mocked(reconciliationSigner.waitForTransactionReceipt).mockResolvedValue({
+    vi.mocked(reconciliationSigner.getTransactionReceipt!).mockResolvedValue({
       status: "success",
       finality: "solidified",
       call: {
@@ -211,10 +212,12 @@ describe("TRON settlement paths preserve pending txids", () => {
     const result = await scheme.reconcile(TX, context);
 
     expect(result).toMatchObject({ success: true, transaction: TX, amount: "" });
-    expect(reconciliationSigner.waitForTransactionReceipt).toHaveBeenCalledWith({
+    expect(reconciliationSigner.getTransactionReceipt).toHaveBeenCalledWith({
       hash: TX,
       finality: "solidified",
+      timeoutMs: 10_000,
     });
+    expect(reconciliationSigner.waitForTransactionReceipt).not.toHaveBeenCalled();
     expect(reconciliationSigner.writeContract).not.toHaveBeenCalled();
   });
 

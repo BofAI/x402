@@ -151,8 +151,9 @@ The SDK exposes a read-only `reconcile` method on the facilitator scheme, plus
 `createTronSettlementReconciliationContext`, `parseTronSettlementReconciliationContext`, and
 `reconcileTronSettlement` for applications that persist a versioned validation context. Persisted
 input MUST pass runtime schema and version validation before any chain read. Reconciliation MUST
-query SolidityNode solidified data and revalidate the target, calldata, and Transfer effect; it MUST
-NOT broadcast.
+perform one bounded SolidityNode query attempt and revalidate the target, calldata, and Transfer
+effect; it MUST NOT broadcast, poll, sleep, retry, or apply backoff. The calling Facilitator owns
+retry scheduling and can supply a per-attempt timeout and `AbortSignal`.
 The SDK also includes the versioned context in `SettleResponse.extra.reconciliationContext` for
 durable storage. Missing or malformed event fields are indeterminate and remain pending; only a
 complete receipt that proves the effect absent or different returns `invalid_transaction_effect`.

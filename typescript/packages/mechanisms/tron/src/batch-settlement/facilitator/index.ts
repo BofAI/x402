@@ -10,5 +10,6 @@ export {
   type TronBatchSettlementExpectedEffectV1,
   type TronBatchSettlementOperation,
   type TronBatchSettlementReconciliationContextV1,
+  type TronReconciliationOptions,
   type TronSettlementReceiptAssessment,
 } from "../../reconciliation";

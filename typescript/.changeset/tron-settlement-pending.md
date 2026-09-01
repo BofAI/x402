@@ -12,6 +12,9 @@ Return a durable versioned reconciliation context with broadcast responses and k
 malformed receipt data pending via explicit match/mismatch/indeterminate classification. Runtime-
 validate persisted context versions before reconciliation and reject malformed GasFree relayer
 transaction hashes instead of returning unreconcilable success or pending records.
+Keep synchronous settlement receipt polling separate from reconciliation: each reconciliation call
+now performs one bounded solidified query with optional timeout/cancellation, leaving scanning,
+retry, and backoff exclusively to the Facilitator worker.
 
 Increase the default HTTP facilitator client timeout to 120 seconds so the default TRON receipt
 budget leaves time to return the settlement response.

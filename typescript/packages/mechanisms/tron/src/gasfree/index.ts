@@ -32,5 +32,6 @@ export {
   INVALID_TRANSACTION_EFFECT,
   TRON_SETTLEMENT_RECONCILIATION_CONTEXT_VERSION,
   type TronGasFreeSettlementReconciliationContextV1,
+  type TronReconciliationOptions,
   type TronSettlementReceiptAssessment,
 } from "../reconciliation";

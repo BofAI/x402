@@ -102,8 +102,9 @@ broadcast, it returns `success: false`, `errorReason: "settlement_pending"`, and
 transaction ID. A caller MUST reconcile the original transaction and MUST NOT rebroadcast the
 authorization. The facilitator scheme's read-only `reconcile` method, or the exported
 `parseTronSettlementReconciliationContext` and `reconcileTronSettlement` helpers with its versioned
-context, runtime-validates persisted input, queries SolidityNode solidified data, and repeats target,
-calldata, and effect validation without broadcasting.
+context, runtime-validates persisted input, performs one bounded SolidityNode query attempt, and
+repeats target, calldata, and effect validation without broadcasting. It does not poll or retry;
+the calling Facilitator owns retry/backoff and can supply a per-attempt timeout and `AbortSignal`.
 The versioned context is also returned in `SettleResponse.extra.reconciliationContext`. Event
 validation is three-state: incomplete or malformed logs remain pending, while only a complete,
 explicit effect mismatch is terminal.

@@ -124,14 +124,15 @@ Every valid response that carries an on-chain hash also carries a versioned
 `extra.reconciliationContext`. Relayer values MUST pass the SDK's TRON transaction-hash validator;
 a malformed non-empty value is returned as `gasfree_invalid_transaction_hash`, never as success or
 pending. The facilitator scheme exposes a read-only `reconcile(transaction, reconciliationContext)`
-method (while retaining the payload/requirements form for compatibility), and the shared
-`createTronSettlementReconciliationContext`, `parseTronSettlementReconciliationContext`, and
-`reconcileTronSettlement` helpers support `exact_gasfree`. The parser MUST validate the persisted
-schema version and fields before any chain read. Reconciliation reads a SolidityNode
-solidified receipt, requires the top-level call target to be the network's GasFreeController, and
-matches the signed-value TRC-20 `Transfer` from `gasfreeAddress` to the required receiver. Because
-the third-party relayer owns the exact controller calldata encoding, the durable context constrains
-the controller target and signed transfer effect rather than an SDK-generated calldata hash.
+method, and the shared `createTronSettlementReconciliationContext`,
+`parseTronSettlementReconciliationContext`, and `reconcileTronSettlement` helpers support
+`exact_gasfree`. The parser MUST validate the persisted schema version and fields before any chain
+read. Reconciliation performs one bounded SolidityNode query attempt, requires the top-level call
+target to be the network's GasFreeController, and matches the signed-value TRC-20 `Transfer` from
+`gasfreeAddress` to the required receiver. It MUST NOT poll or retry; the calling Facilitator owns
+retry/backoff and can supply a per-attempt timeout and `AbortSignal`. Because the third-party relayer
+owns the exact controller calldata encoding, the durable context constrains the controller target
+and signed transfer effect rather than an SDK-generated calldata hash.
 Missing or malformed call/log fields remain `settlement_pending`; only a complete, explicit
 mismatch is terminal.
 

@@ -10,5 +10,6 @@ export {
   TRON_SETTLEMENT_RECONCILIATION_CONTEXT_VERSION,
   type TronSettlementReconciliationContext,
   type TronSettlementReconciliationContextV1,
+  type TronReconciliationOptions,
   type TronSettlementReceiptAssessment,
 } from "../../reconciliation";

@@ -60,6 +60,7 @@ export {
   normalizeSignedTronTransaction,
   serializeSignedTronTransaction,
   DEFAULT_CONFIRMATION_TIMEOUT_MS,
+  DEFAULT_RECEIPT_QUERY_TIMEOUT_MS,
 } from "./signer";
 export type {
   ClientTronSigner,
@@ -74,6 +75,7 @@ export type {
   TronTransactionFinality,
   TronTransactionLog,
   TronTransactionReceipt,
+  TronTransactionReceiptQuery,
 } from "./signer";
 export {
   createTrc20ApprovalPolicy,
@@ -169,6 +171,7 @@ export {
   type TronExpectedCallV1,
   type TronExpectedTransferV1,
   type TronGasFreeSettlementReconciliationContextV1,
+  type TronReconciliationOptions,
   type TronSettlementReceiptAssessment,
   type TronSettlementReconciliationContext,
   type TronSettlementReconciliationContextV1,

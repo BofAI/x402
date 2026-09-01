@@ -14,9 +14,9 @@ import { verifyPermit2, settlePermit2 } from "./permit2";
 import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "../../shared/extensions/trc20ApprovalContract";
 import * as errors from "./errors";
 import {
-  createTronSettlementReconciliationContext,
   parseTronSettlementReconciliationContext,
   reconcileTronSettlement,
+  type TronReconciliationOptions,
 } from "../../reconciliation";
 
 /**
@@ -139,21 +139,19 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
    * This path is strictly read-only and never calls the settlement write path.
    *
    * @param transaction - Original settlement transaction id
-   * @param contextOrPayload - Persisted context, or the original payment payload
-   * @param requirements - Original requirements when rebuilding a legacy context
+   * @param reconciliationContext - Persisted exact reconciliation context
+   * @param options - Single-query timeout and cancellation signal
    * @returns Final success/failure, or settlement_pending while indeterminate
    */
   async reconcile(
     transaction: string,
-    contextOrPayload: unknown,
-    requirements?: PaymentRequirements,
+    reconciliationContext: unknown,
+    options?: TronReconciliationOptions,
   ): Promise<SettleResponse> {
-    const reconciliationContext = requirements
-      ? createTronSettlementReconciliationContext(contextOrPayload as PaymentPayload, requirements)
-      : parseTronSettlementReconciliationContext(contextOrPayload);
-    if (reconciliationContext.scheme !== "exact") {
+    const parsedContext = parseTronSettlementReconciliationContext(reconciliationContext);
+    if (parsedContext.scheme !== "exact") {
       throw new Error("invalid exact reconciliation context scheme");
     }
-    return reconcileTronSettlement(this.signer, transaction, reconciliationContext);
+    return reconcileTronSettlement(this.signer, transaction, parsedContext, options);
   }
 }

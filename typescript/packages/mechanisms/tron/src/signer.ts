@@ -17,6 +17,9 @@ export type AllowanceMode = "auto" | "skip" | "interactive";
 /** Default time budget for observing a packed TRON receipt. */
 export const DEFAULT_CONFIRMATION_TIMEOUT_MS = 90_000;
 
+/** Default bound for one receipt query performed by reconciliation. */
+export const DEFAULT_RECEIPT_QUERY_TIMEOUT_MS = 10_000;
+
 /** Upper bound imposed by JavaScript's signed 32-bit timer implementation. */
 const MAX_CONFIRMATION_TIMEOUT_MS = 2_147_483_647;
 
@@ -170,6 +173,22 @@ export interface FacilitatorTronSigner {
     hash: string;
     finality?: TronTransactionFinality;
   }): Promise<TronTransactionReceipt>;
+
+  /**
+   * Read a transaction receipt once without polling or retrying.
+   *
+   * Signers that support reconciliation should implement this method. It is
+   * optional so existing settlement-only signer adapters remain compatible.
+   */
+  getTransactionReceipt?(args: TronTransactionReceiptQuery): Promise<TronTransactionReceipt>;
+}
+
+/** One bounded receipt lookup with no SDK-level retry or backoff. */
+export interface TronTransactionReceiptQuery {
+  readonly hash: string;
+  readonly finality?: TronTransactionFinality;
+  readonly timeoutMs?: number;
+  readonly signal?: AbortSignal;
 }
 
 /** TRON transaction confirmation level. */
@@ -843,24 +862,158 @@ function resolveConfirmationTimeoutMs(value: number | undefined): number {
 }
 
 /**
+ * Resolve and validate a caller-supplied one-shot receipt query timeout.
+ *
+ * @param value - Configured timeout, or undefined to use the default.
+ * @returns The validated query timeout in milliseconds.
+ */
+function resolveReceiptQueryTimeoutMs(value: number | undefined): number {
+  const timeoutMs = value ?? DEFAULT_RECEIPT_QUERY_TIMEOUT_MS;
+  if (
+    !Number.isSafeInteger(timeoutMs) ||
+    timeoutMs <= 0 ||
+    timeoutMs > MAX_CONFIRMATION_TIMEOUT_MS
+  ) {
+    throw new Error(
+      `receiptQueryTimeoutMs must be a positive integer no greater than ${MAX_CONFIRMATION_TIMEOUT_MS}, got ${timeoutMs}`,
+    );
+  }
+  return timeoutMs;
+}
+
+/**
+ * Convert an aborted signal into a stable Error instance.
+ *
+ * @param signal - Aborted signal carrying an optional reason.
+ * @returns The signal reason when it is an Error, otherwise a stable abort error.
+ */
+function receiptAbortError(signal: AbortSignal): Error {
+  return signal.reason instanceof Error
+    ? signal.reason
+    : new Error("TRON receipt query was aborted");
+}
+
+/**
  * Await a single RPC request without allowing it to exceed the remaining budget.
  *
  * @param request - Receipt RPC request to await.
  * @param timeoutMs - Remaining confirmation budget in milliseconds.
+ * @param signal - Optional caller cancellation signal.
  * @returns The RPC response when it completes within the remaining budget.
  */
-async function requestWithin<T>(request: Promise<T>, timeoutMs: number): Promise<T> {
+async function requestWithin<T>(
+  request: Promise<T>,
+  timeoutMs: number,
+  signal?: AbortSignal,
+): Promise<T> {
+  if (signal?.aborted) throw receiptAbortError(signal);
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let abortListener: (() => void) | undefined;
   try {
     return await Promise.race([
       request,
       new Promise<never>((_, reject) => {
         timer = setTimeout(() => reject(new Error("TRON receipt RPC timed out")), timeoutMs);
       }),
+      ...(signal
+        ? [
+            new Promise<never>((_, reject) => {
+              abortListener = () => reject(receiptAbortError(signal));
+              signal.addEventListener("abort", abortListener, { once: true });
+            }),
+          ]
+        : []),
     ]);
   } finally {
     if (timer) clearTimeout(timer);
+    if (signal && abortListener) signal.removeEventListener("abort", abortListener);
   }
+}
+
+/**
+ * Read one TRON receipt and its original contract call without polling.
+ *
+ * @param tronWeb - The TronWeb instance used to read the transaction.
+ * @param hash - Transaction id to query.
+ * @param timeoutMs - Total bound shared by receipt and transaction-body reads.
+ * @param finality - Packed or solidified RPC source.
+ * @param signal - Optional caller cancellation signal.
+ * @returns The current receipt classification after one query attempt.
+ */
+async function getTransactionReceiptOnce(
+  tronWeb: TronWeb,
+  hash: string,
+  timeoutMs: number,
+  finality: TronTransactionFinality,
+  signal?: AbortSignal,
+): Promise<TronTransactionReceipt> {
+  if (!isValidTronTxHash(hash)) {
+    throw new Error(`invalid TRON transaction id: ${hash}`);
+  }
+  const rpcHash = hash.replace(/^0x/i, "").toLowerCase();
+  const deadline = Date.now() + timeoutMs;
+  const provider = finality === "solidified" ? tronWeb.solidityNode : tronWeb.fullNode;
+  const namespace = finality === "solidified" ? "walletsolidity" : "wallet";
+  const info = await requestWithin(
+    provider.request(
+      `${namespace}/gettransactioninfobyid`,
+      { value: rpcHash },
+      "post",
+    ) as Promise<TronTxInfo | null>,
+    timeoutMs,
+    signal,
+  );
+
+  if (info?.blockNumber == null) return { status: "pending", finality };
+
+  const result = info.receipt?.result;
+  if (result === "SUCCESS") {
+    let body: TronTxBody | null = null;
+    try {
+      body = await requestWithin(
+        provider.request(
+          `${namespace}/gettransactionbyid`,
+          { value: rpcHash },
+          "post",
+        ) as Promise<TronTxBody | null>,
+        Math.max(1, deadline - Date.now()),
+        signal,
+      );
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      // Status remains usable; scheme validation treats absent call data as indeterminate.
+    }
+    const call = extractTransactionCall(body);
+    log.info("x402 tron: tx receipt observed", {
+      hash,
+      status: "success",
+      finality,
+      contractRet: result,
+    });
+    return {
+      status: "success",
+      finality,
+      ...(call ? { call } : {}),
+      ...(info.log ? { logs: info.log } : {}),
+    };
+  }
+
+  if (result && TERMINAL_RECEIPT_FAILURES.has(result)) {
+    log.warn("x402 tron: tx receipt observed", {
+      hash,
+      status: "reverted",
+      finality,
+      contractRet: result,
+    });
+    return { status: "reverted", finality };
+  }
+
+  log.info("x402 tron: tx receipt incomplete", {
+    hash,
+    finality,
+    contractRet: result,
+  });
+  return { status: "pending", finality };
 }
 
 /**
@@ -886,71 +1039,21 @@ async function pollTransaction(
   if (!isValidTronTxHash(hash)) {
     throw new Error(`invalid TRON transaction id: ${hash}`);
   }
-  const rpcHash = hash.replace(/^0x/i, "").toLowerCase();
   const delayMs = 3_000;
   const deadline = Date.now() + timeoutMs;
-  const provider = finality === "solidified" ? tronWeb.solidityNode : tronWeb.fullNode;
-  const namespace = finality === "solidified" ? "walletsolidity" : "wallet";
 
   while (Date.now() < deadline) {
-    let info: TronTxInfo | null = null;
+    const remainingBeforeQuery = Math.max(1, deadline - Date.now());
     try {
-      info = await requestWithin(
-        provider.request(
-          `${namespace}/gettransactioninfobyid`,
-          { value: rpcHash },
-          "post",
-        ) as Promise<TronTxInfo | null>,
-        Math.max(1, deadline - Date.now()),
+      const receipt = await getTransactionReceiptOnce(
+        tronWeb,
+        hash,
+        remainingBeforeQuery,
+        finality,
       );
+      if (receipt.status !== "pending") return receipt;
     } catch {
       // Not yet confirmed / transient node or rate-limit error — keep polling.
-    }
-    if (info?.blockNumber != null) {
-      const result = info.receipt?.result;
-      if (result === "SUCCESS") {
-        let body: TronTxBody | null = null;
-        try {
-          body = await requestWithin(
-            provider.request(
-              `${namespace}/gettransactionbyid`,
-              { value: rpcHash },
-              "post",
-            ) as Promise<TronTxBody | null>,
-            Math.max(1, deadline - Date.now()),
-          );
-        } catch {
-          // Receipt status is still usable by callers that do not validate effects.
-          // Scheme validators treat the absent call data as indeterminate.
-        }
-        const call = extractTransactionCall(body);
-        log.info("x402 tron: tx receipt observed", {
-          hash,
-          status: "success",
-          finality,
-          contractRet: result,
-        });
-        return {
-          status: "success",
-          finality,
-          ...(call ? { call } : {}),
-          ...(info.log ? { logs: info.log } : {}),
-        };
-      } else if (result && TERMINAL_RECEIPT_FAILURES.has(result)) {
-        log.warn("x402 tron: tx receipt observed", {
-          hash,
-          status: "reverted",
-          finality,
-          contractRet: result,
-        });
-        return { status: "reverted", finality };
-      } else {
-        log.info("x402 tron: tx receipt incomplete", {
-          hash,
-          finality,
-          contractRet: result,
-        });
-      }
     }
 
     const remainingMs = deadline - Date.now();
@@ -1131,6 +1234,15 @@ export async function createFacilitatorTronSigner(
     },
     async waitForTransactionReceipt(args) {
       return pollTransaction(tronWeb, args.hash, confirmationTimeoutMs, args.finality ?? "packed");
+    },
+    async getTransactionReceipt(args) {
+      return getTransactionReceiptOnce(
+        tronWeb,
+        args.hash,
+        resolveReceiptQueryTimeoutMs(args.timeoutMs),
+        args.finality ?? "packed",
+        args.signal,
+      );
     },
   });
 }

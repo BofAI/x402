@@ -95,6 +95,7 @@ function signerWith(result: TronTransactionReceipt): FacilitatorTronSigner {
       throw new Error("reconciliation must not broadcast");
     }),
     waitForTransactionReceipt: vi.fn(async () => result),
+    getTransactionReceipt: vi.fn(async () => result),
   };
 }
 
@@ -145,7 +146,7 @@ describe("TRON settlement reconciliation", () => {
     await expect(reconcileTronSettlement(signer, TX, context)).rejects.toThrow(
       "unsupported TRON reconciliation context version: 2",
     );
-    expect(signer.waitForTransactionReceipt).not.toHaveBeenCalled();
+    expect(signer.getTransactionReceipt).not.toHaveBeenCalled();
   });
 
   it("rejects malformed nested fields in a persisted reconciliation context", () => {
@@ -172,11 +173,96 @@ describe("TRON settlement reconciliation", () => {
       payer: PAYER,
       amount: "100",
     });
-    expect(signer.waitForTransactionReceipt).toHaveBeenCalledWith({
+    expect(signer.getTransactionReceipt).toHaveBeenCalledTimes(1);
+    expect(signer.getTransactionReceipt).toHaveBeenCalledWith({
       hash: TX,
       finality: "solidified",
+      timeoutMs: 10_000,
     });
+    expect(signer.waitForTransactionReceipt).not.toHaveBeenCalled();
     expect(signer.writeContract).not.toHaveBeenCalled();
+  });
+
+  it("passes the worker's per-attempt timeout to the one-shot reader", async () => {
+    const signer = signerWith(receipt({ status: "pending", call: undefined, logs: undefined }));
+    const context = createTronSettlementReconciliationContext(payment, requirements);
+
+    const result = await reconcileTronSettlement(signer, TX, context, { timeoutMs: 750 });
+
+    expect(result).toMatchObject({
+      success: false,
+      errorReason: "settlement_pending",
+      transaction: TX,
+    });
+    expect(signer.getTransactionReceipt).toHaveBeenCalledTimes(1);
+    expect(signer.getTransactionReceipt).toHaveBeenCalledWith({
+      hash: TX,
+      finality: "solidified",
+      timeoutMs: 750,
+    });
+    expect(signer.waitForTransactionReceipt).not.toHaveBeenCalled();
+  });
+
+  it("rejects an invalid per-attempt timeout before reading the chain", async () => {
+    const signer = signerWith(receipt());
+    const context = createTronSettlementReconciliationContext(payment, requirements);
+
+    await expect(reconcileTronSettlement(signer, TX, context, { timeoutMs: 0 })).rejects.toThrow(
+      "reconciliation timeoutMs must be a positive integer",
+    );
+    expect(signer.getTransactionReceipt).not.toHaveBeenCalled();
+  });
+
+  it("bounds a custom one-shot reader that ignores the timeout option", async () => {
+    vi.useFakeTimers();
+    try {
+      const signer = signerWith(receipt());
+      vi.mocked(signer.getTransactionReceipt!).mockImplementation(
+        async () => new Promise<never>(() => undefined),
+      );
+      const context = createTronSettlementReconciliationContext(payment, requirements);
+
+      const resultPromise = reconcileTronSettlement(signer, TX, context, { timeoutMs: 500 });
+      const expectation = expect(resultPromise).resolves.toMatchObject({
+        success: false,
+        errorReason: "settlement_pending",
+        errorMessage: "TRON reconciliation receipt query timed out",
+        transaction: TX,
+      });
+      await vi.advanceTimersByTimeAsync(500);
+
+      await expectation;
+      expect(signer.getTransactionReceipt).toHaveBeenCalledTimes(1);
+      expect(signer.waitForTransactionReceipt).not.toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("propagates worker cancellation without converting it to pending", async () => {
+    vi.useFakeTimers();
+    try {
+      const signer = signerWith(receipt());
+      vi.mocked(signer.getTransactionReceipt!).mockImplementation(
+        async () => new Promise<never>(() => undefined),
+      );
+      const context = createTronSettlementReconciliationContext(payment, requirements);
+      const controller = new AbortController();
+
+      const resultPromise = reconcileTronSettlement(signer, TX, context, {
+        signal: controller.signal,
+      });
+      const expectation = expect(resultPromise).rejects.toThrow("worker shutdown");
+      controller.abort(new Error("worker shutdown"));
+
+      await expectation;
+      expect(signer.getTransactionReceipt).toHaveBeenCalledTimes(1);
+      expect(signer.waitForTransactionReceipt).not.toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("exposes scheme-aware reconciliation on the exact facilitator", async () => {

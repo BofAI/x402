@@ -11,7 +11,11 @@ import {
   X402_UPTO_PERMIT2_PROXY_ADDRESSES,
   x402UptoPermit2ProxyABI,
 } from "./constants";
-import type { FacilitatorTronSigner, TronTransactionReceipt } from "./signer";
+import {
+  DEFAULT_RECEIPT_QUERY_TIMEOUT_MS,
+  type FacilitatorTronSigner,
+  type TronTransactionReceipt,
+} from "./signer";
 import {
   type ExactEIP3009Payload,
   type ExactGasFreePayload,
@@ -21,7 +25,7 @@ import {
   isUptoPermit2Payload,
 } from "./types";
 import { normalizeAddressForSigning } from "./utils";
-import { waitAndReturnSettleResponse } from "./shared/settleReceipt";
+import { readAndReturnSettleResponse } from "./shared/settleReceipt";
 import { getGasFreeControllerAddress } from "./shared/gasfree/config";
 import { batchSettlementABI } from "./shared/batch-settlement/abi";
 
@@ -30,6 +34,7 @@ const SETTLED_EVENT_TOPIC = tronUtils.ethersUtils
   .keccak256(tronUtils.ethersUtils.toUtf8Bytes("Settled(address,address,address,uint128)"))
   .replace(/^0x/i, "")
   .toLowerCase();
+const MAX_RECEIPT_QUERY_TIMEOUT_MS = 2_147_483_647;
 
 /** Stable terminal reason for a solidified transaction whose call/effect is wrong. */
 export const INVALID_TRANSACTION_EFFECT = "invalid_transaction_effect";
@@ -111,6 +116,14 @@ export type TronSettlementReconciliationContextV1 =
   | TronBatchSettlementReconciliationContextV1;
 
 export type TronSettlementReconciliationContext = TronSettlementReconciliationContextV1;
+
+/** Per-attempt bounds controlled by the reconciliation worker. */
+export interface TronReconciliationOptions {
+  /** Maximum duration of this single solidified receipt/body query. Defaults to 10 seconds. */
+  readonly timeoutMs?: number;
+  /** Cancels the in-flight query during worker shutdown. */
+  readonly signal?: AbortSignal;
+}
 
 /** Three-state receipt assessment required to avoid terminalizing incomplete RPC data. */
 export type TronSettlementReceiptAssessment =
@@ -1030,19 +1043,42 @@ export function validateTronSettlementReceipt(
 }
 
 /**
- * Reconcile an already-broadcast settlement using solidified, read-only data.
+ * Resolve the strict time bound for one reconciliation query.
  *
- * This function never calls `writeContract` and never retries a broadcast.
+ * @param value - Caller override, or undefined for the SDK default.
+ * @returns Validated timeout in milliseconds.
+ */
+function resolveReconciliationTimeoutMs(value: number | undefined): number {
+  const timeoutMs = value ?? DEFAULT_RECEIPT_QUERY_TIMEOUT_MS;
+  if (
+    !Number.isSafeInteger(timeoutMs) ||
+    timeoutMs <= 0 ||
+    timeoutMs > MAX_RECEIPT_QUERY_TIMEOUT_MS
+  ) {
+    throw new Error(
+      `reconciliation timeoutMs must be a positive integer no greater than ${MAX_RECEIPT_QUERY_TIMEOUT_MS}, got ${timeoutMs}`,
+    );
+  }
+  return timeoutMs;
+}
+
+/**
+ * Reconcile an already-broadcast settlement with one solidified read attempt.
  *
- * @param signer - Signer exposing finality-aware read-only receipt lookup.
+ * This function never broadcasts, polls, sleeps, retries, or applies backoff.
+ * The caller owns scheduling and may pass a per-attempt timeout/cancellation.
+ *
+ * @param signer - Signer exposing a one-shot receipt lookup.
  * @param transaction - Original transaction id.
  * @param context - Persisted scheme-specific validation context.
+ * @param options - Per-attempt timeout and cancellation signal.
  * @returns Solidified terminal result, or settlement_pending while indeterminate.
  */
 export async function reconcileTronSettlement(
-  signer: Pick<FacilitatorTronSigner, "waitForTransactionReceipt">,
+  signer: Pick<FacilitatorTronSigner, "getTransactionReceipt">,
   transaction: string,
   context: unknown,
+  options: TronReconciliationOptions = {},
 ): Promise<SettleResponse> {
   const parsedContext = parseTronSettlementReconciliationContext(context);
   let reconciledAmount =
@@ -1050,13 +1086,15 @@ export async function reconcileTronSettlement(
     (parsedContext.scheme === "batch-settlement" && parsedContext.operation === "claim"
       ? ""
       : undefined);
-  return waitAndReturnSettleResponse(
+  return readAndReturnSettleResponse(
     signer,
     transaction,
     parsedContext.network,
     parsedContext.payer,
     {
       finality: "solidified",
+      timeoutMs: resolveReconciliationTimeoutMs(options.timeoutMs),
+      ...(options.signal ? { signal: options.signal } : {}),
       responseExtra: { reconciliationContext: parsedContext },
       validateReceipt: receipt => {
         const assessment = assessParsedTronSettlementReceipt(receipt, parsedContext);

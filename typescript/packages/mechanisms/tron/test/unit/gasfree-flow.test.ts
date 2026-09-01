@@ -69,6 +69,7 @@ function facilitatorSigner(
     verifyTypedData: vi.fn(async () => opts.verify ?? true),
     writeContract: vi.fn(async () => "0x"),
     waitForTransactionReceipt: vi.fn(async () => ({ status: "success" })),
+    getTransactionReceipt: vi.fn(async () => ({ status: "success" })),
   };
 }
 
@@ -449,7 +450,7 @@ describe("GasFree facilitator settle", () => {
     const token = normalizeAddressForSigning(ASSET);
     const from = normalizeAddressForSigning(GASFREE_ADDR);
     const to = normalizeAddressForSigning(PAY_TO);
-    vi.mocked(signer.waitForTransactionReceipt).mockResolvedValue({
+    vi.mocked(signer.getTransactionReceipt!).mockResolvedValue({
       status: "success",
       finality: "solidified",
       call: { contractAddress: `41${controller.slice(2)}`, data: "12345678" },
@@ -474,10 +475,12 @@ describe("GasFree facilitator settle", () => {
     const result = await fac.reconcile(TX, persistedContext);
 
     expect(result).toMatchObject({ success: true, transaction: TX, amount: "1000" });
-    expect(signer.waitForTransactionReceipt).toHaveBeenCalledWith({
+    expect(signer.getTransactionReceipt).toHaveBeenCalledWith({
       hash: TX,
       finality: "solidified",
+      timeoutMs: 10_000,
     });
+    expect(signer.waitForTransactionReceipt).not.toHaveBeenCalled();
     expect(signer.writeContract).not.toHaveBeenCalled();
   });
 
