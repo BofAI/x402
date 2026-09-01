@@ -361,12 +361,7 @@ describe("GasFree facilitator settle", () => {
     async terminal => {
       const a = api(account(), {
         waitForSuccess: vi.fn(async () => {
-          throw new GasFreeTransactionStatusError(
-            "status polling failed",
-            "trace-xyz",
-            "not-a-txid",
-            terminal,
-          );
+          throw new GasFreeTransactionStatusError("status polling failed", "not-a-txid", terminal);
         }),
       });
       const fac = new FacilitatorScheme(facilitatorSigner(), { [NETWORK]: a as never });
@@ -411,7 +406,7 @@ describe("GasFree facilitator settle", () => {
   it("returns settlement_pending with a relayer-known transaction hash", async () => {
     const a = api(account(), {
       waitForSuccess: vi.fn(async () => {
-        throw new GasFreeTransactionStatusError("status polling failed", "trace-xyz", TX, false);
+        throw new GasFreeTransactionStatusError("status polling failed", TX, false);
       }),
     });
     const fac = new FacilitatorScheme(facilitatorSigner(), { [NETWORK]: a as never });
@@ -431,7 +426,7 @@ describe("GasFree facilitator settle", () => {
   it("preserves a relayer-known transaction hash for terminal failure", async () => {
     const a = api(account(), {
       waitForSuccess: vi.fn(async () => {
-        throw new GasFreeTransactionStatusError("on-chain failure", "trace-xyz", TX, true);
+        throw new GasFreeTransactionStatusError("on-chain failure", TX, true);
       }),
     });
     const fac = new FacilitatorScheme(facilitatorSigner(), { [NETWORK]: a as never });
@@ -462,7 +457,6 @@ describe("GasFree status polling recovery metadata", () => {
 
     await expect(client.waitForSuccess("trace-xyz", 10_000, 0, 1)).rejects.toMatchObject({
       name: "GasFreeTransactionStatusError",
-      traceId: "trace-xyz",
       transaction: TX,
       terminal: false,
     });

@@ -107,7 +107,6 @@ describe("createFacilitatorTronSigner — wallet path", () => {
       const txInfo = vi.fn(async () => ({
         blockNumber: 84_101_804,
         receipt: { result: "SUCCESS" },
-        log: [{ address: "41abc", topics: ["topic"], data: "data" }],
       }));
       const tw = fakeTronWeb(vi.fn(), vi.fn(), txInfo);
       const signer = await makeFacilitatorSigner(tw, {
@@ -118,10 +117,7 @@ describe("createFacilitatorTronSigner — wallet path", () => {
       const receiptPromise = signer.waitForTransactionReceipt({ hash: TX_ID });
       await vi.runAllTimersAsync();
 
-      await expect(receiptPromise).resolves.toEqual({
-        status: "success",
-        logs: [{ address: "41abc", topics: ["topic"], data: "data" }],
-      });
+      await expect(receiptPromise).resolves.toEqual({ status: "success" });
       expect(txInfo).toHaveBeenCalledWith(
         "wallet/gettransactioninfobyid",
         { value: TX_ID },

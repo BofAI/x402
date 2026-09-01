@@ -76,13 +76,11 @@ export class GasFreeTransactionStatusError extends Error {
    * Create an error carrying the last transaction observed by the relayer.
    *
    * @param message - Polling failure description.
-   * @param traceId - Relayer trace identifier.
    * @param transaction - Last relayer-observed transaction ID, if any.
    * @param terminal - Whether the relayer reported an explicit terminal failure.
    */
   constructor(
     message: string,
-    readonly traceId: string,
     readonly transaction: string | undefined,
     readonly terminal: boolean,
   ) {
@@ -240,7 +238,6 @@ export class GasFreeAPIClient {
         if (errorCount >= maxErrors) {
           throw new GasFreeTransactionStatusError(
             `GasFree status polling aborted after ${errorCount} consecutive errors: ${err}`,
-            traceId,
             lastTransactionHash,
             false,
           );
@@ -267,7 +264,6 @@ export class GasFreeAPIClient {
       if (state === "FAILED" || txnState === "ON_CHAIN_FAILED") {
         throw new GasFreeTransactionStatusError(
           `GasFree transaction failed. Reason: ${statusData.reason || "Unknown"}`,
-          traceId,
           lastTransactionHash,
           true,
         );
@@ -278,7 +274,6 @@ export class GasFreeAPIClient {
 
     throw new GasFreeTransactionStatusError(
       `GasFree transaction ${traceId} timed out after ${timeout / 1000}s`,
-      traceId,
       lastTransactionHash,
       false,
     );

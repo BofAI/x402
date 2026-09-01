@@ -11,8 +11,6 @@ export interface WaitForSettleReceiptOptions {
   failedStatusReason?: string;
   /** Settled amount attached to the default success response. */
   amount?: string;
-  /** Performs an explicit effect check after a successful receipt. */
-  validateReceipt?: (receipt: TronTransactionReceipt) => SettleResponse | undefined;
   /** Builds a custom success response, including any post-receipt state reads. */
   onSuccess?: (receipt: TronTransactionReceipt) => SettleResponse | Promise<SettleResponse>;
 }
@@ -38,12 +36,7 @@ export async function waitAndReturnSettleResponse(
   payer: string | undefined,
   options: WaitForSettleReceiptOptions = {},
 ): Promise<SettleResponse> {
-  const {
-    failedStatusReason = "invalid_transaction_state",
-    amount,
-    validateReceipt,
-    onSuccess,
-  } = options;
+  const { failedStatusReason = "invalid_transaction_state", amount, onSuccess } = options;
 
   if (!isValidTronTxHash(tx)) {
     return {
@@ -82,9 +75,6 @@ export async function waitAndReturnSettleResponse(
         payer,
       };
     }
-
-    const validationFailure = validateReceipt?.(receipt);
-    if (validationFailure) return validationFailure;
 
     if (onSuccess) return await onSuccess(receipt);
 

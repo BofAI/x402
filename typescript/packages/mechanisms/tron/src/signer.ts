@@ -166,17 +166,9 @@ export interface FacilitatorTronSigner {
   waitForTransactionReceipt(args: { hash: string }): Promise<TronTransactionReceipt>;
 }
 
-/** Raw TRON event log fields surfaced for scheme-level payment-effect validation. */
-export interface TronTransactionLog {
-  address?: string;
-  topics?: readonly string[];
-  data?: string;
-}
-
 /** Packed receipt result used by every TRON settlement path. */
 export interface TronTransactionReceipt {
   status: "success" | "reverted" | "pending";
-  logs?: readonly TronTransactionLog[];
 }
 
 type ReadContractCapable = Pick<ClientTronSigner, "readContract">;
@@ -752,7 +744,6 @@ async function buildSignAndBroadcast(
 type TronTxInfo = {
   blockNumber?: number;
   receipt?: { result?: string };
-  log?: readonly TronTransactionLog[];
 };
 
 const TERMINAL_RECEIPT_FAILURES = new Set([
@@ -868,7 +859,7 @@ async function pollTransactionPacked(
           status: "success",
           contractRet: result,
         });
-        return { status: "success", ...(info.log ? { logs: info.log } : {}) };
+        return { status: "success" };
       }
       if (result && TERMINAL_RECEIPT_FAILURES.has(result)) {
         log.warn("x402 tron: tx packed", {

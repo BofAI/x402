@@ -91,28 +91,6 @@ describe("TRON settlement receipt terminal/pending boundary", () => {
     });
   });
 
-  it("returns pending when successful-receipt processing throws", async () => {
-    const result = await waitAndReturnSettleResponse(
-      signerWith({ status: "success", logs: [] }),
-      TX,
-      NETWORK,
-      undefined,
-      {
-        failedStatusReason: FAILED,
-        validateReceipt: () => {
-          throw new Error("log decode failed");
-        },
-      },
-    );
-
-    expect(result).toMatchObject({
-      success: false,
-      errorReason: SETTLEMENT_PENDING,
-      errorMessage: "log decode failed",
-      transaction: TX,
-    });
-  });
-
   it("returns pending when asynchronous success processing rejects", async () => {
     const result = await waitAndReturnSettleResponse(
       signerWith({ status: "success" }),
