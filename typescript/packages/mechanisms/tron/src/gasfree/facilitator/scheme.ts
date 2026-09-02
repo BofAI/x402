@@ -10,6 +10,7 @@ import { FacilitatorTronSigner } from "../../signer";
 import { ExactGasFreePayload } from "../../types";
 import { isValidTronTxHash, normalizeAddressForSigning } from "../../utils";
 import { GasFreeAPIClient, GasFreeTransactionStatusError } from "../../shared/gasfree/api";
+import { getTronNetworkValue, tronNetworksEqual } from "../../network";
 import { assembleGasFreeTransaction } from "../../shared/gasfree/assemble";
 import { SETTLEMENT_PENDING } from "../../shared/settleReceipt";
 import * as errors from "./errors";
@@ -101,7 +102,7 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
     if (payload.accepted.scheme !== "exact_gasfree" || requirements.scheme !== "exact_gasfree") {
       return { isValid: false, invalidReason: errors.INVALID_SCHEME, payer };
     }
-    if (payload.accepted.network !== requirements.network) {
+    if (!tronNetworksEqual(payload.accepted.network, requirements.network)) {
       return { isValid: false, invalidReason: errors.NETWORK_MISMATCH, payer };
     }
 
@@ -239,7 +240,7 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
    * @returns The relayer API client.
    */
   private getApiClient(network: string): GasFreeAPIClient {
-    const client = this.apiClients[network];
+    const client = getTronNetworkValue(this.apiClients, network);
     if (!client) {
       throw new Error(`GasFree is not configured for network: ${network}`);
     }

@@ -211,8 +211,6 @@ marimo/_lsp/
 __marimo__/
 /.idea/
 /.vscode/
-/legacy/examples/typescript/client-web/node_modules/
-/legacy/examples/typescript/client/node_modules/
 *node_modules/
 .specify/
 

@@ -12,7 +12,7 @@ import { BatchSettlementVoucherFields } from "../types";
  * @param signer - Client wallet used to produce the TIP-712 signature.
  * @param channelId - Identifier of the payment channel (see `computeChannelId`).
  * @param maxClaimableAmount - Cumulative ceiling the receiver may claim (decimal string).
- * @param network - CAIP-2 network identifier (e.g. `"tron:0xcd8690dc"`).
+ * @param network - CAIP-2 network identifier (e.g. `"tron:3448148188"`).
  * @returns Signed voucher fields ready to be included in a payment payload.
  */
 export async function signVoucher(

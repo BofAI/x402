@@ -14,8 +14,6 @@ x402 currently supports the **TRON** and **BSC** networks, with plans to expand 
 
 Version `1.1.0`. The SDK is a **TypeScript-only** pnpm/turbo monorepo published as granular `@bankofai/x402-*` packages (there is no umbrella package). `core` and the EVM mechanism are forks of the [`x402-foundation/x402`](https://github.com/x402-foundation/x402) upstream; the TRON mechanism is in-house. Supported schemes: `exact` (ERC-3009 / Permit2), `upto`, `batch-settlement`, `auth-capture` (EVM), and `exact_gasfree` (TRON). See [the v1.1.0 release notes](RELEASE_NOTES.md#v110--payment-flow-and-wallet-compatibility) for upgrade details.
 
-> The previous-generation Python + TypeScript SDK lives under [`legacy/`](legacy/) for reference and is slated for removal.
-
 ## Features
 
 - **Protocol Native**: Restores the HTTP `402` status code to its intended purpose.
@@ -58,7 +56,7 @@ const wallet = /* resolve your @bankofai/agent-wallet */;
 // Permit2 approve that USDT/USDD need. When TRON_GRID_API_KEY is unset, mainnet
 // RPC falls back to a BankofAI-operated endpoint.
 const signer = await createClientTronSigner(wallet, {
-  network: "tron:0xcd8690dc",
+  network: "tron:3448148188",
   apiKey: process.env.TRON_GRID_API_KEY,
 });
 
@@ -148,9 +146,9 @@ x402 currently supports TRC-20 tokens on the TRON network and BEP-20 tokens on t
 
 | Network | ID | Status | Recommended For |
 |---------|----|--------|-----------------|
-| **TRON Nile** | `tron:0xcd8690dc` | Testnet | **Development & Testing** |
-| **TRON Shasta** | `tron:0x94a9059e` | Testnet | Alternative Testing |
-| **TRON Mainnet** | `tron:0x2b6653dc` | Mainnet | Production |
+| **TRON Nile** | `tron:3448148188` | Testnet | **Development & Testing** |
+| **TRON Shasta** | `tron:2494104990` | Testnet | Alternative Testing |
+| **TRON Mainnet** | `tron:728126428` | Mainnet | Production |
 | **BSC Testnet** | `eip155:97` | Testnet | **Development & Testing** |
 | **BSC Mainnet** | `eip155:56` | Mainnet | Production |
 

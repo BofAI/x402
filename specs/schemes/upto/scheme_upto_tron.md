@@ -13,9 +13,9 @@ The upto proxy deployments are:
 
 | Network | `x402UptoPermit2Proxy` |
 | --- | --- |
-| `tron:0x2b6653dc` | `TBLeFPkfDiweBbYmAPqnakaFBPDt9p93sR` |
-| `tron:0xcd8690dc` | `TKvcqQ7S2bYyys5ZZNpjj9xGiPhiwzHq1K` |
-| `tron:0x94a9059e` | `TMxpieW75DQiA9QaoTB1ifJWeQpuppSB1g` |
+| `tron:728126428` | `TBLeFPkfDiweBbYmAPqnakaFBPDt9p93sR` |
+| `tron:3448148188` | `TKvcqQ7S2bYyys5ZZNpjj9xGiPhiwzHq1K` |
+| `tron:2494104990` | `TMxpieW75DQiA9QaoTB1ifJWeQpuppSB1g` |
 
 ## Payment Requirements
 
@@ -33,7 +33,7 @@ the resource server replaces it with the actual amount. The signed maximum remai
   "x402Version": 2,
   "accepted": {
     "scheme": "upto",
-    "network": "tron:0xcd8690dc",
+    "network": "tron:3448148188",
     "amount": "10000",
     "asset": "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
     "payTo": "TReceiverAddress",

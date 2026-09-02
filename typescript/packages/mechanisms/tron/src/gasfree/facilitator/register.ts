@@ -1,5 +1,6 @@
 import { x402Facilitator } from "@bankofai/x402-core/facilitator";
 import { Network } from "@bankofai/x402-core/types";
+import { normalizeTronNetwork } from "../../network";
 import { FacilitatorTronSigner } from "../../signer";
 import { GasFreeAPIClient, createGasFreeApiClients } from "../../shared/gasfree/api";
 import { GASFREE_API_BASE_URLS } from "../../shared/gasfree/config";
@@ -30,6 +31,12 @@ export function registerExactGasFreeTronScheme(
 ): x402Facilitator {
   const apiClients =
     config.apiClients ?? createGasFreeApiClients(config.apiBaseUrls ?? GASFREE_API_BASE_URLS);
-  facilitator.register(config.networks, new ExactGasFreeTronScheme(config.signer, apiClients));
+  const networks = (Array.isArray(config.networks) ? config.networks : [config.networks]).map(
+    network => normalizeTronNetwork(network) as Network,
+  );
+  facilitator.register(
+    [...new Set(networks)],
+    new ExactGasFreeTronScheme(config.signer, apiClients),
+  );
   return facilitator;
 }

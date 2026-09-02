@@ -17,12 +17,13 @@ prefix.
 
 | Network | CAIP-2 ID | Permit2 | Exact proxy |
 | --- | --- | --- | --- |
-| Mainnet | `tron:0x2b6653dc` | `TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9` | `TN49yaJmZMZoEdDCqjB4uPzQLHvYkGw95m` |
-| Nile | `tron:0xcd8690dc` | `TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h` | `TFGoaq2KjizijgjtkVxT7yjffW1A5T1j6F` |
-| Shasta | `tron:0x94a9059e` | `TJMkP7a3ucTMkvi17p7ChhTCw6zriFX3tg` | `TGZkC38n14f2GpBWPMQLF2BpmcpWW3QNhg` |
+| Mainnet | `tron:728126428` | `TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9` | `TN49yaJmZMZoEdDCqjB4uPzQLHvYkGw95m` |
+| Nile | `tron:3448148188` | `TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h` | `TFGoaq2KjizijgjtkVxT7yjffW1A5T1j6F` |
+| Shasta | `tron:2494104990` | `TJMkP7a3ucTMkvi17p7ChhTCw6zriFX3tg` | `TGZkC38n14f2GpBWPMQLF2BpmcpWW3QNhg` |
 
-The numeric TIP-712 `chainId` is the hexadecimal CAIP-2 reference interpreted as an unsigned
-integer.
+The numeric TIP-712 `chainId` is the decimal CAIP-2 reference interpreted as an unsigned integer.
+Deprecated hexadecimal CAIP-2 aliases may be accepted as inputs during migration, but requirements
+and responses use the decimal identifiers above.
 
 ## Payment Requirements
 
@@ -45,7 +46,7 @@ tokens do not expose TransferWithAuthorization.
   "x402Version": 2,
   "accepted": {
     "scheme": "exact",
-    "network": "tron:0xcd8690dc",
+    "network": "tron:3448148188",
     "amount": "1000",
     "asset": "TTokenAddress",
     "payTo": "TReceiverAddress",
@@ -81,7 +82,7 @@ validBefore,bytes32 nonce)`.
   "x402Version": 2,
   "accepted": {
     "scheme": "exact",
-    "network": "tron:0xcd8690dc",
+    "network": "tron:3448148188",
     "amount": "1000",
     "asset": "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
     "payTo": "TReceiverAddress",

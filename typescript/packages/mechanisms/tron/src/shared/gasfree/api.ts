@@ -6,6 +6,7 @@
  * polling. Ported from the reference implementation.
  */
 import { log } from "@bankofai/x402-core";
+import { normalizeTronNetwork } from "../../network";
 
 export interface GasFreeResponse<T> {
   code: number;
@@ -341,7 +342,7 @@ export function createGasFreeApiClients(
 ): Record<string, GasFreeAPIClient> {
   const clients: Record<string, GasFreeAPIClient> = {};
   for (const [network, url] of Object.entries(baseUrls)) {
-    clients[network] = new GasFreeAPIClient(url);
+    clients[normalizeTronNetwork(network)] = new GasFreeAPIClient(url);
   }
   return clients;
 }

@@ -25,6 +25,7 @@ import {
   deepEqual,
   findByNetworkAndScheme,
   findSchemesByNetwork,
+  networkMatchesPattern,
   toComparableArray,
 } from "../utils";
 import { log } from "../observability/logger";
@@ -719,7 +720,9 @@ export class x402ResourceServer {
     // Find the specific kind from the response (kinds are flat array with version in each element)
     return supportedResponse.kinds.find(
       kind =>
-        kind.x402Version === x402Version && kind.network === network && kind.scheme === scheme,
+        kind.x402Version === x402Version &&
+        networkMatchesPattern(kind.network, network) &&
+        kind.scheme === scheme,
     );
   }
 
@@ -789,13 +792,13 @@ export class x402ResourceServer {
     // Parse the price using the scheme's price parser
     const parsedPrice = await SchemeNetworkServer.parsePrice(
       resourceConfig.price,
-      resourceConfig.network,
+      supportedKind.network,
     );
 
     // Build base payment requirements from resource config
     const baseRequirements: PaymentRequirements = {
       scheme: SchemeNetworkServer.scheme,
-      network: resourceConfig.network,
+      network: supportedKind.network,
       amount: parsedPrice.amount,
       asset: parsedPrice.asset,
       payTo: resourceConfig.payTo,

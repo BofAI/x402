@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added automated pull request title and description validation.
 - Added pull request CI for policy tests, formatting, linting, build, and unit tests.
 
+### Removed
+
+- Removed the root `legacy/` archive containing the retired Python SDK, old TypeScript SDK, and
+  superseded examples and specifications. The compatibility npm packages under
+  `typescript/packages/legacy/` remain supported by the current workspace.
+
 ## [1.1.0] - 2026-08-25
 
 ### Upgrade notes

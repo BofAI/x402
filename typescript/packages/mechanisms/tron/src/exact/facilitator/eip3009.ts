@@ -9,6 +9,7 @@ import { FacilitatorTronSigner } from "../../signer";
 import { ExactEIP3009Payload } from "../../types";
 import { getTronChainId, normalizeAddressForSigning } from "../../utils";
 import { waitAndReturnSettleResponse } from "../../shared/settleReceipt";
+import { tronNetworksEqual } from "../../network";
 import * as errors from "./errors";
 
 /**
@@ -36,7 +37,7 @@ export async function verifyEIP3009(
     return { isValid: false, invalidReason: errors.MISSING_TIP712_DOMAIN, payer };
   }
 
-  if (payload.accepted.network !== requirements.network) {
+  if (!tronNetworksEqual(payload.accepted.network, requirements.network)) {
     return { isValid: false, invalidReason: errors.NETWORK_MISMATCH, payer };
   }
 

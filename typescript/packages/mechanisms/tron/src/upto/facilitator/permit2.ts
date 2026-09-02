@@ -16,6 +16,7 @@ import {
 import { FacilitatorTronSigner } from "../../signer";
 import { UptoPermit2Payload } from "../../types";
 import { getTronChainId, normalizeAddressForSigning } from "../../utils";
+import { tronNetworksEqual } from "../../network";
 import * as errors from "./errors";
 import {
   executeTrc20Sponsorship,
@@ -57,7 +58,7 @@ export async function verifyUptoPermit2(
     return { isValid: false, invalidReason: errors.INVALID_SCHEME, payer };
   }
 
-  if (payload.accepted.network !== requirements.network) {
+  if (!tronNetworksEqual(payload.accepted.network, requirements.network)) {
     return { isValid: false, invalidReason: errors.NETWORK_MISMATCH, payer };
   }
 

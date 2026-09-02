@@ -1,7 +1,7 @@
 # MCP server — dual-chain (BSC testnet + TRON Nile)
 
 An MCP server whose `get_weather` tool is gated behind x402 payment, accepting
-**both** BSC testnet (`eip155:97`) and TRON Nile (`tron:0xcd8690dc`) at once. A 402
+**both** BSC testnet (`eip155:97`) and TRON Nile (`tron:3448148188`) at once. A 402
 challenge offers every enabled chain; the client pays on whichever it supports.
 `ping` is free.
 

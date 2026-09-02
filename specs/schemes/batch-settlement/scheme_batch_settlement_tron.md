@@ -13,9 +13,9 @@ the protocol boundary and normalized to 20-byte hex for hashing, typed data, and
 
 | Network | Channel contract | ERC-3009 collector | Permit2 collector |
 | --- | --- | --- | --- |
-| `tron:0x2b6653dc` | `TW9yNhTySkEHYfjnGQU2u4NAsdb1tW4fbm` | `TTWA7aWMdx4jfcbp8XRAS2JAd2sUhyF9qj` | `TAg5qqp1K9x5KeSTWnRa8LT79B5HUjzSHY` |
-| `tron:0xcd8690dc` | `TWBwWHZWwH8TzrZnbxit1J645VGYY1K2fA` | `TJUQ3BQt4YFg8EeevjiUa5LbfSGz5BxzRW` | `TEp6bCqSEKAr99sCiqANC84RtRwx7xGbA4` |
-| `tron:0x94a9059e` | `TA3MZHMLsgi8JMU1DL8H4gKp1YjJKATibf` | `TRd1KBfy1iUs6R45oZrtbLUjtcSKzXAvPG` | `TNmfrxbKCHqPUTj9zHVfg4Dq8WNZXPyf1x` |
+| `tron:728126428` | `TW9yNhTySkEHYfjnGQU2u4NAsdb1tW4fbm` | `TTWA7aWMdx4jfcbp8XRAS2JAd2sUhyF9qj` | `TAg5qqp1K9x5KeSTWnRa8LT79B5HUjzSHY` |
+| `tron:3448148188` | `TWBwWHZWwH8TzrZnbxit1J645VGYY1K2fA` | `TJUQ3BQt4YFg8EeevjiUa5LbfSGz5BxzRW` | `TEp6bCqSEKAr99sCiqANC84RtRwx7xGbA4` |
+| `tron:2494104990` | `TA3MZHMLsgi8JMU1DL8H4gKp1YjJKATibf` | `TRd1KBfy1iUs6R45oZrtbLUjtcSKzXAvPG` | `TNmfrxbKCHqPUTj9zHVfg4Dq8WNZXPyf1x` |
 
 The channel TIP-712 domain is `{ name: "x402 Batch Settlement", version: "1", chainId,
 verifyingContract: channelContract }`.

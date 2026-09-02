@@ -21,7 +21,7 @@ import { BatchSettlementTronScheme as BatchFacilitator } from "../../src/batch-s
 import { computeChannelId } from "../../src/shared/batch-settlement/utils";
 import { PERMIT2_DEPOSIT_COLLECTOR_ADDRESSES } from "../../src/shared/batch-settlement/constants";
 
-const NETWORK = "tron:0xcd8690dc";
+const NETWORK = "tron:3448148188";
 const PRIVATE_KEY = "4f3edf983ac63ad7c24ee152a7494471b2a18551b7117f7f7f3f2c47c8f6e5ad";
 const PAYER = TronWeb.address.fromPrivateKey(PRIVATE_KEY);
 const TOKEN = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf";

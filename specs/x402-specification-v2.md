@@ -473,7 +473,7 @@ Returns the list of payment schemes, networks, and extensions supported by the f
     {
       "x402Version": 2,
       "scheme": "upto",
-      "network": "tron:0xcd8690dc",
+      "network": "tron:3448148188",
       "extra": {
         "assetTransferMethod": "permit2",
         "permit2FacilitatorAddress": "TFacilitatorAddress"
@@ -482,7 +482,7 @@ Returns the list of payment schemes, networks, and extensions supported by the f
     {
       "x402Version": 2,
       "scheme": "exact_gasfree",
-      "network": "tron:0xcd8690dc"
+      "network": "tron:3448148188"
     }
   ],
   "extensions": [],
@@ -663,9 +663,13 @@ This repository's supported deployment profile uses:
 
 - **`eip155:56`**: BSC mainnet
 - **`eip155:97`**: BSC testnet
-- **`tron:0x2b6653dc`**: TRON mainnet
-- **`tron:0xcd8690dc`**: TRON Nile testnet
-- **`tron:0x94a9059e`**: TRON Shasta testnet
+- **`tron:728126428`**: TRON mainnet
+- **`tron:3448148188`**: TRON Nile testnet
+- **`tron:2494104990`**: TRON Shasta testnet
+
+TRON implementations MUST emit these decimal CAIP-2 identifiers. For backwards compatibility,
+implementations MAY accept the deprecated hexadecimal aliases `tron:0x2b6653dc`,
+`tron:0xcd8690dc`, and `tron:0x94a9059e` as inputs.
 
 An implementation MAY register additional EVM networks when the selected scheme's contracts and
 assets are available. The TRON binding recognizes the three identifiers above unless the SDK is
