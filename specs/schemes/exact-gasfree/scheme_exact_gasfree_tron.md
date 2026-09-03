@@ -116,7 +116,10 @@ The facilitator MUST:
 The facilitator re-verifies, performs a best-effort balance check for `amount + maxFee` at
 `gasfreeAddress`, submits the message and signature to `POST /api/v1/gasfree/submit`, and polls the
 returned trace ID. Success requires a terminal success/on-chain state and a non-empty transaction
-hash.
+hash that is a valid TRON transaction ID. If polling becomes indeterminate after the relayer has
+exposed a valid transaction ID, settlement returns `settlement_pending` with that transaction ID.
+This matches the receipt-timeout behavior of the other settlement schemes and does not imply a
+Facilitator-managed reconciliation workflow.
 
 ## Error Codes
 
@@ -124,7 +127,8 @@ Stable reasons include `invalid_exact_gasfree_scheme`, `invalid_exact_gasfree_ne
 `missing_gasfree_payload`, `gasfree_token_mismatch`, `gasfree_amount_mismatch`,
 `gasfree_payto_mismatch`, `gasfree_fee_to_mismatch`, `gasfree_expired`,
 `invalid_gasfree_signature`, `insufficient_funds`, `gasfree_api_no_response`,
-`gasfree_missing_transaction_hash`, and `gasfree_provider_list_unavailable`.
+`gasfree_missing_transaction_hash`, `gasfree_invalid_transaction_hash`,
+`gasfree_transaction_failed`, `settlement_pending`, and `gasfree_provider_list_unavailable`.
 
 Relayer transport errors may be returned as `errorReason` text by the current implementation.
 

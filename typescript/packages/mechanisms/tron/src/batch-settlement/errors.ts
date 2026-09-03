@@ -1,5 +1,7 @@
 /** Error codes for the batch-settlement TRON scheme. */
 
+export { SETTLEMENT_PENDING as ErrSettlementPending } from "../shared/settleReceipt";
+
 export const ErrChannelNotFound = "invalid_batch_settlement_tron_channel_not_found";
 export const ErrTokenMismatch = "invalid_batch_settlement_tron_token_mismatch";
 export const ErrInvalidVoucherSignature = "invalid_batch_settlement_tron_voucher_signature";

@@ -8,6 +8,7 @@ import { authorizationTypes, transferWithAuthorizationABI } from "../../constant
 import { FacilitatorTronSigner } from "../../signer";
 import { ExactEIP3009Payload } from "../../types";
 import { getTronChainId, normalizeAddressForSigning } from "../../utils";
+import { waitAndReturnSettleResponse } from "../../shared/settleReceipt";
 import { tronNetworksEqual } from "../../network";
 import * as errors from "./errors";
 
@@ -163,24 +164,9 @@ export async function settleEIP3009(
       ],
     });
 
-    const receipt = await signer.waitForTransactionReceipt({ hash: tx });
-
-    if (receipt.status !== "success") {
-      return {
-        success: false,
-        errorReason: errors.INVALID_TRANSACTION_STATE,
-        transaction: tx,
-        network: payload.accepted.network,
-        payer,
-      };
-    }
-
-    return {
-      success: true,
-      transaction: tx,
-      network: payload.accepted.network,
-      payer,
-    };
+    return waitAndReturnSettleResponse(signer, tx, payload.accepted.network, payer, {
+      failedStatusReason: errors.INVALID_TRANSACTION_STATE,
+    });
   } catch (err) {
     return {
       success: false,

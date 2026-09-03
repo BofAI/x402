@@ -253,7 +253,7 @@ The `SettleResponse` schema contains the following fields:
 | `errorReason` | `string`  | Optional | Error reason if settlement failed (omitted if successful)             |
 | `errorMessage`| `string`  | Optional | Human-readable failure detail                                         |
 | `payer`       | `string`  | Optional | Address of the payer's wallet                                         |
-| `transaction` | `string`  | Required | Blockchain transaction hash (empty string if settlement failed)       |
+| `transaction` | `string`  | Required | Blockchain transaction hash; empty only when no transaction was broadcast |
 | `network`     | `string`  | Required | Blockchain network identifier in CAIP-2 format                        |
 | `amount`      | `string`  | Optional | The actual amount settled in atomic units (omitted if not applicable) |
 | `extensions`  | `object`  | Optional | Protocol extensions data                                              |
@@ -433,6 +433,26 @@ Executes a verified payment by broadcasting the transaction to the blockchain.
 }
 ```
 
+**Indeterminate Settlement Response:**
+
+If a transaction was broadcast but its final on-chain effect cannot yet be determined, the
+facilitator returns a non-terminal `settlement_pending` result and preserves the transaction hash:
+
+```json
+{
+  "success": false,
+  "errorReason": "settlement_pending",
+  "payer": "0x857b06519E91e3A54538791bDbb0E22373e36b66",
+  "transaction": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+  "network": "eip155:84532"
+}
+```
+
+`settlement_pending` is not a terminal failure. A caller MUST query or reconcile the original
+transaction and MUST NOT create a replacement payment or rebroadcast the authorization solely
+because this result was returned. Pre-broadcast failures use an empty `transaction`; an explicit
+on-chain revert is terminal but still preserves the broadcast transaction hash.
+
 ### 7.3 GET /supported
 
 Returns the list of payment schemes, networks, and extensions supported by the facilitator.
@@ -606,6 +626,7 @@ The x402 protocol defines standard error codes that may be returned by facilitat
 - **`unsupported_scheme`**: Payment scheme is not supported by the facilitator
 - **`invalid_x402_version`**: Protocol version is not supported
 - **`invalid_transaction_state`**: Blockchain transaction failed or was rejected
+- **`settlement_pending`**: A transaction was broadcast, but its final on-chain effect is not yet known; the response preserves its transaction hash and MUST NOT trigger a rebroadcast
 - **`unexpected_verify_error`**: Unexpected error occurred during payment verification
 - **`unexpected_settle_error`**: Unexpected error occurred during payment settlement
 

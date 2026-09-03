@@ -64,6 +64,31 @@ export interface GasFreeSubmitResponseData {
   txnState?: "INIT" | "NOT_ON_CHAIN" | "ON_CHAIN" | "SOLIDITY" | "ON_CHAIN_FAILED";
 }
 
+/**
+ * GasFree polling error that preserves a relayer-observed transaction hash.
+ *
+ * The hash lets settlement report the same post-broadcast uncertainty as the
+ * EVM receipt path without introducing a separate reconciliation protocol.
+ */
+export class GasFreeTransactionStatusError extends Error {
+  readonly name = "GasFreeTransactionStatusError";
+
+  /**
+   * Create an error carrying the last transaction observed by the relayer.
+   *
+   * @param message - Polling failure description.
+   * @param transaction - Last relayer-observed transaction ID, if any.
+   * @param terminal - Whether the relayer reported an explicit terminal failure.
+   */
+  constructor(
+    message: string,
+    readonly transaction: string | undefined,
+    readonly terminal: boolean,
+  ) {
+    super(message);
+  }
+}
+
 const DEFAULT_TIMEOUT_MS = 30000;
 
 /** Minimal GasFree submit message shape (Base58Check addresses). */
@@ -202,6 +227,7 @@ export class GasFreeAPIClient {
   ): Promise<GasFreeSubmitResponseData> {
     const startTime = Date.now();
     let errorCount = 0;
+    let lastTransactionHash: string | undefined;
 
     while (Date.now() - startTime < timeout) {
       let statusData: GasFreeSubmitResponseData | null;
@@ -211,8 +237,10 @@ export class GasFreeAPIClient {
       } catch (err) {
         errorCount++;
         if (errorCount >= maxErrors) {
-          throw new Error(
+          throw new GasFreeTransactionStatusError(
             `GasFree status polling aborted after ${errorCount} consecutive errors: ${err}`,
+            lastTransactionHash,
+            false,
           );
         }
         await new Promise(resolve => setTimeout(resolve, pollInterval));
@@ -226,6 +254,7 @@ export class GasFreeAPIClient {
 
       const state = (statusData.state ?? "").toUpperCase();
       const txnState = (statusData.txnState ?? "").toUpperCase();
+      if (statusData.txnHash) lastTransactionHash = statusData.txnHash;
 
       if (
         state === "SUCCEED" ||
@@ -234,13 +263,21 @@ export class GasFreeAPIClient {
         return statusData;
       }
       if (state === "FAILED" || txnState === "ON_CHAIN_FAILED") {
-        throw new Error(`GasFree transaction failed. Reason: ${statusData.reason || "Unknown"}`);
+        throw new GasFreeTransactionStatusError(
+          `GasFree transaction failed. Reason: ${statusData.reason || "Unknown"}`,
+          lastTransactionHash,
+          true,
+        );
       }
 
       await new Promise(resolve => setTimeout(resolve, pollInterval));
     }
 
-    throw new Error(`GasFree transaction ${traceId} timed out after ${timeout / 1000}s`);
+    throw new GasFreeTransactionStatusError(
+      `GasFree transaction ${traceId} timed out after ${timeout / 1000}s`,
+      lastTransactionHash,
+      false,
+    );
   }
 
   /**

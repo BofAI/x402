@@ -92,12 +92,20 @@ then verifies again. It rejects `actualAmount > signedMaximum`.
 - For `actualAmount == 0`, it returns success with an empty transaction ID and `amount: "0"`; no
   nonce is consumed on-chain.
 
+For a nonzero settlement, the facilitator waits for a receipt using a configurable confirmation
+budget (90 seconds by default). If the budget expires, receipt RPC fails, or receipt effect
+processing is indeterminate after broadcast, it returns `success: false`,
+`errorReason: "settlement_pending"`, and the original transaction ID. An explicit revert is
+terminal and also preserves the transaction ID. A caller MUST reconcile the original transaction
+and MUST NOT rebroadcast the authorization in response to `settlement_pending`.
+
 ## Error Codes
 
 Stable reasons include `invalid_upto_tron_scheme`, `invalid_upto_tron_network_mismatch`,
 `unsupported_payload_type`, `invalid_permit2_spender`, `invalid_permit2_facilitator`,
 `permit2_amount_mismatch`, `permit2_token_mismatch`, `permit2_allowance_required`,
-`upto_settlement_exceeds_amount`, `insufficient_funds`, and `transaction_failed`.
+`upto_settlement_exceeds_amount`, `insufficient_funds`, `settlement_pending`, and
+`transaction_failed`.
 
 ## Security Considerations
 

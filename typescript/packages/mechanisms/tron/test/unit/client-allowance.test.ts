@@ -27,6 +27,7 @@ const OWNER = "TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC";
 const TOKEN = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf"; // nile USDT
 const PERMIT2 = PERMIT2_ADDRESSES[NETWORK]!;
 const MAX_UINT256 = (1n << 256n) - 1n;
+const APPROVAL_TX_ID = "cd".repeat(32);
 
 function fakeTronWeb(opts: {
   allowance?: bigint;
@@ -83,7 +84,7 @@ describe("ClientTronSigner.ensureAllowance", () => {
 
   it("broadcasts approve(Permit2, MAX_UINT256) when the allowance is insufficient", async () => {
     const trigger = vi.fn(async () => ({ result: { result: true }, transaction: { raw_data: 1 } }));
-    const broadcast = vi.fn(async () => ({ result: true, txid: "0xapprove" }));
+    const broadcast = vi.fn(async () => ({ result: true, txid: APPROVAL_TX_ID }));
     const txInfo = vi.fn(async () => ({ blockNumber: 1, receipt: { result: "SUCCESS" } }));
     const signTransaction = vi.fn(async (tx: Record<string, unknown>) => ({
       ...tx,
@@ -132,7 +133,7 @@ describe("ClientTronSigner.ensureAllowance", () => {
 
   it("overwrites a partial allowance only when the token policy explicitly permits it", async () => {
     const trigger = vi.fn(async () => ({ result: { result: true }, transaction: { raw_data: 1 } }));
-    const broadcast = vi.fn(async () => ({ result: true, txid: "0xdirect" }));
+    const broadcast = vi.fn(async () => ({ result: true, txid: APPROVAL_TX_ID }));
     const txInfo = vi.fn(async () => ({ blockNumber: 1, receipt: { result: "SUCCESS" } }));
     const signer = await makeClientSigner(
       fakeTronWeb({ allowance: 1n, trigger, broadcast, txInfo }),
@@ -209,7 +210,7 @@ describe("ClientTronSigner.ensureAllowance", () => {
 
   it("throws when the approve transaction does not reach SUCCESS", async () => {
     const trigger = vi.fn(async () => ({ result: { result: true }, transaction: { raw_data: 1 } }));
-    const broadcast = vi.fn(async () => ({ result: true, txid: "0xbad" }));
+    const broadcast = vi.fn(async () => ({ result: true, txid: APPROVAL_TX_ID }));
     const txInfo = vi.fn(async () => ({ blockNumber: 1, receipt: { result: "REVERT" } }));
     const wallet = typedWallet({ signTransaction: async tx => ({ ...tx, signature: ["ab"] }) });
 

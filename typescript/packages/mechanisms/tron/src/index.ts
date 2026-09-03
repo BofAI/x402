@@ -69,6 +69,7 @@ export type {
   FacilitatorTronSignerOptions,
   CreateClientTronSignerOptions,
   AllowanceMode,
+  TronTransactionReceipt,
 } from "./signer";
 export {
   createTrc20ApprovalPolicy,

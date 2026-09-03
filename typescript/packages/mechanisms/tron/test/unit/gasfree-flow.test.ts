@@ -4,7 +4,12 @@ import { ExactGasFreeTronScheme as ClientScheme } from "../../src/gasfree/client
 import { ExactGasFreeTronScheme as FacilitatorScheme } from "../../src/gasfree/facilitator/scheme";
 import type { ClientTronSigner, FacilitatorTronSigner } from "../../src/signer";
 import type { ExactGasFreePayload } from "../../src/types";
-import type { GasFreeAddressInfo, GasFreeProvider } from "../../src/shared/gasfree/api";
+import {
+  GasFreeAPIClient,
+  GasFreeTransactionStatusError,
+  type GasFreeAddressInfo,
+  type GasFreeProvider,
+} from "../../src/shared/gasfree/api";
 import { filterAffordableRequirements } from "../../src/shared/balance";
 
 /**
@@ -21,6 +26,7 @@ const ASSET = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf"; // Nile USDT (6 decimals)
 const PROVIDER = addr("0000000000000000000000000000000000000000000000000000000000000002");
 const GASFREE_ADDR = addr("0000000000000000000000000000000000000000000000000000000000000003");
 const STRANGER = addr("0000000000000000000000000000000000000000000000000000000000000009");
+const TX = "ab".repeat(32);
 
 function account(overrides: Partial<GasFreeAddressInfo> = {}): GasFreeAddressInfo {
   return {
@@ -69,7 +75,7 @@ function api(acct: GasFreeAddressInfo, extra: Record<string, unknown> = {}) {
     getProviders: vi.fn(async () => [{ address: PROVIDER }] as unknown as GasFreeProvider[]),
     getNonce: vi.fn(async () => acct.nonce),
     getStatus: vi.fn(async () => null),
-    waitForSuccess: vi.fn(async () => ({ txnHash: "0xhash" }) as never),
+    waitForSuccess: vi.fn(async () => ({ txnHash: TX }) as never),
     submit: vi.fn(async () => "trace-xyz"),
     ...extra,
   };
@@ -328,9 +334,68 @@ describe("GasFree facilitator settle", () => {
       requirements(),
     );
     expect(r.success).toBe(true);
-    expect(r.transaction).toBe("0xhash");
+    expect(r.transaction).toBe(TX);
     expect(a.submit).toHaveBeenCalledWith(goodPayload().gasfree, "0xsig");
   });
+
+  it("rejects a malformed transaction hash returned as successful", async () => {
+    const a = api(account(), {
+      waitForSuccess: vi.fn(async () => ({ txnHash: "not-a-txid" }) as never),
+    });
+    const fac = new FacilitatorScheme(facilitatorSigner(), { [NETWORK]: a as never });
+
+    const result = await fac.settle(
+      { accepted: requirements(), payload: goodPayload() } as never,
+      requirements(),
+    );
+
+    expect(result).toMatchObject({
+      success: false,
+      errorReason: "gasfree_invalid_transaction_hash",
+      transaction: "",
+    });
+  });
+
+  it("rejects a successful relayer response without a transaction hash", async () => {
+    const a = api(account(), {
+      waitForSuccess: vi.fn(async () => ({ state: "SUCCEED" }) as never),
+    });
+    const fac = new FacilitatorScheme(facilitatorSigner(), { [NETWORK]: a as never });
+
+    const result = await fac.settle(
+      { accepted: requirements(), payload: goodPayload() } as never,
+      requirements(),
+    );
+
+    expect(result).toMatchObject({
+      success: false,
+      errorReason: "gasfree_missing_transaction_hash",
+      transaction: "",
+    });
+  });
+
+  it.each([false, true])(
+    "rejects a malformed transaction hash carried by a polling error (terminal=%s)",
+    async terminal => {
+      const a = api(account(), {
+        waitForSuccess: vi.fn(async () => {
+          throw new GasFreeTransactionStatusError("status polling failed", "not-a-txid", terminal);
+        }),
+      });
+      const fac = new FacilitatorScheme(facilitatorSigner(), { [NETWORK]: a as never });
+
+      const result = await fac.settle(
+        { accepted: requirements(), payload: goodPayload() } as never,
+        requirements(),
+      );
+
+      expect(result).toMatchObject({
+        success: false,
+        errorReason: "gasfree_invalid_transaction_hash",
+        transaction: "",
+      });
+    },
+  );
 
   it("fails settle when verification fails", async () => {
     const fac = new FacilitatorScheme(facilitatorSigner({ verify: false }), {
@@ -354,6 +419,74 @@ describe("GasFree facilitator settle", () => {
     );
     expect(r.success).toBe(false);
     expect(r.errorReason).toBe("insufficient_funds");
+  });
+
+  it("returns settlement_pending with a relayer-known transaction hash", async () => {
+    const a = api(account(), {
+      waitForSuccess: vi.fn(async () => {
+        throw new GasFreeTransactionStatusError("status polling failed", TX, false);
+      }),
+    });
+    const fac = new FacilitatorScheme(facilitatorSigner(), { [NETWORK]: a as never });
+
+    const result = await fac.settle(
+      { accepted: requirements(), payload: goodPayload() } as never,
+      requirements(),
+    );
+
+    expect(result).toMatchObject({
+      success: false,
+      errorReason: "settlement_pending",
+      transaction: TX,
+    });
+  });
+
+  it("preserves a relayer-known transaction hash for terminal failure", async () => {
+    const a = api(account(), {
+      waitForSuccess: vi.fn(async () => {
+        throw new GasFreeTransactionStatusError("on-chain failure", TX, true);
+      }),
+    });
+    const fac = new FacilitatorScheme(facilitatorSigner(), { [NETWORK]: a as never });
+
+    const result = await fac.settle(
+      { accepted: requirements(), payload: goodPayload() } as never,
+      requirements(),
+    );
+
+    expect(result).toMatchObject({
+      success: false,
+      errorReason: "gasfree_transaction_failed",
+      transaction: TX,
+    });
+  });
+});
+
+describe("GasFree status polling recovery metadata", () => {
+  it("returns a successful status without waiting for a transaction hash", async () => {
+    const client = new GasFreeAPIClient("https://example.invalid");
+    const status = { state: "SUCCEED" };
+    const getStatus = vi.spyOn(client, "getStatus").mockResolvedValue(status as never);
+
+    await expect(client.waitForSuccess("trace-xyz", 1, 0)).resolves.toBe(status);
+    expect(getStatus).toHaveBeenCalledOnce();
+  });
+
+  it("carries the last observed transaction hash through a later RPC failure", async () => {
+    const client = new GasFreeAPIClient("https://example.invalid");
+    vi.spyOn(client, "getStatus")
+      .mockResolvedValueOnce({
+        state: "CONFIRMING",
+        txnState: "NOT_ON_CHAIN",
+        txnHash: TX,
+      } as never)
+      .mockRejectedValueOnce(new Error("rpc unavailable"));
+
+    await expect(client.waitForSuccess("trace-xyz", 10_000, 0, 1)).rejects.toMatchObject({
+      name: "GasFreeTransactionStatusError",
+      transaction: TX,
+      terminal: false,
+    });
   });
 });
 

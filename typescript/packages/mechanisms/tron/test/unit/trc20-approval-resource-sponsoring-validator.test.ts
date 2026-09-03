@@ -26,6 +26,9 @@ const PRIVATE_KEY = "4f3edf983ac63ad7c24ee152a7494471b2a18551b7117f7f7f3f2c47c8f
 const PAYER = TronWeb.address.fromPrivateKey(PRIVATE_KEY);
 const TOKEN = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf";
 const PERMIT2 = PERMIT2_ADDRESSES[NETWORK]!;
+const SETTLEMENT_TX = "de".repeat(32);
+const UPTO_SETTLEMENT_TX = "ad".repeat(32);
+const DEPOSIT_TX = "be".repeat(32);
 
 function concat(...chunks: Uint8Array[]): Uint8Array {
   const result = new Uint8Array(chunks.reduce((sum, chunk) => sum + chunk.length, 0));
@@ -285,7 +288,7 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
       readContract: vi.fn(async () => 2_000_000n),
       writeContract: vi.fn(async () => {
         calls.push("settlement");
-        return "settlement-tx";
+        return SETTLEMENT_TX;
       }),
       waitForTransactionReceipt: vi.fn(async () => ({ status: "success" })),
     };
@@ -306,7 +309,7 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
 
     calls.length = 0;
     const settled = await scheme.settle(payload as never, requirements as never, context);
-    expect(settled).toMatchObject({ success: true, transaction: "settlement-tx" });
+    expect(settled).toMatchObject({ success: true, transaction: SETTLEMENT_TX });
     expect(calls).toEqual(["verify-sponsor", "sponsor", "revalidate", "settlement"]);
   });
 
@@ -422,7 +425,7 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
       }),
       writeContract: vi.fn(async () => {
         calls.push("settlement");
-        return "upto-settlement";
+        return UPTO_SETTLEMENT_TX;
       }),
       waitForTransactionReceipt: vi.fn(async () => ({ status: "success" })),
     };
@@ -476,6 +479,7 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
   it("sponsors the batch deposit amount before submitting the channel deposit", async () => {
     const calls: string[] = [];
     let channelBalance = 0n;
+    let receiptStatus: "success" | "pending" = "success";
     const runtime = {
       verify: vi.fn(async request => {
         calls.push("verify-sponsor");
@@ -503,9 +507,9 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
       writeContract: vi.fn(async () => {
         calls.push("deposit");
         channelBalance = 5_000n;
-        return "deposit-tx";
+        return DEPOSIT_TX;
       }),
-      waitForTransactionReceipt: vi.fn(async () => ({ status: "success" })),
+      waitForTransactionReceipt: vi.fn(async () => ({ status: receiptStatus })),
     };
     const config = {
       payer: normalizeAddressForSigning(PAYER),
@@ -569,8 +573,23 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
 
     expect(settled, JSON.stringify({ settled, calls })).toMatchObject({
       success: true,
-      transaction: "deposit-tx",
+      transaction: DEPOSIT_TX,
       amount: "5000",
+    });
+    expect(calls).toEqual(["verify-sponsor", "sponsor", "revalidate", "deposit"]);
+
+    channelBalance = 0n;
+    receiptStatus = "pending";
+    calls.length = 0;
+    const pending = await new BatchFacilitator(signer).settle(
+      payment as never,
+      batchRequirements as never,
+      context,
+    );
+    expect(pending).toMatchObject({
+      success: false,
+      errorReason: "settlement_pending",
+      transaction: DEPOSIT_TX,
     });
     expect(calls).toEqual(["verify-sponsor", "sponsor", "revalidate", "deposit"]);
   });

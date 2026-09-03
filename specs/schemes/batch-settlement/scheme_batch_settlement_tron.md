@@ -135,12 +135,25 @@ corrective `channelState`/`voucherState` when the client must resynchronize.
 Successful deposit settlement returns the deposited amount and channel state. Voucher request
 responses carry `chargedAmount`, channel state, and the latest signed voucher in `SettleResponse.extra`.
 
+For every broadcast action (`deposit`, `claim`, `settle`, or `refund`), the facilitator waits for a
+receipt using a configurable confirmation budget (90 seconds by default). If the budget expires,
+receipt RPC fails, or receipt effect processing is indeterminate after broadcast, it returns
+`success: false`, `errorReason: "settlement_pending"`, and the original transaction ID. An explicit
+revert is terminal and also preserves the transaction ID. The original transaction MUST be
+reconciled and MUST NOT be rebroadcast.
+
+When an operation returns `settlement_pending`, the resource server MUST retain the corresponding
+channel reservation until the original transaction reaches a terminal status. It commits channel
+state after confirmed success and releases only the matching reservation after confirmed revert.
+Status-query failures remain fail-closed and MUST NOT cause a reservation to be released merely
+because its ordinary TTL elapsed.
+
 ## Error Codes
 
 TRON errors use the prefix `invalid_batch_settlement_tron_`. Stable categories cover channel lookup
 and ID mismatch, token/receiver/authorizer mismatch, invalid voucher signatures, cumulative amount
 bounds, deposit authorization or allowance failures, channel busy/resynchronization, invalid refund
-amounts, RPC reads, and failed deposit/claim/settle/refund transactions. The exported names in
+amounts, RPC reads, `settlement_pending`, and failed deposit/claim/settle/refund transactions. The exported names in
 `typescript/packages/mechanisms/tron/src/batch-settlement/errors.ts` are the authoritative list.
 
 ## Security Considerations

@@ -123,6 +123,10 @@ function storedChannel(
 }
 
 describe("batch-settlement server hooks (TRON, offline)", () => {
+  it("exports settlement_pending from the authoritative batch error list", () => {
+    expect(Errors.ErrSettlementPending).toBe("settlement_pending");
+  });
+
   let server: BatchSettlementTronScheme;
   let storage: InMemoryChannelStorage;
   let signer: ClientTronSigner;

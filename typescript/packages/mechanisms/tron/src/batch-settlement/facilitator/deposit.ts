@@ -33,6 +33,7 @@ import {
   verifyTrc20Sponsorship,
 } from "../../shared/extensions/trc20ApprovalResourceSponsoring";
 import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "../../shared/extensions/trc20ApprovalContract";
+import { waitAndReturnSettleResponse } from "../../shared/settleReceipt";
 
 const abi = batchSettlementABI as unknown as readonly Record<string, unknown>[];
 
@@ -261,43 +262,36 @@ export async function settleDeposit(
       ],
     });
 
-    const receipt = await signer.waitForTransactionReceipt({ hash: tx });
-    if (receipt.status !== "success") {
-      return {
-        success: false,
-        errorReason: Errors.ErrDepositTransactionFailed,
-        errorMessage: `transaction reverted (receipt status ${receipt.status})`,
-        transaction: tx,
-        network,
-        payer,
-      };
-    }
+    return waitAndReturnSettleResponse(signer, tx, network, payer, {
+      failedStatusReason: Errors.ErrDepositTransactionFailed,
+      onSuccess: async () => {
+        const expectedMinBalance =
+          BigInt(String(verified.extra?.balance ?? "0")) + BigInt(deposit.amount);
+        const rpcDeadline = Date.now() + 4_000;
+        let postState = await readChannelState(signer, voucher.channelId, network);
+        while (postState.balance < expectedMinBalance && Date.now() < rpcDeadline) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+          postState = await readChannelState(signer, voucher.channelId, network);
+        }
 
-    const expectedMinBalance =
-      BigInt(String(verified.extra?.balance ?? "0")) + BigInt(deposit.amount);
-    const rpcDeadline = Date.now() + 4_000;
-    let postState = await readChannelState(signer, voucher.channelId, network);
-    while (postState.balance < expectedMinBalance && Date.now() < rpcDeadline) {
-      await new Promise(resolve => setTimeout(resolve, 200));
-      postState = await readChannelState(signer, voucher.channelId, network);
-    }
-
-    return {
-      success: true,
-      transaction: tx,
-      network,
-      payer,
-      amount: deposit.amount,
-      extra: {
-        channelState: {
-          channelId: voucher.channelId,
-          balance: postState.balance.toString(),
-          totalClaimed: postState.totalClaimed.toString(),
-          withdrawRequestedAt: postState.withdrawRequestedAt,
-          refundNonce: postState.refundNonce.toString(),
-        },
+        return {
+          success: true,
+          transaction: tx,
+          network,
+          payer,
+          amount: deposit.amount,
+          extra: {
+            channelState: {
+              channelId: voucher.channelId,
+              balance: postState.balance.toString(),
+              totalClaimed: postState.totalClaimed.toString(),
+              withdrawRequestedAt: postState.withdrawRequestedAt,
+              refundNonce: postState.refundNonce.toString(),
+            },
+          },
+        };
       },
-    };
+    });
   } catch (e) {
     return {
       success: false,

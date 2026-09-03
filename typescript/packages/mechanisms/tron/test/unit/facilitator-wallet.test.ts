@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { createFacilitatorTronSigner, type FacilitatorTronWallet } from "../../src/signer";
+import {
+  createFacilitatorTronSigner,
+  DEFAULT_CONFIRMATION_TIMEOUT_MS,
+  type FacilitatorTronWallet,
+} from "../../src/signer";
 import { buildTronWeb } from "../../src/rpc";
 import { x402ExactPermit2ProxyABI } from "../../src/constants";
 
@@ -20,6 +24,7 @@ const PROXY = "TFGoaq2KjizijgjtkVxT7yjffW1A5T1j6F";
 const TOKEN = "0x" + "a".repeat(40);
 const TO = "0x" + "b".repeat(40);
 const OWNER = "0x" + "c".repeat(40);
+const TX_ID = "ab".repeat(32);
 
 /** Expected canonical selector for x402ExactPermit2Proxy.settle. */
 const SETTLE_SELECTOR =
@@ -62,7 +67,7 @@ describe("createFacilitatorTronSigner — wallet path", () => {
 
   it("derives the canonical settle selector and broadcasts the wallet-signed tx", async () => {
     const trigger = vi.fn(async () => ({ result: { result: true }, transaction: { raw_data: 1 } }));
-    const broadcast = vi.fn(async () => ({ result: true, txid: "0xdeadbeef" }));
+    const broadcast = vi.fn(async () => ({ result: true, txid: `0X${TX_ID.toUpperCase()}` }));
     const wallet: FacilitatorTronWallet = {
       getAddress: () => FAC_ADDR,
       signTransaction: vi.fn(async (tx: Record<string, unknown>) => ({
@@ -82,7 +87,7 @@ describe("createFacilitatorTronSigner — wallet path", () => {
       args: settleArgs,
     });
 
-    expect(tx).toBe("0xdeadbeef");
+    expect(tx).toBe(TX_ID);
     // Selector derived from ABI matches the known on-chain canonical signature.
     expect(trigger).toHaveBeenCalledWith(
       PROXY,
@@ -109,13 +114,13 @@ describe("createFacilitatorTronSigner — wallet path", () => {
         signTransaction: async tx => tx,
       });
 
-      const receiptPromise = signer.waitForTransactionReceipt({ hash: "0xconfirmed" });
-      await vi.advanceTimersByTimeAsync(3_000);
+      const receiptPromise = signer.waitForTransactionReceipt({ hash: TX_ID });
+      await vi.runAllTimersAsync();
 
       await expect(receiptPromise).resolves.toEqual({ status: "success" });
       expect(txInfo).toHaveBeenCalledWith(
         "wallet/gettransactioninfobyid",
-        { value: "0xconfirmed" },
+        { value: TX_ID },
         "post",
       );
       expect(tw.trx.getTransaction).not.toHaveBeenCalled();
@@ -124,9 +129,147 @@ describe("createFacilitatorTronSigner — wallet path", () => {
     }
   });
 
+  it("returns pending after the configured confirmation budget", async () => {
+    vi.useFakeTimers();
+    try {
+      const txInfo = vi.fn(async () => ({}));
+      const signer = await makeFacilitatorSigner(
+        fakeTronWeb(vi.fn(), vi.fn(), txInfo),
+        {
+          getAddress: () => FAC_ADDR,
+          signTransaction: async tx => tx,
+        },
+        { confirmationTimeoutMs: 6_000 },
+      );
+
+      const receiptPromise = signer.waitForTransactionReceipt({ hash: TX_ID });
+      await vi.advanceTimersByTimeAsync(6_000);
+
+      await expect(receiptPromise).resolves.toEqual({ status: "pending" });
+      expect(txInfo).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("uses a 90-second confirmation budget by default", async () => {
+    vi.useFakeTimers();
+    try {
+      expect(DEFAULT_CONFIRMATION_TIMEOUT_MS).toBe(90_000);
+      const signer = await makeFacilitatorSigner(
+        fakeTronWeb(
+          vi.fn(),
+          vi.fn(),
+          vi.fn(async () => ({})),
+        ),
+        {
+          getAddress: () => FAC_ADDR,
+          signTransaction: async tx => tx,
+        },
+      );
+
+      const receiptPromise = signer.waitForTransactionReceipt({ hash: TX_ID });
+      await vi.advanceTimersByTimeAsync(DEFAULT_CONFIRMATION_TIMEOUT_MS);
+
+      await expect(receiptPromise).resolves.toEqual({ status: "pending" });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("retries a transient receipt RPC error within the confirmation budget", async () => {
+    vi.useFakeTimers();
+    try {
+      const txInfo = vi
+        .fn()
+        .mockRejectedValueOnce(new Error("temporary RPC error"))
+        .mockResolvedValueOnce({ blockNumber: 1, receipt: { result: "SUCCESS" } });
+      const signer = await makeFacilitatorSigner(
+        fakeTronWeb(vi.fn(), vi.fn(), txInfo),
+        {
+          getAddress: () => FAC_ADDR,
+          signTransaction: async tx => tx,
+        },
+        { confirmationTimeoutMs: 6_000 },
+      );
+
+      const receiptPromise = signer.waitForTransactionReceipt({ hash: TX_ID });
+      await vi.advanceTimersByTimeAsync(3_000);
+
+      await expect(receiptPromise).resolves.toEqual({ status: "success" });
+      expect(txInfo).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it.each([undefined, "DEFAULT"])(
+    "keeps an incomplete packed receipt (%s) pending",
+    async result => {
+      vi.useFakeTimers();
+      try {
+        const txInfo = vi.fn(async () => ({
+          blockNumber: 84_101_804,
+          receipt: result === undefined ? {} : { result },
+        }));
+        const signer = await makeFacilitatorSigner(
+          fakeTronWeb(vi.fn(), vi.fn(), txInfo),
+          {
+            getAddress: () => FAC_ADDR,
+            signTransaction: async tx => tx,
+          },
+          { confirmationTimeoutMs: 6_000 },
+        );
+
+        const receiptPromise = signer.waitForTransactionReceipt({ hash: TX_ID });
+        await vi.advanceTimersByTimeAsync(6_000);
+
+        await expect(receiptPromise).resolves.toEqual({ status: "pending" });
+      } finally {
+        vi.useRealTimers();
+      }
+    },
+  );
+
+  it("bounds a receipt RPC call that never resolves", async () => {
+    vi.useFakeTimers();
+    try {
+      const txInfo = vi.fn(() => new Promise(() => undefined));
+      const signer = await makeFacilitatorSigner(
+        fakeTronWeb(vi.fn(), vi.fn(), txInfo),
+        {
+          getAddress: () => FAC_ADDR,
+          signTransaction: async tx => tx,
+        },
+        { confirmationTimeoutMs: 6_000 },
+      );
+
+      const receiptPromise = signer.waitForTransactionReceipt({ hash: TX_ID });
+      await vi.advanceTimersByTimeAsync(6_000);
+
+      await expect(receiptPromise).resolves.toEqual({ status: "pending" });
+      expect(txInfo).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("rejects an invalid confirmation timeout", async () => {
+    await expect(
+      makeFacilitatorSigner(
+        fakeTronWeb(vi.fn(), vi.fn()),
+        {
+          getAddress: () => FAC_ADDR,
+          signTransaction: async tx => tx,
+        },
+        { confirmationTimeoutMs: 0 },
+      ),
+    ).rejects.toThrow(/confirmationTimeoutMs must be a positive integer/);
+  });
+
   it("maps tuple inputs to typed trigger parameters", async () => {
     const trigger = vi.fn(async () => ({ result: { result: true }, transaction: {} }));
-    const broadcast = vi.fn(async () => ({ result: true, txid: "0x1" }));
+    const broadcast = vi.fn(async () => ({ result: true, txid: TX_ID }));
     const wallet: FacilitatorTronWallet = {
       getAddress: () => FAC_ADDR,
       signTransaction: async () => ({ signature: ["x"] }),
@@ -189,7 +332,7 @@ describe("createFacilitatorTronSigner — wallet path", () => {
 
   it("accepts a raw signature hex from the wallet", async () => {
     const trigger = vi.fn(async () => ({ result: { result: true }, transaction: { r: 1 } }));
-    const broadcast = vi.fn(async () => ({ result: true, txid: "0x2" }));
+    const broadcast = vi.fn(async () => ({ result: true, txid: TX_ID }));
     const wallet: FacilitatorTronWallet = {
       getAddress: () => FAC_ADDR,
       signTransaction: async () => "0xrawsig",
