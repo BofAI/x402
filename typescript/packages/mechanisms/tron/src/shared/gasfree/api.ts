@@ -257,7 +257,7 @@ export class GasFreeAPIClient {
       if (statusData.txnHash) lastTransactionHash = statusData.txnHash;
 
       if (
-        (state === "SUCCEED" && statusData.txnHash) ||
+        state === "SUCCEED" ||
         (statusData.txnHash && ["ON_CHAIN", "SOLIDITY"].includes(txnState))
       ) {
         return statusData;
