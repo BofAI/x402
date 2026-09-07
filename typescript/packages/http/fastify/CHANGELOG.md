@@ -1,5 +1,12 @@
 # @bankofai/x402-fastify
 
+## 1.1.1
+
+### Patch Changes
+
+- Updated dependencies [[`7a77b61`](https://github.com/BofAI/x402/commit/7a77b611046b26106193079e5ef4fbe76f4dcacd)]:
+  - @bankofai/x402-extensions@1.2.0
+
 ## 1.1.0
 
 ### Minor Changes
