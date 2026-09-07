@@ -7,18 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-09-07
+
+### Breaking
+
+- Changed canonical TRON CAIP-2 identifiers to decimal references: `tron:728126428` (mainnet),
+  `tron:3448148188` (Nile), and `tron:2494104990` (Shasta). Deprecated hexadecimal forms remain
+  accepted at protocol and configuration boundaries but are normalized before use.
+
 ### Changed
 
+- Increased the default HTTP facilitator client timeout to 120 seconds so receipt-backed TRON
+  settlement can complete within its default confirmation budget.
+- Added configurable TRON receipt confirmation waiting with a 90-second default across `exact`,
+  `upto`, `batch-settlement`, and GasFree settlement paths.
 - Adopted `develop` as the integration branch and retained `main` for stable releases.
-- Added enforced pull request routes for development, release, and hotfix branches.
-- Added automated pull request title and description validation.
-- Added pull request CI for policy tests, formatting, linting, build, and unit tests.
+- Added enforced pull request routes and automated metadata, policy, formatting, lint, build, and
+  unit-test checks.
+
+### Fixed
+
+- Preserve broadcast transaction IDs in non-terminal `settlement_pending` responses instead of
+  treating indeterminate receipt polling as a terminal failure or rebroadcasting the payment.
+- Reject hashless GasFree success responses and retain a valid relayer-observed transaction ID when
+  later status polling is indeterminate.
 
 ### Removed
 
 - Removed the root `legacy/` archive containing the retired Python SDK, old TypeScript SDK, and
   superseded examples and specifications. The compatibility npm packages under
   `typescript/packages/legacy/` remain supported by the current workspace.
+
+### Packages
+
+- `@bankofai/x402-tron` advances to `2.0.0`.
+- `@bankofai/x402-core` advances to `1.1.1`.
+
+Implemented in [PR #96](https://github.com/BofAI/x402/pull/96) and
+[PR #98](https://github.com/BofAI/x402/pull/98).
 
 ## [1.2.0] - 2026-08-28
 

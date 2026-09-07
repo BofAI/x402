@@ -1,3 +1,56 @@
+# v2.0.0 — Canonical TRON Networks and Pending Settlement
+
+Release date: September 7, 2026
+
+## Highlights
+
+Version 2.0.0 makes decimal TRON CAIP-2 identifiers canonical and hardens receipt-backed settlement
+when a transaction has been broadcast but final on-chain status is not yet known. The release keeps
+deprecated hexadecimal network aliases as accepted inputs, normalizes them at boundaries, and
+preserves transaction IDs in non-terminal `settlement_pending` responses so callers can reconcile
+without rebroadcasting.
+
+## Upgrade Notes
+
+- Upgrade `@bankofai/x402-tron` to `2.0.0` and `@bankofai/x402-core` to `1.1.1` together.
+- Replace configured and persisted hexadecimal TRON network identifiers with `tron:728126428`
+  (mainnet), `tron:3448148188` (Nile), or `tron:2494104990` (Shasta).
+- Hexadecimal aliases remain accepted for migration, but newly emitted values and internal lookups
+  use decimal identifiers.
+- Treat `settlement_pending` as non-terminal. Preserve its transaction ID and reconcile that
+  transaction rather than resubmitting the authorization.
+- The default HTTP facilitator timeout is now 120 seconds; override `timeoutMs` only when the
+  deployment has a different confirmation budget.
+
+## Reliability Changes
+
+- TRON receipt confirmation waiting is configurable and defaults to 90 seconds across `exact`,
+  `upto`, `batch-settlement`, and GasFree paths.
+- Confirmed reverts remain terminal failures, while unavailable or indeterminate post-broadcast
+  receipts return `settlement_pending` with the original transaction ID.
+- GasFree settlement validates relayer transaction IDs and rejects success responses that do not
+  identify a transaction.
+- Settlement reconciliation is single-shot and does not rebroadcast an already submitted payment.
+
+## Verification
+
+- `pnpm format:check`: 17/17 workspace tasks passed.
+- `pnpm lint:check`: 17/17 workspace tasks passed.
+- `pnpm build:release`: forced release build passed for all 17 packages.
+- `pnpm test`: all 34 workspace tasks passed without using the build cache.
+- Core integration tests: 31/31 passed. Credential-backed EVM and TRON on-chain tests remain a
+  pre-publish gate in the release environment.
+- Both npm tarballs contain the expected generated declarations and versions, with no remaining
+  `workspace:` dependency ranges; the TRON tarball depends on `@bankofai/x402-core@~1.1.1`.
+
+## Release Artifacts
+
+- `@bankofai/x402-tron@2.0.0`
+- `@bankofai/x402-core@1.1.1`
+
+Implemented in [PR #96](https://github.com/BofAI/x402/pull/96) and
+[PR #98](https://github.com/BofAI/x402/pull/98).
+
 # v1.2.0 — TRON Approval Resource Sponsoring
 
 Release date: August 28, 2026
