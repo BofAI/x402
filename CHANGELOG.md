@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-08-28
+
+### Added
+
+- Added the canonical `trc20ApprovalResourceSponsoring` Extension for TRON `exact`, `upto`, and the Permit2 deposit/top-up path of `batch-settlement`.
+- Added a Facilitator resource-sponsoring runtime with Stake 2.0 resource sizing, bounded policy checks, persistent operation contracts, crash recovery, and resource reclamation.
+- Added isolated TypeScript examples for sponsored `exact`, `upto`, and `batch-settlement` flows.
+
+### Security
+
+- Strictly decode the Client-signed, unbroadcast TRC-20 Approval before sponsorship and bind its owner, Permit2 spender, amount, lifetime, fee limit, network, token, and single-contract transaction shape to the selected payment operation.
+- Validate Resource Owner delegate and undelegate transactions against the original intent before signing, including owner, receiver, resource type, amount, lock state, permission, and contract count.
+- Recover interrupted operations across delegation, approval, settlement handoff, and reclamation states so stale resource delegation is not silently abandoned.
+
+### Changed
+
+- `@bankofai/x402-extensions` and `@bankofai/x402-tron` advance to `1.2.0`.
+- `@bankofai/x402-express`, `@bankofai/x402-fastify`, `@bankofai/x402-hono`, and `@bankofai/x402-next` advance to `1.1.1` to consume the updated Extension package.
+- Other public packages remain on `1.1.0` because their APIs and dependency graphs did not change in this release.
+
+Implemented in [PR #84](https://github.com/BofAI/x402/pull/84).
+
 ## [1.1.0] - 2026-08-25
 
 ### Upgrade notes

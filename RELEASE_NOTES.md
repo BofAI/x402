@@ -1,3 +1,54 @@
+# v1.2.0 — TRON Approval Resource Sponsoring
+
+Release date: August 28, 2026
+
+## Highlights
+
+Version 1.2.0 adds protocol-level resource sponsoring for the first TRC-20 Permit2 Approval. A Client signs the Approval without broadcasting it; the Facilitator validates the exact transaction intent, temporarily delegates TRON Energy to the payer, broadcasts the Approval, continues settlement after confirmation, and reclaims the delegated resource through a recoverable state machine. The Extension works with TRON `exact`, `upto`, and the deposit/top-up path of `batch-settlement`.
+
+## Upgrade Notes
+
+- Upgrade `@bankofai/x402-extensions` and `@bankofai/x402-tron` to `1.2.0` together.
+- Applications using the HTTP server adapters should use `@bankofai/x402-express`, `@bankofai/x402-fastify`, `@bankofai/x402-hono`, or `@bankofai/x402-next` `1.1.1`, which declare the updated Extension dependency.
+- `core`, `evm`, `mcp`, `axios`, and `fetch` remain at `1.1.0`; they have no API or dependency change in this release.
+- Resource Servers advertise `trc20ApprovalResourceSponsoring` version 1. Clients attach the signed Approval only when the token-to-Permit2 allowance is insufficient. Facilitators opt in by registering the sponsoring runtime and policy.
+- Production Facilitators should back the operation coordinator with durable storage and run reconciliation at startup and on an interval. The process-local coordinator is intended for tests and development.
+
+## Protocol Flow
+
+1. The Resource Server returns the payment requirements and the resource-sponsoring Extension declaration.
+2. When Permit2 allowance is insufficient, the Client builds and signs a single TRC-20 `approve(Permit2, MaxUint256)` transaction but does not broadcast it.
+3. The Facilitator strictly decodes the signed protobuf and verifies the network, token, owner, Permit2 spender, approval amount, expiration, fee limit, and absence of additional contracts.
+4. The Facilitator delegates the estimated Energy, broadcasts the validated Approval, waits for confirmation, and allows the normal Permit2 settlement to continue.
+5. Resource reclamation is tracked independently and retried by reconciliation if the process stops or an undelegation attempt fails.
+
+## Security and Reliability
+
+- Resource Owner delegate and undelegate transactions are checked against an explicit signing intent before the wallet signs them.
+- Sponsorship policies bound per-operation resource limits, capacity, concurrency, approval lifetime, and fee limits.
+- The operation state machine records immutable actions and resumes interrupted delegation, approval, and reclamation windows.
+- Settlement success is not converted into payment failure merely because resource reclamation needs a later retry.
+- The Extension sponsors only the Approval transaction; the existing Permit2 payment authorization continues to bind each payment's amount, recipient, nonce, deadline, and scheme-specific context.
+
+## Verification
+
+- `pnpm format:check`: 17/17 workspace tasks passed.
+- `pnpm lint:check`: 17/17 workspace tasks passed.
+- `pnpm test`: 34/34 workspace tasks passed, including 532 Extension tests and 247 TRON tests.
+- `pnpm build:release`: forced release build passed for all 17 packages.
+- All six release tarballs were inspected for generated CJS/ESM declarations, expected versions, and published dependency rewriting with no remaining `workspace:` ranges.
+
+## Release Artifacts
+
+- `@bankofai/x402-extensions@1.2.0`
+- `@bankofai/x402-tron@1.2.0`
+- `@bankofai/x402-express@1.1.1`
+- `@bankofai/x402-fastify@1.1.1`
+- `@bankofai/x402-hono@1.1.1`
+- `@bankofai/x402-next@1.1.1`
+
+Implemented by [@boboliu-1010](https://github.com/boboliu-1010) in [PR #84](https://github.com/BofAI/x402/pull/84).
+
 # v1.1.0 — Payment Flow and Wallet Compatibility
 
 Release date: August 25, 2026

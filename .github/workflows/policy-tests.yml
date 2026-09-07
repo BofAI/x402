@@ -1,0 +1,25 @@
+name: Test policy validators
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  policy-tests:
+    name: Policy validator tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test branch policy
+        run: sh scripts/check_branch_policy.test.sh
+      - name: Test pull request metadata policy
+        run: node --test scripts/check_pr_metadata.test.mjs
