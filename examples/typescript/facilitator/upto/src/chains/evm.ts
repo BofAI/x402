@@ -34,19 +34,20 @@ const EVM_RPC_NETWORK =
  * @param facilitator - The facilitator to register the scheme on.
  * @returns `true` if at least one network registered, `false` if no EVM wallet.
  */
-export async function registerEvm(facilitator: x402Facilitator): Promise<boolean> {
-  const wallet = await tryResolveWallet("evm");
-  if (!wallet) {
-    return false;
-  }
-
+export async function registerEvm(
+  facilitator: x402Facilitator,
+): Promise<boolean> {
+  let registered = false;
   for (const network of EVM_NETWORKS) {
+    const wallet = await tryResolveWallet(network);
+    if (!wallet) continue;
     const signer = await createFacilitatorEvmSigner(wallet, {
       network,
       rpcUrl: network === EVM_RPC_NETWORK ? EVM_RPC_URL : undefined,
     });
     facilitator.register(network, new UptoEvmScheme(signer));
     console.info(`[evm] facilitator registered ${network} upto`);
+    registered = true;
   }
-  return true;
+  return registered;
 }

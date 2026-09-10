@@ -29,7 +29,7 @@ const TRON_NETWORK = (process.env.TRON_NETWORK ??
  * @returns The CAIP-2 networks registered (empty if no TRON wallet).
  */
 export async function registerTron(client: x402Client): Promise<string[]> {
-  const wallet = await tryResolveWallet("tron");
+  const wallet = await tryResolveWallet(TRON_NETWORK);
   if (!wallet) {
     return [];
   }

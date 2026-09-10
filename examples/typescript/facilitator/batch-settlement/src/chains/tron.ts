@@ -35,7 +35,7 @@ export const TRON_NETWORK = (process.env.TRON_NETWORK ??
 export async function registerTron(
   facilitator: x402Facilitator,
 ): Promise<boolean> {
-  const wallet = await tryResolveWallet("tron");
+  const wallet = await tryResolveWallet(TRON_NETWORK);
   if (!wallet) {
     return false;
   }

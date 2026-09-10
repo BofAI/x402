@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Updated the TypeScript wallet adapters and examples for `@bankofai/agent-wallet` 3.0.0 typed
+  transaction artifacts and strict per-network CAIP-2 resolution while retaining compatibility
+  with structural legacy wallet results.
+
 ## [2.0.0] - 2026-09-07
 
 ### Breaking

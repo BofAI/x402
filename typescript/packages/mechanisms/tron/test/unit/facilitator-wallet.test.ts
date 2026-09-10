@@ -101,6 +101,28 @@ describe("createFacilitatorTronSigner — wallet path", () => {
     expect(broadcast).toHaveBeenCalledWith({ raw_data: 1, signature: ["abcd"] });
   });
 
+  it("unwraps an agent-wallet 3.x TRON transaction artifact", async () => {
+    const trigger = vi.fn(async () => ({ result: { result: true }, transaction: { raw_data: 1 } }));
+    const broadcast = vi.fn(async () => ({ result: true, txid: TX_ID }));
+    const wallet: FacilitatorTronWallet = {
+      getAddress: () => FAC_ADDR,
+      signTransaction: vi.fn(async tx => ({
+        family: "tron",
+        transaction: { ...tx, signature: ["abcd"] },
+      })),
+    };
+    const signer = await makeFacilitatorSigner(fakeTronWeb(trigger, broadcast), wallet);
+
+    await signer.writeContract({
+      address: PROXY,
+      abi: x402ExactPermit2ProxyABI as unknown as readonly Record<string, unknown>[],
+      functionName: "settle",
+      args: settleArgs,
+    });
+
+    expect(broadcast).toHaveBeenCalledWith({ raw_data: 1, signature: ["abcd"] });
+  });
+
   it("uses the packed receipt instead of a transient preconfirm REVERT", async () => {
     vi.useFakeTimers();
     try {

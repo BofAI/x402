@@ -3,7 +3,6 @@
  * private key. A chain registers only when a wallet for it resolves, so the
  * facilitator can run EVM-only, TRON-only, or both.
  */
-import { TRON_NILE, TRON_MAINNET } from "@bankofai/x402-tron";
 import { resolveWallet, type Wallet } from "@bankofai/agent-wallet";
 
 /**
@@ -21,29 +20,20 @@ export type SignerWallet = Wallet & {
 };
 
 /**
- * `@bankofai/agent-wallet` expects a **CAIP-2** network id (must start with
- * `eip155:` or `tron:`). Map the short family name to a representative id — key
- * derivation is chain-id-independent within a family, so any id of the right
- * family resolves the same address.
- */
-const CAIP2_BY_FAMILY: Record<"evm" | "tron", string> = {
-  evm: "eip155:97",
-  tron: TRON_NILE,
-};
-
-/**
- * Resolves the agent-wallet for a chain family, or `null` when none is configured.
+ * Resolves the agent-wallet for an exact CAIP-2 network, or `null` when that
+ * network is unavailable. agent-wallet 3.x validates the requested network on
+ * every operation.
  *
- * @param family - `"evm"` or `"tron"`.
+ * @param network - Exact canonical CAIP-2 network.
  * @returns The wallet, or `null` to skip that chain.
  */
 export async function tryResolveWallet(
-  family: "evm" | "tron",
+  network: string,
 ): Promise<SignerWallet | null> {
   try {
-    return (await resolveWallet({
-      network: CAIP2_BY_FAMILY[family],
-    })) as SignerWallet;
+    const wallet = (await resolveWallet({ network })) as SignerWallet;
+    await wallet.getAddress();
+    return wallet;
   } catch {
     return null;
   }
