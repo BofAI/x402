@@ -16,7 +16,11 @@ This package provides the three x402 mechanism roles for TRON, mirroring `@banko
 - **Facilitator** — processors that verify signatures and submit on-chain settlement
 - **Server** — resource servers that price requests and build `PaymentRequirements`
 
-It plugs into `@bankofai/x402-core` via the `tron:*` CAIP family — no core changes are required.
+It plugs into `@bankofai/x402-core` via the `tron:*` CAIP family.
+
+TRON network identifiers use decimal CAIP-2 references (`tron:728126428`, `tron:3448148188`, and
+`tron:2494104990`). The SDK accepts the older hexadecimal forms as input aliases, while newly
+created configuration and protocol output use the decimal identifiers.
 
 ### Fee behavior
 
@@ -95,7 +99,7 @@ const clientWallet: ClientTronWallet = {
   },
 };
 const clientSigner = await createClientTronSigner(clientWallet, {
-  network: "tron:0xcd8690dc",
+  network: "tron:3448148188",
 });
 
 // Facilitator: signs built settlement transactions for on-chain broadcast.
@@ -106,7 +110,7 @@ const facilitatorWallet: FacilitatorTronWallet = {
   },
 };
 const facilitatorSigner = await createFacilitatorTronSigner(facilitatorWallet, {
-  network: "tron:0xcd8690dc",
+  network: "tron:3448148188",
 });
 ```
 
@@ -140,7 +144,7 @@ registerExactTronScheme(server); // prices to the network's default stablecoin
 import { x402Facilitator } from "@bankofai/x402-core/facilitator";
 import { registerExactTronScheme } from "@bankofai/x402-tron/exact/facilitator";
 
-registerExactTronScheme(facilitator, { signer: facilitatorSigner, networks: "tron:0xcd8690dc" });
+registerExactTronScheme(facilitator, { signer: facilitatorSigner, networks: "tron:3448148188" });
 ```
 
 ## Networks & on-chain dependencies
@@ -149,9 +153,9 @@ The `permit2` path depends on three on-chain contracts. Addresses live in `src/c
 
 | Network | chainId (TIP-712) | Permit2 | x402ExactPermit2Proxy |
 | --- | --- | --- | --- |
-| `tron:0xcd8690dc` | 3448148188 | `TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h` | `TFGoaq2KjizijgjtkVxT7yjffW1A5T1j6F` |
-| `tron:0x2b6653dc` | 728126428 | `TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9` | `TN49yaJmZMZoEdDCqjB4uPzQLHvYkGw95m` |
-| `tron:0x94a9059e` | 2494104990 | `TJMkP7a3ucTMkvi17p7ChhTCw6zriFX3tg` | `TGZkC38n14f2GpBWPMQLF2BpmcpWW3QNhg` |
+| `tron:3448148188` | 3448148188 | `TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h` | `TFGoaq2KjizijgjtkVxT7yjffW1A5T1j6F` |
+| `tron:728126428` | 728126428 | `TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9` | `TN49yaJmZMZoEdDCqjB4uPzQLHvYkGw95m` |
+| `tron:2494104990` | 2494104990 | `TJMkP7a3ucTMkvi17p7ChhTCw6zriFX3tg` | `TGZkC38n14f2GpBWPMQLF2BpmcpWW3QNhg` |
 
 > ⚠️ Mainnet uses real funds. The configured Permit2 and
 > `x402ExactPermit2Proxy` addresses are the deployed mainnet contracts; verify

@@ -1,4 +1,11 @@
 import { getTronChainId, tronAddressToEvm } from "../../utils";
+import {
+  getTronNetworkValue,
+  TRON_MAINNET,
+  TRON_NILE,
+  TRON_SHASTA,
+  withTronNetworkAliases,
+} from "../../network";
 
 /**
  * GasFree network configuration: on-chain controller/beacon addresses and the
@@ -11,18 +18,18 @@ import { getTronChainId, tronAddressToEvm } from "../../utils";
  */
 
 /** GasFreeController contract addresses (Base58Check) per network. */
-export const GASFREE_CONTROLLER_ADDRESSES: Record<string, string> = {
-  "tron:0x2b6653dc": "TFFAMQLZybALaLb4uxHA9RBE7pxhUAjF3U",
-  "tron:0x94a9059e": "TQghdCeVDA6CnuNVTUhfaAyPfTetqZWNpm",
-  "tron:0xcd8690dc": "THQGuFzL87ZqhxkgqYEryRAd7gqFqL5rdc",
-};
+export const GASFREE_CONTROLLER_ADDRESSES: Record<string, string> = withTronNetworkAliases({
+  [TRON_MAINNET]: "TFFAMQLZybALaLb4uxHA9RBE7pxhUAjF3U",
+  [TRON_SHASTA]: "TQghdCeVDA6CnuNVTUhfaAyPfTetqZWNpm",
+  [TRON_NILE]: "THQGuFzL87ZqhxkgqYEryRAd7gqFqL5rdc",
+});
 
 /** GasFree beacon contract addresses (Base58Check) per network. */
-export const GASFREE_BEACON_ADDRESSES: Record<string, string> = {
-  "tron:0x2b6653dc": "TSP9UW6FQhT76XD2jWA6ipGMx3yGbjDffP",
-  "tron:0x94a9059e": "TQ1jvA3nLDMDNbJoMPLzTPoqAg8NvZ5CCW",
-  "tron:0xcd8690dc": "TLtCGmaxH3PbuaF6kbybwteZcHptEdgQGC",
-};
+export const GASFREE_BEACON_ADDRESSES: Record<string, string> = withTronNetworkAliases({
+  [TRON_MAINNET]: "TSP9UW6FQhT76XD2jWA6ipGMx3yGbjDffP",
+  [TRON_SHASTA]: "TQ1jvA3nLDMDNbJoMPLzTPoqAg8NvZ5CCW",
+  [TRON_NILE]: "TLtCGmaxH3PbuaF6kbybwteZcHptEdgQGC",
+});
 
 /**
  * Default GasFree relayer API base URLs per network.
@@ -34,11 +41,11 @@ export const GASFREE_BEACON_ADDRESSES: Record<string, string> = {
  * requires ApiKey/Secret auth) or your own relayer, override via the GasFree API
  * client / registration config.
  */
-export const GASFREE_API_BASE_URLS: Record<string, string> = {
-  "tron:0x2b6653dc": "https://facilitator.bankofai.io/mainnet",
-  "tron:0x94a9059e": "https://facilitator.bankofai.io/shasta",
-  "tron:0xcd8690dc": "https://facilitator.bankofai.io/nile",
-};
+export const GASFREE_API_BASE_URLS: Record<string, string> = withTronNetworkAliases({
+  [TRON_MAINNET]: "https://facilitator.bankofai.io/mainnet",
+  [TRON_SHASTA]: "https://facilitator.bankofai.io/shasta",
+  [TRON_NILE]: "https://facilitator.bankofai.io/nile",
+});
 
 /**
  * Get the GasFreeController address (Base58Check) for a network.
@@ -48,7 +55,7 @@ export const GASFREE_API_BASE_URLS: Record<string, string> = {
  * @throws Error if GasFree is not configured for the network.
  */
 export function getGasFreeControllerAddress(network: string): string {
-  const addr = GASFREE_CONTROLLER_ADDRESSES[network];
+  const addr = getTronNetworkValue(GASFREE_CONTROLLER_ADDRESSES, network);
   if (!addr) {
     throw new Error(`GasFreeController not configured for network: ${network}`);
   }
@@ -63,7 +70,7 @@ export function getGasFreeControllerAddress(network: string): string {
  * @throws Error if no default API URL is configured for the network.
  */
 export function getGasFreeApiBaseUrl(network: string): string {
-  const url = GASFREE_API_BASE_URLS[network];
+  const url = getTronNetworkValue(GASFREE_API_BASE_URLS, network);
   if (!url) {
     throw new Error(`No GasFree API URL configured for network: ${network}`);
   }

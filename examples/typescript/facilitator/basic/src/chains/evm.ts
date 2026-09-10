@@ -47,19 +47,11 @@ const EVM_RPC_NETWORK =
 export async function registerEvm(
   facilitator: x402Facilitator,
 ): Promise<boolean> {
-  const wallet = await tryResolveWallet("evm");
-  if (!wallet) {
-    return false;
-  }
-
-  // Adapt the agent-wallet to the SDK's facilitator wallet shape (one key, used
-  // across networks). Signing stays in the wallet; the SDK never sees the key.
-  // The agent-wallet satisfies FacilitatorEvmWallet directly; the factory builds
-  // the viem client internally and the wallet signs (no raw key in the SDK).
-  const address = (await wallet.getAddress()) as `0x${string}`;
-
   const signers: Record<string, GasSponsoringFacilitatorEvmSigner> = {};
   for (const network of EVM_NETWORKS) {
+    const wallet = await tryResolveWallet(network);
+    if (!wallet) continue;
+    const address = (await wallet.getAddress()) as `0x${string}`;
     const signer = await createFacilitatorEvmSigner(wallet, {
       network,
       rpcUrl: network === EVM_RPC_NETWORK ? EVM_RPC_URL : undefined,
@@ -68,6 +60,8 @@ export async function registerEvm(
     signers[network] = signer;
     console.info(`[evm] facilitator registered ${network} (${address})`);
   }
+
+  if (Object.keys(signers).length === 0) return false;
 
   // Register the ERC-20 approval gas-sponsoring extension once, resolving the
   // per-network signer (each `signer` already exposes `sendTransactions`). Lets

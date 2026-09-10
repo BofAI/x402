@@ -1,5 +1,6 @@
 import { x402ResourceServer } from "@bankofai/x402-core/server";
 import { Network } from "@bankofai/x402-core/types";
+import { normalizeTronNetwork } from "../../network";
 import { ExactGasFreeTronScheme } from "./scheme";
 
 /**
@@ -21,7 +22,9 @@ export function registerExactGasFreeTronScheme(
   config: TronGasFreeResourceServerConfig = {},
 ): x402ResourceServer {
   if (config.networks && config.networks.length > 0) {
-    config.networks.forEach(network => server.register(network, new ExactGasFreeTronScheme()));
+    config.networks.forEach(network =>
+      server.register(normalizeTronNetwork(network) as Network, new ExactGasFreeTronScheme()),
+    );
   } else {
     server.register("tron:*", new ExactGasFreeTronScheme());
   }

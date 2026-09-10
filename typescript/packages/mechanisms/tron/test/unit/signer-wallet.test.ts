@@ -42,7 +42,7 @@ function tron(): TronWeb {
 /** Build a client signer with the given TronWeb routed through the mocked builder. */
 async function makeClient(tw: TronWeb, wallet: ClientTronWallet) {
   vi.mocked(buildTronWeb).mockReturnValue(tw);
-  return createClientTronSigner(wallet, { network: "tron:0xcd8690dc" });
+  return createClientTronSigner(wallet, { network: "tron:3448148188" });
 }
 
 describe("privateKeyTronWallet", () => {
@@ -64,7 +64,7 @@ describe("createClientTronSigner (wallet-only)", () => {
     const signer = await makeClient(tw, wallet);
 
     expect(signer.address).toBe(await wallet.getAddress());
-    expect(signer.network).toBe("tron:0xcd8690dc");
+    expect(signer.network).toBe("tron:3448148188");
     const [viaSigner, viaWallet] = await Promise.all([
       signer.signTypedData(TYPED),
       wallet.signTypedData(TYPED),
@@ -78,8 +78,24 @@ describe("createClientTronSigner (wallet-only)", () => {
 
     registerExactTronScheme(client as never, { signer });
 
-    expect(client.register).toHaveBeenCalledWith("tron:0xcd8690dc", expect.anything());
+    expect(client.register).toHaveBeenCalledWith("tron:3448148188", expect.anything());
     expect(client.register).not.toHaveBeenCalledWith("tron:*", expect.anything());
+  });
+
+  it("normalizes deprecated hexadecimal signer and registration networks", async () => {
+    vi.mocked(buildTronWeb).mockReturnValue(tron());
+    const signer = await createClientTronSigner(privateKeyTronWallet(tron(), PK), {
+      network: "tron:0xcd8690dc",
+    });
+    const client = { register: vi.fn(), registerPolicy: vi.fn() };
+
+    registerExactTronScheme(client as never, {
+      signer,
+      networks: ["tron:0xcd8690dc"],
+    });
+
+    expect(signer.network).toBe("tron:3448148188");
+    expect(client.register).toHaveBeenCalledWith("tron:3448148188", expect.anything());
   });
 
   it("rejects explicit registration on a different network", async () => {
@@ -89,7 +105,7 @@ describe("createClientTronSigner (wallet-only)", () => {
     expect(() =>
       registerExactTronScheme(client as never, {
         signer,
-        networks: ["tron:0x2b6653dc"],
+        networks: ["tron:728126428"],
       }),
     ).toThrow(/cannot be registered/);
     expect(client.register).not.toHaveBeenCalled();

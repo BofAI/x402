@@ -11,4 +11,6 @@ export const INVALID_SIGNATURE = "invalid_gasfree_signature";
 export const INSUFFICIENT_FUNDS = "insufficient_funds";
 export const API_NO_RESPONSE = "gasfree_api_no_response";
 export const MISSING_TRANSACTION_HASH = "gasfree_missing_transaction_hash";
+export const INVALID_TRANSACTION_HASH = "gasfree_invalid_transaction_hash";
 export const PROVIDER_LIST_UNAVAILABLE = "gasfree_provider_list_unavailable";
+export const TRANSACTION_FAILED = "gasfree_transaction_failed";

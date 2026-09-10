@@ -9,7 +9,7 @@ facilitators over HTTP, routing each payment by `(network, scheme)`.
 ## Why two schemes on one server
 
 The resource server keys registered schemes by `(network, scheme)`, so `exact`
-and `exact_gasfree` coexist on `tron:0xcd8690dc` without conflict. The client
+and `exact_gasfree` coexist on `tron:3448148188` without conflict. The client
 chooses which scheme to pay by honoring one of the advertised `accepts` entries
 in the 402 challenge.
 
@@ -42,7 +42,7 @@ Pay it with a fetch/gasfree client pointed at `http://localhost:4061/weather`.
 | Chain | Network | Schemes advertised | Tokens | payTo env |
 |---|---|---|---|---|
 | EVM | `eip155:97` (BSC testnet) | `exact` | DHLU (eip3009), USDC/USDT (permit2) | `EVM_ADDRESS` |
-| TRON | `tron:0xcd8690dc` | `exact`, `exact_gasfree` | USDT, USDD (`exact`); USDT (`exact_gasfree`) | `TRON_ADDRESS` |
+| TRON | `tron:3448148188` | `exact`, `exact_gasfree` | USDT, USDD (`exact`); USDT (`exact_gasfree`) | `TRON_ADDRESS` |
 
 EVM tokens are configured in `src/chains/evm.ts` (`EVM_TOKENS`); TRON schemes in
 `src/chains/tron.ts`. BSC USDC/USDT need a one-time Permit2 approve, advertised

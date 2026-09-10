@@ -8,10 +8,33 @@ import {
 } from "@bankofai/x402-core/types";
 import { FacilitatorTronSigner } from "../../signer";
 import { ExactGasFreePayload } from "../../types";
-import { normalizeAddressForSigning } from "../../utils";
-import { GasFreeAPIClient } from "../../shared/gasfree/api";
+import { isValidTronTxHash, normalizeAddressForSigning } from "../../utils";
+import { GasFreeAPIClient, GasFreeTransactionStatusError } from "../../shared/gasfree/api";
+import { getTronNetworkValue, tronNetworksEqual } from "../../network";
 import { assembleGasFreeTransaction } from "../../shared/gasfree/assemble";
+import { SETTLEMENT_PENDING } from "../../shared/settleReceipt";
 import * as errors from "./errors";
+
+/**
+ * Build the terminal response for a malformed relayer transaction hash.
+ *
+ * @param network - Network where settlement was attempted.
+ * @param payer - Payer associated with the GasFree request.
+ * @returns A terminal settlement response without the malformed hash.
+ */
+function invalidTransactionHashResponse(
+  network: PaymentRequirements["network"],
+  payer: string,
+): SettleResponse {
+  return {
+    success: false,
+    errorReason: errors.INVALID_TRANSACTION_HASH,
+    errorMessage: "GasFree relayer returned an invalid transaction hash",
+    transaction: "",
+    network,
+    payer,
+  };
+}
 
 /**
  * TRON facilitator for the `exact_gasfree` scheme.
@@ -79,7 +102,7 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
     if (payload.accepted.scheme !== "exact_gasfree" || requirements.scheme !== "exact_gasfree") {
       return { isValid: false, invalidReason: errors.INVALID_SCHEME, payer };
     }
-    if (payload.accepted.network !== requirements.network) {
+    if (!tronNetworksEqual(payload.accepted.network, requirements.network)) {
       return { isValid: false, invalidReason: errors.NETWORK_MISMATCH, payer };
     }
 
@@ -179,9 +202,27 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
           payer,
         };
       }
+      if (!isValidTronTxHash(result.txnHash)) {
+        return invalidTransactionHashResponse(requirements.network, payer);
+      }
 
       return { success: true, transaction: result.txnHash, network: requirements.network, payer };
     } catch (err) {
+      if (err instanceof GasFreeTransactionStatusError) {
+        if (err.transaction !== undefined && !isValidTronTxHash(err.transaction)) {
+          return invalidTransactionHashResponse(requirements.network, payer);
+        }
+        if (err.terminal || err.transaction) {
+          return {
+            success: false,
+            errorReason: err.terminal ? errors.TRANSACTION_FAILED : SETTLEMENT_PENDING,
+            errorMessage: err.message,
+            transaction: err.transaction ?? "",
+            network: requirements.network,
+            payer,
+          };
+        }
+      }
       return {
         success: false,
         errorReason: err instanceof Error ? err.message : String(err),
@@ -199,7 +240,7 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
    * @returns The relayer API client.
    */
   private getApiClient(network: string): GasFreeAPIClient {
-    const client = this.apiClients[network];
+    const client = getTronNetworkValue(this.apiClients, network);
     if (!client) {
       throw new Error(`GasFree is not configured for network: ${network}`);
     }

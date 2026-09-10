@@ -11,24 +11,28 @@ import { resolveTronRpcUrl } from "../../src/rpc";
 
 describe("resolveTronRpcUrl", () => {
   it("uses an explicit rpcUrl override above everything else", () => {
-    expect(resolveTronRpcUrl("tron:0xcd8690dc", { rpcUrl: "https://my.host", apiKey: "k" })).toBe(
+    expect(resolveTronRpcUrl("tron:3448148188", { rpcUrl: "https://my.host", apiKey: "k" })).toBe(
       "https://my.host",
     );
   });
 
   it("uses the keyed TronGrid default when an API key is supplied", () => {
-    expect(resolveTronRpcUrl("tron:0xcd8690dc", { apiKey: "k" })).toBe("https://nile.trongrid.io");
-    expect(resolveTronRpcUrl("tron:0x2b6653dc", { apiKey: "k" })).toBe("https://api.trongrid.io");
+    expect(resolveTronRpcUrl("tron:3448148188", { apiKey: "k" })).toBe("https://nile.trongrid.io");
+    expect(resolveTronRpcUrl("tron:728126428", { apiKey: "k" })).toBe("https://api.trongrid.io");
   });
 
   it("uses the key-less fallback for nile when no API key is set", () => {
     // nile.trongrid.io rate-limits unkeyed; nileex works key-less.
+    expect(resolveTronRpcUrl("tron:3448148188")).toBe("https://api.nileex.io");
+  });
+
+  it("accepts the deprecated hexadecimal nile alias", () => {
     expect(resolveTronRpcUrl("tron:0xcd8690dc")).toBe("https://api.nileex.io");
   });
 
   it("uses the key-less fallback for mainnet/shasta when no API key is set", () => {
-    expect(resolveTronRpcUrl("tron:0x2b6653dc")).toBe("https://hptg.bankofai.io");
-    expect(resolveTronRpcUrl("tron:0x94a9059e")).toBe("https://api.shasta.trongrid.io");
+    expect(resolveTronRpcUrl("tron:728126428")).toBe("https://hptg.bankofai.io");
+    expect(resolveTronRpcUrl("tron:2494104990")).toBe("https://api.shasta.trongrid.io");
   });
 
   it("throws for an unknown network with no rpcUrl", () => {

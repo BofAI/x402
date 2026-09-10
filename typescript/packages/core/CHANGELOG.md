@@ -1,5 +1,15 @@
 # @bankofai/x402-core Changelog
 
+## 1.1.1
+
+### Patch Changes
+
+- [#96](https://github.com/BofAI/x402/pull/96) [`42829dc`](https://github.com/BofAI/x402/commit/42829dccb243b1160c301886bd53725fbb76bb7f) Thanks [@roger-gan](https://github.com/roger-gan)! - Use decimal TRON CAIP-2 identifiers as canonical network values while accepting deprecated hexadecimal aliases at protocol and configuration boundaries.
+
+- [#98](https://github.com/BofAI/x402/pull/98) [`bce7b6c`](https://github.com/BofAI/x402/commit/bce7b6ccd656953d8e65b740761eede60eab3934) Thanks [@roger-gan](https://github.com/roger-gan)! - Add configurable TRON receipt confirmation waiting with a 90-second default and preserve broadcast transaction IDs in non-terminal `settlement_pending` responses across exact, upto, and batch settlement paths. GasFree settlement now validates relayer transaction IDs and preserves a valid relayer-observed transaction ID when later status polling becomes indeterminate.
+
+  Increase the default HTTP facilitator client timeout to 120 seconds so the default TRON receipt budget leaves time to return the settlement response.
+
 ## 1.1.0
 
 ### Minor Changes

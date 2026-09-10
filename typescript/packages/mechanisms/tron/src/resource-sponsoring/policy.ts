@@ -1,4 +1,5 @@
 import { TronWeb } from "tronweb";
+import { normalizeTronNetwork } from "../network";
 import type { Trc20ResourceSponsoringPolicy, Trc20SponsoringPolicyDecision } from "./types";
 
 /** Bounds for a local allowlist-and-cost sponsorship policy. */
@@ -28,19 +29,20 @@ function normalizeAddress(address: string): string {
 export function createStaticTrc20ResourceSponsoringPolicy(
   options: StaticTrc20ResourceSponsoringPolicyOptions,
 ): Trc20ResourceSponsoringPolicy {
-  const networks = new Set(options.allowedNetworks);
+  const networks = new Set(options.allowedNetworks.map(normalizeTronNetwork));
   const assets = new Map(
     Object.entries(options.allowedAssets).map(([network, addresses]) => [
-      network,
+      normalizeTronNetwork(network),
       new Set(addresses.map(normalizeAddress)),
     ]),
   );
   return {
     async preview(request, plan): Promise<Trc20SponsoringPolicyDecision> {
-      if (!networks.has(request.network)) {
+      const network = normalizeTronNetwork(request.network);
+      if (!networks.has(network)) {
         return { allowed: false, reason: "unsupported_network" };
       }
-      if (!assets.get(request.network)?.has(normalizeAddress(request.asset))) {
+      if (!assets.get(network)?.has(normalizeAddress(request.asset))) {
         return { allowed: false, reason: "approval_asset_not_allowed" };
       }
       if (options.maxReplacementCost != null && plan.replacementCost > options.maxReplacementCost) {

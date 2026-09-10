@@ -39,7 +39,7 @@ export async function registerTron(
   client: x402Client,
   opts: BatchClientOptions,
 ): Promise<RefundableScheme[]> {
-  const wallet = await tryResolveWallet("tron");
+  const wallet = await tryResolveWallet(TRON_NETWORK);
   if (!wallet) {
     return [];
   }

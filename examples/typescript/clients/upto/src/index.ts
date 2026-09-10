@@ -16,7 +16,13 @@
  *   (`@` not `#` — dotenv treats `#` as a comment.)
  *   Unset ⇒ each configured chain once.
  */
-import { TRON_NILE, TRON_MAINNET, TRON_SHASTA } from "@bankofai/x402-tron";
+import {
+  normalizeTronNetwork,
+  tronNetworksEqual,
+  TRON_NILE,
+  TRON_MAINNET,
+  TRON_SHASTA,
+} from "@bankofai/x402-tron";
 import { x402Client, wrapFetchWithPayment } from "@bankofai/x402-fetch";
 
 import { registerEvm } from "./chains/evm.js";
@@ -70,6 +76,18 @@ function resolveToken(prefix: string, token: string): string {
   return addr;
 }
 
+/** Match canonical TRON IDs and their deprecated hexadecimal aliases. */
+function matchesNetwork(network: string, prefix: string): boolean {
+  if (
+    network.startsWith("tron:") &&
+    prefix.startsWith("tron:") &&
+    prefix !== "tron:"
+  ) {
+    return tronNetworksEqual(network, prefix);
+  }
+  return network.startsWith(prefix);
+}
+
 /** Parse the PAY_TARGETS env var into targets (empty when unset). */
 function parsePayTargets(): PayTarget[] {
   const raw = process.env.PAY_TARGETS?.trim();
@@ -80,10 +98,13 @@ function parsePayTargets(): PayTarget[] {
     .filter(Boolean)
     .map((entry) => {
       const [prefix, token] = entry.split("@", 2);
+      const normalizedPrefix = prefix!.trim().startsWith("tron:")
+        ? normalizeTronNetwork(prefix!.trim())
+        : prefix!.trim();
       return {
         raw: entry,
-        prefix: prefix!.trim(),
-        asset: token ? resolveToken(prefix!.trim(), token.trim()) : undefined,
+        prefix: normalizedPrefix,
+        asset: token ? resolveToken(normalizedPrefix, token.trim()) : undefined,
       };
     });
 }
@@ -95,7 +116,7 @@ const client = new x402Client((_x402Version, accepts) => {
   if (!t) return accepts[0]!;
   const match = accepts.find(
     (a) =>
-      a.network.startsWith(t.prefix) &&
+      matchesNetwork(a.network, t.prefix) &&
       (!t.asset || a.asset.toLowerCase() === t.asset.toLowerCase()),
   );
   if (!match) {

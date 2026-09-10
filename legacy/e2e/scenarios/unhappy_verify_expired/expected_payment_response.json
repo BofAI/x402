@@ -1,8 +1,0 @@
-{
-  "body": {
-    "error": "Settlement failed: deadline_expired",
-    "network": "eip155:97"
-  },
-  "payment_response": null,
-  "status_code": 500
-}

@@ -36,7 +36,7 @@ The BANK OF AI server wrapper returns a normal MCP tool result with `isError: tr
     "accepts": [
       {
         "scheme": "exact",
-        "network": "tron:0x2b6653dc",
+        "network": "tron:728126428",
         "amount": "1000000",
         "asset": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
         "payTo": "TReceiverAddress",
@@ -87,7 +87,7 @@ encoded:
         },
         "accepted": {
           "scheme": "exact",
-          "network": "tron:0x2b6653dc",
+          "network": "tron:728126428",
           "amount": "1000000",
           "asset": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
           "payTo": "TReceiverAddress",
@@ -135,7 +135,7 @@ adds settlement metadata:
     "x402/payment-response": {
       "success": true,
       "transaction": "abc123...",
-      "network": "tron:0x2b6653dc",
+      "network": "tron:728126428",
       "payer": "TPayerAddress",
       "amount": "1000000"
     }

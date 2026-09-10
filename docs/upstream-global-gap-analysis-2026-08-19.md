@@ -8,6 +8,8 @@
 
 后续同步直接更新本文件，不再新建其他同步分析文档。每轮必须记录：上游起止提交、目标分支和提交、已同步项、待办项、有意分歧、验证结果，以及下一轮比较起点。2026-07-30 及以前的详细记录由 Git 历史保留。
 
+**EVM → TRON 影响确认是每轮同步的强制步骤。** 只要同步范围涉及 EVM 的源码、测试、规范，或涉及 EVM/TRON 共同依赖的 core、extensions、HTTP/facilitator 行为，就必须把每一项语义变更列入“EVM → TRON 影响确认清单”，逐项判断 TRON 是否需要同步、适配、明确不适用或延期。不能因为 TRON 是 fork 自有机制而默认排除，也不能只比较同名文件。清单中仍有“待评估”或“待确认”项时，本轮同步不得标记为完成。
+
 ## 1. 结论摘要
 
 本轮代码同步、安全修复和关键回归测试已经提交并推送；当前分支尚未合并到主干。
@@ -313,9 +315,47 @@ fetch upstream
   -> package exports/dependencies 比较
   -> specs 与测试比较
   -> allowlist 分类
+  -> 提取本轮 EVM 语义变更
+  -> 逐项完成 EVM → TRON 影响确认清单
+  -> 实施 TRON 同步/适配，或记录不适用/延期依据
   -> 构建/测试/lint
   -> 记录 upstream commit + target commit
 ```
+
+### EVM → TRON 影响确认清单（强制）
+
+每轮同步记录必须新增这一节。按“独立行为变化”逐项列出，不得把多个安全、验证或结算变化合并成一条笼统结论。即使最终判断 TRON 不需要改动，也必须保留该条目和理由。
+
+推荐表格：
+
+| 上游提交/主题 | EVM 变化与涉及文件 | TRON 对应路径/机制 | 结论 | 理由与差异 | TRON 改动/测试 | 确认状态 |
+| --- | --- | --- | --- | --- | --- | --- |
+| `<commit> / <theme>` | `<行为变化，不只写文件名>` | `exact / upto / batch / gasfree / signer / core` | `同步 / 适配 / 不适用 / 延期` | `<链差异、合约能力或产品决策>` | `<commit、文件和测试；无改动也要写明>` | `待确认 / 已确认` |
+
+结论枚举的含义：
+
+- **同步**：逻辑与链无关或 TRON 已有等价接口，应与 EVM 保持相同行为和错误语义；
+- **适配**：目标一致，但需要 TIP-712、Base58/hex、TronWeb、TVM 合约、energy/bandwidth、packed receipt 或 GasFree 等 TRON 实现；
+- **不适用**：确属 EVM 专属能力，例如没有 TRON 等价物的 ERC 标准；必须写清技术依据，不能只写“TRON 不支持”；
+- **延期**：确认 TRON 需要，但本轮不实施；必须进入待办，写明风险、依赖、优先级和复查条件，不能作为同步完成的静默豁免。
+
+至少检查以下传播方向：
+
+1. EVM `exact` 的签名、verify、simulate、settle、receipt 和错误码变化，是否影响 TRON `exact`、`upto` 或 `batch-settlement` 的共用路径；
+2. EVM Permit2、allowance、EIP-2612、approval sponsoring、proxy/witness 变化，TRON Permit2 或 GasFree 是否需要等价适配；
+3. EVM batch-settlement 的 channelId、storage、并发 reservation、claim/refund/recovery 变化，TRON batch 是否存在相同状态机风险；
+4. EVM signer、广播、确认超时、`settlement_pending`、日志/事件校验变化，TRON signer 和所有 facilitator 写路径是否需要统一；
+5. 默认资产、money parsing、decimals、payment flow、extensions 和 core 接口变化，是否通过共享层影响 TRON；
+6. EVM 新增或修改的回归测试，是否揭示 TRON 同类缺陷；若不移植测试，必须记录书面理由；
+7. 规范变化是否包含链无关约束，不能因为文件名含 `evm` 就整体排除。
+
+确认要求：
+
+- “已确认”表示对应代码负责人或本轮同步评审已经检查结论和证据；生成清单本身不等于确认；
+- 判断为“同步”或“适配”时，清单必须指向 TRON 改动及等价测试；
+- 判断为“不适用”时，必须说明缺失的 TRON 协议、账户模型或合约能力；
+- 判断为“延期”时，必须同时出现在本文件的当前待办中；
+- 所有条目确认后，结论摘要才能写“本轮 EVM → TRON 影响已闭环”。
 
 ### 应长期维护的 allowlist
 
@@ -327,11 +367,16 @@ fetch upstream
 
 allowlist 必须写出原因、责任人或决策来源，并设置复查日期。没有原因的差异不能自动归为“fork 自有”。
 
+其中“TRON 是 fork 自有”只表示其源码不从上游直接覆盖，不表示 EVM 行为变化可以跳过 TRON 影响评估。EVM 与 TRON 共享 scheme 结构或安全假设时，仍必须进入上述确认清单。
+
 ### 建议的门禁
 
 - 上游工作区 HEAD 与比较 commit 不一致时禁止从工作区复制；
 - 上游修复提交若修改测试，目标同步必须包含等价测试或书面豁免；
 - 共有 `src/` 文件出现语义差异时必须逐项分类；
+- 同步涉及 EVM 时，必须存在完整的 EVM → TRON 影响确认清单，且不存在“待评估”或“待确认”项；
+- 清单判断 TRON 受影响时，必须包含 TRON 等价改动和测试，或记录经确认的延期决策；
+- 只验证 EVM 包不足以通过门禁；TRON 被判定受影响时必须运行对应 TRON 单测/集成测试，无法运行时记录原因和替代证据；
 - 共享 specs 的 hash 漂移必须被 CI 报告；
 - checkpoint 必须同时记录 upstream commit 和已经提交的 target commit，不能指向未提交工作区。
 

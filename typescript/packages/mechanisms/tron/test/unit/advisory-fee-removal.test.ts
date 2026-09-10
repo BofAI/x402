@@ -4,7 +4,7 @@ import { ExactTronScheme } from "../../src/exact/server/scheme";
 import { UptoTronScheme } from "../../src/upto/server/scheme";
 import { ExactGasFreeTronScheme } from "../../src/gasfree/server/scheme";
 
-const NETWORK = "tron:0xcd8690dc";
+const NETWORK = "tron:3448148188";
 
 function requirements(scheme: "exact" | "upto"): PaymentRequirements {
   return {

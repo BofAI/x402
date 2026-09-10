@@ -27,7 +27,7 @@ export const TRON_NETWORK: Network = (process.env.TRON_NETWORK ??
 export async function tronSchemes(): Promise<
   Array<{ network: Network; client: SchemeNetworkClient }>
 > {
-  const wallet = await tryResolveWallet("tron");
+  const wallet = await tryResolveWallet(TRON_NETWORK);
   if (!wallet) {
     return [];
   }

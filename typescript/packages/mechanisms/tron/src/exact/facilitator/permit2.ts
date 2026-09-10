@@ -14,6 +14,7 @@ import {
   executeTrc20Sponsorship,
   verifyTrc20Sponsorship,
 } from "../../shared/extensions/trc20ApprovalResourceSponsoring";
+import { waitAndReturnSettleResponse } from "../../shared/settleReceipt";
 
 /**
  * Verifies a Permit2 payment payload on TRON.
@@ -78,16 +79,9 @@ async function submitPermit2Settlement(
       functionName: "settle",
       args: [permitTuple, payer, witnessTuple, permit2Payload.signature],
     });
-    const receipt = await signer.waitForTransactionReceipt({ hash: transaction });
-    return receipt.status === "success"
-      ? { success: true, transaction, network: payload.accepted.network, payer }
-      : {
-          success: false,
-          errorReason: errors.INVALID_TRANSACTION_STATE,
-          transaction,
-          network: payload.accepted.network,
-          payer,
-        };
+    return waitAndReturnSettleResponse(signer, transaction, payload.accepted.network, payer, {
+      failedStatusReason: errors.INVALID_TRANSACTION_STATE,
+    });
   } catch (error: unknown) {
     return {
       success: false,

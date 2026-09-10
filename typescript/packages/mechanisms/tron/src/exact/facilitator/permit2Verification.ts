@@ -13,6 +13,7 @@ import {
 import type { FacilitatorTronSigner } from "../../signer";
 import type { ExactPermit2Payload } from "../../types";
 import { getTronChainId, normalizeAddressForSigning } from "../../utils";
+import { tronNetworksEqual } from "../../network";
 import * as errors from "./errors";
 
 const DEADLINE_BUFFER_SECONDS = 6;
@@ -66,7 +67,7 @@ function validateAuthorizationFields(
   if (payload.accepted.scheme !== "exact" || requirements.scheme !== "exact") {
     return invalid(errors.INVALID_SCHEME, payer);
   }
-  if (payload.accepted.network !== requirements.network) {
+  if (!tronNetworksEqual(payload.accepted.network, requirements.network)) {
     return invalid(errors.NETWORK_MISMATCH, payer);
   }
   if (requirements.extra?.assetTransferMethod !== "permit2") {

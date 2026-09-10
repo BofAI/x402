@@ -12,6 +12,7 @@ import { computeChannelId } from "../../shared/batch-settlement/utils";
 import { encodeFunctionData } from "../../shared/batch-settlement/encoding";
 import { signClaimBatch, signRefund } from "../../shared/batch-settlement/authorizerSigner";
 import { buildVoucherClaimArgs } from "./claim";
+import { waitAndReturnSettleResponse } from "../../shared/settleReceipt";
 import { readChannelState, toContractChannelConfig } from "./utils";
 import * as Errors from "../errors";
 
@@ -213,26 +214,20 @@ export async function executeRefundWithSignature(
       });
     }
 
-    const receipt = await signer.waitForTransactionReceipt({ hash: tx });
-    if (receipt.status !== "success") {
-      return {
-        success: false,
-        errorReason: Errors.ErrRefundTransactionFailed,
-        errorMessage: `transaction reverted (receipt status ${receipt.status})`,
-        transaction: tx,
-        network,
-      };
-    }
-
-    const refundDetails = buildRefundExtra(payload, channelId, preState);
-    return {
-      success: true,
-      transaction: tx,
-      network,
-      payer: payload.channelConfig.payer,
-      amount: refundDetails.amount,
-      extra: refundDetails.extra,
-    };
+    return waitAndReturnSettleResponse(signer, tx, network, payload.channelConfig.payer, {
+      failedStatusReason: Errors.ErrRefundTransactionFailed,
+      onSuccess: () => {
+        const refundDetails = buildRefundExtra(payload, channelId, preState);
+        return {
+          success: true,
+          transaction: tx,
+          network,
+          payer: payload.channelConfig.payer,
+          amount: refundDetails.amount,
+          extra: refundDetails.extra,
+        };
+      },
+    });
   } catch (e) {
     return {
       success: false,

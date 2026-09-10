@@ -14,7 +14,7 @@
  * import { createFacilitator } from "@bankofai/x402-core";
  *
  * const facilitator = createFacilitator(); // logging pre-attached
- * facilitator.register("tron:0xcd8690dc", scheme);
+ * facilitator.register("tron:3448148188", scheme);
  * ```
  */
 import {

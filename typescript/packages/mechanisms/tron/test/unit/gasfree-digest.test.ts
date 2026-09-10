@@ -20,7 +20,7 @@ import type { GasFreeAddressInfo, GasFreeProvider } from "../../src/shared/gasfr
  * verification fails here before any real submission.
  */
 
-const NETWORK = "tron:0xcd8690dc";
+const NETWORK = "tron:3448148188";
 const PAYER_PK = "da146374a75310b9666e834ee4ad0866d6f4035967bfc76217c5a495fff9f0d0";
 const FACIL_PK = "b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291";
 const PAY_TO = "TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC";

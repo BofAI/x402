@@ -34,14 +34,14 @@ const EVM_RPC_URL = process.env.EVM_RPC_URL?.trim() || undefined;
  * @returns The CAIP-2 networks registered (empty if no EVM wallet).
  */
 export async function registerEvm(client: x402Client): Promise<string[]> {
-  const wallet = await tryResolveWallet("evm");
-  if (!wallet) {
-    return [];
-  }
-
   const registered: string[] = [];
   for (const network of EVM_NETWORKS) {
-    const signer = await createClientEvmSigner(wallet, { network, rpcUrl: EVM_RPC_URL });
+    const wallet = await tryResolveWallet(network);
+    if (!wallet) continue;
+    const signer = await createClientEvmSigner(wallet, {
+      network,
+      rpcUrl: EVM_RPC_URL,
+    });
     client.register(network, new UptoEvmScheme(signer));
     registered.push(network);
     console.info(`[evm] client registered ${network} upto (${signer.address})`);

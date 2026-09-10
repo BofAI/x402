@@ -12,9 +12,7 @@ x402 currently supports the **TRON** and **BSC** networks, with plans to expand 
 
 ## Current Release
 
-Version `1.2.0`. The SDK is a **TypeScript-only** pnpm/turbo monorepo published as granular `@bankofai/x402-*` packages (there is no umbrella package). `core` and the EVM mechanism are forks of the [`x402-foundation/x402`](https://github.com/x402-foundation/x402) upstream; the TRON mechanism is in-house. Supported schemes: `exact` (ERC-3009 / Permit2), `upto`, `batch-settlement`, `auth-capture` (EVM), and `exact_gasfree` (TRON). See [the v1.2.0 release notes](RELEASE_NOTES.md#v120--tron-approval-resource-sponsoring) for upgrade details.
-
-> The previous-generation Python + TypeScript SDK lives under [`legacy/`](legacy/) for reference and is slated for removal.
+Version `2.0.0`. The SDK is a **TypeScript-only** pnpm/turbo monorepo published as granular `@bankofai/x402-*` packages (there is no umbrella package). `core` and the EVM mechanism are forks of the [`x402-foundation/x402`](https://github.com/x402-foundation/x402) upstream; the TRON mechanism is in-house. Supported schemes: `exact` (ERC-3009 / Permit2), `upto`, `batch-settlement`, `auth-capture` (EVM), and `exact_gasfree` (TRON). See [the v2.0.0 release notes](RELEASE_NOTES.md#v200--canonical-tron-networks-and-pending-settlement) for upgrade details.
 
 ## Features
 
@@ -58,7 +56,7 @@ const wallet = /* resolve your @bankofai/agent-wallet */;
 // Permit2 approve that USDT/USDD need. When TRON_GRID_API_KEY is unset, mainnet
 // RPC falls back to a BankofAI-operated endpoint.
 const signer = await createClientTronSigner(wallet, {
-  network: "tron:0xcd8690dc",
+  network: "tron:3448148188",
   apiKey: process.env.TRON_GRID_API_KEY,
 });
 
@@ -88,7 +86,7 @@ client.register("eip155:97", new ExactEvmScheme(signer));
 
 ### Server (Seller)
 
-Build a resource server with `createResourceServer` (from `@bankofai/x402-core`), point it at a facilitator via `HTTPFacilitatorClient` (`@bankofai/x402-core/server`), and protect routes with the framework middleware — e.g. `paymentMiddlewareFromHTTPServer` from `@bankofai/x402-express`. The server is keyless (it only holds a payout address). Facilitator requests default to a 90-second timeout; set `timeoutMs` explicitly when your chain or deployment needs a different bound. See [`examples/typescript/servers/express`](examples/typescript/servers/express) for the full wiring.
+Build a resource server with `createResourceServer` (from `@bankofai/x402-core`), point it at a facilitator via `HTTPFacilitatorClient` (`@bankofai/x402-core/server`), and protect routes with the framework middleware — e.g. `paymentMiddlewareFromHTTPServer` from `@bankofai/x402-express`. The server is keyless (it only holds a payout address). Facilitator requests default to a 120-second timeout; set `timeoutMs` explicitly when your chain or deployment needs a different bound. See [`examples/typescript/servers/express`](examples/typescript/servers/express) for the full wiring.
 
 ### Facilitator
 
@@ -98,7 +96,7 @@ The facilitator verifies signatures and settles on-chain. Construct `new x402Fac
 
 x402 is designed for the Agentic Web. AI agents can autonomously negotiate and pay for resources using the [**x402-payment**](https://github.com/BofAI/skills/tree/main/x402-payment) skill, which lets agents detect `402` responses, sign TIP-712/EIP-712 authorizations, and manage the challenge-response loop.
 
-**Configuration:** set up [`agent-wallet`](https://github.com/BofAI/agent-wallet) and let the signer factories resolve the active wallet. When `TRON_GRID_API_KEY` is unset, mainnet TRON RPC routes to a BankofAI-operated fallback (`https://hptg.bankofai.io`); set it for production.
+**Configuration:** set up [`agent-wallet`](https://github.com/BofAI/agent-wallet) 3.0 or newer and let the signer factories resolve the active wallet. Use a `raw_secret`, `wallet_cli`, or `privy` wallet; agent-wallet 3.0 removed the former `local_secure` password flow. When `TRON_GRID_API_KEY` is unset, mainnet TRON RPC routes to a BankofAI-operated fallback (`https://hptg.bankofai.io`); set it for production.
 
 ```bash
 export AGENT_WALLET_PRIVATE_KEY="your_private_key_here"
@@ -148,9 +146,9 @@ x402 currently supports TRC-20 tokens on the TRON network and BEP-20 tokens on t
 
 | Network | ID | Status | Recommended For |
 |---------|----|--------|-----------------|
-| **TRON Nile** | `tron:0xcd8690dc` | Testnet | **Development & Testing** |
-| **TRON Shasta** | `tron:0x94a9059e` | Testnet | Alternative Testing |
-| **TRON Mainnet** | `tron:0x2b6653dc` | Mainnet | Production |
+| **TRON Nile** | `tron:3448148188` | Testnet | **Development & Testing** |
+| **TRON Shasta** | `tron:2494104990` | Testnet | Alternative Testing |
+| **TRON Mainnet** | `tron:728126428` | Mainnet | Production |
 | **BSC Testnet** | `eip155:97` | Testnet | **Development & Testing** |
 | **BSC Mainnet** | `eip155:56` | Mainnet | Production |
 
@@ -201,7 +199,9 @@ Use `pnpm build:release` before `pnpm pack` or `pnpm publish`. The forced build 
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+We welcome contributions! Start normal work from `develop` and submit it back to `develop`.
+Stable releases reach `main` through a `release_*` branch. See [CONTRIBUTING.md](./CONTRIBUTING.md)
+and [BRANCHING.md](./BRANCHING.md) for the complete workflow.
 
 ## License
 

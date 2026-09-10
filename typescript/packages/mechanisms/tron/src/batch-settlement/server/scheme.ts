@@ -384,7 +384,7 @@ export class BatchSettlementTronScheme implements SchemeNetworkServer {
    * receiver, default token for the given network, and the provided facilitator.
    *
    * @param facilitator - Facilitator client for submitting onchain claims/settlements.
-   * @param network - CAIP-2 network identifier (e.g. `"tron:0xcd8690dc"`).
+   * @param network - CAIP-2 network identifier (e.g. `"tron:3448148188"`).
    * @returns A ready-to-use channel manager.
    */
   createChannelManager(

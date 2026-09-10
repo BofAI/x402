@@ -29,6 +29,17 @@ describe("Utils", () => {
       expect(result?.get("intent")).toBe("intentImpl");
     });
 
+    it("should match deprecated hexadecimal TRON identifiers to decimal registrations", () => {
+      const map = new Map<string, Map<string, string>>();
+      const schemes = new Map<string, string>();
+      schemes.set("exact", "tronImpl");
+      map.set("tron:3448148188", schemes);
+
+      const result = findSchemesByNetwork(map, "tron:0xcd8690dc" as Network);
+
+      expect(result?.get("exact")).toBe("tronImpl");
+    });
+
     it("should return undefined for network not found", () => {
       const map = new Map<string, Map<string, string>>();
       const schemes = new Map<string, string>();

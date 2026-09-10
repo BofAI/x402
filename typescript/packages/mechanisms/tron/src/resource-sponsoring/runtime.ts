@@ -1,4 +1,5 @@
 import { utils as tronUtils } from "tronweb";
+import type { Network } from "@bankofai/x402-core/types";
 import { buildTrc20SponsoringPlan } from "./resourceSizing";
 import type {
   ManagedTrc20ApprovalResourceSponsoringRuntime,
@@ -17,6 +18,7 @@ import type {
   Trc20SponsorshipExecutionOptions,
 } from "../shared/extensions/trc20ApprovalContract";
 import { createTrc20ApprovalPolicy, type Trc20ApprovalPolicy } from "../approvalPolicy";
+import { getTronNetworkRepresentations, normalizeTronNetwork } from "../network";
 
 const DEFAULT_ENERGY_SAFETY_BPS = 12_000n;
 const DEFAULT_BANDWIDTH_SAFETY_BPS = 11_000n;
@@ -67,7 +69,21 @@ function normalizedFailure(error: unknown, fallbackReason: string, fallbackMessa
  * @returns Network-qualified Approval transaction key.
  */
 function operationKey(request: Trc20ApprovalResourceSponsoringRequest): string {
-  return `${request.network}:${request.approvalTxID.toLowerCase()}`;
+  return `${normalizeTronNetwork(request.network)}:${request.approvalTxID.toLowerCase()}`;
+}
+
+/**
+ * Builds every operation key that may have been emitted before TRON network
+ * identifiers were canonicalized at the persistence boundary.
+ *
+ * @param request - Sponsorship request.
+ * @returns Canonical key first, followed by deprecated aliases.
+ */
+function operationKeys(request: Trc20ApprovalResourceSponsoringRequest): readonly string[] {
+  const approvalTxID = request.approvalTxID.toLowerCase();
+  return getTronNetworkRepresentations(request.network).map(
+    network => `${network}:${approvalTxID}`,
+  );
 }
 
 /**
@@ -77,7 +93,33 @@ function operationKey(request: Trc20ApprovalResourceSponsoringRequest): string {
  * @returns Network-qualified payer scope.
  */
 function payerScope(request: Trc20ApprovalResourceSponsoringRequest): string {
-  return `${request.network}:${request.payer}`;
+  return `${normalizeTronNetwork(request.network)}:${request.payer}`;
+}
+
+/**
+ * Canonicalizes every network field bound into a sponsoring request.
+ *
+ * @param request - Sponsorship request received at a compatibility boundary.
+ * @returns Request whose TRON network fields use decimal CAIP-2 identifiers.
+ */
+function normalizeRequestNetworks(
+  request: Trc20ApprovalResourceSponsoringRequest,
+): Trc20ApprovalResourceSponsoringRequest {
+  return {
+    ...request,
+    network: normalizeTronNetwork(request.network),
+    paymentPayload: {
+      ...request.paymentPayload,
+      accepted: {
+        ...request.paymentPayload.accepted,
+        network: normalizeTronNetwork(request.paymentPayload.accepted.network) as Network,
+      },
+    },
+    paymentRequirements: {
+      ...request.paymentRequirements,
+      network: normalizeTronNetwork(request.paymentRequirements.network) as Network,
+    },
+  };
 }
 
 /**
@@ -103,7 +145,7 @@ function canonicalJson(value: unknown): string {
  * @param request - Sponsorship request.
  * @returns Lowercase SHA-256 digest.
  */
-function requestDigest(request: Trc20ApprovalResourceSponsoringRequest): string {
+function rawRequestDigest(request: Trc20ApprovalResourceSponsoringRequest): string {
   // Version 1.1 persisted exact requests before `requiredAllowance` existed.
   // Its default value is already bound by paymentRequirements.amount, so omit
   // that redundant representation to keep durable retry digests compatible.
@@ -120,6 +162,36 @@ function requestDigest(request: Trc20ApprovalResourceSponsoringRequest): string 
   }
   const bytes = new TextEncoder().encode(canonicalJson(normalizedRequest));
   return tronUtils.code.byteArray2hexStr(tronUtils.crypto.SHA256(bytes)).toLowerCase();
+}
+
+/**
+ * Hashes a request after canonicalizing equivalent TRON network identifiers.
+ *
+ * @param request - Sponsorship request.
+ * @returns Lowercase SHA-256 digest.
+ */
+function requestDigest(request: Trc20ApprovalResourceSponsoringRequest): string {
+  return rawRequestDigest(normalizeRequestNetworks(request));
+}
+
+/**
+ * Checks both current canonical digests and authenticated legacy snapshots.
+ *
+ * @param operation - Existing durable operation.
+ * @param request - Incoming canonical request.
+ * @returns Whether both values bind the same logical request.
+ */
+function operationMatchesRequest(
+  operation: Trc20SponsoringOperation,
+  request: Trc20ApprovalResourceSponsoringRequest,
+): boolean {
+  const expectedDigest = requestDigest(request);
+  if (operation.requestDigest === expectedDigest) return true;
+
+  return (
+    operation.requestDigest === rawRequestDigest(operation.request) &&
+    requestDigest(operation.request) === expectedDigest
+  );
 }
 
 /**
@@ -642,12 +714,12 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
   /**
    * Runs or resumes one idempotent payer-serialized sponsorship operation.
    *
-   * @param request - Sponsorship request.
+   * @param receivedRequest - Sponsorship request received at the compatibility boundary.
    * @param executionOptions - Scheme checks that must be repeated immediately before broadcast.
    * @returns Terminal response for the synchronous x402 settle flow.
    */
   async function executeNewOrExisting(
-    request: Trc20ApprovalResourceSponsoringRequest,
+    receivedRequest: Trc20ApprovalResourceSponsoringRequest,
     executionOptions?: Trc20SponsorshipExecutionOptions,
   ): Promise<{
     success: boolean;
@@ -655,10 +727,14 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
     errorReason?: string;
     errorMessage?: string;
   }> {
+    const request = normalizeRequestNetworks(receivedRequest);
     return options.coordinator.runExclusive(payerScope(request), async () => {
       let current: Trc20SponsoringOperation | undefined;
       try {
-        current = await options.coordinator.get(operationKey(request));
+        for (const key of operationKeys(request)) {
+          current = await options.coordinator.get(key);
+          if (current) break;
+        }
         if (!current) {
           const prepared = await preview(request);
           if (prepared.approvalState === "approval_satisfied") return { success: true };
@@ -676,7 +752,7 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
           }
           current = admission.operation;
         }
-        if (current.requestDigest !== requestDigest(request)) {
+        if (!operationMatchesRequest(current, request)) {
           throw new SponsoringFailure("approval_transaction_reused");
         }
         if (current.status === "recovered") {
@@ -801,7 +877,7 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
   return {
     async verify(request) {
       try {
-        await preview(request);
+        await preview(normalizeRequestNetworks(request));
         return { isValid: true };
       } catch (error) {
         const failure = normalizedFailure(
@@ -822,7 +898,7 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
       let recovered = 0;
       for (const operation of operations) {
         await options.coordinator.runExclusive(
-          `${operation.network}:${operation.payer}`,
+          `${normalizeTronNetwork(operation.network)}:${operation.payer}`,
           async () => {
             let current = operation;
             try {

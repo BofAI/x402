@@ -34,7 +34,7 @@ import type {
  * and the channel-bound Permit2 `DepositWitness`.
  */
 
-const NETWORK = "tron:0xcd8690dc";
+const NETWORK = "tron:3448148188";
 const PAYER_PK = "da146374a75310b9666e834ee4ad0866d6f4035967bfc76217c5a495fff9f0d0";
 const ASSET = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf";
 const PAY_TO = "TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC";
