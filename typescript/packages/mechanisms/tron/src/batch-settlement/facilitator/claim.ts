@@ -7,6 +7,7 @@ import { getBatchSettlementAddress } from "../../shared/batch-settlement/constan
 import { signClaimBatch } from "../../shared/batch-settlement/authorizerSigner";
 import { toContractChannelConfig } from "./utils";
 import * as Errors from "../errors";
+import { waitAndReturnSettleResponse } from "../../shared/settleReceipt";
 
 const abi = batchSettlementABI as unknown as readonly Record<string, unknown>[];
 
@@ -84,18 +85,10 @@ export async function executeClaimWithSignature(
       args: [claimArgs, sig],
     });
 
-    const receipt = await signer.waitForTransactionReceipt({ hash: tx });
-    if (receipt.status !== "success") {
-      return {
-        success: false,
-        errorReason: Errors.ErrClaimTransactionFailed,
-        errorMessage: `transaction reverted (receipt status ${receipt.status})`,
-        transaction: tx,
-        network,
-      };
-    }
-
-    return { success: true, transaction: tx, network, amount: "" };
+    return waitAndReturnSettleResponse(signer, tx, network, undefined, {
+      failedStatusReason: Errors.ErrClaimTransactionFailed,
+      amount: "",
+    });
   } catch (e) {
     return {
       success: false,

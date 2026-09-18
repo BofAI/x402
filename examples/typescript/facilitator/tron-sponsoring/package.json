@@ -8,7 +8,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@bankofai/agent-wallet": "^2.3.0",
+    "@bankofai/agent-wallet": "^3.0.0",
     "@bankofai/x402-core": "workspace:*",
     "@bankofai/x402-extensions": "workspace:*",
     "@bankofai/x402-tron": "workspace:*",

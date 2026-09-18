@@ -45,7 +45,7 @@ export function hashTypedData(
 /**
  * Returns the full TIP-712 domain for the batch-settlement contract on a network.
  *
- * @param network - CAIP-2 network identifier (e.g. `"tron:0xcd8690dc"`).
+ * @param network - CAIP-2 network identifier (e.g. `"tron:3448148188"`).
  * @returns Domain with `name`, `version`, `chainId`, and EVM-hex `verifyingContract`.
  */
 export function getBatchSettlementTip712Domain(network: string): Eip712Domain {

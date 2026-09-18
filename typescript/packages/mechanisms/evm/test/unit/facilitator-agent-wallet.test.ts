@@ -52,7 +52,7 @@ function useClient(pc: ReturnType<typeof makePublicClient>) {
   return pc;
 }
 
-function makeWallet(signImpl: () => Promise<string> = async () => "deadbeef") {
+function makeWallet(signImpl: FacilitatorEvmWallet["signTransaction"] = async () => "deadbeef") {
   // Default returns a hex WITHOUT the `0x` prefix, mirroring agent-wallet's
   // current behavior (SDK issue #2).
   return {
@@ -165,6 +165,18 @@ describe("createFacilitatorEvmSigner", () => {
     const pc = useClient(makePublicClient());
     const signer = await createFacilitatorEvmSigner(
       makeWallet(async () => "0xabcd1234"),
+      { network: NETWORK },
+    );
+
+    await signer.sendTransaction({ to: RECIPIENT, data: "0x" });
+
+    expect(pc.sendRawTransaction).toHaveBeenCalledWith({ serializedTransaction: "0xabcd1234" });
+  });
+
+  it("unwraps an agent-wallet 3.x EVM transaction artifact", async () => {
+    const pc = useClient(makePublicClient());
+    const signer = await createFacilitatorEvmSigner(
+      makeWallet(async () => ({ family: "evm", rawTransaction: "abcd1234" })),
       { network: NETWORK },
     );
 

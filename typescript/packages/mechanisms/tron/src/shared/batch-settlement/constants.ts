@@ -7,6 +7,13 @@
  * exactly. Only the per-network `verifyingContract` address and `chainId` differ,
  * so the typed-data structures below are copied verbatim from `@bankofai/x402-evm`.
  */
+import {
+  getTronNetworkValue,
+  TRON_MAINNET,
+  TRON_NILE,
+  TRON_SHASTA,
+  withTronNetworkAliases,
+} from "../../network";
 
 /** Scheme identifier for the batch-settlement payment scheme. */
 export const BATCH_SETTLEMENT_SCHEME = "batch-settlement" as const;
@@ -14,39 +21,39 @@ export const BATCH_SETTLEMENT_SCHEME = "batch-settlement" as const;
 /**
  * Deployed `x402BatchSettlement` contract addresses per TRON network (Base58Check).
  */
-export const BATCH_SETTLEMENT_ADDRESSES: Record<string, string> = {
-  "tron:0x2b6653dc": "TW9yNhTySkEHYfjnGQU2u4NAsdb1tW4fbm",
-  "tron:0xcd8690dc": "TWBwWHZWwH8TzrZnbxit1J645VGYY1K2fA",
-  "tron:0x94a9059e": "TA3MZHMLsgi8JMU1DL8H4gKp1YjJKATibf",
-};
+export const BATCH_SETTLEMENT_ADDRESSES: Record<string, string> = withTronNetworkAliases({
+  [TRON_MAINNET]: "TW9yNhTySkEHYfjnGQU2u4NAsdb1tW4fbm",
+  [TRON_NILE]: "TWBwWHZWwH8TzrZnbxit1J645VGYY1K2fA",
+  [TRON_SHASTA]: "TA3MZHMLsgi8JMU1DL8H4gKp1YjJKATibf",
+});
 
 /**
  * Deployed `ERC3009DepositCollector` contract addresses per TRON network.
  */
-export const ERC3009_DEPOSIT_COLLECTOR_ADDRESSES: Record<string, string> = {
-  "tron:0x2b6653dc": "TTWA7aWMdx4jfcbp8XRAS2JAd2sUhyF9qj",
-  "tron:0xcd8690dc": "TJUQ3BQt4YFg8EeevjiUa5LbfSGz5BxzRW",
-  "tron:0x94a9059e": "TRd1KBfy1iUs6R45oZrtbLUjtcSKzXAvPG",
-};
+export const ERC3009_DEPOSIT_COLLECTOR_ADDRESSES: Record<string, string> = withTronNetworkAliases({
+  [TRON_MAINNET]: "TTWA7aWMdx4jfcbp8XRAS2JAd2sUhyF9qj",
+  [TRON_NILE]: "TJUQ3BQt4YFg8EeevjiUa5LbfSGz5BxzRW",
+  [TRON_SHASTA]: "TRd1KBfy1iUs6R45oZrtbLUjtcSKzXAvPG",
+});
 
 /**
  * Deployed `Permit2DepositCollector` contract addresses per TRON network.
  */
-export const PERMIT2_DEPOSIT_COLLECTOR_ADDRESSES: Record<string, string> = {
-  "tron:0x2b6653dc": "TAg5qqp1K9x5KeSTWnRa8LT79B5HUjzSHY",
-  "tron:0xcd8690dc": "TEp6bCqSEKAr99sCiqANC84RtRwx7xGbA4",
-  "tron:0x94a9059e": "TNmfrxbKCHqPUTj9zHVfg4Dq8WNZXPyf1x",
-};
+export const PERMIT2_DEPOSIT_COLLECTOR_ADDRESSES: Record<string, string> = withTronNetworkAliases({
+  [TRON_MAINNET]: "TAg5qqp1K9x5KeSTWnRa8LT79B5HUjzSHY",
+  [TRON_NILE]: "TEp6bCqSEKAr99sCiqANC84RtRwx7xGbA4",
+  [TRON_SHASTA]: "TNmfrxbKCHqPUTj9zHVfg4Dq8WNZXPyf1x",
+});
 
 /**
  * Resolve the `x402BatchSettlement` address for a network.
  *
- * @param network - CAIP-2 network identifier (e.g. `"tron:0xcd8690dc"`).
+ * @param network - CAIP-2 network identifier (e.g. `"tron:3448148188"`).
  * @returns The Base58Check contract address.
  * @throws When no contract is configured for the network.
  */
 export function getBatchSettlementAddress(network: string): string {
-  const address = BATCH_SETTLEMENT_ADDRESSES[network];
+  const address = getTronNetworkValue(BATCH_SETTLEMENT_ADDRESSES, network);
   if (!address) {
     throw new Error(`No x402BatchSettlement contract configured for network ${network}`);
   }
@@ -61,7 +68,7 @@ export function getBatchSettlementAddress(network: string): string {
  * @throws When no collector is configured for the network.
  */
 export function getErc3009DepositCollectorAddress(network: string): string {
-  const address = ERC3009_DEPOSIT_COLLECTOR_ADDRESSES[network];
+  const address = getTronNetworkValue(ERC3009_DEPOSIT_COLLECTOR_ADDRESSES, network);
   if (!address) {
     throw new Error(`No ERC3009DepositCollector configured for network ${network}`);
   }
@@ -76,7 +83,7 @@ export function getErc3009DepositCollectorAddress(network: string): string {
  * @throws When no collector is configured for the network.
  */
 export function getPermit2DepositCollectorAddress(network: string): string {
-  const address = PERMIT2_DEPOSIT_COLLECTOR_ADDRESSES[network];
+  const address = getTronNetworkValue(PERMIT2_DEPOSIT_COLLECTOR_ADDRESSES, network);
   if (!address) {
     throw new Error(`No Permit2DepositCollector configured for network ${network}`);
   }

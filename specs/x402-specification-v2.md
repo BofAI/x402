@@ -253,7 +253,7 @@ The `SettleResponse` schema contains the following fields:
 | `errorReason` | `string`  | Optional | Error reason if settlement failed (omitted if successful)             |
 | `errorMessage`| `string`  | Optional | Human-readable failure detail                                         |
 | `payer`       | `string`  | Optional | Address of the payer's wallet                                         |
-| `transaction` | `string`  | Required | Blockchain transaction hash (empty string if settlement failed)       |
+| `transaction` | `string`  | Required | Blockchain transaction hash; empty only when no transaction was broadcast |
 | `network`     | `string`  | Required | Blockchain network identifier in CAIP-2 format                        |
 | `amount`      | `string`  | Optional | The actual amount settled in atomic units (omitted if not applicable) |
 | `extensions`  | `object`  | Optional | Protocol extensions data                                              |
@@ -433,6 +433,26 @@ Executes a verified payment by broadcasting the transaction to the blockchain.
 }
 ```
 
+**Indeterminate Settlement Response:**
+
+If a transaction was broadcast but its final on-chain effect cannot yet be determined, the
+facilitator returns a non-terminal `settlement_pending` result and preserves the transaction hash:
+
+```json
+{
+  "success": false,
+  "errorReason": "settlement_pending",
+  "payer": "0x857b06519E91e3A54538791bDbb0E22373e36b66",
+  "transaction": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+  "network": "eip155:84532"
+}
+```
+
+`settlement_pending` is not a terminal failure. A caller MUST query or reconcile the original
+transaction and MUST NOT create a replacement payment or rebroadcast the authorization solely
+because this result was returned. Pre-broadcast failures use an empty `transaction`; an explicit
+on-chain revert is terminal but still preserves the broadcast transaction hash.
+
 ### 7.3 GET /supported
 
 Returns the list of payment schemes, networks, and extensions supported by the facilitator.
@@ -453,7 +473,7 @@ Returns the list of payment schemes, networks, and extensions supported by the f
     {
       "x402Version": 2,
       "scheme": "upto",
-      "network": "tron:0xcd8690dc",
+      "network": "tron:3448148188",
       "extra": {
         "assetTransferMethod": "permit2",
         "permit2FacilitatorAddress": "TFacilitatorAddress"
@@ -462,7 +482,7 @@ Returns the list of payment schemes, networks, and extensions supported by the f
     {
       "x402Version": 2,
       "scheme": "exact_gasfree",
-      "network": "tron:0xcd8690dc"
+      "network": "tron:3448148188"
     }
   ],
   "extensions": [],
@@ -606,6 +626,7 @@ The x402 protocol defines standard error codes that may be returned by facilitat
 - **`unsupported_scheme`**: Payment scheme is not supported by the facilitator
 - **`invalid_x402_version`**: Protocol version is not supported
 - **`invalid_transaction_state`**: Blockchain transaction failed or was rejected
+- **`settlement_pending`**: A transaction was broadcast, but its final on-chain effect is not yet known; the response preserves its transaction hash and MUST NOT trigger a rebroadcast
 - **`unexpected_verify_error`**: Unexpected error occurred during payment verification
 - **`unexpected_settle_error`**: Unexpected error occurred during payment settlement
 
@@ -642,9 +663,13 @@ This repository's supported deployment profile uses:
 
 - **`eip155:56`**: BSC mainnet
 - **`eip155:97`**: BSC testnet
-- **`tron:0x2b6653dc`**: TRON mainnet
-- **`tron:0xcd8690dc`**: TRON Nile testnet
-- **`tron:0x94a9059e`**: TRON Shasta testnet
+- **`tron:728126428`**: TRON mainnet
+- **`tron:3448148188`**: TRON Nile testnet
+- **`tron:2494104990`**: TRON Shasta testnet
+
+TRON implementations MUST emit these decimal CAIP-2 identifiers. For backwards compatibility,
+implementations MAY accept the deprecated hexadecimal aliases `tron:0x2b6653dc`,
+`tron:0xcd8690dc`, and `tron:0x94a9059e` as inputs.
 
 An implementation MAY register additional EVM networks when the selected scheme's contracts and
 assets are available. The TRON binding recognizes the three identifiers above unless the SDK is

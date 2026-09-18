@@ -1,5 +1,6 @@
 import { TronWeb } from "tronweb";
 import type { Network } from "@bankofai/x402-core/types";
+import { normalizeTronNetwork } from "./network";
 import { findByAddress } from "./shared/tokens";
 
 /** How a TRC-20 token permits an existing non-zero Approval to be updated. */
@@ -43,13 +44,13 @@ export function createTrc20ApprovalPolicy(
 ): Trc20ApprovalPolicy {
   const allowedAssets = new Map(
     Object.entries(options.allowedAssets ?? {}).map(([network, assets]) => [
-      network,
+      normalizeTronNetwork(network),
       new Set(assets.map(normalizeAddress)),
     ]),
   );
   const strategies = new Map(
     Object.entries(options.strategies ?? {}).map(([network, entries]) => [
-      network,
+      normalizeTronNetwork(network),
       new Map(
         Object.entries(entries).map(([token, strategy]) => [normalizeAddress(token), strategy]),
       ),
@@ -58,11 +59,12 @@ export function createTrc20ApprovalPolicy(
 
   return {
     strategyFor(network, token) {
+      const canonicalNetwork = normalizeTronNetwork(network);
       const normalized = normalizeAddress(token);
-      const configured = strategies.get(network)?.get(normalized);
+      const configured = strategies.get(canonicalNetwork)?.get(normalized);
       if (configured) return configured;
-      if (allowedAssets.get(network)?.has(normalized)) return "zero-first";
-      return findByAddress(network as Network, token)?.assetTransferMethod === "permit2"
+      if (allowedAssets.get(canonicalNetwork)?.has(normalized)) return "zero-first";
+      return findByAddress(canonicalNetwork as Network, token)?.assetTransferMethod === "permit2"
         ? "zero-first"
         : "unsupported";
     },

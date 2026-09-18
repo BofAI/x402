@@ -16,11 +16,13 @@ import {
 import { FacilitatorTronSigner } from "../../signer";
 import { UptoPermit2Payload } from "../../types";
 import { getTronChainId, normalizeAddressForSigning } from "../../utils";
+import { tronNetworksEqual } from "../../network";
 import * as errors from "./errors";
 import {
   executeTrc20Sponsorship,
   verifyTrc20Sponsorship,
 } from "../../shared/extensions/trc20ApprovalResourceSponsoring";
+import { waitAndReturnSettleResponse } from "../../shared/settleReceipt";
 
 interface UptoVerificationOptions {
   readonly verifySponsorship?: boolean;
@@ -56,7 +58,7 @@ export async function verifyUptoPermit2(
     return { isValid: false, invalidReason: errors.INVALID_SCHEME, payer };
   }
 
-  if (payload.accepted.network !== requirements.network) {
+  if (!tronNetworksEqual(payload.accepted.network, requirements.network)) {
     return { isValid: false, invalidReason: errors.NETWORK_MISMATCH, payer };
   }
 
@@ -313,25 +315,10 @@ export async function settleUptoPermit2(
       args: [permitTuple, settlementAmount, payer, witnessTuple, permit2Payload.signature],
     });
 
-    const receipt = await signer.waitForTransactionReceipt({ hash: tx });
-
-    if (receipt.status !== "success") {
-      return {
-        success: false,
-        errorReason: errors.INVALID_TRANSACTION_STATE,
-        transaction: tx,
-        network: payload.accepted.network,
-        payer,
-      };
-    }
-
-    return {
-      success: true,
-      transaction: tx,
-      network: payload.accepted.network,
-      payer,
+    return waitAndReturnSettleResponse(signer, tx, payload.accepted.network, payer, {
+      failedStatusReason: errors.INVALID_TRANSACTION_STATE,
       amount: settlementAmount.toString(),
-    };
+    });
   } catch (err) {
     return {
       success: false,

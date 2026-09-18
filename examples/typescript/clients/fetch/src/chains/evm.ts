@@ -40,18 +40,17 @@ const EVM_RPC_NETWORK =
  * @returns `true` if at least one network registered, `false` if no EVM wallet.
  */
 export async function registerEvm(client: x402Client): Promise<boolean> {
-  const wallet = await tryResolveWallet("evm");
-  if (!wallet) {
-    return false;
-  }
-
+  let registered = false;
   for (const network of EVM_NETWORKS) {
+    const wallet = await tryResolveWallet(network);
+    if (!wallet) continue;
     const signer = await createClientEvmSigner(wallet, {
       network,
       rpcUrl: network === EVM_RPC_NETWORK ? EVM_RPC_URL : undefined,
     });
     client.register(network, new ExactEvmScheme(signer));
     console.info(`[evm] client registered ${network} (${signer.address})`);
+    registered = true;
   }
-  return true;
+  return registered;
 }

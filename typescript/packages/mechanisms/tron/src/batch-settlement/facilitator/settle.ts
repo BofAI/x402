@@ -6,6 +6,7 @@ import { batchSettlementABI } from "../../shared/batch-settlement/abi";
 import { getBatchSettlementAddress } from "../../shared/batch-settlement/constants";
 import { toBigInt } from "./utils";
 import * as Errors from "../errors";
+import { waitAndReturnSettleResponse } from "../../shared/settleReceipt";
 
 const abi = batchSettlementABI as unknown as readonly Record<string, unknown>[];
 
@@ -90,26 +91,14 @@ export async function executeSettle(
       args: [receiver, token],
     });
 
-    const receipt = await signer.waitForTransactionReceipt({ hash: tx });
-    if (receipt.status !== "success") {
-      return {
-        success: false,
-        errorReason: Errors.ErrSettleTransactionFailed,
-        errorMessage: `transaction reverted (receipt status ${receipt.status})`,
-        transaction: tx,
-        network,
-      };
-    }
-
-    let amount = "";
-    try {
-      const [, postSettled] = await readReceiver(signer, address, receiver, token);
-      amount = postSettled > preSettled ? (postSettled - preSettled).toString() : "0";
-    } catch {
-      // Leave amount empty when the post-state read lags.
-    }
-
-    return { success: true, transaction: tx, network, amount };
+    return waitAndReturnSettleResponse(signer, tx, network, undefined, {
+      failedStatusReason: Errors.ErrSettleTransactionFailed,
+      onSuccess: async () => {
+        const [, postSettled] = await readReceiver(signer, address, receiver, token);
+        const amount = postSettled > preSettled ? (postSettled - preSettled).toString() : "0";
+        return { success: true, transaction: tx, network, amount };
+      },
+    });
   } catch (e) {
     return {
       success: false,

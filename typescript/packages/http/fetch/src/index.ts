@@ -24,7 +24,7 @@ import { log } from "@bankofai/x402-core";
  *
  * const client = new x402Client()
  *   .register('eip155:8453', new ExactEvmScheme(evmSigner))
- *   .register('tron:0x2b6653dc', new ExactTronScheme(tronSigner))
+ *   .register('tron:728126428', new ExactTronScheme(tronSigner))
  *   .register('eip155:1', new ExactEvmScheme(evmSigner), 1); // v1 protocol
  *
  * const fetchWithPay = wrapFetchWithPayment(fetch, client);

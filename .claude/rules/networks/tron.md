@@ -2,13 +2,13 @@
 
 Mechanisms: `typescript/packages/mechanisms/tron` (`@bankofai/x402-tron`). **In-house, no upstream** — edit directly.
 
-Identifier: `tron:<hexChainId>` per CAIP-2 (hex chain id as the reference, not a human-readable name). Canonical constants: `TRON_MAINNET`, `TRON_NILE`, `TRON_SHASTA` exported from `@bankofai/x402-tron`.
+Identifier: `tron:<decimalChainId>` per CAIP-2. Canonical constants: `TRON_MAINNET`, `TRON_NILE`, `TRON_SHASTA` exported from `@bankofai/x402-tron`. Deprecated `tron:0x...` identifiers are accepted as input aliases but must not be emitted by new code.
 
-| Constant | Identifier | Chain ID (decimal) | Chain ID (hex) |
+| Constant | Canonical identifier | TIP-712 chain ID | Deprecated hex alias |
 |---|---|---|---|
-| `TRON_MAINNET` | `tron:0x2b6653dc` | 728126428 | 0x2b6653dc |
-| `TRON_SHASTA` | `tron:0x94a9059e` | 2494104990 | 0x94a9059e |
-| `TRON_NILE` | `tron:0xcd8690dc` | 3448148188 | 0xcd8690dc |
+| `TRON_MAINNET` | `tron:728126428` | 728126428 | 0x2b6653dc |
+| `TRON_SHASTA` | `tron:2494104990` | 2494104990 | 0x94a9059e |
+| `TRON_NILE` | `tron:3448148188` | 3448148188 | 0xcd8690dc |
 
 Chain id helper: `getTronChainId(network)` in `mechanisms/tron/src/utils.ts`.
 

@@ -16,7 +16,7 @@ const RESOURCE_PERMISSION_OPERATIONS = `${"00".repeat(7)}06${"00".repeat(24)}`;
 
 function runtimeRequest(): Trc20ApprovalResourceSponsoringRequest {
   return {
-    network: "tron:0xcd8690dc",
+    network: "tron:3448148188",
     approvalTxID: "a".repeat(64),
     approvalTimestamp: String(Date.now()),
     approvalExpiration: String(Date.now() + 120_000),
@@ -33,7 +33,7 @@ function runtimeRequest(): Trc20ApprovalResourceSponsoringRequest {
       x402Version: 2,
       accepted: {
         scheme: "exact",
-        network: "tron:0xcd8690dc",
+        network: "tron:3448148188",
         asset: TOKEN,
         amount: "1000000",
         payTo: PAYER,
@@ -43,7 +43,7 @@ function runtimeRequest(): Trc20ApprovalResourceSponsoringRequest {
     },
     paymentRequirements: {
       scheme: "exact",
-      network: "tron:0xcd8690dc",
+      network: "tron:3448148188",
       asset: TOKEN,
       amount: "1000000",
       payTo: PAYER,
@@ -180,12 +180,43 @@ const resourceOwnerSigner: TronResourceOwnerSigner = {
 };
 
 describe("TronWeb resource-sponsoring chain", () => {
+  it("unwraps an agent-wallet 3.x artifact for Resource Owner transactions", async () => {
+    const mock = createTronWebMock();
+    const unsigned = systemTransaction("DelegateResourceContract");
+    vi.mocked(mock.tronWeb.transactionBuilder.delegateResource).mockResolvedValue(
+      unsigned as never,
+    );
+    const chain = await createTronWebResourceSponsoringChain({
+      tronWeb: mock.tronWeb,
+      network: "tron:3448148188",
+      resourceOwnerSigner: {
+        getAddress: async () => OWNER,
+        signResourceTransaction: async ({ transaction }) => ({
+          family: "tron",
+          transaction: { ...transaction, signature: ["11".repeat(65)] },
+        }),
+      },
+      readContract: vi.fn(),
+      allowedAssets: [TOKEN],
+      permissionId: 2,
+    });
+
+    await expect(
+      chain.prepareDelegate(runtimeRequest(), {
+        resource: "ENERGY",
+        requiredUnits: 100n,
+        delegatedUnits: 100n,
+        stakeSun: 100_000n,
+      }),
+    ).resolves.toMatchObject({ txID: expect.any(String) });
+  });
+
   it("performs exact chain preflight and broadcasts the unchanged Approval bytes", async () => {
     const mock = createTronWebMock();
     const readContract = vi.fn().mockResolvedValueOnce(0n).mockResolvedValueOnce(2_000_000n);
     const chain = await createTronWebResourceSponsoringChain({
       tronWeb: mock.tronWeb,
-      network: "tron:0xcd8690dc",
+      network: "tron:3448148188",
       resourceOwnerSigner,
       readContract,
       allowedAssets: [TOKEN],
@@ -216,7 +247,7 @@ describe("TronWeb resource-sponsoring chain", () => {
     const readContract = vi.fn().mockResolvedValueOnce(0n).mockResolvedValueOnce(2_000_000n);
     const chain = await createTronWebResourceSponsoringChain({
       tronWeb: mock.tronWeb,
-      network: "tron:0xcd8690dc",
+      network: "tron:3448148188",
       resourceOwnerSigner,
       readContract,
       allowedAssets: [TOKEN],
@@ -238,7 +269,7 @@ describe("TronWeb resource-sponsoring chain", () => {
     const mock = createTronWebMock();
     const chain = await createTronWebResourceSponsoringChain({
       tronWeb: mock.tronWeb,
-      network: "tron:0xcd8690dc",
+      network: "tron:3448148188",
       resourceOwnerSigner,
       readContract: vi.fn(async () => 0n),
       allowedAssets: [TOKEN],
@@ -269,7 +300,7 @@ describe("TronWeb resource-sponsoring chain", () => {
     }));
     const chain = await createTronWebResourceSponsoringChain({
       tronWeb: mock.tronWeb,
-      network: "tron:0xcd8690dc",
+      network: "tron:3448148188",
       resourceOwnerSigner: {
         getAddress: async () => OWNER,
         signResourceTransaction: ({ transaction }) => signTransaction(transaction),
@@ -301,7 +332,7 @@ describe("TronWeb resource-sponsoring chain", () => {
     const signTransaction = vi.fn(async transaction => transaction);
     const chain = await createTronWebResourceSponsoringChain({
       tronWeb: mock.tronWeb,
-      network: "tron:0xcd8690dc",
+      network: "tron:3448148188",
       resourceOwnerSigner: {
         getAddress: async () => OWNER,
         signResourceTransaction: ({ transaction }) => signTransaction(transaction),
@@ -339,7 +370,7 @@ describe("TronWeb resource-sponsoring chain", () => {
     }));
     const chain = await createTronWebResourceSponsoringChain({
       tronWeb: mock.tronWeb,
-      network: "tron:0xcd8690dc",
+      network: "tron:3448148188",
       resourceOwnerSigner: {
         getAddress: async () => OWNER,
         signResourceTransaction: ({ transaction }) => signTransaction(transaction),
@@ -375,7 +406,7 @@ describe("TronWeb resource-sponsoring chain", () => {
     }));
     const chain = await createTronWebResourceSponsoringChain({
       tronWeb: mock.tronWeb,
-      network: "tron:0xcd8690dc",
+      network: "tron:3448148188",
       resourceOwnerSigner: {
         getAddress: async () => OWNER,
         signResourceTransaction: ({ transaction }) => signTransaction(transaction),
@@ -407,7 +438,7 @@ describe("TronWeb resource-sponsoring chain", () => {
     }));
     const chain = await createTronWebResourceSponsoringChain({
       tronWeb: mock.tronWeb,
-      network: "tron:0xcd8690dc",
+      network: "tron:3448148188",
       resourceOwnerSigner: { getAddress: async () => OWNER, signResourceTransaction },
       readContract: vi.fn(async () => 0n),
       allowedAssets: [TOKEN],
@@ -423,7 +454,7 @@ describe("TronWeb resource-sponsoring chain", () => {
 
     expect(signResourceTransaction).toHaveBeenCalledWith({
       intent: {
-        network: "tron:0xcd8690dc",
+        network: "tron:3448148188",
         action: "delegate",
         owner: OWNER,
         receiver: PAYER,
@@ -457,7 +488,7 @@ describe("TronWeb resource-sponsoring chain", () => {
     }));
     const chain = await createTronWebResourceSponsoringChain({
       tronWeb: mock.tronWeb,
-      network: "tron:0xcd8690dc",
+      network: "tron:3448148188",
       resourceOwnerSigner: { getAddress: async () => OWNER, signResourceTransaction },
       readContract: vi.fn(async () => 0n),
       allowedAssets: [TOKEN],
@@ -491,7 +522,7 @@ describe("TronWeb resource-sponsoring chain", () => {
     });
     const chain = await createTronWebResourceSponsoringChain({
       tronWeb: mock.tronWeb,
-      network: "tron:0xcd8690dc",
+      network: "tron:3448148188",
       resourceOwnerSigner: {
         getAddress: async () => OWNER,
         signResourceTransaction: async ({ transaction }) => ({
@@ -540,7 +571,7 @@ describe("TronWeb resource-sponsoring chain", () => {
     });
     const chain = await createTronWebResourceSponsoringChain({
       tronWeb: mock.tronWeb,
-      network: "tron:0xcd8690dc",
+      network: "tron:3448148188",
       resourceOwnerSigner: {
         getAddress: async () => OWNER,
         signResourceTransaction: async ({ transaction }) => ({

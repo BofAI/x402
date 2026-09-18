@@ -21,7 +21,7 @@ export const EVM_NETWORK: Network = "eip155:97";
 export async function evmSchemes(): Promise<
   Array<{ network: Network; client: SchemeNetworkClient }>
 > {
-  const wallet = await tryResolveWallet("evm");
+  const wallet = await tryResolveWallet(EVM_NETWORK);
   if (!wallet) {
     return [];
   }

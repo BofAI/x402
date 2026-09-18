@@ -3,8 +3,8 @@ import { ExactTronScheme } from "../../src/exact/server/scheme";
 import { UptoTronScheme } from "../../src/upto/server/scheme";
 import { BatchSettlementTronScheme } from "../../src/batch-settlement/server/scheme";
 
-// tron:0xcd8690dc USDT is 6 decimals
-const NILE = "tron:0xcd8690dc";
+// tron:3448148188 USDT is 6 decimals
+const NILE = "tron:3448148188";
 const USDT_NILE = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf";
 const USDD_NILE = "TGjgvdTWWrybVLaVeFqSyVqJQWjxqRYbaK";
 

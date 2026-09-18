@@ -31,7 +31,7 @@ server and client.
 ## Notes
 
 - The upto Permit2 proxy is a deterministic CREATE2 singleton on EVM (same
-  address on every chain) and is deployed per-network on TRON (`tron:0xcd8690dc` /
-  `tron:0x2b6653dc`).
+  address on every chain) and is deployed per-network on TRON (`tron:3448148188` /
+  `tron:728126428`).
 - The settled amount is bounded by the client's Permit2 witness — the facilitator
   cannot settle more than the authorized maximum.

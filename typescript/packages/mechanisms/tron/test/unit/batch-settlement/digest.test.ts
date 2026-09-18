@@ -25,7 +25,7 @@ import type { FacilitatorTronSigner } from "../../../src/signer";
  * contract), and (2) a client-signed voucher verifies via the facilitator path.
  */
 
-const NETWORK = "tron:0xcd8690dc";
+const NETWORK = "tron:3448148188";
 const PAYER_PK = "da146374a75310b9666e834ee4ad0866d6f4035967bfc76217c5a495fff9f0d0";
 
 // Read on-chain from the deployed Nile contract (CHANNEL_CONFIG_TYPEHASH()).

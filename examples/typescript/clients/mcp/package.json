@@ -12,7 +12,7 @@
     "@bankofai/x402-evm": "workspace:*",
     "@bankofai/x402-tron": "workspace:*",
     "@bankofai/x402-mcp": "workspace:*",
-    "@bankofai/agent-wallet": "^2.3.0",
+    "@bankofai/agent-wallet": "^3.0.0",
     "@modelcontextprotocol/sdk": "^1.12.1",
     "tronweb": "^6.0.0",
     "viem": "^2.48.11"

@@ -25,7 +25,7 @@
  * import { createResourceServer } from "@bankofai/x402-core";
  *
  * const server = createResourceServer(facilitatorClient); // logging pre-attached
- * server.register("tron:0xcd8690dc", scheme);
+ * server.register("tron:3448148188", scheme);
  * ```
  */
 import {

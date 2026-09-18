@@ -33,7 +33,9 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: typescript/pnpm-lock.yaml
+          cache-dependency-path: |
+            typescript/pnpm-lock.yaml
+            examples/typescript/pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -48,4 +50,16 @@ jobs:
         run: pnpm build
 
       - name: Run unit tests
+        run: pnpm test
+
+      - name: Install example dependencies
+        working-directory: examples/typescript
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck examples
+        working-directory: examples/typescript
+        run: pnpm -r typecheck
+
+      - name: Test example configuration
+        working-directory: examples/typescript
         run: pnpm test

@@ -7,6 +7,7 @@ import {
   VerifyResponse,
 } from "@bankofai/x402-core/types";
 import { FacilitatorTronSigner } from "../../signer";
+import { tronNetworksEqual } from "../../network";
 import { BATCH_SETTLEMENT_SCHEME } from "../../shared/batch-settlement/constants";
 import {
   isBatchSettlementDepositPayload,
@@ -108,7 +109,7 @@ export class BatchSettlementTronScheme implements SchemeNetworkFacilitator {
     ) {
       return { isValid: false, invalidReason: Errors.ErrInvalidScheme };
     }
-    if (payload.accepted.network !== requirements.network) {
+    if (!tronNetworksEqual(payload.accepted.network, requirements.network)) {
       return { isValid: false, invalidReason: Errors.ErrNetworkMismatch };
     }
 
@@ -154,7 +155,7 @@ export class BatchSettlementTronScheme implements SchemeNetworkFacilitator {
         network: requirements.network,
       };
     }
-    if (payload.accepted.network !== requirements.network) {
+    if (!tronNetworksEqual(payload.accepted.network, requirements.network)) {
       return {
         success: false,
         errorReason: Errors.ErrNetworkMismatch,

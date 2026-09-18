@@ -27,21 +27,18 @@ export const TRON_NETWORKS = [TRON_NILE, TRON_SHASTA, TRON_MAINNET] as const;
 export async function registerTron(
   facilitator: x402Facilitator,
 ): Promise<boolean> {
-  const wallet = await tryResolveWallet("tron");
-  if (!wallet) {
-    return false;
-  }
-
-  // Key-less: the agent-wallet satisfies FacilitatorTronWallet directly; the
-  // factory builds TronWeb internally and the wallet signs (no raw key in SDK).
-  const address = await wallet.getAddress();
+  let registered = false;
   for (const network of TRON_NETWORKS) {
+    const wallet = await tryResolveWallet(network);
+    if (!wallet) continue;
+    const address = await wallet.getAddress();
     const signer = await createFacilitatorTronSigner(wallet, {
       network,
       apiKey: process.env.TRON_GRID_API_KEY,
     });
     facilitator.register(network, new ExactTronScheme(signer));
     console.info(`[tron] facilitator registered ${network} (${address})`);
+    registered = true;
   }
-  return true;
+  return registered;
 }

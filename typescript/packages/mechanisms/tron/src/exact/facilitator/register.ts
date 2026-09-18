@@ -1,5 +1,6 @@
 import { x402Facilitator } from "@bankofai/x402-core/facilitator";
 import { Network } from "@bankofai/x402-core/types";
+import { normalizeTronNetwork } from "../../network";
 import { FacilitatorTronSigner } from "../../signer";
 import { ExactTronScheme } from "./scheme";
 
@@ -22,6 +23,9 @@ export function registerExactTronScheme(
   facilitator: x402Facilitator,
   config: TronFacilitatorConfig,
 ): x402Facilitator {
-  facilitator.register(config.networks, new ExactTronScheme(config.signer));
+  const networks = (Array.isArray(config.networks) ? config.networks : [config.networks]).map(
+    network => normalizeTronNetwork(network) as Network,
+  );
+  facilitator.register([...new Set(networks)], new ExactTronScheme(config.signer));
   return facilitator;
 }

@@ -14,7 +14,7 @@ over HTTP.
 
 - Set the payout address(es) you want to accept:
   - `EVM_ADDRESS` → BSC (`eip155:97`), token USDC (Permit2)
-  - `TRON_ADDRESS` → TRON Nile (`tron:0xcd8690dc`), token USDT (Permit2)
+  - `TRON_ADDRESS` → TRON Nile (`tron:3448148188`), token USDT (Permit2)
 - A running upto facilitator (default `FACILITATOR_URL=http://localhost:4052`).
 
 ## Run
