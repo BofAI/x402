@@ -2,7 +2,11 @@
  * Wallet resolution via `@bankofai/agent-wallet` — the example never touches a
  * private key. A chain registers only when a wallet for it resolves.
  */
-import { resolveWallet, type Wallet } from "@bankofai/agent-wallet";
+import {
+  resolveWallet,
+  WalletNotFoundError,
+  type Wallet,
+} from "@bankofai/agent-wallet";
 
 /**
  * A resolved agent-wallet that also signs typed data. `resolveWallet` is typed
@@ -31,7 +35,15 @@ export async function tryResolveWallet(
     const wallet = (await resolveWallet({ network })) as SignerWallet;
     await wallet.getAddress();
     return wallet;
-  } catch {
-    return null;
+  } catch (error) {
+    if (
+      error instanceof WalletNotFoundError ||
+      (error instanceof Error &&
+        error.message ===
+          "resolve_wallet could not find a wallet source in config or env")
+    ) {
+      return null;
+    }
+    throw error;
   }
 }

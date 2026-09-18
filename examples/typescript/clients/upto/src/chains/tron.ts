@@ -11,6 +11,7 @@
  */
 import {
   createClientTronSigner,
+  normalizeTronNetwork,
   TRON_NILE,
   TRON_MAINNET,
 } from "@bankofai/x402-tron";
@@ -19,8 +20,9 @@ import type { x402Client } from "@bankofai/x402-fetch";
 
 import { tryResolveWallet } from "../env.js";
 
-const TRON_NETWORK = (process.env.TRON_NETWORK ??
-  TRON_NILE) as `${string}:${string}`;
+const TRON_NETWORK = normalizeTronNetwork(
+  process.env.TRON_NETWORK ?? TRON_NILE,
+) as `${string}:${string}`;
 
 /**
  * Registers the TRON `upto` client scheme, if a TRON wallet is configured.

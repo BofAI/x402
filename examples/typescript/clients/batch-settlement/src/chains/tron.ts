@@ -12,6 +12,7 @@
  */
 import {
   createClientTronSigner,
+  normalizeTronNetwork,
   TRON_NILE,
   TRON_MAINNET,
 } from "@bankofai/x402-tron";
@@ -24,8 +25,9 @@ import {
   type RefundableScheme,
 } from "../env.js";
 
-const TRON_NETWORK = (process.env.TRON_NETWORK ??
-  TRON_NILE) as `${string}:${string}`;
+const TRON_NETWORK = normalizeTronNetwork(
+  process.env.TRON_NETWORK ?? TRON_NILE,
+) as `${string}:${string}`;
 
 /**
  * Registers the TRON `batch-settlement` client scheme, if a TRON wallet is

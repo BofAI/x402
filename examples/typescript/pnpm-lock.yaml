@@ -1058,8 +1058,8 @@ importers:
         version: 4.22.2
     devDependencies:
       '@types/express':
-        specifier: ^5.0.1
-        version: 5.0.6
+        specifier: 5.0.3
+        version: 5.0.3
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.21
@@ -1092,8 +1092,8 @@ importers:
         version: 4.22.2
     devDependencies:
       '@types/express':
-        specifier: ^5.0.1
-        version: 5.0.6
+        specifier: 5.0.3
+        version: 5.0.3
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.21
@@ -1120,8 +1120,8 @@ importers:
         version: 4.22.2
     devDependencies:
       '@types/express':
-        specifier: ^5.0.1
-        version: 5.0.6
+        specifier: 5.0.3
+        version: 5.0.3
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.21
@@ -1191,8 +1191,8 @@ importers:
         version: 4.22.2
     devDependencies:
       '@types/express':
-        specifier: ^5.0.1
-        version: 5.0.6
+        specifier: 5.0.3
+        version: 5.0.3
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.21
@@ -1253,8 +1253,8 @@ importers:
         version: 4.22.2
     devDependencies:
       '@types/express':
-        specifier: ^5.0.1
-        version: 5.0.6
+        specifier: 5.0.3
+        version: 5.0.3
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.21

@@ -22,6 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with structural legacy wallet results.
 - Corrected legacy `main`, `module`, and `types` package metadata to reference the generated CJS
   and ESM artifacts.
+- Published the EVM agent-wallet 3.0 transaction-artifact compatibility changes as
+  `@bankofai/x402-evm` 1.1.1.
+- Normalized legacy TRON network aliases before example wallet resolution and aligned server-side
+  `PAY_TARGETS` filtering with client-side TRON network matching.
+- Pinned matching Express type declarations across runnable servers so example typechecks remain
+  deterministic.
 - Increased the default HTTP facilitator client timeout to 120 seconds so receipt-backed TRON
   settlement can complete within its default confirmation budget.
 - Added configurable TRON receipt confirmation waiting with a 90-second default across `exact`,

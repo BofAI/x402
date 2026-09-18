@@ -9,6 +9,7 @@
  */
 import {
   createFacilitatorTronSigner,
+  normalizeTronNetwork,
   TRON_NILE,
   TRON_MAINNET,
 } from "@bankofai/x402-tron";
@@ -18,8 +19,9 @@ import type { x402Facilitator } from "@bankofai/x402-core/facilitator";
 import { tryResolveWallet } from "../env.js";
 
 /** CAIP-2 network this facilitator settles on. */
-export const TRON_NETWORK = (process.env.TRON_NETWORK ??
-  TRON_NILE) as `${string}:${string}`;
+export const TRON_NETWORK = normalizeTronNetwork(
+  process.env.TRON_NETWORK ?? TRON_NILE,
+) as `${string}:${string}`;
 
 /**
  * Registers the TRON `upto` scheme on the facilitator, if a TRON wallet is

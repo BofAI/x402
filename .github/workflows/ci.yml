@@ -59,3 +59,7 @@ jobs:
       - name: Typecheck examples
         working-directory: examples/typescript
         run: pnpm -r typecheck
+
+      - name: Test example configuration
+        working-directory: examples/typescript
+        run: pnpm test

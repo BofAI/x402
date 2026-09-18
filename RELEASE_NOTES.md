@@ -13,7 +13,8 @@ artifacts and strict per-network resolution introduced by `@bankofai/agent-walle
 
 ## Upgrade Notes
 
-- Upgrade `@bankofai/x402-tron` to `2.0.0` and `@bankofai/x402-core` to `1.1.1` together.
+- Upgrade `@bankofai/x402-tron` to `2.0.0`, `@bankofai/x402-core` to `1.1.1`, and
+  `@bankofai/x402-evm` to `1.1.1` together.
 - Upgrade example and application wallet integrations to `@bankofai/agent-wallet` 3.0 or newer.
   Use the `raw_secret`, `wallet_cli`, or `privy` providers; the former `local_secure` password flow
   is no longer available.
@@ -37,6 +38,9 @@ artifacts and strict per-network resolution introduced by `@bankofai/agent-walle
 - Settlement reconciliation is single-shot and does not rebroadcast an already submitted payment.
 - EVM and TRON wallet adapters accept agent-wallet 3.0 typed transaction artifacts while retaining
   compatibility with structural legacy signing results.
+- Runnable examples normalize deprecated hexadecimal TRON network aliases before resolving strict
+  agent-wallet 3.0 wallets, and server-side `PAY_TARGETS` filtering follows the same matching rules
+  as clients.
 - Legacy `main`, `module`, and `types` package metadata now points to files present in the published
   tarballs.
 
@@ -47,15 +51,18 @@ artifacts and strict per-network resolution introduced by `@bankofai/agent-walle
 - `pnpm build:release`: forced release build passed for all 17 packages.
 - `pnpm test`: all 34 workspace tasks passed without using the build cache.
 - `pnpm -r typecheck` in `examples/typescript`: all 30 runnable example projects passed.
+- `pnpm test` in `examples/typescript`: all 4 payment-target configuration tests passed.
 - Core integration tests: 31/31 passed. Credential-backed EVM and TRON on-chain tests remain a
   pre-publish gate in the release environment.
-- Both npm tarballs contain the expected generated declarations and versions, with no remaining
-  `workspace:` dependency ranges; the TRON tarball depends on `@bankofai/x402-core@~1.1.1`.
+- All three npm tarballs contain the expected generated declarations and versions, with no remaining
+  `workspace:` dependency ranges; the EVM and TRON tarballs depend on
+  `@bankofai/x402-core@~1.1.1`.
 
 ## Release Artifacts
 
 - `@bankofai/x402-tron@2.0.0`
 - `@bankofai/x402-core@1.1.1`
+- `@bankofai/x402-evm@1.1.1`
 
 Implemented in [PR #96](https://github.com/BofAI/x402/pull/96) and
 [PR #98](https://github.com/BofAI/x402/pull/98).

@@ -1,3 +1,5 @@
+import { tronNetworksEqual } from "@bankofai/x402-tron";
+
 /**
  * Filters configured networks using the optional PAY_TARGETS selection shared
  * with the exact client example. A namespace-only target (for example
@@ -18,6 +20,12 @@ export function selectPayTargetNetworks<T extends string>(
 
   return networks.filter((network) => {
     const namespace = network.split(":", 1)[0];
-    return targets.some((target) => target === network || target === namespace);
+    return targets.some((target) => {
+      if (target === namespace || target === `${namespace}:`) return true;
+      if (namespace === "tron" && target.startsWith("tron:")) {
+        return tronNetworksEqual(network, target);
+      }
+      return target === network;
+    });
   });
 }
