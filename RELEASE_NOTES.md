@@ -1,6 +1,6 @@
 # v2.0.0 — Canonical TRON Networks and Pending Settlement
 
-Release date: September 7, 2026
+Release date: September 18, 2026
 
 ## Highlights
 
@@ -8,11 +8,15 @@ Version 2.0.0 makes decimal TRON CAIP-2 identifiers canonical and hardens receip
 when a transaction has been broadcast but final on-chain status is not yet known. The release keeps
 deprecated hexadecimal network aliases as accepted inputs, normalizes them at boundaries, and
 preserves transaction IDs in non-terminal `settlement_pending` responses so callers can reconcile
-without rebroadcasting.
+without rebroadcasting. Wallet adapters and runnable examples also support the typed transaction
+artifacts and strict per-network resolution introduced by `@bankofai/agent-wallet` 3.0.
 
 ## Upgrade Notes
 
 - Upgrade `@bankofai/x402-tron` to `2.0.0` and `@bankofai/x402-core` to `1.1.1` together.
+- Upgrade example and application wallet integrations to `@bankofai/agent-wallet` 3.0 or newer.
+  Use the `raw_secret`, `wallet_cli`, or `privy` providers; the former `local_secure` password flow
+  is no longer available.
 - Replace configured and persisted hexadecimal TRON network identifiers with `tron:728126428`
   (mainnet), `tron:3448148188` (Nile), or `tron:2494104990` (Shasta).
 - Hexadecimal aliases remain accepted for migration, but newly emitted values and internal lookups
@@ -31,6 +35,10 @@ without rebroadcasting.
 - GasFree settlement validates relayer transaction IDs and rejects success responses that do not
   identify a transaction.
 - Settlement reconciliation is single-shot and does not rebroadcast an already submitted payment.
+- EVM and TRON wallet adapters accept agent-wallet 3.0 typed transaction artifacts while retaining
+  compatibility with structural legacy signing results.
+- Legacy `main`, `module`, and `types` package metadata now points to files present in the published
+  tarballs.
 
 ## Verification
 
@@ -38,6 +46,7 @@ without rebroadcasting.
 - `pnpm lint:check`: 17/17 workspace tasks passed.
 - `pnpm build:release`: forced release build passed for all 17 packages.
 - `pnpm test`: all 34 workspace tasks passed without using the build cache.
+- `pnpm -r typecheck` in `examples/typescript`: all 30 runnable example projects passed.
 - Core integration tests: 31/31 passed. Credential-backed EVM and TRON on-chain tests remain a
   pre-publish gate in the release environment.
 - Both npm tarballs contain the expected generated declarations and versions, with no remaining

@@ -212,6 +212,7 @@ __marimo__/
 /.idea/
 /.vscode/
 *node_modules/
+/.pnpm-store/
 .specify/
 
 # Turbo build cache

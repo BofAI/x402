@@ -7,13 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-
-- Updated the TypeScript wallet adapters and examples for `@bankofai/agent-wallet` 3.0.0 typed
-  transaction artifacts and strict per-network CAIP-2 resolution while retaining compatibility
-  with structural legacy wallet results.
-
-## [2.0.0] - 2026-09-07
+## [2.0.0] - 2026-09-18
 
 ### Breaking
 
@@ -23,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated the TypeScript wallet adapters and examples for `@bankofai/agent-wallet` 3.0.0 typed
+  transaction artifacts and strict per-network CAIP-2 resolution while retaining compatibility
+  with structural legacy wallet results.
+- Corrected legacy `main`, `module`, and `types` package metadata to reference the generated CJS
+  and ESM artifacts.
 - Increased the default HTTP facilitator client timeout to 120 seconds so receipt-backed TRON
   settlement can complete within its default confirmation budget.
 - Added configurable TRON receipt confirmation waiting with a 90-second default across `exact`,
