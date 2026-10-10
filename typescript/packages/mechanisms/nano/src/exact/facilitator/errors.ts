@@ -1,0 +1,14 @@
+export const INVALID_SCHEME = "invalid_exact_nano_scheme";
+export const NETWORK_MISMATCH = "invalid_exact_nano_network_mismatch";
+export const INVALID_ASSET = "invalid_exact_nano_asset";
+export const INVALID_PAY_TO = "invalid_exact_nano_pay_to";
+export const INVALID_REQUIRED_AMOUNT = "invalid_exact_nano_required_amount";
+export const INVALID_PAYLOAD = "invalid_exact_nano_payload";
+export const BLOCK_ALREADY_USED = "invalid_exact_nano_block_already_used";
+export const BLOCK_NOT_CONFIRMED = "invalid_exact_nano_block_not_confirmed";
+export const NOT_A_SEND_BLOCK = "invalid_exact_nano_not_a_send_block";
+export const RECIPIENT_MISMATCH = "invalid_exact_nano_recipient_mismatch";
+export const AMOUNT_INSUFFICIENT = "invalid_exact_nano_amount_insufficient";
+export const BLOCK_EXPIRED = "invalid_exact_nano_block_expired";
+export const INVALID_BLOCK = "invalid_exact_nano_block";
+export const CHAIN_READ_FAILED = "chain_read_failed";
