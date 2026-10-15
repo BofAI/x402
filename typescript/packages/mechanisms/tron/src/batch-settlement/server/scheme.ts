@@ -9,11 +9,11 @@ import {
   SchemeServerHooks,
   MoneyParser,
   SupportedKind,
-} from "@bankofai/x402-core/types";
-import type { DeepReadonly } from "@bankofai/x402-core/types";
-import type { SettleContext, SettleResultContext } from "@bankofai/x402-core/server";
-import { parseMoney } from "@bankofai/x402-core/utils";
-import type { FacilitatorClient } from "@bankofai/x402-core/server";
+} from "@x402/core/types";
+import type { DeepReadonly } from "@x402/core/types";
+import type { SettleContext, SettleResultContext } from "@x402/core/server";
+import { parseMoney } from "@x402/core/utils";
+import type { FacilitatorClient } from "@x402/core/server";
 import { normalizeAddressForSigning } from "../../utils";
 import { getDefaultAsset } from "../../shared/defaultAssets";
 import { convertToTokenAmount, parsePrice as parseTokenPrice } from "../../shared/tokens";

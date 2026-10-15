@@ -75,4 +75,3 @@ export function serializeSignedTronTransaction(transaction: Record<string, unkno
   transactionPb.addSignature(Uint8Array.from(tronUtils.code.hexStr2byteArray(signature)));
   return tronUtils.code.byteArray2hexStr(transactionPb.serializeBinary()).toLowerCase();
 }
-

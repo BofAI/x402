@@ -5,8 +5,8 @@ import {
   PaymentRequirements,
   Price,
   SchemeNetworkServer,
-} from "@bankofai/x402-core/types";
-import { parseMoneyString } from "@bankofai/x402-core/utils";
+} from "@x402/core/types";
+import { parseMoneyString } from "@x402/core/utils";
 import {
   getDecimals,
   getDefaultAssetSymbol,

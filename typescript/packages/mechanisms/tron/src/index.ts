@@ -44,6 +44,7 @@ export {
   type TronResourceSnapshot,
   type TronResourceOwnerActionIntent,
   type TronResourceOwnerSigner,
+  type TronResourceRpcClient,
   type TronResourceType,
   type TronWebResourceSponsoringChainOptions,
 } from "./resource-sponsoring";
@@ -63,6 +64,7 @@ export {
   serializeSignedTronTransaction,
 } from "./signer";
 export type {
+  TronContractReader,
   ClientTronSigner,
   FacilitatorTronSigner,
   ClientTronWallet,

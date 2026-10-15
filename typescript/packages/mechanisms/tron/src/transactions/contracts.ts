@@ -234,4 +234,3 @@ export async function buildSignAndBroadcast(
   });
   return txid;
 }
-

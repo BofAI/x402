@@ -1,18 +1,38 @@
 import { utils as tronUtils } from "tronweb";
 import type { TronWeb } from "tronweb";
-import { toClientTronSigner, toFacilitatorTronSigner, readTronContract, type ClientTronSigner, type ClientTronWallet, type CreateClientTronSignerOptions, type TronAuthorizerSignerLike, type FacilitatorTronSigner, type FacilitatorTronWallet, type FacilitatorTronSignerOptions } from "../signer";
+import {
+  toClientTronSigner,
+  toFacilitatorTronSigner,
+  readTronContract,
+  type ClientTronSigner,
+  type ClientTronWallet,
+  type CreateClientTronSignerOptions,
+  type TronAuthorizerSignerLike,
+  type FacilitatorTronSigner,
+  type FacilitatorTronWallet,
+  type FacilitatorTronSignerOptions,
+} from "../signer";
 import { DEFAULT_FEE_LIMIT_SUN, PERMIT2_ADDRESSES, erc20ApproveAbi } from "../constants";
 import { buildTronWeb } from "../rpc";
 import { tronAddressToEvm } from "../utils";
 import { normalizeTronNetwork, tronNetworksEqual } from "../network";
 import { createTrc20ApprovalPolicy } from "../approvalPolicy";
-import { buildAndSignContract, buildSignAndBroadcast, type WriteCapableTronWeb } from "../transactions/contracts";
+import {
+  buildAndSignContract,
+  buildSignAndBroadcast,
+  type WriteCapableTronWeb,
+} from "../transactions/contracts";
 import { serializeSignedTronTransaction } from "../transactions/signatures";
 import { resolveConfirmationTimeoutMs, pollTransactionPacked } from "../transactions/receipt";
 import { ensurePermit2Allowance, MAX_UINT256, APPROVE_FEE_LIMIT_SUN } from "./allowance";
 
 type TronContractAbi = Parameters<TronWeb["contract"]>[0];
-type TronContract = { methods: Record<string, ((...args: readonly unknown[]) => { call(): Promise<unknown> }) | undefined> };
+type TronContract = {
+  methods: Record<
+    string,
+    ((...args: readonly unknown[]) => { call(): Promise<unknown> }) | undefined
+  >;
+};
 
 /**
  * Creates a ClientTronSigner from a {@link ClientTronWallet}. The TronWeb client
@@ -73,7 +93,8 @@ export async function createClientTronSigner(
     network: normalizeTronNetwork(opts.network),
     approvalPolicy,
     ensureAllowance: async allowanceArgs => {
-      if (!tronNetworksEqual(opts.network, allowanceArgs.network)) throw new Error("approval_signer_network_mismatch");
+      if (!tronNetworksEqual(opts.network, allowanceArgs.network))
+        throw new Error("approval_signer_network_mismatch");
       return ensurePermit2Allowance(
         {
           tronWeb,
@@ -82,7 +103,11 @@ export async function createClientTronSigner(
           readContract: args => readTronContract(base, args),
           approvalPolicy,
         },
-        { ...allowanceArgs, network: normalizeTronNetwork(allowanceArgs.network), mode: allowanceArgs.mode ?? opts.allowanceMode },
+        {
+          ...allowanceArgs,
+          network: normalizeTronNetwork(allowanceArgs.network),
+          mode: allowanceArgs.mode ?? opts.allowanceMode,
+        },
       );
     },
     ...(signTransaction
@@ -92,7 +117,8 @@ export async function createClientTronSigner(
             network: string;
             minimumLifetimeSeconds: number;
           }) => {
-            if (!tronNetworksEqual(opts.network, args.network)) throw new Error("approval_signer_network_mismatch");
+            if (!tronNetworksEqual(opts.network, args.network))
+              throw new Error("approval_signer_network_mismatch");
             const network = normalizeTronNetwork(args.network);
             const permit2Address = PERMIT2_ADDRESSES[network];
             if (!permit2Address) {

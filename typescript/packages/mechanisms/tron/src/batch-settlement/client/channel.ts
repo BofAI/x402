@@ -1,6 +1,6 @@
 import { readTronContract } from "../../signer";
-import { decodePaymentResponseHeader } from "@bankofai/x402-core/http";
-import type { PaymentRequirements, SettleResponse } from "@bankofai/x402-core/types";
+import { decodePaymentResponseHeader } from "@x402/core/http";
+import type { PaymentRequirements, SettleResponse } from "@x402/core/types";
 import type { ClientTronSigner } from "../../signer";
 import { normalizeAddressForSigning } from "../../utils";
 import { batchSettlementABI } from "../../shared/batch-settlement/abi";

@@ -1,5 +1,5 @@
 import { TronWeb, utils as tronUtils } from "tronweb";
-import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
+import type { PaymentPayload, PaymentRequirements } from "@x402/core/types";
 import { PERMIT2_ADDRESSES } from "../constants";
 import { normalizeAddressForSigning } from "../utils";
 import {

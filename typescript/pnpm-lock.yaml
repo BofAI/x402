@@ -1068,9 +1068,6 @@ importers:
 
   packages/mechanisms/tron:
     dependencies:
-      '@bankofai/x402-core':
-        specifier: workspace:~
-        version: link:../../core
       tronweb:
         specifier: ^6.1.0
         version: 6.3.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)

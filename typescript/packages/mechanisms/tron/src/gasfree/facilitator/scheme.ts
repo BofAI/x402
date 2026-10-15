@@ -5,7 +5,7 @@ import {
   FacilitatorContext,
   SettleResponse,
   VerifyResponse,
-} from "@bankofai/x402-core/types";
+} from "@x402/core/types";
 import { FacilitatorTronSigner } from "../../signer";
 import { ExactGasFreePayload } from "../../types";
 import { isValidTronTxHash, normalizeAddressForSigning } from "../../utils";

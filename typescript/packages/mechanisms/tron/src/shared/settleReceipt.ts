@@ -1,4 +1,4 @@
-import type { Network, SettleResponse } from "@bankofai/x402-core/types";
+import type { Network, SettleResponse } from "@x402/core/types";
 import type { FacilitatorTronSigner, TronTransactionReceipt } from "../signer";
 import { isValidTronTxHash, truncateErrorMessage } from "../utils";
 

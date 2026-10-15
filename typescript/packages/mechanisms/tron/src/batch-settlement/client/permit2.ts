@@ -1,8 +1,4 @@
-import {
-  PaymentPayloadContext,
-  PaymentRequirements,
-  PaymentPayloadResult,
-} from "@bankofai/x402-core/types";
+import { PaymentPayloadContext, PaymentRequirements, PaymentPayloadResult } from "@x402/core/types";
 import { ClientTronSigner } from "../../signer";
 import { PERMIT2_ADDRESSES } from "../../constants";
 import { createNonce, getTronChainId, normalizeAddressForSigning } from "../../utils";

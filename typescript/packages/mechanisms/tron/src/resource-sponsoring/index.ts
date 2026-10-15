@@ -16,6 +16,7 @@ export {
   createTronWebResourceSponsoringChain,
   type TronResourceOwnerActionIntent,
   type TronResourceOwnerSigner,
+  type TronResourceRpcClient,
   type TronWebResourceSponsoringChainOptions,
 } from "./tronWebChain";
 export type {

@@ -1,8 +1,4 @@
-import {
-  PaymentPayloadContext,
-  PaymentRequirements,
-  PaymentPayloadResult,
-} from "@bankofai/x402-core/types";
+import { PaymentPayloadContext, PaymentRequirements, PaymentPayloadResult } from "@x402/core/types";
 import {
   permit2WitnessTypes,
   PERMIT2_ADDRESSES,

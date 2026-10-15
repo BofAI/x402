@@ -148,4 +148,3 @@ export async function pollTransactionPacked(
   log.warn("x402 tron: tx confirm timeout (pending)", { hash, timeoutMs });
   return { status: "pending" };
 }
-

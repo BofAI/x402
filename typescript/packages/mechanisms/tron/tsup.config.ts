@@ -3,6 +3,7 @@ import { defineConfig } from "tsup";
 const baseConfig = {
   entry: {
     index: "src/index.ts",
+    "exact/extensions": "src/exact/extensions.ts",
     "exact/index": "src/exact/index.ts",
     "exact/client/index": "src/exact/client/index.ts",
     "exact/server/index": "src/exact/server/index.ts",
@@ -21,8 +22,9 @@ const baseConfig = {
     "batch-settlement/facilitator/index": "src/batch-settlement/facilitator/index.ts",
   },
   dts: {
-    resolve: true,
+    resolve: false,
   },
+  external: [/@x402\/core(?:\/.*)?$/],
   sourcemap: true,
   target: "es2020",
 };
@@ -38,6 +40,6 @@ export default defineConfig([
     ...baseConfig,
     format: "cjs",
     outDir: "dist/cjs",
-    clean: false,
+    clean: true,
   },
 ]);

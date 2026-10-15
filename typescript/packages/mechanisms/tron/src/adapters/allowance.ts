@@ -108,4 +108,3 @@ export async function ensurePermit2Allowance(
   }
   return true;
 }
-

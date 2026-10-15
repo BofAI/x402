@@ -3,8 +3,8 @@ import type {
   PaymentPayload,
   PaymentRequirements,
   SettleResponse,
-} from "@bankofai/x402-core/types";
-import type { FacilitatorClient } from "@bankofai/x402-core/server";
+} from "@x402/core/types";
+import type { FacilitatorClient } from "@x402/core/server";
 import type { BatchSettlementVoucherClaim } from "../types";
 import type { BatchSettlementTronScheme } from "./scheme";
 import { computeChannelId } from "../../shared/batch-settlement/utils";

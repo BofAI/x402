@@ -3,7 +3,7 @@ import {
   PaymentRequirements,
   SettleResponse,
   VerifyResponse,
-} from "@bankofai/x402-core/types";
+} from "@x402/core/types";
 import { authorizationTypes, transferWithAuthorizationABI } from "../../constants";
 import { FacilitatorTronSigner } from "../../signer";
 import { ExactEIP3009Payload } from "../../types";

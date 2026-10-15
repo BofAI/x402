@@ -4,7 +4,7 @@ import {
   PaymentRequirements,
   SettleResponse,
   VerifyResponse,
-} from "@bankofai/x402-core/types";
+} from "@x402/core/types";
 import {
   uptoPermit2WitnessTypes,
   PERMIT2_ADDRESSES,

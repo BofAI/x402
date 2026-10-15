@@ -16,9 +16,61 @@ const DEFAULT_RECOVERY_WINDOW_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_MAX_TAPOS_AGE_BLOCKS = 100;
 const TRANSACTION_RESULT_BYTES = 64n;
 
+/** Structural RPC capabilities required by resource execution. */
+export interface TronResourceRpcClient {
+  fullNode: { request(path: string, data: object, method: "post"): Promise<unknown> };
+  trx: {
+    getAccount(address: string): Promise<{ address?: string; type?: number | string }>;
+    getCurrentBlock(): Promise<{ block_header: { raw_data: { number: number } } }>;
+    getBlockByNumber(number: number): Promise<{ blockID: string }>;
+    getTransactionInfo(
+      hash: string,
+    ): Promise<{ blockNumber?: number; receipt?: { result?: string } }>;
+    sendHexTransaction(transaction: string): Promise<unknown>;
+    getAccountResources(address: string): Promise<{
+      NetLimit?: number;
+      NetUsed?: number;
+      freeNetLimit?: number;
+      freeNetUsed?: number;
+      EnergyLimit?: number;
+      EnergyUsed?: number;
+      TotalEnergyLimit?: number;
+      TotalEnergyWeight?: number;
+      TotalNetLimit?: number;
+      TotalNetWeight?: number;
+    }>;
+    getChainParameters(): Promise<{ key: string; value: number }[]>;
+  };
+  transactionBuilder: {
+    estimateEnergy(
+      address: string,
+      selector: string,
+      options: { callValue: number },
+      parameters: { type: string; value: string }[],
+      owner: string,
+    ): Promise<{ result: { result: boolean }; energy_required: number }>;
+    delegateResource(
+      amount: number,
+      receiver: string,
+      resource: "ENERGY" | "BANDWIDTH",
+      owner: string,
+      lock: boolean,
+      lockPeriod: number,
+      options: { permissionId: number },
+    ): Promise<unknown>;
+    undelegateResource(
+      amount: number,
+      receiver: string,
+      resource: "ENERGY" | "BANDWIDTH",
+      owner: string,
+      options: { permissionId: number },
+    ): Promise<unknown>;
+  };
+}
+
 /** Options for the concrete TronWeb resource-sponsoring chain driver. */
 export interface TronWebResourceSponsoringChainOptions {
-  readonly tronWeb: TronWeb;
+  readonly tronWeb: TronResourceRpcClient;
   readonly network: string;
   readonly resourceOwnerSigner: TronResourceOwnerSigner;
   readonly readContract: FacilitatorTronSigner["readContract"];
@@ -304,7 +356,7 @@ function parameterValue(parameters: readonly ChainParameter[], key: string): big
  * @param maxAgeBlocks - Maximum accepted referenced-block age.
  */
 async function validateTapos(
-  tronWeb: TronWeb,
+  tronWeb: TronResourceRpcClient,
   request: Trc20ApprovalResourceSponsoringRequest,
   maxAgeBlocks: number,
 ): Promise<void> {

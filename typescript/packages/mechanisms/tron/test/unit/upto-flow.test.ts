@@ -20,7 +20,7 @@ import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "../../src/shared/extensi
 vi.mock("../../src/rpc", () => ({ buildTronWeb: vi.fn() }));
 import { normalizeAddressForSigning } from "../../src/utils";
 import type { UptoPermit2Payload } from "../../src/types";
-import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
+import type { PaymentPayload, PaymentRequirements } from "@x402/core/types";
 
 /**
  * In-process integration tests for the TRON `upto` scheme (no HTTP).

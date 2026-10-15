@@ -1,4 +1,3 @@
-import type { TronWeb } from "tronweb";
 import type { ClientWallet, FacilitatorWallet } from "./wallets";
 import type { Trc20ApprovalPolicy } from "./approvalPolicy";
 
@@ -147,7 +146,10 @@ export interface TronTransactionReceipt {
 }
 
 type ReadContractCapable = Pick<ClientTronSigner, "readContract">;
-type TronContractAbi = Parameters<TronWeb["contract"]>[0];
+/** Minimal structural RPC surface; accepts TronWeb without exposing its declaration graph. */
+export interface TronContractReader {
+  contract(...args: never[]): unknown;
+}
 type TronContractMethod = (...args: readonly unknown[]) => {
   call(): Promise<unknown>;
   send(options?: { feeLimit?: number }): Promise<string | { txid?: string }>;
@@ -170,15 +172,15 @@ export function toClientTronSigner(
   signer: Omit<ClientTronSigner, "readContract"> & {
     readContract?: ClientTronSigner["readContract"];
   },
-  tronWeb?: TronWeb,
+  tronWeb?: TronContractReader,
 ): ClientTronSigner {
   const readContract =
     signer.readContract?.bind(signer) ??
     (tronWeb
       ? async (args: Parameters<NonNullable<ReadContractCapable["readContract"]>>[0]) => {
           const contract = (await tronWeb.contract(
-            args.abi as unknown as TronContractAbi,
-            args.address,
+            args.abi as never,
+            args.address as never,
           )) as unknown as TronContract;
           const method = contract.methods[args.functionName];
           if (!method) {
@@ -282,8 +284,13 @@ export interface FacilitatorTronSignerOptions {
   confirmationTimeoutMs?: number;
 }
 
-
-/** Read only when the selected payment path requires RPC capability. */
+/**
+ * Read only when the selected payment path requires RPC capability.
+ *
+ * @param signer - Signer with optional contract-query capability.
+ * @param args - Contract query required by the selected payment path.
+ * @returns The chain query result, preserving the signer method receiver.
+ */
 export function readTronContract(
   signer: Pick<ClientTronSigner, "readContract">,
   args: Parameters<NonNullable<ClientTronSigner["readContract"]>>[0],
@@ -292,6 +299,13 @@ export function readTronContract(
   return signer.readContract(args);
 }
 
-export { createClientTronSigner, createFacilitatorTronSigner, createAuthorizerTronSigner } from "./adapters/wallet";
-export { normalizeSignedTronTransaction, serializeSignedTronTransaction } from "./transactions/signatures";
+export {
+  createClientTronSigner,
+  createFacilitatorTronSigner,
+  createAuthorizerTronSigner,
+} from "./adapters/wallet";
+export {
+  normalizeSignedTronTransaction,
+  serializeSignedTronTransaction,
+} from "./transactions/signatures";
 export { DEFAULT_CONFIRMATION_TIMEOUT_MS } from "./transactions/receipt";

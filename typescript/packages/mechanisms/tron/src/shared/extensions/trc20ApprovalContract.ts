@@ -1,4 +1,4 @@
-import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
+import type { PaymentPayload, PaymentRequirements } from "@x402/core/types";
 
 export const TRC20_APPROVAL_RESOURCE_SPONSORING_KEY = "trc20ApprovalResourceSponsoring" as const;
 export const TRC20_APPROVAL_RESOURCE_SPONSORING_VERSION = "1" as const;

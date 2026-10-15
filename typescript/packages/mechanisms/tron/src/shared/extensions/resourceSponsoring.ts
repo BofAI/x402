@@ -1,5 +1,5 @@
 import { readTronContract } from "../../signer";
-import type { PaymentPayloadContext, PaymentRequirements } from "@bankofai/x402-core/types";
+import type { PaymentPayloadContext, PaymentRequirements } from "@x402/core/types";
 import { erc20AllowanceAbi, PERMIT2_ADDRESSES } from "../../constants";
 import type { ClientTronSigner } from "../../signer";
 import { tronNetworksEqual } from "../../network";

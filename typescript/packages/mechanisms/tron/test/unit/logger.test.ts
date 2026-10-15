@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as tron from "../../src";
 
-afterEach(() => { tron.resetLogger?.(); vi.restoreAllMocks(); });
+afterEach(() => {
+  tron.resetLogger?.();
+  vi.restoreAllMocks();
+});
 
 describe("TRON package logger", () => {
   it("routes an already imported log handle through the current sink", () => {

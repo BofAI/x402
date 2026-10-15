@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { TronWeb } from "tronweb";
-import { x402Facilitator } from "@bankofai/x402-core/facilitator";
-import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
+import { x402Facilitator } from "@x402/core/facilitator";
+import type { PaymentPayload, PaymentRequirements } from "@x402/core/types";
 import {
   createTrc20ApprovalResourceSponsoringExtension,
   declareTrc20ApprovalResourceSponsoringExtension,

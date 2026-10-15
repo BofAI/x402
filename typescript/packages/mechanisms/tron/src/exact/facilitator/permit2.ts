@@ -4,7 +4,7 @@ import {
   PaymentRequirements,
   SettleResponse,
   VerifyResponse,
-} from "@bankofai/x402-core/types";
+} from "@x402/core/types";
 import { X402_PERMIT2_PROXY_ADDRESSES, x402ExactPermit2ProxyABI } from "../../constants";
 import { FacilitatorTronSigner } from "../../signer";
 import { ExactPermit2Payload } from "../../types";

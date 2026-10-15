@@ -4,7 +4,7 @@ import type {
   PaymentRequirements,
   SettleResponse,
   VerifyResponse,
-} from "@bankofai/x402-core/types";
+} from "@x402/core/types";
 import {
   extractTrc20ApprovalResourceSponsoringInfo,
   resolveTrc20ApprovalResourceSponsoringRuntime,

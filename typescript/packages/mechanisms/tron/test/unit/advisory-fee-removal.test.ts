@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { PaymentRequirements } from "@bankofai/x402-core/types";
+import type { PaymentRequirements } from "@x402/core/types";
 import { ExactTronScheme } from "../../src/exact/server/scheme";
 import { UptoTronScheme } from "../../src/upto/server/scheme";
 import { ExactGasFreeTronScheme } from "../../src/gasfree/server/scheme";

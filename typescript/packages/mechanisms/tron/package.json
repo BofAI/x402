@@ -17,7 +17,8 @@
     "format": "prettier -c .prettierrc --write \"**/*.{ts,js,cjs,json,md}\"",
     "format:check": "prettier -c .prettierrc --check \"**/*.{ts,js,cjs,json,md}\"",
     "lint": "eslint . --ext .ts --fix",
-    "lint:check": "eslint . --ext .ts"
+    "lint:check": "eslint . --ext .ts",
+    "test:consumer": "node test/consumer/verify-packed.mjs"
   },
   "keywords": [
     "x402",
@@ -50,7 +51,6 @@
     "vitest": "^3.0.5"
   },
   "dependencies": {
-    "@bankofai/x402-core": "workspace:~",
     "tronweb": "^6.1.0"
   },
   "exports": {
@@ -223,9 +223,22 @@
         "types": "./dist/cjs/batch-settlement/facilitator/index.d.ts",
         "default": "./dist/cjs/batch-settlement/facilitator/index.js"
       }
+    },
+    "./exact/extensions": {
+      "import": {
+        "types": "./dist/esm/exact/extensions.d.mts",
+        "default": "./dist/esm/exact/extensions.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/exact/extensions.d.ts",
+        "default": "./dist/cjs/exact/extensions.js"
+      }
     }
   },
   "files": [
     "dist"
-  ]
+  ],
+  "peerDependencies": {
+    "@x402/core": "2.28.0"
+  }
 }
