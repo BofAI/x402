@@ -1,3 +1,5 @@
+import { InMemoryClientChannelStorage } from "../../src/batch-settlement/client";
+import { InMemoryChannelStorage } from "../../src/batch-settlement/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { x402Client } from "@x402/core/client";
 import { x402Facilitator } from "@x402/core/facilitator";
@@ -77,12 +79,15 @@ async function batch(status: "success" | "pending" = "success") {
     payTo: ADDRESS,
     maxTimeoutSeconds: 600,
   });
-  const clientScheme = new BatchClient(signer);
+  const clientStorage = new InMemoryClientChannelStorage();
+  const clientScheme = new BatchClient(signer, { storage: clientStorage });
   const client = new x402Client().register(NETWORK, clientScheme);
   const payment = await client.createPaymentPayload({ x402Version: 2, accepts, resource });
   const channelId = (payment.payload as BatchSettlementDepositPayload).voucher.channelId;
   return {
     server,
+    facilitator,
+    clientStorage,
     serverScheme,
     client,
     clientScheme,
@@ -94,6 +99,59 @@ async function batch(status: "success" | "pending" = "success") {
 }
 
 describe("batch lifecycle dispatched by official Core", () => {
+  it("restores saved client and server storage into fresh official Core instances", async () => {
+    const f = await batch();
+    expect(await f.server.verifyPayment(f.payment, f.requirements)).toMatchObject({
+      isValid: true,
+    });
+    const settled = await f.server.settlePayment(f.payment, f.requirements);
+    expect(settled.success).toBe(true);
+    await f.client.handlePaymentResponse({
+      paymentPayload: f.payment,
+      requirements: f.requirements,
+      settleResponse: settled,
+    });
+    const serverStorage = new InMemoryChannelStorage();
+    for (const saved of await f.serverScheme.getStorage().list()) {
+      await serverStorage.updateChannel(saved.channelId, () => structuredClone(saved));
+    }
+    const savedClient = await f.clientStorage.get(f.channelId);
+    expect(savedClient).toBeDefined();
+    const clientStorage = new InMemoryClientChannelStorage();
+    await clientStorage.set(f.channelId, structuredClone(savedClient!));
+    const server = new x402ResourceServer({
+      getSupported: async () => ({
+        ...f.facilitator.getSupported(),
+        kinds: f.facilitator.getSupported().kinds.map(kind => ({ ...kind, network: NETWORK })),
+      }),
+      verify: (p, r) => f.facilitator.verify(p, r),
+      settle: (p, r) => f.facilitator.settle(p, r),
+    }).register(NETWORK, new BatchServer(ADDRESS, { storage: serverStorage }));
+    await server.initialize();
+    const client = new x402Client().register(
+      NETWORK,
+      new BatchClient(signer, { storage: clientStorage }),
+    );
+    const payment = await client.createPaymentPayload({
+      x402Version: 2,
+      accepts: f.accepts,
+      resource,
+    });
+    expect(payment.payload).toMatchObject({
+      type: "voucher",
+      voucher: { maxClaimableAmount: "200000" },
+    });
+    expect(await server.verifyPayment(payment, f.requirements)).toMatchObject({ isValid: true });
+    expect(await server.settlePayment(payment, f.requirements)).toMatchObject({
+      success: true,
+      transaction: "",
+    });
+    expect(await serverStorage.get(f.channelId)).toMatchObject({
+      chargedCumulativeAmount: "200000",
+      pendingRequest: undefined,
+    });
+  });
+
   it("credits a deposit, reconciles the client and charges the next voucher without a transaction", async () => {
     const f = await batch();
     expect(await f.server.verifyPayment(f.payment, f.requirements)).toMatchObject({

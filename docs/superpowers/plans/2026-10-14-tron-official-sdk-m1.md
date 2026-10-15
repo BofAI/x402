@@ -44,11 +44,11 @@
 
 **Interfaces:** Consume real `x402Client`, `x402ResourceServer`, `x402Facilitator` from official public entrypoints. Exercise existing TRON role constructors and deterministic test signers.
 
-- [ ] Install the existing frozen workspace with pnpm 11.1.1 and run `pnpm --filter @bankofai/x402-tron test` before changes. Record any pre-existing failures by name.
-- [ ] Add official Core 2.28.0 as a test development dependency and update the lockfile using pnpm 11.1.1.
-- [ ] Add composition tests for all four schemes: real Core registration, supported kinds, payload creation and verification/settlement with injected chain responses. Assert unchanged scheme, accepted requirements, authorization fields and settlement outcomes.
-- [ ] Add an independent-consumer test that imports built public entrypoints while old Core is unavailable; run it to expose the current dependency failure.
-- [ ] Run the focused tests and capture failures before changing production imports. Type checks are also expected to expose any official contract mismatches.
+- [x] Install the existing frozen workspace with pnpm 11.1.1 and run `pnpm --filter @bankofai/x402-tron test` before changes. Record any pre-existing failures by name.
+- [x] Add official Core 2.28.0 as a test development dependency and update the lockfile using pnpm 11.1.1.
+- [x] Add composition tests for all four schemes: real Core registration, supported kinds, payload creation and verification/settlement with injected chain responses. Assert unchanged scheme, accepted requirements, authorization fields and settlement outcomes.
+- [x] Add an independent-consumer test that imports built public entrypoints while old Core is unavailable; run it to expose the current dependency failure.
+- [x] Run the focused tests and capture failures before changing production imports. Type checks are also expected to expose any official contract mismatches.
 
 ## Task 2: Own wallet contracts and logging inside the TRON package
 
@@ -56,10 +56,10 @@
 
 **Interfaces:** Export structural `Wallet`, `ClientWallet`, `FacilitatorWallet<TTx>` with existing signatures. Export `Logger`, `log`, `setLogger`, `resetLogger`, `consoleLogger`, `noopLogger` from TRON; official Core supplies none of these application-specific APIs.
 
-- [ ] Add a failing logger test: importing `log` before `setLogger` still directs later messages to the chosen sink; resetting restores console behavior.
-- [ ] Retain wallet signature and transaction regression cases, including method binding and prefix/recovery normalization.
-- [ ] Move structural wallet contracts and logger into TRON, preserving behavior and attribution; update internal imports and public exports.
-- [ ] Run logger and wallet tests, then the complete TRON unit suite; commit this self-contained removal of private Core APIs.
+- [x] Add a failing logger test: importing `log` before `setLogger` still directs later messages to the chosen sink; resetting restores console behavior.
+- [x] Retain wallet signature and transaction regression cases, including method binding and prefix/recovery normalization.
+- [x] Move structural wallet contracts and logger into TRON, preserving behavior and attribution; update internal imports and public exports.
+- [x] Run logger and wallet tests, then the complete TRON unit suite; commit this self-contained removal of private Core APIs.
 
 ## Task 3: Separate signer contracts, wallet adapters and transaction utilities
 
@@ -67,10 +67,10 @@
 
 **Interfaces:** Preserve factory call signatures and exported normalization helpers through re-exports. Payment schemes consume structural signer capabilities. Wallet-specific implementations live in adapters; transaction parsing and signature normalization live in transactions.
 
-- [ ] Add failing tests for a signer implementing only `address` and `signTypedData` on the exact authorization path; assert no chain operation is required.
-- [ ] Add capability tests for pre-approved Permit2, insufficient allowance without transaction signing, explicit network mismatch, and resource pre-signing without required capabilities. Assert clear errors and no broadcast on rejected input.
-- [ ] Move implementations by responsibility, preserving existing wallet factory signatures and bindings. Make RPC capability optional only where supported paths do not need it; guard every affected read and approval path with meaningful errors.
-- [ ] Run signer, allowance, sponsorship validation, GasFree and batch signature tests, followed by the full TRON suite; commit.
+- [x] Add failing tests for a signer implementing only `address` and `signTypedData` on the exact authorization path; assert no chain operation is required.
+- [x] Add capability tests for pre-approved Permit2, insufficient allowance without transaction signing, explicit network mismatch, and resource pre-signing without required capabilities. Assert clear errors and no broadcast on rejected input.
+- [x] Move implementations by responsibility, preserving existing wallet factory signatures and bindings. Make RPC capability optional only where supported paths do not need it; guard every affected read and approval path with meaningful errors.
+- [x] Run signer, allowance, sponsorship validation, GasFree and batch signature tests, followed by the full TRON suite; commit.
 
 ## Task 4: Migrate four mechanisms to official public contracts
 
@@ -78,12 +78,12 @@
 
 **Interfaces:** Implement official `SchemeNetworkClient`, `SchemeNetworkServer`, `SchemeNetworkFacilitator` and `FacilitatorContext`. Public exact role exports remain `ExactTronScheme` and `registerExactTronScheme`.
 
-- [ ] Extend Task 1 tests to drive batch cancellation, pending settlement, corrective payment-required response and refund through official Core. Assert stored state and response fields, not just hook invocation counts.
-- [ ] Exercise extension-disabled ordinary payment, extension-declared payment without runtime, invalid declaration and valid injected runtime through real official registration and context lookup.
-- [ ] Replace old Core imports in production and tests with official public exports. Resolve differences without unchecked casts that hide incompatible contracts; preserve token money conversion and message fields.
-- [ ] Provide `/exact/extensions` with extension key, structural contracts and context helpers for M2; keep existing resource runtime during M1 to avoid a dependency cycle.
-- [ ] Replace old Core dependency with exact official peer/dev versions. Configure build externals and public exports; regenerate the workspace lockfile.
-- [ ] Run `pnpm --filter @bankofai/x402-tron exec tsc --noEmit`, package build and complete unit suite; commit.
+- [x] Extend Task 1 tests to drive batch cancellation, pending settlement, corrective payment-required response and refund through official Core. Assert stored state and response fields, not just hook invocation counts.
+- [x] Exercise extension-disabled ordinary payment, extension-declared payment without runtime, invalid declaration and valid injected runtime through real official registration and context lookup.
+- [x] Replace old Core imports in production and tests with official public exports. Resolve differences without unchecked casts that hide incompatible contracts; preserve token money conversion and message fields.
+- [x] Provide `/exact/extensions` with extension key, structural contracts and context helpers for M2; keep existing resource runtime during M1 to avoid a dependency cycle.
+- [x] Replace old Core dependency with exact official peer/dev versions. Configure build externals and public exports; regenerate the workspace lockfile.
+- [x] Run `pnpm --filter @bankofai/x402-tron exec tsc --noEmit`, package build and complete unit suite; commit.
 
 ## Task 5: Prove independent package consumption and document M1
 
@@ -91,13 +91,19 @@
 
 **Interfaces:** Consume only the packed TRON artifact, `@x402/core@2.28.0`, required TronWeb dependencies and TypeScript tooling. Agent Wallet is installed only in the separate wallet interoperability fixture.
 
-- [ ] Pack the artifact, install into temporary independent fixtures, and assert their dependency trees contain neither `@bankofai/x402-core` nor Agent Wallet for basic payments.
-- [ ] Compile strict NodeNext ESM `.mts` and CommonJS `.cts` fixtures covering root and every role entrypoint, extension contracts, direct signer usage and compatibility factories. Include `@types/node` explicitly.
-- [ ] Run a deterministic official Core exact payment end to end in both runtime module formats using the packed artifact.
-- [ ] Run the separate real Agent Wallet interoperability tests, preserving existing wallet API and recording the tested version.
-- [ ] Add migration examples for direct signers, wallet factories and logging. Document resource extension extraction as pending M2 and real-chain acceptance as pending M3.
-- [ ] Run full TRON tests, type checking, build, lint and packed consumer verification; review the final diff and record remaining failures or limitations accurately.
+- [x] Pack the artifact, install into temporary independent fixtures, and assert their dependency trees contain neither `@bankofai/x402-core` nor Agent Wallet for basic payments.
+- [x] Compile strict NodeNext ESM `.mts` and CommonJS `.cts` fixtures covering root and every role entrypoint, extension contracts, direct signer usage and compatibility factories. Include `@types/node` explicitly.
+- [x] Run a deterministic official Core exact payment end to end in both runtime module formats using the packed artifact.
+- [x] Run the separate real Agent Wallet interoperability tests, preserving existing wallet API and recording the tested version.
+- [x] Add migration examples for direct signers, wallet factories and logging. Document resource extension extraction as pending M2 and real-chain acceptance as pending M3.
+- [x] Run full TRON tests, type checking, build, lint and packed consumer verification; review the final diff and record remaining failures or limitations accurately.
 
 ## Handoff
 
 M1 is complete only after all four mechanisms build and pass official Core composition tests and independent packed consumption. Testnet execution, service migration, persistent coordinator recovery and old package retirement remain tracked under M2–M4 and must not be presented as accepted by M1 unit tests.
+
+
+## Execution result — 2026-10-15
+
+M1 implemented and verified. See `docs/superpowers/plans/2026-10-15-tron-official-sdk-m1-validation.md` for evidence and limitations.
+Independent review found two P2 compatibility regressions (factory RPC return typing and cross-entrypoint CJS logger state); both were reproduced by failing packed-consumer tests and fixed. Storage restoration coverage now recreates client/server objects over cloned saved state through official Core dispatch.

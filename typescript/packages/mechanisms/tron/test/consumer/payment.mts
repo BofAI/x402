@@ -1,3 +1,4 @@
+import { setLogger, resetLogger, noopLogger } from "@bankofai/x402-tron";
 import {
   TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
   type Trc20ApprovalResourceSponsoringFacilitatorExtension,
@@ -40,6 +41,11 @@ async function main() {
     network,
     rpcUrl: "http://127.0.0.1:1",
   });
+  const rpcSigner: Required<Pick<ClientTronSigner, "readContract">> = walletSigner;
+  assert.equal(typeof rpcSigner.readContract, "function");
+  const composedRpc: Required<Pick<ClientTronSigner, "readContract">> =
+    toClientTronSigner(walletSigner);
+  assert.equal(typeof composedRpc.readContract, "function");
   assert.equal(
     await walletSigner.signTypedData({ domain: {}, types: {}, primaryType: "Test", message: {} }),
     "0x1234",
@@ -58,6 +64,59 @@ async function main() {
     key: TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
   };
   assert.equal(extension.key, "trc20ApprovalResourceSponsoring");
+  let warnings = 0;
+  const originalFetch = globalThis.fetch;
+  try {
+    setLogger({
+      ...noopLogger,
+      warn: (...args) => {
+        if (String(args[0]).includes("GasFree service not available")) warnings++;
+      },
+    });
+    globalThis.fetch = async input => {
+      if (String(input).includes("/provider/all")) return new Response("", { status: 404 });
+      return new Response(
+        JSON.stringify({
+          code: 200,
+          data: {
+            accountAddress: walletSigner.address,
+            gasFreeAddress: walletSigner.address,
+            active: true,
+            allowSubmit: true,
+            nonce: 0,
+            assets: [],
+          },
+        }),
+      );
+    };
+    const gasClient = GasClient.registerExactGasFreeTronScheme(new x402Client(), {
+      signer: walletSigner,
+      schemeOptions: { apiBaseUrls: { [network]: "https://fixture.invalid" } },
+    });
+    await assert.rejects(
+      gasClient.createPaymentPayload({
+        x402Version: 2,
+        resource: { url: "https://example.test/paid", description: "test", mimeType: "text/plain" },
+        accepts: [
+          {
+            scheme: "exact_gasfree",
+            network,
+            amount: "1",
+            asset: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
+            payTo: walletSigner.address,
+            maxTimeoutSeconds: 600,
+            extra: {},
+          },
+        ],
+      }),
+      /provider/i,
+    );
+    assert.equal(warnings, 1, "root logger must capture role-subpath logging");
+  } finally {
+    globalThis.fetch = originalFetch;
+    resetLogger();
+  }
+
   const signer: ClientTronSigner = toClientTronSigner({
     address: "0x1111111111111111111111111111111111111111",
     signTypedData: async () => "0x1234",

@@ -39,6 +39,7 @@ export default defineConfig([
   {
     ...baseConfig,
     format: "cjs",
+    splitting: true,
     outDir: "dist/cjs",
     clean: true,
   },

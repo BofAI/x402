@@ -4,7 +4,7 @@ import {
   toClientTronSigner,
   toFacilitatorTronSigner,
   readTronContract,
-  type ClientTronSigner,
+  type ClientTronSignerWithRpc,
   type ClientTronWallet,
   type CreateClientTronSignerOptions,
   type TronAuthorizerSignerLike,
@@ -59,7 +59,7 @@ type TronContract = {
 export async function createClientTronSigner(
   wallet: ClientTronWallet,
   opts: CreateClientTronSignerOptions,
-): Promise<ClientTronSigner> {
+): Promise<ClientTronSignerWithRpc> {
   const tronWeb = buildTronWeb(opts.network, { rpcUrl: opts.rpcUrl, apiKey: opts.apiKey });
   const address = await wallet.getAddress();
   const base = toClientTronSigner(

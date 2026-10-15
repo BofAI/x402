@@ -66,6 +66,7 @@ export {
 export type {
   TronContractReader,
   ClientTronSigner,
+  ClientTronSignerWithRpc,
   FacilitatorTronSigner,
   ClientTronWallet,
   FacilitatorTronWallet,

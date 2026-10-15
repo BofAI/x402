@@ -79,6 +79,11 @@ export interface ClientTronSigner {
   }): Promise<string>;
 }
 
+/** Client signer whose RPC capability is guaranteed by its composition. */
+export interface ClientTronSignerWithRpc extends ClientTronSigner {
+  readContract: NonNullable<ClientTronSigner["readContract"]>;
+}
+
 /**
  * Wallet abstraction for TRON client signing — the chain-agnostic
  * {@link ClientWallet} from the TRON package (`getAddress` + `signTypedData` + optional
@@ -169,9 +174,26 @@ type TronContract = {
  * @returns A fully-formed ClientTronSigner.
  */
 export function toClientTronSigner(
-  signer: Omit<ClientTronSigner, "readContract"> & {
-    readContract?: ClientTronSigner["readContract"];
-  },
+  signer: ClientTronSigner,
+  tronWeb: TronContractReader,
+): ClientTronSignerWithRpc;
+export function toClientTronSigner(
+  signer: ClientTronSignerWithRpc,
+  tronWeb?: TronContractReader,
+): ClientTronSignerWithRpc;
+export function toClientTronSigner(
+  signer: ClientTronSigner,
+  tronWeb?: TronContractReader,
+): ClientTronSigner;
+/**
+ * Compose signing and optional RPC capabilities while preserving method receivers.
+ *
+ * @param signer - Payment signer with path-specific capabilities.
+ * @param tronWeb - Optional RPC contract reader.
+ * @returns The composed signer.
+ */
+export function toClientTronSigner(
+  signer: ClientTronSigner,
   tronWeb?: TronContractReader,
 ): ClientTronSigner {
   const readContract =
