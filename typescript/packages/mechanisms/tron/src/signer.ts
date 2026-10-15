@@ -1,5 +1,5 @@
 import { TronWeb, utils as tronUtils } from "tronweb";
-import type { ClientWallet, FacilitatorWallet } from "@bankofai/x402-core/wallets";
+import type { ClientWallet, FacilitatorWallet } from "./wallets";
 import {
   DEFAULT_FEE_LIMIT_SUN,
   PERMIT2_ADDRESSES,
@@ -9,7 +9,7 @@ import {
 import { buildTronWeb } from "./rpc";
 import { isValidTronTxHash, tronAddressToEvm } from "./utils";
 import { normalizeTronNetwork } from "./network";
-import { log } from "@bankofai/x402-core";
+import { log } from "./logger";
 import { createTrc20ApprovalPolicy, type Trc20ApprovalPolicy } from "./approvalPolicy";
 
 /** Allowance-ensuring strategy for {@link ClientTronSigner.ensureAllowance}. */

@@ -7,7 +7,7 @@ import {
 import { ClientTronSigner } from "../../signer";
 import { ExactGasFreePayload, GasFreeMessage } from "../../types";
 import { getDecimals } from "../../shared/tokens";
-import { log } from "@bankofai/x402-core";
+import { log } from "../../logger";
 import { transferWithAuthorizationABI } from "../../constants";
 import {
   GasFreeAPIClient,

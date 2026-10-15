@@ -7,7 +7,7 @@
  * it and inject a fake TronWeb without touching the network.
  */
 import { TronWeb } from "tronweb";
-import { log } from "@bankofai/x402-core";
+import { log } from "./logger";
 import {
   getTronNetworkValue,
   normalizeTronNetwork,

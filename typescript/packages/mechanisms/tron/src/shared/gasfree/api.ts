@@ -5,7 +5,7 @@
  * fees, activation), provider listing, transaction submission, and status
  * polling. Ported from the reference implementation.
  */
-import { log } from "@bankofai/x402-core";
+import { log } from "../../logger";
 import { normalizeTronNetwork } from "../../network";
 
 export interface GasFreeResponse<T> {

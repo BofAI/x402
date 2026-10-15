@@ -1090,6 +1090,9 @@ importers:
       '@typescript-eslint/parser':
         specifier: ^8.29.1
         version: 8.49.0(eslint@9.34.0)(typescript@5.9.2)
+      '@x402/core':
+        specifier: 2.28.0
+        version: 2.28.0
       eslint:
         specifier: ^9.24.0
         version: 9.34.0
@@ -3649,6 +3652,9 @@ packages:
 
   '@walletconnect/window-metadata@1.0.1':
     resolution: {integrity: sha512-9koTqyGrM2cqFRW517BPY/iEtUDx2r1+Pwwu5m7sJ7ka79wi3EyqhqcICk/yDmv6jAS1rjKgTKXlEhanYjijcA==}
+
+  '@x402/core@2.28.0':
+    resolution: {integrity: sha512-Da/7zKxCKqpBoB4Msc9tFgkAv7tJTD8nG+DSSm+QdXAyJS4PQsmgVSKe17rDJTtlu0pwNbLcOje6MyQ6kaDkig==}
 
   abitype@1.0.6:
     resolution: {integrity: sha512-MMSqYh4+C/aVqI2RQaWqbvI4Kxo5cQV40WQ4QFtDnNzCkqChm8MuENhElmynZlO0qUy/ObkEUaXtKqYnx1Kp3A==}
@@ -10773,6 +10779,10 @@ snapshots:
     dependencies:
       '@walletconnect/window-getters': 1.0.1
       tslib: 1.14.1
+
+  '@x402/core@2.28.0':
+    dependencies:
+      zod: 3.25.76
 
   abitype@1.0.6(typescript@5.9.2)(zod@3.25.76):
     optionalDependencies:

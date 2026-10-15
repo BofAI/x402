@@ -146,3 +146,6 @@ export {
   normalizeAddressForSigning,
 } from "./utils";
 export { normalizeTronNetwork, tronNetworksEqual, getTronNetworkValue } from "./network";
+
+export type { Wallet, ClientWallet, FacilitatorWallet } from "./wallets";
+export { log, setLogger, resetLogger, consoleLogger, noopLogger, type Logger } from "./logger";
