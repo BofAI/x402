@@ -1,3 +1,7 @@
+import { x402Client } from "@x402/core/client";
+import type { SchemeNetworkClient } from "@x402/core/types";
+import type { ClientTronSigner } from "@bankofai/x402-tron";
+import { createTrc20ApprovalResourceSponsoringClientExtension } from "../../src/trc20-approval-resource-sponsoring/client";
 import { describe, expect, it } from "vitest";
 import { TronWeb } from "tronweb";
 import { x402Facilitator } from "@x402/core/facilitator";
@@ -5,25 +9,42 @@ import type { PaymentPayload, PaymentRequirements } from "@x402/core/types";
 import {
   createTrc20ApprovalResourceSponsoringExtension,
   declareTrc20ApprovalResourceSponsoringExtension,
-} from "../../../../extensions/src/trc20-approval-resource-sponsoring";
-import { PERMIT2_ADDRESSES, TRON_NILE } from "../../src/constants";
-import { ExactTronScheme as ExactClient } from "../../src/exact/client/scheme";
-import { ExactTronScheme as ExactFacilitator } from "../../src/exact/facilitator";
+} from "../../src/trc20-approval-resource-sponsoring";
+import { PERMIT2_ADDRESSES, TRON_NILE } from "@bankofai/x402-tron";
+import { ExactTronScheme as ExactClient } from "@bankofai/x402-tron/exact/client";
+import { ExactTronScheme as ExactFacilitator } from "@bankofai/x402-tron/exact/facilitator";
 import {
   createTrc20ResourceSponsoringRuntime,
   InMemoryTrc20SponsoringCoordinator,
-} from "../../src/resource-sponsoring";
-import { ExactTronScheme as ExactServer } from "../../src/exact/server/scheme";
-import { UptoTronScheme as UptoClient } from "../../src/upto/client/scheme";
-import { UptoTronScheme as UptoFacilitator } from "../../src/upto/facilitator/scheme";
-import { BatchSettlementTronScheme as BatchClient } from "../../src/batch-settlement/client/scheme";
-import { BatchSettlementTronScheme as BatchFacilitator } from "../../src/batch-settlement/facilitator/scheme";
+} from "../../src/trc20-approval-resource-sponsoring/runtime";
+import { ExactTronScheme as ExactServer } from "@bankofai/x402-tron/exact/server";
+import { UptoTronScheme as UptoClient } from "@bankofai/x402-tron/upto/client";
+import { UptoTronScheme as UptoFacilitator } from "@bankofai/x402-tron/upto/facilitator";
+import { BatchSettlementTronScheme as BatchClient } from "@bankofai/x402-tron/batch-settlement/client";
+import { BatchSettlementTronScheme as BatchFacilitator } from "@bankofai/x402-tron/batch-settlement/facilitator";
 import {
   createClientTronSigner,
   createFacilitatorTronSigner,
   type ClientTronWallet,
   type FacilitatorTronWallet,
-} from "../../src/signer";
+} from "@bankofai/x402-tron";
+
+async function sponsoredPayment(
+  scheme: SchemeNetworkClient,
+  signer: ClientTronSigner,
+  requirements: PaymentRequirements,
+  extensions = declareTrc20ApprovalResourceSponsoringExtension(),
+) {
+  return new x402Client()
+    .register(TRON_NILE, scheme)
+    .registerExtension(createTrc20ApprovalResourceSponsoringClientExtension(signer))
+    .createPaymentPayload({
+      x402Version: 2,
+      accepts: [requirements],
+      resource: { url: "https://nile-integration.invalid" },
+      extensions,
+    });
+}
 
 const USDT_NILE = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf";
 const PERMIT2_NILE = PERMIT2_ADDRESSES[TRON_NILE];
@@ -335,9 +356,12 @@ describe.skipIf(!configured)("TRC-20 Approval Resource Sponsoring on Nile", () =
       ["trc20ApprovalResourceSponsoring"],
     );
     const extensionDeclaration = declareTrc20ApprovalResourceSponsoringExtension();
-    const payloadResult = await client.createPaymentPayload(2, requirements, {
-      extensions: extensionDeclaration,
-    });
+    const payloadResult = await sponsoredPayment(
+      client,
+      clientSigner,
+      requirements,
+      extensionDeclaration,
+    );
     const paymentPayload = {
       x402Version: 2,
       accepted: requirements,
@@ -390,10 +414,10 @@ describe.skipIf(!configured)("TRC-20 Approval Resource Sponsoring on Nile", () =
       maxTimeoutSeconds: 600,
       extra: facilitatorScheme.getExtra(TRON_NILE),
     } as PaymentRequirements;
-    const payloadResult = await new UptoClient(harness.clientSigner).createPaymentPayload(
-      2,
+    const payloadResult = await sponsoredPayment(
+      new UptoClient(harness.clientSigner),
+      harness.clientSigner,
       requirements,
-      { extensions: declareTrc20ApprovalResourceSponsoringExtension() },
     );
     const paymentPayload = {
       x402Version: 2,
@@ -449,11 +473,13 @@ describe.skipIf(!configured)("TRC-20 Approval Resource Sponsoring on Nile", () =
         withdrawDelay: 900,
       },
     } as PaymentRequirements;
-    const payloadResult = await new BatchClient(harness.clientSigner, {
-      depositPolicy: { depositMultiplier: 5 },
-    }).createPaymentPayload(2, requirements, {
-      extensions: declareTrc20ApprovalResourceSponsoringExtension(),
-    });
+    const payloadResult = await sponsoredPayment(
+      new BatchClient(harness.clientSigner, {
+        depositPolicy: { depositMultiplier: 5 },
+      }),
+      harness.clientSigner,
+      requirements,
+    );
     const paymentPayload = {
       x402Version: 2,
       accepted: requirements,

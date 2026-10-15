@@ -1,16 +1,17 @@
-import type { FacilitatorWallet } from "../wallets";
-import { buildTronWeb } from "../rpc";
-import { createFacilitatorTronSigner } from "../signer";
-import { createStaticTrc20ResourceSponsoringPolicy } from "./policy";
-import { createTrc20ApprovalResourceSponsoringRuntime } from "./runtime";
-import { createTronWebResourceSponsoringChain } from "./tronWebChain";
+import { TronWeb } from "tronweb";
+import type { FacilitatorWallet } from "@bankofai/x402-tron";
+import { resolveTronRpcConfig } from "@bankofai/x402-tron/rpc";
+import { createFacilitatorTronSigner } from "@bankofai/x402-tron";
+import { createStaticTrc20ResourceSponsoringPolicy } from "./policy.js";
+import { createTrc20ApprovalResourceSponsoringRuntime } from "./runtime.js";
+import { createTronWebResourceSponsoringChain } from "./tronWebChain.js";
 import type {
   ManagedTrc20ApprovalResourceSponsoringRuntime,
   Trc20ResourceSponsoringRuntimeOptions,
   Trc20SponsoringCoordinator,
-} from "./types";
-import type { TronResourceOwnerSigner } from "./tronWebChain";
-import { createTrc20ApprovalPolicy, type Trc20ApprovalUpdateStrategy } from "../approvalPolicy";
+} from "./types.js";
+import type { TronResourceOwnerSigner } from "./tronWebChain.js";
+import { createTrc20ApprovalPolicy, type Trc20ApprovalUpdateStrategy } from "@bankofai/x402-tron";
 
 /** High-level configuration for one network's resource-sponsoring runtime. */
 export interface CreateTrc20ResourceSponsoringRuntimeOptions {
@@ -47,10 +48,12 @@ export interface CreateTrc20ResourceSponsoringRuntimeOptions {
 export async function createTrc20ResourceSponsoringRuntime(
   options: CreateTrc20ResourceSponsoringRuntimeOptions,
 ): Promise<ManagedTrc20ApprovalResourceSponsoringRuntime> {
-  const tronWeb = buildTronWeb(options.network, {
-    rpcUrl: options.rpcUrl,
-    apiKey: options.apiKey,
-  });
+  const tronWeb = new TronWeb(
+    resolveTronRpcConfig(options.network, {
+      rpcUrl: options.rpcUrl,
+      apiKey: options.apiKey,
+    }),
+  );
   const readOnlyWallet: FacilitatorWallet = {
     getAddress: () => options.resourceOwnerSigner.getAddress(),
     signTransaction: async () => {

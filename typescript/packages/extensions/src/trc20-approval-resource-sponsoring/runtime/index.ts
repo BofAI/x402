@@ -1,24 +1,24 @@
-export { buildTrc20SponsoringPlan, resourceUnitsToStakeSun } from "./resourceSizing";
+export { buildTrc20SponsoringPlan, resourceUnitsToStakeSun } from "./resourceSizing.js";
 export {
   InMemoryTrc20SponsoringCoordinator,
   type InMemoryTrc20SponsoringCoordinatorOptions,
-} from "./memoryCoordinator";
-export { createTrc20ApprovalResourceSponsoringRuntime } from "./runtime";
+} from "./memoryCoordinator.js";
+export { createTrc20ApprovalResourceSponsoringRuntime } from "./runtime.js";
 export {
   createTrc20ResourceSponsoringRuntime,
   type CreateTrc20ResourceSponsoringRuntimeOptions,
-} from "./factory";
+} from "./factory.js";
 export {
   createStaticTrc20ResourceSponsoringPolicy,
   type StaticTrc20ResourceSponsoringPolicyOptions,
-} from "./policy";
+} from "./policy.js";
 export {
   createTronWebResourceSponsoringChain,
   type TronResourceOwnerActionIntent,
   type TronResourceOwnerSigner,
   type TronResourceRpcClient,
   type TronWebResourceSponsoringChainOptions,
-} from "./tronWebChain";
+} from "./tronWebChain.js";
 export type {
   ManagedTrc20ApprovalResourceSponsoringRuntime,
   PreparedTronAction,
@@ -39,4 +39,4 @@ export type {
   TronActionResult,
   TronResourceSnapshot,
   TronResourceType,
-} from "./types";
+} from "./types.js";

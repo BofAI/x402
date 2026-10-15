@@ -12,7 +12,7 @@ import {
   createCashX402Client,
   CashSchemeNetworkFacilitator,
   CashSchemeNetworkServer,
-} from "../../../core/test/mocks";
+} from "../../../../core/test/mocks";
 import {
   BUILDER_CODE,
   BuilderCodeClientExtension,

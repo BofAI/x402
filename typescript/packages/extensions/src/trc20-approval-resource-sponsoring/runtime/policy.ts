@@ -1,6 +1,6 @@
 import { TronWeb } from "tronweb";
-import { normalizeTronNetwork } from "../network";
-import type { Trc20ResourceSponsoringPolicy, Trc20SponsoringPolicyDecision } from "./types";
+import { normalizeTronNetwork } from "@bankofai/x402-tron";
+import type { Trc20ResourceSponsoringPolicy, Trc20SponsoringPolicyDecision } from "./types.js";
 
 /** Bounds for a local allowlist-and-cost sponsorship policy. */
 export interface StaticTrc20ResourceSponsoringPolicyOptions {

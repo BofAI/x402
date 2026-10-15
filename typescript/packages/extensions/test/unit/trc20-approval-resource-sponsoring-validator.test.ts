@@ -1,25 +1,26 @@
+import { createTrc20ApprovalResourceSponsoringExtension } from "../../src/trc20-approval-resource-sponsoring";
 import { describe, expect, it, vi } from "vitest";
 import { TronWeb, utils as tronUtils } from "tronweb";
 import {
   PERMIT2_ADDRESSES,
   X402_PERMIT2_PROXY_ADDRESSES,
   X402_UPTO_PERMIT2_PROXY_ADDRESSES,
-} from "../../src/constants";
+} from "@bankofai/x402-tron";
 import {
   decodeSignedTrc20Approval,
   validateTrc20ApprovalForPayment,
-} from "../../src/shared/trc20approval";
+} from "../../src/trc20-approval-resource-sponsoring/approvalValidator";
 import {
   TRC20_APPROVAL_MAX_AMOUNT,
   type Trc20ApprovalResourceSponsoringInfo,
-} from "../../src/shared/extensions/trc20ApprovalContract";
-import { ExactTronScheme } from "../../src/exact/facilitator/scheme";
-import type { FacilitatorTronSigner } from "../../src/signer";
-import { normalizeAddressForSigning } from "../../src/utils";
-import { UptoTronScheme as UptoFacilitator } from "../../src/upto/facilitator/scheme";
-import { BatchSettlementTronScheme as BatchFacilitator } from "../../src/batch-settlement/facilitator/scheme";
-import { computeChannelId } from "../../src/shared/batch-settlement/utils";
-import { PERMIT2_DEPOSIT_COLLECTOR_ADDRESSES } from "../../src/shared/batch-settlement/constants";
+} from "@bankofai/x402-tron/exact/extensions";
+import { ExactTronScheme } from "@bankofai/x402-tron/exact/facilitator";
+import type { FacilitatorTronSigner } from "@bankofai/x402-tron";
+import { normalizeAddressForSigning } from "@bankofai/x402-tron";
+import { UptoTronScheme as UptoFacilitator } from "@bankofai/x402-tron/upto/facilitator";
+import { BatchSettlementTronScheme as BatchFacilitator } from "@bankofai/x402-tron/batch-settlement/facilitator";
+import { computeChannelId } from "@bankofai/x402-tron/batch-settlement";
+import { PERMIT2_DEPOSIT_COLLECTOR_ADDRESSES } from "@bankofai/x402-tron/batch-settlement";
 
 const NETWORK = "tron:3448148188";
 const PRIVATE_KEY = "4f3edf983ac63ad7c24ee152a7494471b2a18551b7117f7f7f3f2c47c8f6e5ad";
@@ -293,10 +294,7 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
       waitForTransactionReceipt: vi.fn(async () => ({ status: "success" })),
     };
     const context = {
-      getExtension: vi.fn(() => ({
-        key: "trc20ApprovalResourceSponsoring",
-        runtime,
-      })),
+      getExtension: vi.fn(() => createTrc20ApprovalResourceSponsoringExtension(runtime)),
     };
     const signed = buildSignedApproval();
     const payload = sponsoredPayment(signed);
@@ -330,10 +328,7 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
       waitForTransactionReceipt: vi.fn(),
     };
     const context = {
-      getExtension: vi.fn(() => ({
-        key: "trc20ApprovalResourceSponsoring",
-        runtime,
-      })),
+      getExtension: vi.fn(() => createTrc20ApprovalResourceSponsoringExtension(runtime)),
     };
 
     const settled = await new ExactTronScheme(signer).settle(
@@ -453,7 +448,7 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
       },
     };
     const context = {
-      getExtension: vi.fn(() => ({ key: "trc20ApprovalResourceSponsoring", runtime })),
+      getExtension: vi.fn(() => createTrc20ApprovalResourceSponsoringExtension(runtime)),
     };
     const scheme = new UptoFacilitator(signer);
 
@@ -562,7 +557,7 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
       },
     };
     const context = {
-      getExtension: vi.fn(() => ({ key: "trc20ApprovalResourceSponsoring", runtime })),
+      getExtension: vi.fn(() => createTrc20ApprovalResourceSponsoringExtension(runtime)),
     };
 
     const settled = await new BatchFacilitator(signer).settle(

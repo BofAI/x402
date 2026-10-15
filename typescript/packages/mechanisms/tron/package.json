@@ -233,6 +233,26 @@
         "types": "./dist/cjs/exact/extensions.d.ts",
         "default": "./dist/cjs/exact/extensions.js"
       }
+    },
+    "./rpc": {
+      "import": {
+        "types": "./dist/esm/rpc/index.d.mts",
+        "default": "./dist/esm/rpc/index.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/rpc/index.d.ts",
+        "default": "./dist/cjs/rpc/index.js"
+      }
+    },
+    "./transactions": {
+      "import": {
+        "types": "./dist/esm/transactions/index.d.mts",
+        "default": "./dist/esm/transactions/index.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/transactions/index.d.ts",
+        "default": "./dist/cjs/transactions/index.js"
+      }
     }
   },
   "files": [

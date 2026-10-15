@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { TronWeb, utils as tronUtils } from "tronweb";
-import type { Trc20ApprovalResourceSponsoringRequest } from "../../src/shared/extensions/trc20ApprovalContract";
+import type { Trc20ApprovalResourceSponsoringRequest } from "@bankofai/x402-tron/exact/extensions";
 import {
   createTronWebResourceSponsoringChain,
   type TronResourceOwnerSigner,
-} from "../../src/resource-sponsoring";
+} from "../../src/trc20-approval-resource-sponsoring/runtime";
 
 const PAYER = "TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC";
 const PAYER_EVM_HEX = "0x5cd0fb0ab3ce40f3051414c604b27756e69e43db";

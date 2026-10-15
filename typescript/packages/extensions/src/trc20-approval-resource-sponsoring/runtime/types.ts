@@ -1,8 +1,8 @@
 import type {
   Trc20ApprovalResourceSponsoringRequest,
   Trc20ApprovalResourceSponsoringRuntime,
-} from "../shared/extensions/trc20ApprovalContract";
-import type { Trc20ApprovalPolicy } from "../approvalPolicy";
+} from "@bankofai/x402-tron/exact/extensions";
+import type { Trc20ApprovalPolicy } from "@bankofai/x402-tron";
 
 /** TRON resources that can be delegated with Stake 2.0. */
 export type TronResourceType = "ENERGY" | "BANDWIDTH";

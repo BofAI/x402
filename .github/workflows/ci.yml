@@ -52,3 +52,6 @@ jobs:
 
       - name: Verify independent TRON package consumers
         run: pnpm --filter @bankofai/x402-tron test:consumer
+
+      - name: Verify independent TRON resource extension consumers
+        run: pnpm --filter @bankofai/x402-tron-extensions test:consumer

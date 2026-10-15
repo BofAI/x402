@@ -240,7 +240,7 @@ setLogger(noopLogger);
 
 Wallet structural types are exported from the package root. Extension authors can
 import the key, structural contracts and context helpers from
-`@bankofai/x402-tron/exact/extensions`. Resource runtime extraction remains M2;
+`@bankofai/x402-tron/exact/extensions`. Resource runtime is published separately as `@bankofai/x402-tron-extensions`;
 service migration and testnet execution remain M3. Offline tests do not constitute
 real-chain or durable-recovery acceptance.
 
@@ -255,3 +255,13 @@ The consumer check installs the packed artifact in a temporary project, compiles
 strict NodeNext ESM and CommonJS fixtures with `skipLibCheck: false`, runs a payment
 through official Core in both formats and loads every public entrypoint. It rejects
 runtime dependency trees containing old Core or Agent Wallet.
+
+
+## Resource extension migration (M2)
+
+Install the matching `@bankofai/x402-tron-extensions` candidate and explicitly register
+its client and facilitator factories. Resource runtimes, coordinators, policy/chain
+adapters and their types have moved out of this package's root exports. Use the
+extension root instead. Ordinary payments require only this package and official Core.
+The mechanism retains `/exact/extensions` contracts and `/rpc`, `/transactions` tools;
+it does not depend on the resource extension.

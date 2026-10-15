@@ -1,3 +1,4 @@
+import { assertTrc20ApprovalClientPrepared } from "../../exact/extensions";
 import {
   SchemeNetworkClient,
   SchemeClientHooks,
@@ -99,7 +100,10 @@ export class BatchSettlementTronScheme implements SchemeNetworkClient {
     }
 
     validateDepositPolicy(depositPolicy);
-    this.schemeHooks = createBatchSettlementClientHooks(this.deps());
+    this.schemeHooks = {
+      ...createBatchSettlementClientHooks(this.deps()),
+      onAfterPaymentCreation: assertTrc20ApprovalClientPrepared,
+    };
   }
 
   /**

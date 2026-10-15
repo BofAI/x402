@@ -1,16 +1,17 @@
-import { readTronContract } from "../../signer";
+import { evmAddressToTron, normalizeAddressForSigning } from "@bankofai/x402-tron";
+import { readTronContract } from "@bankofai/x402-tron";
 import type { PaymentPayloadContext, PaymentRequirements } from "@x402/core/types";
-import { erc20AllowanceAbi, PERMIT2_ADDRESSES } from "../../constants";
-import type { ClientTronSigner } from "../../signer";
-import { tronNetworksEqual } from "../../network";
-import { createTrc20ApprovalPolicy } from "../../approvalPolicy";
+import { erc20AllowanceAbi, PERMIT2_ADDRESSES } from "@bankofai/x402-tron";
+import type { ClientTronSigner } from "@bankofai/x402-tron";
+import { tronNetworksEqual } from "@bankofai/x402-tron";
+import { createTrc20ApprovalPolicy } from "@bankofai/x402-tron";
 import {
   TRC20_APPROVAL_LIFETIME_SECONDS,
   TRC20_APPROVAL_MAX_AMOUNT,
   TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
   TRC20_APPROVAL_RESOURCE_SPONSORING_VERSION,
   type Trc20ApprovalResourceSponsoringInfo,
-} from "./trc20ApprovalContract";
+} from "@bankofai/x402-tron/exact/extensions";
 
 export interface Trc20ApprovalExtensionAttempt {
   handled: boolean;
@@ -93,9 +94,9 @@ export async function trySignTrc20ApprovalExtension(
     minimumLifetimeSeconds: TRC20_APPROVAL_LIFETIME_SECONDS,
   });
   const info: Trc20ApprovalResourceSponsoringInfo = {
-    from: signer.address,
-    asset: requirements.asset,
-    spender: permit2,
+    from: evmAddressToTron(normalizeAddressForSigning(signer.address)),
+    asset: evmAddressToTron(normalizeAddressForSigning(requirements.asset)),
+    spender: evmAddressToTron(normalizeAddressForSigning(permit2)),
     amount: TRC20_APPROVAL_MAX_AMOUNT,
     signedTransaction,
     version: TRC20_APPROVAL_RESOURCE_SPONSORING_VERSION,

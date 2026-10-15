@@ -1,3 +1,4 @@
+import { assertTrc20ApprovalClientPrepared } from "../../exact/extensions";
 import { readTronContract } from "../../signer";
 import {
   PaymentRequirements,
@@ -21,6 +22,7 @@ import { findDefaultAsset } from "../../shared/defaultAssets";
 export class UptoTronScheme implements SchemeNetworkClient {
   readonly scheme = "upto";
   readonly findDefaultAsset = findDefaultAsset;
+  readonly schemeHooks = { onAfterPaymentCreation: assertTrc20ApprovalClientPrepared };
 
   /**
    * Creates a new UptoTronScheme instance.

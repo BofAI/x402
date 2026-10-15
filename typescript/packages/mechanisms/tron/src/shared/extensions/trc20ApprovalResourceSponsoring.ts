@@ -2,115 +2,25 @@ import type {
   FacilitatorContext,
   PaymentPayload,
   PaymentRequirements,
-  SettleResponse,
   VerifyResponse,
+  SettleResponse,
 } from "@x402/core/types";
 import {
-  extractTrc20ApprovalResourceSponsoringInfo,
-  resolveTrc20ApprovalResourceSponsoringRuntime,
   TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
+  extractTrc20ApprovalResourceSponsoringInfo,
   type Trc20ApprovalResourceSponsoringFacilitatorExtension,
-  type Trc20ApprovalResourceSponsoringInfo,
-  type Trc20ApprovalResourceSponsoringRuntime,
   type Trc20SponsorshipRevalidationResult,
 } from "./trc20ApprovalContract";
-import {
-  buildTrc20ApprovalSponsoringRequest,
-  validateTrc20ApprovalForPayment,
-} from "../trc20approval";
-
-const errors = {
-  APPROVAL_EXTENSION_INVALID: "approval_extension_invalid",
-  SPONSOR_RUNTIME_UNAVAILABLE: "sponsor_runtime_unavailable",
-  SPONSOR_POLICY_DENIED: "sponsor_policy_denied",
-  SPONSOR_EXECUTION_FAILED: "sponsor_execution_failed",
-} as const;
-
-interface SponsorshipBinding {
-  info: Trc20ApprovalResourceSponsoringInfo;
-  runtime: Trc20ApprovalResourceSponsoringRuntime;
-  request: ReturnType<typeof buildTrc20ApprovalSponsoringRequest>;
-}
-
-type SponsorshipResolution =
-  | { state: "absent" }
-  | { state: "invalid"; reason: string; message?: string }
-  | { state: "ready"; binding: SponsorshipBinding };
 
 /**
- * Returns whether the payload explicitly carries the Extension key.
+ * Dispatch verification to an independently registered resource capability.
  *
- * @param payload - Payment payload to inspect.
- * @returns Whether the key is present.
- */
-function hasExtension(payload: PaymentPayload): boolean {
-  return Object.prototype.hasOwnProperty.call(
-    payload.extensions ?? {},
-    TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
-  );
-}
-
-/**
- * Resolves and revalidates the immutable Approval-to-Payment binding.
- *
- * @param payload - Client payment payload.
+ * @param payload - Payment envelope.
  * @param requirements - Trusted payment requirements.
- * @param payer - Authenticated Permit2 payer.
- * @param context - Registered Facilitator extensions.
- * @param requiredAllowance - Permit2 allowance required by the selected operation.
- * @returns Absent, invalid, or ready sponsorship state.
- */
-function resolveSponsorship(
-  payload: PaymentPayload,
-  requirements: PaymentRequirements,
-  payer: string,
-  context?: FacilitatorContext,
-  requiredAllowance = requirements.amount,
-): SponsorshipResolution {
-  const info = extractTrc20ApprovalResourceSponsoringInfo(payload);
-  if (!info) {
-    return hasExtension(payload)
-      ? { state: "invalid", reason: errors.APPROVAL_EXTENSION_INVALID }
-      : { state: "absent" };
-  }
-  const extension = context?.getExtension<Trc20ApprovalResourceSponsoringFacilitatorExtension>(
-    TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
-  );
-  const runtime = resolveTrc20ApprovalResourceSponsoringRuntime(extension, requirements.network);
-  if (!runtime) return { state: "invalid", reason: errors.SPONSOR_RUNTIME_UNAVAILABLE };
-  const validation = validateTrc20ApprovalForPayment(info, payer, requirements);
-  if (!validation.isValid) {
-    return {
-      state: "invalid",
-      reason: validation.invalidReason,
-      message: validation.invalidMessage,
-    };
-  }
-  return {
-    state: "ready",
-    binding: {
-      info,
-      runtime,
-      request: buildTrc20ApprovalSponsoringRequest(
-        info,
-        validation.approval,
-        payload,
-        requirements,
-        requiredAllowance,
-      ),
-    },
-  };
-}
-
-/**
- * Runs the read-only sponsorship policy and chain preflight.
- *
- * @param payload - Client payment payload.
- * @param requirements - Trusted payment requirements.
- * @param payer - Authenticated Permit2 payer.
- * @param context - Registered Facilitator extensions.
- * @param requiredAllowance - Permit2 allowance required by the selected operation.
- * @returns Null when absent, otherwise the verification response.
+ * @param payer - Verified authorization payer.
+ * @param context - Official facilitator extension registry.
+ * @param requiredAllowance - Selected operation's allowance amount.
+ * @returns Extension verification or null for ordinary payments.
  */
 export async function verifyTrc20Sponsorship(
   payload: PaymentPayload,
@@ -119,47 +29,38 @@ export async function verifyTrc20Sponsorship(
   context?: FacilitatorContext,
   requiredAllowance?: string,
 ): Promise<VerifyResponse | null> {
-  const resolution = resolveSponsorship(payload, requirements, payer, context, requiredAllowance);
-  if (resolution.state === "absent") return null;
-  if (resolution.state === "invalid") {
-    return {
-      isValid: false,
-      invalidReason: resolution.reason,
-      invalidMessage: resolution.message,
-      payer,
-    };
-  }
+  if (
+    !Object.prototype.hasOwnProperty.call(
+      payload.extensions ?? {},
+      TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
+    )
+  )
+    return null;
+  if (!extractTrc20ApprovalResourceSponsoringInfo(payload))
+    return { isValid: false, invalidReason: "approval_extension_invalid", payer };
+  const extension = context?.getExtension<Trc20ApprovalResourceSponsoringFacilitatorExtension>(
+    TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
+  );
+  if (!extension?.verifyPayment)
+    return { isValid: false, invalidReason: "sponsor_runtime_unavailable", payer };
   try {
-    const result = await resolution.binding.runtime.verify(resolution.binding.request);
-    return result.isValid
-      ? { isValid: true, invalidReason: undefined, payer }
-      : {
-          isValid: false,
-          invalidReason: result.invalidReason ?? errors.SPONSOR_POLICY_DENIED,
-          invalidMessage: result.invalidMessage,
-          payer,
-        };
+    return await extension.verifyPayment(payload, requirements, payer, requiredAllowance);
   } catch {
-    return {
-      isValid: false,
-      invalidReason: errors.SPONSOR_POLICY_DENIED,
-      invalidMessage: "Sponsorship preflight failed",
-      payer,
-    };
+    return { isValid: false, invalidReason: "sponsor_policy_denied", payer };
   }
 }
 
 /**
- * Executes the durable resource sponsorship lifecycle before payment settlement.
+ * Dispatch resource execution to the registered extension before settlement.
  *
- * @param payload - Client payment payload.
+ * @param payload - Payment envelope.
  * @param requirements - Trusted payment requirements.
- * @param payer - Authenticated Permit2 payer.
- * @param context - Registered Facilitator extensions.
- * @param requiredAllowance - Permit2 allowance required by the selected operation.
- * @param paymentDeadlineSeconds - Mutable Permit2 deadline as Unix seconds.
- * @param revalidate - Scheme-specific authorization checks repeated before Approval broadcast.
- * @returns Null on success/absence, otherwise a settlement failure.
+ * @param payer - Verified authorization payer.
+ * @param context - Official facilitator extension registry.
+ * @param requiredAllowance - Selected operation's allowance amount.
+ * @param paymentDeadlineSeconds - Authorization deadline.
+ * @param revalidate - Scheme checks before broadcasting Approval.
+ * @returns Failure response or null when settlement may proceed.
  */
 export async function executeTrc20Sponsorship(
   payload: PaymentPayload,
@@ -170,63 +71,42 @@ export async function executeTrc20Sponsorship(
   paymentDeadlineSeconds?: string,
   revalidate?: () => Promise<Trc20SponsorshipRevalidationResult>,
 ): Promise<SettleResponse | null> {
-  const resolution = resolveSponsorship(payload, requirements, payer, context, requiredAllowance);
-  if (resolution.state === "absent") return null;
-  if (resolution.state === "invalid") {
+  if (
+    !Object.prototype.hasOwnProperty.call(
+      payload.extensions ?? {},
+      TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
+    )
+  )
+    return null;
+  const extension = context?.getExtension<Trc20ApprovalResourceSponsoringFacilitatorExtension>(
+    TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
+  );
+  if (!extractTrc20ApprovalResourceSponsoringInfo(payload) || !extension?.executePayment)
     return {
       success: false,
-      network: payload.accepted.network,
+      network: requirements.network,
       transaction: "",
-      errorReason: resolution.reason,
-      errorMessage: resolution.message,
       payer,
+      errorReason: extension?.executePayment
+        ? "approval_extension_invalid"
+        : "sponsor_runtime_unavailable",
     };
-  }
   try {
-    let paymentDeadlineMs: number | undefined;
-    if (paymentDeadlineSeconds != null) {
-      const deadline = BigInt(paymentDeadlineSeconds) * 1_000n;
-      if (deadline > BigInt(Number.MAX_SAFE_INTEGER) || deadline <= 0n) {
-        throw new Error("payment deadline is outside the safe range");
-      }
-      paymentDeadlineMs = Number(deadline);
-    }
-    const result = await resolution.binding.runtime.sponsor(resolution.binding.request, {
-      paymentDeadlineMs,
+    return await extension.executePayment(
+      payload,
+      requirements,
+      payer,
+      requiredAllowance,
+      paymentDeadlineSeconds,
       revalidate,
-    });
-    if (!result.success) {
-      return {
-        success: false,
-        network: payload.accepted.network,
-        transaction: "",
-        errorReason: result.errorReason ?? errors.SPONSOR_EXECUTION_FAILED,
-        errorMessage: result.errorMessage,
-        payer,
-      };
-    }
-    if (revalidate) {
-      const finalValidation = await revalidate();
-      if (!finalValidation.isValid) {
-        return {
-          success: false,
-          network: payload.accepted.network,
-          transaction: "",
-          errorReason: finalValidation.invalidReason ?? "scheme_revalidation_failed",
-          errorMessage: finalValidation.invalidMessage,
-          payer,
-        };
-      }
-    }
-    return null;
+    );
   } catch {
     return {
       success: false,
-      network: payload.accepted.network,
+      network: requirements.network,
       transaction: "",
-      errorReason: errors.SPONSOR_EXECUTION_FAILED,
-      errorMessage: "Sponsorship execution failed",
       payer,
+      errorReason: "sponsor_execution_failed",
     };
   }
 }

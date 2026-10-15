@@ -84,34 +84,19 @@ importers:
 
   packages/extensions:
     dependencies:
-      '@bankofai/x402-core':
+      '@bankofai/x402-tron':
         specifier: workspace:~
-        version: link:../core
-      '@noble/curves':
-        specifier: ^1.9.0
-        version: 1.9.7
-      '@scure/base':
-        specifier: ^1.2.6
-        version: 1.2.6
-      '@signinwithethereum/siwe':
-        specifier: ^4.1.0
-        version: 4.1.0(ethers@6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10))(viem@2.48.11(bufferutil@4.0.9)(typescript@5.9.2)(utf-8-validate@5.0.10)(zod@3.25.76))
+        version: link:../mechanisms/tron
       ajv:
         specifier: ^8.17.1
         version: 8.17.1
-      jose:
-        specifier: ^5.9.6
-        version: 5.10.0
-      tweetnacl:
-        specifier: ^1.0.3
-        version: 1.0.3
-      viem:
-        specifier: ^2.48.11
-        version: 2.48.11(bufferutil@4.0.9)(typescript@5.9.2)(utf-8-validate@5.0.10)(zod@3.25.76)
-      zod:
-        specifier: ^3.24.2
-        version: 3.25.76
+      tronweb:
+        specifier: 6.3.0
+        version: 6.3.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
     devDependencies:
+      '@bankofai/agent-wallet':
+        specifier: 2.4.0
+        version: 2.4.0(@types/node@22.18.0)(bufferutil@4.0.9)(typescript@5.9.2)(utf-8-validate@5.0.10)
       '@eslint/js':
         specifier: ^9.24.0
         version: 9.34.0
@@ -124,6 +109,9 @@ importers:
       '@typescript-eslint/parser':
         specifier: ^8.29.1
         version: 8.42.0(eslint@9.34.0)(typescript@5.9.2)
+      '@x402/core':
+        specifier: 2.28.0
+        version: 2.28.0
       eslint:
         specifier: ^9.24.0
         version: 9.34.0
@@ -220,7 +208,7 @@ importers:
         version: link:../../core
       '@bankofai/x402-extensions':
         specifier: workspace:~
-        version: link:../../extensions
+        version: link:../../legacy/extensions
     devDependencies:
       '@eslint/js':
         specifier: ^9.24.0
@@ -281,7 +269,7 @@ importers:
         version: link:../../core
       '@bankofai/x402-extensions':
         specifier: workspace:~
-        version: link:../../extensions
+        version: link:../../legacy/extensions
     devDependencies:
       '@eslint/js':
         specifier: ^9.24.0
@@ -391,7 +379,7 @@ importers:
         version: link:../../core
       '@bankofai/x402-extensions':
         specifier: workspace:~
-        version: link:../../extensions
+        version: link:../../legacy/extensions
     devDependencies:
       '@eslint/js':
         specifier: ^9.24.0
@@ -449,7 +437,7 @@ importers:
         version: link:../../core
       '@bankofai/x402-extensions':
         specifier: workspace:~
-        version: link:../../extensions
+        version: link:../../legacy/extensions
       next:
         specifier: '>=16.2.6'
         version: 16.2.6(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -499,6 +487,82 @@ importers:
       vitest:
         specifier: ^3.0.5
         version: 3.2.4(@types/debug@4.1.13)(@types/node@22.18.0)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(tsx@4.21.0)
+
+  packages/legacy/extensions:
+    dependencies:
+      '@bankofai/x402-core':
+        specifier: workspace:~
+        version: link:../../core
+      '@noble/curves':
+        specifier: ^1.9.0
+        version: 1.9.7
+      '@scure/base':
+        specifier: ^1.2.6
+        version: 1.2.6
+      '@signinwithethereum/siwe':
+        specifier: ^4.1.0
+        version: 4.1.0(ethers@6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10))(viem@2.48.11(bufferutil@4.0.9)(typescript@5.9.2)(utf-8-validate@5.0.10)(zod@3.25.76))
+      ajv:
+        specifier: ^8.17.1
+        version: 8.17.1
+      jose:
+        specifier: ^5.9.6
+        version: 5.10.0
+      tweetnacl:
+        specifier: ^1.0.3
+        version: 1.0.3
+      viem:
+        specifier: ^2.48.11
+        version: 2.48.11(bufferutil@4.0.9)(typescript@5.9.2)(utf-8-validate@5.0.10)(zod@3.25.76)
+      zod:
+        specifier: ^3.24.2
+        version: 3.25.76
+    devDependencies:
+      '@eslint/js':
+        specifier: ^9.24.0
+        version: 9.34.0
+      '@types/node':
+        specifier: ^22.13.4
+        version: 22.19.17
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^8.29.1
+        version: 8.49.0(@typescript-eslint/parser@8.49.0(eslint@9.34.0)(typescript@5.9.2))(eslint@9.34.0)(typescript@5.9.2)
+      '@typescript-eslint/parser':
+        specifier: ^8.29.1
+        version: 8.49.0(eslint@9.34.0)(typescript@5.9.2)
+      eslint:
+        specifier: ^9.24.0
+        version: 9.34.0
+      eslint-plugin-import:
+        specifier: ^2.31.0
+        version: 2.32.0(@typescript-eslint/parser@8.49.0(eslint@9.34.0)(typescript@5.9.2))(eslint@9.34.0)
+      eslint-plugin-jsdoc:
+        specifier: ^50.6.9
+        version: 50.8.0(eslint@9.34.0)
+      eslint-plugin-prettier:
+        specifier: ^5.2.6
+        version: 5.5.4(eslint@9.34.0)(prettier@3.5.2)
+      prettier:
+        specifier: 3.5.2
+        version: 3.5.2
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.0(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.2)
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.2
+      vite:
+        specifier: ^6.2.6
+        version: 6.3.5(@types/node@22.19.17)(tsx@4.21.0)
+      vite-tsconfig-paths:
+        specifier: ^5.1.4
+        version: 5.1.4(typescript@5.9.2)(vite@6.3.5(@types/node@22.19.17)(tsx@4.21.0))
+      vitest:
+        specifier: ^3.0.5
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.17)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(tsx@4.21.0)
 
   packages/legacy/x402:
     dependencies:
@@ -6989,6 +7053,19 @@ snapshots:
 
   '@babel/runtime@7.28.3': {}
 
+  '@bankofai/agent-wallet@2.4.0(@types/node@22.18.0)(bufferutil@4.0.9)(typescript@5.9.2)(utf-8-validate@5.0.10)':
+    dependencies:
+      '@inquirer/prompts': 8.5.2(@types/node@22.18.0)
+      '@noble/curves': 1.9.7
+      bs58check: 4.0.0
+      viem: 2.48.11(bufferutil@4.0.9)(typescript@5.9.2)(utf-8-validate@5.0.10)(zod@3.25.76)
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - '@types/node'
+      - bufferutil
+      - typescript
+      - utf-8-validate
+
   '@bankofai/agent-wallet@2.4.0(@types/node@22.19.17)(bufferutil@4.0.9)(typescript@5.9.2)(utf-8-validate@5.0.10)':
     dependencies:
       '@inquirer/prompts': 8.5.2(@types/node@22.19.17)
@@ -7790,6 +7867,15 @@ snapshots:
 
   '@inquirer/ansi@2.0.7': {}
 
+  '@inquirer/checkbox@5.2.1(@types/node@22.18.0)':
+    dependencies:
+      '@inquirer/ansi': 2.0.7
+      '@inquirer/core': 11.2.1(@types/node@22.18.0)
+      '@inquirer/figures': 2.0.7
+      '@inquirer/type': 4.0.7(@types/node@22.18.0)
+    optionalDependencies:
+      '@types/node': 22.18.0
+
   '@inquirer/checkbox@5.2.1(@types/node@22.19.17)':
     dependencies:
       '@inquirer/ansi': 2.0.7
@@ -7799,12 +7885,31 @@ snapshots:
     optionalDependencies:
       '@types/node': 22.19.17
 
+  '@inquirer/confirm@6.1.1(@types/node@22.18.0)':
+    dependencies:
+      '@inquirer/core': 11.2.1(@types/node@22.18.0)
+      '@inquirer/type': 4.0.7(@types/node@22.18.0)
+    optionalDependencies:
+      '@types/node': 22.18.0
+
   '@inquirer/confirm@6.1.1(@types/node@22.19.17)':
     dependencies:
       '@inquirer/core': 11.2.1(@types/node@22.19.17)
       '@inquirer/type': 4.0.7(@types/node@22.19.17)
     optionalDependencies:
       '@types/node': 22.19.17
+
+  '@inquirer/core@11.2.1(@types/node@22.18.0)':
+    dependencies:
+      '@inquirer/ansi': 2.0.7
+      '@inquirer/figures': 2.0.7
+      '@inquirer/type': 4.0.7(@types/node@22.18.0)
+      cli-width: 4.1.0
+      fast-wrap-ansi: 0.2.2
+      mute-stream: 3.0.0
+      signal-exit: 4.1.0
+    optionalDependencies:
+      '@types/node': 22.18.0
 
   '@inquirer/core@11.2.1(@types/node@22.19.17)':
     dependencies:
@@ -7818,6 +7923,14 @@ snapshots:
     optionalDependencies:
       '@types/node': 22.19.17
 
+  '@inquirer/editor@5.2.2(@types/node@22.18.0)':
+    dependencies:
+      '@inquirer/core': 11.2.1(@types/node@22.18.0)
+      '@inquirer/external-editor': 3.0.3(@types/node@22.18.0)
+      '@inquirer/type': 4.0.7(@types/node@22.18.0)
+    optionalDependencies:
+      '@types/node': 22.18.0
+
   '@inquirer/editor@5.2.2(@types/node@22.19.17)':
     dependencies:
       '@inquirer/core': 11.2.1(@types/node@22.19.17)
@@ -7825,6 +7938,13 @@ snapshots:
       '@inquirer/type': 4.0.7(@types/node@22.19.17)
     optionalDependencies:
       '@types/node': 22.19.17
+
+  '@inquirer/expand@5.1.1(@types/node@22.18.0)':
+    dependencies:
+      '@inquirer/core': 11.2.1(@types/node@22.18.0)
+      '@inquirer/type': 4.0.7(@types/node@22.18.0)
+    optionalDependencies:
+      '@types/node': 22.18.0
 
   '@inquirer/expand@5.1.1(@types/node@22.19.17)':
     dependencies:
@@ -7840,6 +7960,13 @@ snapshots:
     optionalDependencies:
       '@types/node': 22.19.17
 
+  '@inquirer/external-editor@3.0.3(@types/node@22.18.0)':
+    dependencies:
+      chardet: 2.1.1
+      iconv-lite: 0.7.2
+    optionalDependencies:
+      '@types/node': 22.18.0
+
   '@inquirer/external-editor@3.0.3(@types/node@22.19.17)':
     dependencies:
       chardet: 2.1.1
@@ -7849,12 +7976,26 @@ snapshots:
 
   '@inquirer/figures@2.0.7': {}
 
+  '@inquirer/input@5.1.2(@types/node@22.18.0)':
+    dependencies:
+      '@inquirer/core': 11.2.1(@types/node@22.18.0)
+      '@inquirer/type': 4.0.7(@types/node@22.18.0)
+    optionalDependencies:
+      '@types/node': 22.18.0
+
   '@inquirer/input@5.1.2(@types/node@22.19.17)':
     dependencies:
       '@inquirer/core': 11.2.1(@types/node@22.19.17)
       '@inquirer/type': 4.0.7(@types/node@22.19.17)
     optionalDependencies:
       '@types/node': 22.19.17
+
+  '@inquirer/number@4.1.1(@types/node@22.18.0)':
+    dependencies:
+      '@inquirer/core': 11.2.1(@types/node@22.18.0)
+      '@inquirer/type': 4.0.7(@types/node@22.18.0)
+    optionalDependencies:
+      '@types/node': 22.18.0
 
   '@inquirer/number@4.1.1(@types/node@22.19.17)':
     dependencies:
@@ -7863,6 +8004,14 @@ snapshots:
     optionalDependencies:
       '@types/node': 22.19.17
 
+  '@inquirer/password@5.1.1(@types/node@22.18.0)':
+    dependencies:
+      '@inquirer/ansi': 2.0.7
+      '@inquirer/core': 11.2.1(@types/node@22.18.0)
+      '@inquirer/type': 4.0.7(@types/node@22.18.0)
+    optionalDependencies:
+      '@types/node': 22.18.0
+
   '@inquirer/password@5.1.1(@types/node@22.19.17)':
     dependencies:
       '@inquirer/ansi': 2.0.7
@@ -7870,6 +8019,21 @@ snapshots:
       '@inquirer/type': 4.0.7(@types/node@22.19.17)
     optionalDependencies:
       '@types/node': 22.19.17
+
+  '@inquirer/prompts@8.5.2(@types/node@22.18.0)':
+    dependencies:
+      '@inquirer/checkbox': 5.2.1(@types/node@22.18.0)
+      '@inquirer/confirm': 6.1.1(@types/node@22.18.0)
+      '@inquirer/editor': 5.2.2(@types/node@22.18.0)
+      '@inquirer/expand': 5.1.1(@types/node@22.18.0)
+      '@inquirer/input': 5.1.2(@types/node@22.18.0)
+      '@inquirer/number': 4.1.1(@types/node@22.18.0)
+      '@inquirer/password': 5.1.1(@types/node@22.18.0)
+      '@inquirer/rawlist': 5.3.1(@types/node@22.18.0)
+      '@inquirer/search': 4.2.1(@types/node@22.18.0)
+      '@inquirer/select': 5.2.1(@types/node@22.18.0)
+    optionalDependencies:
+      '@types/node': 22.18.0
 
   '@inquirer/prompts@8.5.2(@types/node@22.19.17)':
     dependencies:
@@ -7886,12 +8050,27 @@ snapshots:
     optionalDependencies:
       '@types/node': 22.19.17
 
+  '@inquirer/rawlist@5.3.1(@types/node@22.18.0)':
+    dependencies:
+      '@inquirer/core': 11.2.1(@types/node@22.18.0)
+      '@inquirer/type': 4.0.7(@types/node@22.18.0)
+    optionalDependencies:
+      '@types/node': 22.18.0
+
   '@inquirer/rawlist@5.3.1(@types/node@22.19.17)':
     dependencies:
       '@inquirer/core': 11.2.1(@types/node@22.19.17)
       '@inquirer/type': 4.0.7(@types/node@22.19.17)
     optionalDependencies:
       '@types/node': 22.19.17
+
+  '@inquirer/search@4.2.1(@types/node@22.18.0)':
+    dependencies:
+      '@inquirer/core': 11.2.1(@types/node@22.18.0)
+      '@inquirer/figures': 2.0.7
+      '@inquirer/type': 4.0.7(@types/node@22.18.0)
+    optionalDependencies:
+      '@types/node': 22.18.0
 
   '@inquirer/search@4.2.1(@types/node@22.19.17)':
     dependencies:
@@ -7901,6 +8080,15 @@ snapshots:
     optionalDependencies:
       '@types/node': 22.19.17
 
+  '@inquirer/select@5.2.1(@types/node@22.18.0)':
+    dependencies:
+      '@inquirer/ansi': 2.0.7
+      '@inquirer/core': 11.2.1(@types/node@22.18.0)
+      '@inquirer/figures': 2.0.7
+      '@inquirer/type': 4.0.7(@types/node@22.18.0)
+    optionalDependencies:
+      '@types/node': 22.18.0
+
   '@inquirer/select@5.2.1(@types/node@22.19.17)':
     dependencies:
       '@inquirer/ansi': 2.0.7
@@ -7909,6 +8097,10 @@ snapshots:
       '@inquirer/type': 4.0.7(@types/node@22.19.17)
     optionalDependencies:
       '@types/node': 22.19.17
+
+  '@inquirer/type@4.0.7(@types/node@22.18.0)':
+    optionalDependencies:
+      '@types/node': 22.18.0
 
   '@inquirer/type@4.0.7(@types/node@22.19.17)':
     optionalDependencies:

@@ -2,8 +2,8 @@ import type {
   Trc20SponsoringAdmission,
   Trc20SponsoringCoordinator,
   Trc20SponsoringOperation,
-} from "./types";
-import { tronNetworksEqual } from "../network";
+} from "./types.js";
+import { tronNetworksEqual } from "@bankofai/x402-tron";
 
 /** Capacity limits for the development/test coordinator. */
 export interface InMemoryTrc20SponsoringCoordinatorOptions {

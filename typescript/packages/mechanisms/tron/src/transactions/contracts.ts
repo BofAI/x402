@@ -1,7 +1,12 @@
-import { TronWeb, utils as tronUtils } from "tronweb";
+/** Generic transaction construction/broadcast boundary, independent of TronWeb declarations. */
+import { utils as tronUtils } from "tronweb";
 import { log } from "../logger";
 import { isValidTronTxHash } from "../utils";
 import { normalizeSignedTronTransaction } from "./signatures";
+export interface TronTransactionClient {
+  transactionBuilder: { triggerSmartContract(...args: never[]): unknown };
+  trx: { sendRawTransaction(...args: never[]): unknown };
+}
 
 type AbiTypeNode = { name?: string; type: string; components?: readonly AbiTypeNode[] };
 type AbiFunctionNode = { type: string; name: string; inputs?: readonly AbiTypeNode[] };
@@ -111,7 +116,7 @@ type ContractWriteArgs = {
  * @returns Wallet-signed transaction object.
  */
 export async function buildAndSignContract(
-  tronWeb: TronWeb,
+  tronWeb: TronTransactionClient,
   issuerAddress: string,
   signTransaction: SignTransactionFn,
   args: ContractWriteArgs,
@@ -199,7 +204,7 @@ function extendTransactionLifetime(
  * @returns The broadcast transaction id.
  */
 export async function buildSignAndBroadcast(
-  tronWeb: TronWeb,
+  tronWeb: TronTransactionClient,
   issuerAddress: string,
   signTransaction: SignTransactionFn,
   args: ContractWriteArgs,

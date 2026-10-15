@@ -1,32 +1,21 @@
 import { defineConfig } from "tsup";
-
-const baseConfig = {
+const base = {
   entry: {
     index: "src/index.ts",
-    "bazaar/index": "src/bazaar/index.ts",
-    "sign-in-with-x/index": "src/sign-in-with-x/index.ts",
-    "offer-receipt/index": "src/offer-receipt/index.ts",
-    "payment-identifier/index": "src/payment-identifier/index.ts",
-    "builder-code/index": "src/builder-code/index.ts",
+    "trc20-approval-resource-sponsoring/index": "src/trc20-approval-resource-sponsoring/index.ts",
+    "trc20-approval-resource-sponsoring/client": "src/trc20-approval-resource-sponsoring/client.ts",
+    "trc20-approval-resource-sponsoring/facilitator":
+      "src/trc20-approval-resource-sponsoring/facilitator.ts",
+    "trc20-approval-resource-sponsoring/resourceService":
+      "src/trc20-approval-resource-sponsoring/resourceService.ts",
   },
-  dts: {
-    resolve: true,
-  },
+  dts: { resolve: false },
+  external: [/@x402\/core(?:\/.*)?$/, /@bankofai\/x402-tron(?:\/.*)?$/],
+  splitting: true,
   sourcemap: true,
   target: "es2020",
 };
-
 export default defineConfig([
-  {
-    ...baseConfig,
-    format: "esm",
-    outDir: "dist/esm",
-    clean: true,
-  },
-  {
-    ...baseConfig,
-    format: "cjs",
-    outDir: "dist/cjs",
-    clean: false,
-  },
+  { ...base, format: "esm", outDir: "dist/esm", clean: true },
+  { ...base, format: "cjs", outDir: "dist/cjs", clean: true },
 ]);

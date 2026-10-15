@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
-import type { Trc20ApprovalResourceSponsoringRequest } from "../../src/shared/extensions/trc20ApprovalContract";
+import type { Trc20ApprovalResourceSponsoringRequest } from "@bankofai/x402-tron/exact/extensions";
 import {
   buildTrc20SponsoringPlan,
   createTrc20ApprovalResourceSponsoringRuntime,
@@ -11,7 +11,7 @@ import {
   type Trc20SponsoringOperation,
   type Trc20SponsoringPreflight,
   type TronActionResult,
-} from "../../src/resource-sponsoring";
+} from "../../src/trc20-approval-resource-sponsoring/runtime";
 
 const APPROVAL_TX_ID = "a".repeat(64);
 const PAYER = "TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC";

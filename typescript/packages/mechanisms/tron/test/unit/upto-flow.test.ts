@@ -130,38 +130,6 @@ async function wire(chain: Chain, capture?: WriteCapture) {
 }
 
 describe("upto Permit2 end-to-end (in-process)", () => {
-  it("returns a sponsored Approval for the authorized maximum when allowance is zero", async () => {
-    const chain: Chain = { balance: 10_000_000n, allowance: 0n };
-    const { server, facilitator } = await wire(chain);
-    const req = await negotiate(server, facilitator);
-    const baseSigner = await clientSigner(chain);
-    const signPermit2Approval = vi.fn(async () => "0a02abcd");
-    const ensureAllowance = vi.fn(async () => true);
-    const client = new UptoClient({
-      ...baseSigner,
-      signPermit2Approval,
-      ensureAllowance,
-    });
-
-    const result = await client.createPaymentPayload(2, req, {
-      extensions: {
-        [TRC20_APPROVAL_RESOURCE_SPONSORING_KEY]: {
-          info: { version: "1" },
-        },
-      },
-    });
-
-    expect(signPermit2Approval).toHaveBeenCalledWith({
-      token: req.asset,
-      network: NETWORK,
-      minimumLifetimeSeconds: 600,
-    });
-    expect(ensureAllowance).not.toHaveBeenCalled();
-    expect(result.extensions?.[TRC20_APPROVAL_RESOURCE_SPONSORING_KEY]).toMatchObject({
-      info: { from: baseSigner.address, asset: req.asset, signedTransaction: "0a02abcd" },
-    });
-  });
-
   it("negotiates the facilitator address and signs a 3-field witness", async () => {
     const chain: Chain = { balance: 10_000_000n, allowance: 10_000_000n };
     const { server, facilitator, client } = await wire(chain);

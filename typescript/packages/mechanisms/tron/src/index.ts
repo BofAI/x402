@@ -20,35 +20,6 @@ export {
   type Trc20SponsorshipExecutionOptions,
   type Trc20SponsorshipRevalidationResult,
 } from "./shared/extensions/trc20ApprovalContract";
-export {
-  buildTrc20SponsoringPlan,
-  createTrc20ApprovalResourceSponsoringRuntime,
-  createTrc20ResourceSponsoringRuntime,
-  createStaticTrc20ResourceSponsoringPolicy,
-  createTronWebResourceSponsoringChain,
-  InMemoryTrc20SponsoringCoordinator,
-  resourceUnitsToStakeSun,
-  type InMemoryTrc20SponsoringCoordinatorOptions,
-  type CreateTrc20ResourceSponsoringRuntimeOptions,
-  type StaticTrc20ResourceSponsoringPolicyOptions,
-  type ManagedTrc20ApprovalResourceSponsoringRuntime,
-  type PreparedTronAction,
-  type Trc20ResourceLeg,
-  type Trc20ResourceSponsoringChain,
-  type Trc20ResourceSponsoringPolicy,
-  type Trc20ResourceSponsoringRuntimeOptions,
-  type Trc20SponsoringCoordinator,
-  type Trc20SponsoringOperation,
-  type Trc20SponsoringPlan,
-  type Trc20SponsoringPreflight,
-  type TronResourceSnapshot,
-  type TronResourceOwnerActionIntent,
-  type TronResourceOwnerSigner,
-  type TronResourceRpcClient,
-  type TronResourceType,
-  type TronWebResourceSponsoringChainOptions,
-} from "./resource-sponsoring";
-
 // Upto client
 export { UptoTronScheme } from "./upto/client/scheme";
 export { createUptoPermit2Payload } from "./upto/client/permit2";
@@ -154,3 +125,7 @@ export { normalizeTronNetwork, tronNetworksEqual, getTronNetworkValue } from "./
 
 export type { Wallet, ClientWallet, FacilitatorWallet } from "./wallets";
 export { log, setLogger, resetLogger, consoleLogger, noopLogger, type Logger } from "./logger";
+
+export { readTronContract } from "./signer";
+
+export { getTronNetworkRepresentations } from "./network";

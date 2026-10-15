@@ -1,3 +1,4 @@
+import { assertTrc20ApprovalClientPrepared } from "../../exact/extensions";
 import { readTronContract } from "../../signer";
 import {
   PaymentRequirements,
@@ -22,6 +23,7 @@ import { findDefaultAsset } from "../../shared/defaultAssets";
 export class ExactTronScheme implements SchemeNetworkClient {
   readonly scheme = "exact";
   readonly findDefaultAsset = findDefaultAsset;
+  readonly schemeHooks = { onAfterPaymentCreation: assertTrc20ApprovalClientPrepared };
 
   /**
    * Creates a new ExactTronScheme instance.

@@ -1,4 +1,4 @@
-import type { Trc20ResourceLeg, Trc20SponsoringPlan, Trc20SponsoringPreflight } from "./types";
+import type { Trc20ResourceLeg, Trc20SponsoringPlan, Trc20SponsoringPreflight } from "./types.js";
 
 const BPS_DENOMINATOR = 10_000n;
 const SUN_PER_TRX = 1_000_000n;

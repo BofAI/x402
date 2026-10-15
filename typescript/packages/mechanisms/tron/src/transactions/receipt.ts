@@ -1,7 +1,10 @@
-import type { TronWeb } from "tronweb";
+/** RPC capability required for packed-receipt polling. */
 import type { TronTransactionReceipt } from "../signer";
 import { log } from "../logger";
 import { isValidTronTxHash } from "../utils";
+export interface TronReceiptClient {
+  fullNode: { request(path: string, payload: object, method: "post"): Promise<unknown> };
+}
 
 export const DEFAULT_CONFIRMATION_TIMEOUT_MS = 90_000;
 const MAX_CONFIRMATION_TIMEOUT_MS = 2_147_483_647;
@@ -91,7 +94,7 @@ async function requestWithin<T>(request: Promise<T>, timeoutMs: number): Promise
  * @returns `success` / `reverted` once packed, or `pending` when still indeterminate.
  */
 export async function pollTransactionPacked(
-  tronWeb: TronWeb,
+  tronWeb: TronReceiptClient,
   hash: string,
   timeoutMs: number = DEFAULT_CONFIRMATION_TIMEOUT_MS,
 ): Promise<TronTransactionReceipt> {

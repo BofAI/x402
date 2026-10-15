@@ -1,13 +1,15 @@
+import { x402Client } from "@x402/core/client";
+import { createTrc20ApprovalResourceSponsoringClientExtension } from "../../src/trc20-approval-resource-sponsoring/client";
 import { describe, expect, it, vi } from "vitest";
-import { PERMIT2_ADDRESSES } from "../../src/constants";
-import { ExactTronScheme } from "../../src/exact/client/scheme";
+import { PERMIT2_ADDRESSES } from "@bankofai/x402-tron";
+import { ExactTronScheme } from "@bankofai/x402-tron/exact/client";
 import {
   TRC20_APPROVAL_MAX_AMOUNT,
   TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
-} from "../../src/shared/extensions/trc20ApprovalContract";
-import type { ClientTronSigner } from "../../src/signer";
-import { trySignTrc20ApprovalExtension } from "../../src/shared/extensions";
-import { createTrc20ApprovalPolicy } from "../../src/approvalPolicy";
+} from "@bankofai/x402-tron/exact/extensions";
+import type { ClientTronSigner } from "@bankofai/x402-tron";
+import { trySignTrc20ApprovalExtension } from "../../src/trc20-approval-resource-sponsoring/preSign";
+import { createTrc20ApprovalPolicy } from "@bankofai/x402-tron";
 
 const NETWORK = "tron:3448148188";
 const OTHER_NETWORK = "tron:728126428";
@@ -48,6 +50,23 @@ function signer(allowance: bigint): ClientTronSigner {
   };
 }
 
+function pay(clientSigner: ClientTronSigner) {
+  return async (
+    version: number,
+    selected: import("@x402/core/types").PaymentRequirements,
+    context?: { extensions?: Record<string, unknown> },
+  ) => {
+    const client = new x402Client()
+      .register(NETWORK, new ExactTronScheme(clientSigner))
+      .registerExtension(createTrc20ApprovalResourceSponsoringClientExtension(clientSigner));
+    return client.createPaymentPayload({
+      x402Version: version,
+      resource: { url: "https://test.invalid" },
+      accepts: [selected],
+      extensions: context?.extensions,
+    });
+  };
+}
 describe("TRC-20 Approval Resource Sponsoring client", () => {
   it("rejects a signer network mismatch before any RPC or signing call", async () => {
     const clientSigner = signer(0n) as ClientTronSigner & { readonly network: string };
@@ -78,11 +97,7 @@ describe("TRC-20 Approval Resource Sponsoring client", () => {
 
   it("signs the Approval without broadcasting when the Server advertises version 1", async () => {
     const clientSigner = signer(0n);
-    const result = await new ExactTronScheme(clientSigner).createPaymentPayload(
-      2,
-      requirements as never,
-      context,
-    );
+    const result = await pay(clientSigner)(2, requirements as never, context);
 
     expect(clientSigner.signPermit2Approval).toHaveBeenCalledWith({
       token: TOKEN,
@@ -90,7 +105,7 @@ describe("TRC-20 Approval Resource Sponsoring client", () => {
       minimumLifetimeSeconds: 600,
     });
     expect(clientSigner.ensureAllowance).not.toHaveBeenCalled();
-    expect(result.extensions).toEqual({
+    expect(result.extensions).toMatchObject({
       [TRC20_APPROVAL_RESOURCE_SPONSORING_KEY]: {
         info: {
           from: PAYER,
@@ -116,27 +131,23 @@ describe("TRC-20 Approval Resource Sponsoring client", () => {
       return SIGNED_APPROVAL;
     });
 
-    await new ExactTronScheme(clientSigner).createPaymentPayload(2, requirements as never, context);
+    await pay(clientSigner)(2, requirements as never, context);
 
     expect(calls).toEqual(["scheme-authorization", "approval"]);
   });
 
   it("does not create an Approval when allowance is already sufficient", async () => {
     const clientSigner = signer(1_000_000n);
-    const result = await new ExactTronScheme(clientSigner).createPaymentPayload(
-      2,
-      requirements as never,
-      context,
-    );
+    const result = await pay(clientSigner)(2, requirements as never, context);
 
-    expect(result.extensions).toBeUndefined();
+    expect(result.extensions?.[TRC20_APPROVAL_RESOURCE_SPONSORING_KEY]).toBeUndefined();
     expect(clientSigner.signPermit2Approval).not.toHaveBeenCalled();
     expect(clientSigner.ensureAllowance).not.toHaveBeenCalled();
   });
 
   it("preserves the self-funded Approval flow when the extension is absent", async () => {
     const clientSigner = signer(0n);
-    await new ExactTronScheme(clientSigner).createPaymentPayload(2, requirements as never);
+    await pay(clientSigner)(2, requirements as never);
 
     expect(clientSigner.ensureAllowance).toHaveBeenCalledWith({
       token: TOKEN,
@@ -148,9 +159,9 @@ describe("TRC-20 Approval Resource Sponsoring client", () => {
 
   it("rejects a non-zero insufficient allowance instead of signing an unsafe Approval", async () => {
     const clientSigner = signer(1n);
-    await expect(
-      new ExactTronScheme(clientSigner).createPaymentPayload(2, requirements as never, context),
-    ).rejects.toThrow("approval_reset_required");
+    await expect(pay(clientSigner)(2, requirements as never, context)).rejects.toThrow(
+      "approval_reset_required",
+    );
   });
 
   it("signs over a partial allowance only under direct-overwrite policy", async () => {
@@ -162,11 +173,7 @@ describe("TRC-20 Approval Resource Sponsoring client", () => {
       enumerable: true,
     });
 
-    const result = await new ExactTronScheme(clientSigner).createPaymentPayload(
-      2,
-      requirements as never,
-      context,
-    );
+    const result = await pay(clientSigner)(2, requirements as never, context);
 
     expect(clientSigner.signPermit2Approval).toHaveBeenCalledTimes(1);
     expect(result.extensions?.[TRC20_APPROVAL_RESOURCE_SPONSORING_KEY]).toBeDefined();
@@ -175,7 +182,7 @@ describe("TRC-20 Approval Resource Sponsoring client", () => {
   it("rejects an unsupported extension version", async () => {
     const clientSigner = signer(0n);
     await expect(
-      new ExactTronScheme(clientSigner).createPaymentPayload(2, requirements as never, {
+      pay(clientSigner)(2, requirements as never, {
         extensions: {
           [TRC20_APPROVAL_RESOURCE_SPONSORING_KEY]: {
             info: { description: "future", version: "2" },

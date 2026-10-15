@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ExactTronScheme } from "../../src/exact/client";
 import { toClientTronSigner } from "../../src/signer";
-import { trySignTrc20ApprovalExtension } from "../../src/shared/extensions/resourceSponsoring";
-import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "../../src/shared/extensions/trc20ApprovalContract";
 import type { PaymentRequirements } from "@x402/core/types";
 
 const requirements: PaymentRequirements = {
@@ -41,14 +39,5 @@ describe("path-specific signer capabilities", () => {
     };
     const client = new ExactTronScheme(toClientTronSigner(original));
     expect(await client.checkBalance(requirements.asset, requirements.network)).toBe(42n);
-  });
-
-  it("reports missing reads before attempting sponsored Approval", async () => {
-    const signer = { ...bare, network: requirements.network };
-    await expect(
-      trySignTrc20ApprovalExtension(signer, requirements, {
-        extensions: { [TRC20_APPROVAL_RESOURCE_SPONSORING_KEY]: { info: { version: "1" } } },
-      }),
-    ).rejects.toThrow(/readContract/);
   });
 });

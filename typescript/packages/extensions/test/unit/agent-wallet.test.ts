@@ -1,3 +1,7 @@
+import {
+  createTrc20ApprovalResourceSponsoringClientExtension,
+  createTrc20ApprovalResourceSponsoringExtension,
+} from "../../src/trc20-approval-resource-sponsoring";
 import { afterEach, describe, expect, it } from "vitest";
 import { TronWeb, utils } from "tronweb";
 import { x402Client } from "@x402/core/client";
@@ -6,12 +10,12 @@ import {
   createClientTronSigner,
   createFacilitatorTronSigner,
   normalizeSignedTronTransaction,
-} from "../../src/signer";
-import { ExactTronScheme as ExactClient } from "../../src/exact/client";
-import { ExactTronScheme as ExactFacilitator } from "../../src/exact/facilitator";
-import { permit2WitnessTypes } from "../../src/constants";
-import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "../../src/exact/extensions";
-import { decodeSignedTrc20Approval } from "../../src/shared/trc20approval";
+} from "@bankofai/x402-tron";
+import { ExactTronScheme as ExactClient } from "@bankofai/x402-tron/exact/client";
+import { ExactTronScheme as ExactFacilitator } from "@bankofai/x402-tron/exact/facilitator";
+import { permit2WitnessTypes } from "@bankofai/x402-tron";
+import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "@bankofai/x402-tron/exact/extensions";
+import { decodeSignedTrc20Approval } from "../../src/trc20-approval-resource-sponsoring/approvalValidator";
 import {
   NETWORK,
   TOKEN,
@@ -47,7 +51,9 @@ async function setup() {
     maxTimeoutSeconds: 60,
     extra: { assetTransferMethod: "permit2", paymentFlow: "authorization" },
   };
-  const client = new x402Client().register(NETWORK, new ExactClient(signer));
+  const client = new x402Client()
+    .register(NETWORK, new ExactClient(signer))
+    .registerExtension(createTrc20ApprovalResourceSponsoringClientExtension(signer));
   const fac = new x402Facilitator().register(NETWORK, new ExactFacilitator(facSigner));
   const required = {
     x402Version: 2,
@@ -154,16 +160,15 @@ describe("real BOA 2.4.0 wallet + existing TRON adapters + official Core", () =>
       isValid: false,
       invalidReason: "sponsor_runtime_unavailable",
     });
-    e.fac.registerExtension({
-      key: TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
-      runtime: {
+    e.fac.registerExtension(
+      createTrc20ApprovalResourceSponsoringExtension({
         verify: async () => ({ isValid: true }),
         sponsor: async () => {
           e.rpc.state.allowance = MAX;
           return { success: true };
         },
-      },
-    });
+      }),
+    );
     expect(await e.fac.verify(payment, e.requirements)).toMatchObject({ isValid: true });
     const invalid = structuredClone(payment);
     invalid.extensions = { [TRC20_APPROVAL_RESOURCE_SPONSORING_KEY]: { info: { version: "1" } } };

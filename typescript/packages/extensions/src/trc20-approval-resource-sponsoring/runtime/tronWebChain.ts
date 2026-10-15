@@ -1,15 +1,18 @@
 import { TronWeb, utils as tronUtils } from "tronweb";
-import { erc20AllowanceAbi, transferWithAuthorizationABI } from "../constants";
-import type { FacilitatorTronSigner } from "../signer";
-import { normalizeSignedTronTransaction, serializeSignedTronTransaction } from "../signer";
-import type { Trc20ApprovalResourceSponsoringRequest } from "../shared/extensions/trc20ApprovalContract";
+import { erc20AllowanceAbi, transferWithAuthorizationABI } from "@bankofai/x402-tron";
+import type { FacilitatorTronSigner } from "@bankofai/x402-tron";
+import {
+  normalizeSignedTronTransaction,
+  serializeSignedTronTransaction,
+} from "@bankofai/x402-tron";
+import type { Trc20ApprovalResourceSponsoringRequest } from "@bankofai/x402-tron/exact/extensions";
 import type {
   PreparedTronAction,
   Trc20ResourceLeg,
   Trc20ResourceSponsoringChain,
   Trc20SponsoringOperation,
   TronActionResult,
-} from "./types";
+} from "./types.js";
 
 const MAX_UINT256 = (1n << 256n) - 1n;
 const DEFAULT_RECOVERY_WINDOW_MS = 24 * 60 * 60 * 1000;

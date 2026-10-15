@@ -1,38 +1,14 @@
 import type {
-  FacilitatorExtension,
-  PaymentPayload,
-  PaymentRequirements,
-} from "@bankofai/x402-core/types";
-
-/** Extension identifier for TRC-20 Approval Resource Sponsoring. */
+  Trc20ApprovalResourceSponsoringRuntime,
+  Trc20ApprovalResourceSponsoringFacilitatorExtension,
+  Trc20ApprovalResourceSponsoringInfo,
+} from "@bankofai/x402-tron/exact/extensions";
+import { TRC20_APPROVAL_RESOURCE_SPONSORING_KEY } from "@bankofai/x402-tron/exact/extensions";
+import { verifyTrc20Sponsorship, executeTrc20Sponsorship } from "./facilitatorPayment.js";
+export * from "@bankofai/x402-tron/exact/extensions";
 export const TRC20_APPROVAL_RESOURCE_SPONSORING = {
-  key: "trc20ApprovalResourceSponsoring",
-} as const satisfies FacilitatorExtension;
-
-/** Current wire-schema version. */
-export const TRC20_APPROVAL_RESOURCE_SPONSORING_VERSION = "1";
-
-/** Unlimited TRC-20 approval amount (`type(uint256).max`). */
-export const TRC20_APPROVAL_MAX_AMOUNT =
-  "115792089237316195423570985008687907853269984665640564039457584007913129639935";
-
-/** Client-populated extension information. */
-export interface Trc20ApprovalResourceSponsoringInfo {
-  readonly [key: string]: unknown;
-  /** Payer and Approval signer in TRON Base58Check form. */
-  readonly from: string;
-  /** TRC-20 contract in TRON Base58Check form. */
-  readonly asset: string;
-  /** Canonical Permit2 contract in TRON Base58Check form. */
-  readonly spender: string;
-  /** Approval amount as a decimal string. Version 1 requires MaxUint256. */
-  readonly amount: string;
-  /** Complete signed TRON Transaction protobuf as lowercase hex without `0x`. */
-  readonly signedTransaction: string;
-  /** Extension schema version. */
-  readonly version: string;
-}
-
+  key: TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
+} as const;
 /** Server-provided declaration metadata. */
 export interface Trc20ApprovalResourceSponsoringServerInfo {
   readonly [key: string]: unknown;
@@ -46,89 +22,24 @@ export interface Trc20ApprovalResourceSponsoringExtension {
   schema: Record<string, unknown>;
 }
 
-/** Request passed to a Facilitator's resource-sponsoring runtime. */
-export interface Trc20ApprovalResourceSponsoringRequest {
-  readonly network: string;
-  readonly approvalTxID: string;
-  readonly approvalTimestamp: string;
-  readonly approvalExpiration: string;
-  readonly approvalFeeLimitSun: string;
-  /** Two-byte TAPOS block-number reference as lowercase hex. */
-  readonly approvalRefBlockBytes: string;
-  /** Eight-byte TAPOS block-hash reference as lowercase hex. */
-  readonly approvalRefBlockHash: string;
-  readonly payer: string;
-  readonly asset: string;
-  readonly spender: string;
-  readonly amount: string;
-  /** Permit2 allowance required by the selected payment or deposit operation. */
-  readonly requiredAllowance?: string;
-  readonly signedTransaction: string;
-  readonly paymentPayload: PaymentPayload;
-  readonly paymentRequirements: PaymentRequirements;
-}
-
-/** Read-only runtime verification result. */
-export interface Trc20ApprovalResourceSponsoringVerification {
-  isValid: boolean;
-  invalidReason?: string;
-  invalidMessage?: string;
-}
-
-/** Result of executing the sponsored Approval lifecycle. */
-export interface Trc20ApprovalResourceSponsoringResult {
-  success: boolean;
-  approvalTransaction?: string;
-  errorReason?: string;
-  errorMessage?: string;
-}
-
-/** Result of repeating Scheme checks immediately before Approval broadcast. */
-export interface Trc20SponsorshipRevalidationResult {
-  readonly isValid: boolean;
-  readonly invalidReason?: string;
-  readonly invalidMessage?: string;
-}
-
-/** Settle-time controls supplied by the shared TRON Extension integration. */
-export interface Trc20SponsorshipExecutionOptions {
-  /** Payment authorization deadline in Unix milliseconds. */
-  readonly paymentDeadlineMs?: number;
-  /** Revalidates the selected Scheme after delegation and before Approval broadcast. */
-  readonly revalidate?: () => Promise<Trc20SponsorshipRevalidationResult>;
-}
-
 /**
- * Facilitator-owned runtime for chain reads, policy admission, resource
- * delegation, Approval broadcast, and resource reclamation.
- */
-export interface Trc20ApprovalResourceSponsoringRuntime {
-  verify(
-    request: Trc20ApprovalResourceSponsoringRequest,
-  ): Promise<Trc20ApprovalResourceSponsoringVerification>;
-  sponsor(
-    request: Trc20ApprovalResourceSponsoringRequest,
-    options?: Trc20SponsorshipExecutionOptions,
-  ): Promise<Trc20ApprovalResourceSponsoringResult>;
-}
-
-/** Facilitator extension carrying the resource-sponsoring runtime. */
-export interface Trc20ApprovalResourceSponsoringFacilitatorExtension extends FacilitatorExtension {
-  key: "trc20ApprovalResourceSponsoring";
-  runtime?: Trc20ApprovalResourceSponsoringRuntime;
-  runtimeForNetwork?: (network: string) => Trc20ApprovalResourceSponsoringRuntime | undefined;
-}
-
-/**
- * Creates a Facilitator extension backed by a resource-sponsoring runtime.
+ * Register complete resource verification and execution capabilities with official Core.
  *
- * @param runtime - Default runtime used for every network.
- * @param runtimeForNetwork - Optional network-specific runtime resolver.
- * @returns Facilitator Extension ready for registration.
+ * @param runtime - Default resource runtime.
+ * @param runtimeForNetwork - Optional per-network resolver.
+ * @returns Official facilitator extension with payment capabilities.
  */
 export function createTrc20ApprovalResourceSponsoringExtension(
   runtime: Trc20ApprovalResourceSponsoringRuntime,
   runtimeForNetwork?: (network: string) => Trc20ApprovalResourceSponsoringRuntime | undefined,
 ): Trc20ApprovalResourceSponsoringFacilitatorExtension {
-  return { ...TRC20_APPROVAL_RESOURCE_SPONSORING, runtime, runtimeForNetwork };
+  const extension: Trc20ApprovalResourceSponsoringFacilitatorExtension = {
+    key: TRC20_APPROVAL_RESOURCE_SPONSORING_KEY,
+    runtime,
+    runtimeForNetwork,
+    verifyPayment: (p, r, payer, amount) => verifyTrc20Sponsorship(p, r, payer, extension, amount),
+    executePayment: (p, r, payer, amount, deadline, revalidate) =>
+      executeTrc20Sponsorship(p, r, payer, extension, amount, deadline, revalidate),
+  };
+  return extension;
 }

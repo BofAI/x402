@@ -39,7 +39,8 @@ pnpm --filter @bankofai/x402-evm exec vitest run test/unit/upto   # one suite
 | `packages/core` | `@bankofai/x402-core` | Protocol types, client/server/facilitator orchestration, http resource server. **Upstream fork** (see below). |
 | `packages/mechanisms/evm` | `@bankofai/x402-evm` | EVM schemes (`exact`, `upto`, `batch-settlement`, `auth-capture`). **Upstream fork.** |
 | `packages/mechanisms/tron` | `@bankofai/x402-tron` | TRON schemes (`exact`, `exact_gasfree`, `upto`, `batch-settlement`). **In-house** (no upstream). |
-| `packages/extensions` | `@bankofai/x402-extensions` | Payload extensions (gas-sponsoring, offer-receipt, sign-in-with-x). |
+| `packages/extensions` | `@bankofai/x402-tron-extensions` | TRON resource sponsorship using official Core 2.28.0. |
+| `packages/legacy/extensions` | `@bankofai/x402-extensions` | Frozen generic extension compatibility during migration. |
 | `packages/http/{fetch,express,fastify,hono,next,axios}` | `@bankofai/x402-{fetch,express,…}` | Transport: fetch client + framework middleware. |
 | `packages/mcp` | — | MCP transport. |
 | `packages/legacy`, `packages/x402-deprecated` | — | Frozen back-compat. **Do not add new code.** |

@@ -1,6 +1,6 @@
 import { utils as tronUtils } from "tronweb";
 import type { Network } from "@x402/core/types";
-import { buildTrc20SponsoringPlan } from "./resourceSizing";
+import { buildTrc20SponsoringPlan } from "./resourceSizing.js";
 import type {
   ManagedTrc20ApprovalResourceSponsoringRuntime,
   PreparedTronAction,
@@ -12,13 +12,13 @@ import type {
   Trc20SponsoringPlan,
   Trc20SponsoringPreflight,
   TronResourceType,
-} from "./types";
+} from "./types.js";
 import type {
   Trc20ApprovalResourceSponsoringRequest,
   Trc20SponsorshipExecutionOptions,
-} from "../shared/extensions/trc20ApprovalContract";
-import { createTrc20ApprovalPolicy, type Trc20ApprovalPolicy } from "../approvalPolicy";
-import { getTronNetworkRepresentations, normalizeTronNetwork } from "../network";
+} from "@bankofai/x402-tron/exact/extensions";
+import { createTrc20ApprovalPolicy, type Trc20ApprovalPolicy } from "@bankofai/x402-tron";
+import { getTronNetworkRepresentations, normalizeTronNetwork } from "@bankofai/x402-tron";
 
 const DEFAULT_ENERGY_SAFETY_BPS = 12_000n;
 const DEFAULT_BANDWIDTH_SAFETY_BPS = 11_000n;

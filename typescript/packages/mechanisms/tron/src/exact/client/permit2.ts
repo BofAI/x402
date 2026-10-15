@@ -7,10 +7,7 @@ import {
 import { ClientTronSigner } from "../../signer";
 import { ExactPermit2Payload } from "../../types";
 import { createNonce, getTronChainId, normalizeAddressForSigning } from "../../utils";
-import {
-  isTrc20ApprovalResourceSponsoringDeclared,
-  trySignTrc20ApprovalExtension,
-} from "../../shared/extensions/resourceSponsoring";
+import { isTrc20ApprovalResourceSponsoringDeclared } from "../../exact/extensions";
 
 /**
  * Creates a Permit2 payload using the x402Permit2Proxy witness pattern on TRON.
@@ -87,29 +84,9 @@ export async function createPermit2Payload(
     permit2Authorization,
   };
 
-  const approvalExtension = sponsorshipDeclared
-    ? await trySignTrc20ApprovalExtension(
-        signer,
-        paymentRequirements,
-        context,
-        requiredAllowance.toString(),
-      )
-    : { handled: false, extensions: undefined };
-
-  // Preserve the existing self-funded Approval fallback when the extension is
-  // absent or the signer cannot create a serialized signed TRON transaction.
-  if (sponsorshipDeclared && !approvalExtension.handled) {
-    await signer.ensureAllowance?.({
-      token: paymentRequirements.asset,
-      amount: requiredAllowance,
-      network,
-    });
-  }
-
   return {
     x402Version,
     payload,
-    ...(approvalExtension.extensions ? { extensions: approvalExtension.extensions } : {}),
   };
 }
 
