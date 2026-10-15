@@ -1,3 +1,4 @@
+import { readTronContract } from "../../signer";
 import type { PaymentPayloadContext, PaymentRequirements } from "@bankofai/x402-core/types";
 import { erc20AllowanceAbi, PERMIT2_ADDRESSES } from "../../constants";
 import type { ClientTronSigner } from "../../signer";
@@ -65,7 +66,7 @@ export async function trySignTrc20ApprovalExtension(
   const requiredAllowance = BigInt(approvalAmount ?? requirements.amount);
 
   const allowance = BigInt(
-    (await signer.readContract({
+    (await readTronContract(signer, {
       address: requirements.asset,
       abi: erc20AllowanceAbi as unknown as readonly Record<string, unknown>[],
       functionName: "allowance",

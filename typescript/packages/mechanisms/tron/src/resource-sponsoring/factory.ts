@@ -1,4 +1,4 @@
-import type { FacilitatorWallet } from "./wallets";
+import type { FacilitatorWallet } from "../wallets";
 import { buildTronWeb } from "../rpc";
 import { createFacilitatorTronSigner } from "../signer";
 import { createStaticTrc20ResourceSponsoringPolicy } from "./policy";

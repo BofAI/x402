@@ -1,35 +1,9 @@
-import { TronWeb, utils as tronUtils } from "tronweb";
+import type { TronWeb } from "tronweb";
 import type { ClientWallet, FacilitatorWallet } from "./wallets";
-import {
-  DEFAULT_FEE_LIMIT_SUN,
-  PERMIT2_ADDRESSES,
-  erc20AllowanceAbi,
-  erc20ApproveAbi,
-} from "./constants";
-import { buildTronWeb } from "./rpc";
-import { isValidTronTxHash, tronAddressToEvm } from "./utils";
-import { normalizeTronNetwork } from "./network";
-import { log } from "./logger";
-import { createTrc20ApprovalPolicy, type Trc20ApprovalPolicy } from "./approvalPolicy";
+import type { Trc20ApprovalPolicy } from "./approvalPolicy";
 
 /** Allowance-ensuring strategy for {@link ClientTronSigner.ensureAllowance}. */
 export type AllowanceMode = "auto" | "skip" | "interactive";
-
-/** Default time budget for observing a packed TRON receipt. */
-export const DEFAULT_CONFIRMATION_TIMEOUT_MS = 90_000;
-
-/** Upper bound imposed by JavaScript's signed 32-bit timer implementation. */
-const MAX_CONFIRMATION_TIMEOUT_MS = 2_147_483_647;
-
-/** Unlimited approval amount (`type(uint256).max`), the canonical Permit2 grant. */
-const MAX_UINT256 = (1n << 256n) - 1n;
-
-/**
- * Fee-limit cap (in SUN) for the one-time Permit2 `approve`. Mirrors the Python
- * client's 100 TRX cap — an ERC-20 approve costs far less, so this only bounds
- * the worst-case TRX burn.
- */
-const APPROVE_FEE_LIMIT_SUN = 100_000_000;
 
 /**
  * Signer interface for TRON client operations.
@@ -65,7 +39,7 @@ export interface ClientTronSigner {
   /**
    * Read data from a smart contract.
    */
-  readContract(args: {
+  readContract?(args: {
     address: string;
     abi: readonly Record<string, unknown>[];
     functionName: string;
@@ -108,7 +82,7 @@ export interface ClientTronSigner {
 
 /**
  * Wallet abstraction for TRON client signing — the chain-agnostic
- * {@link ClientWallet} from core (`getAddress` + `signTypedData` + optional
+ * {@link ClientWallet} from the TRON package (`getAddress` + `signTypedData` + optional
  * `signTransaction`). Decouples the client signer from how the wallet was created
  * (raw key, hosted/MDP, hardware, `@bankofai/agent-wallet`, …); any object of
  * that shape satisfies it. `signTransaction` (when present) lets
@@ -186,7 +160,7 @@ type TronContract = {
  * Composes a ClientTronSigner from a signer-like object and an optional TronWeb instance.
  *
  * Use this when your signer can sign typed data but does not expose a contract read helper.
- * If `signer.readContract` is missing, `tronWeb` is required and will be used to satisfy reads.
+ * An optional `tronWeb` supplies reads. Without it, signature-only payment paths still work.
  *
  * @param signer - The signer-like object to adapt.
  * @param tronWeb - An optional TronWeb instance used to supply contract reads.
@@ -199,9 +173,9 @@ export function toClientTronSigner(
   tronWeb?: TronWeb,
 ): ClientTronSigner {
   const readContract =
-    signer.readContract ??
+    signer.readContract?.bind(signer) ??
     (tronWeb
-      ? async (args: Parameters<ReadContractCapable["readContract"]>[0]) => {
+      ? async (args: Parameters<NonNullable<ReadContractCapable["readContract"]>>[0]) => {
           const contract = (await tronWeb.contract(
             args.abi as unknown as TronContractAbi,
             args.address,
@@ -214,18 +188,12 @@ export function toClientTronSigner(
         }
       : undefined);
 
-  if (!readContract) {
-    throw new Error(
-      "toClientTronSigner requires either a signer with readContract or a TronWeb instance.",
-    );
-  }
-
   return {
     address: signer.address,
     ...(signer.network ? { network: signer.network } : {}),
     ...(signer.approvalPolicy ? { approvalPolicy: signer.approvalPolicy } : {}),
     signTypedData: args => signer.signTypedData(args),
-    readContract,
+    ...(readContract ? { readContract } : {}),
     ...(signer.ensureAllowance ? { ensureAllowance: args => signer.ensureAllowance!(args) } : {}),
     ...(signer.signPermit2Approval
       ? { signPermit2Approval: args => signer.signPermit2Approval!(args) }
@@ -246,8 +214,11 @@ export function toFacilitatorTronSigner(
   signer: Omit<FacilitatorTronSigner, "getAddresses"> & { address: string },
 ): FacilitatorTronSigner {
   return {
-    ...signer,
     getAddresses: () => [signer.address],
+    readContract: args => signer.readContract(args),
+    verifyTypedData: args => signer.verifyTypedData(args),
+    writeContract: args => signer.writeContract(args),
+    waitForTransactionReceipt: args => signer.waitForTransactionReceipt(args),
   };
 }
 
@@ -269,108 +240,6 @@ export interface CreateClientTronSignerOptions {
 }
 
 /**
- * Creates a ClientTronSigner from a {@link ClientTronWallet}. The TronWeb client
- * (contract reads + approve broadcast) is built internally from `opts.network`.
- *
- * Wallet-only: the private key never enters the SDK. To sign with a raw key
- * (dev/test), wrap it in a wallet first.
- *
- * The returned signer always exposes {@link ClientTronSigner.ensureAllowance}
- * (used by the permit2 flow to broadcast the one-time `approve(Permit2)`, mirroring
- * the Python client). If the wallet cannot sign transactions, it throws only when
- * an approve is actually required — sign-only / pre-approved wallets still work.
- *
- * @param wallet - The wallet that signs typed data (and optionally transactions).
- * @param opts - Target network (+ optional RPC / API key / allowance mode).
- * @returns A ClientTronSigner backed by the wallet.
- *
- * @example
- * ```typescript
- * const signer = await createClientTronSigner(wallet, { network: "tron:3448148188" });
- * client.register("tron:*", new ExactTronScheme(signer));
- * ```
- */
-export async function createClientTronSigner(
-  wallet: ClientTronWallet,
-  opts: CreateClientTronSignerOptions,
-): Promise<ClientTronSigner> {
-  const tronWeb = buildTronWeb(opts.network, { rpcUrl: opts.rpcUrl, apiKey: opts.apiKey });
-  const address = await wallet.getAddress();
-  const base = toClientTronSigner(
-    {
-      address,
-      // agent-wallet strips the 0x prefix, so a raw wallet breaks the
-      // `0x${string}` contract; re-add it here so callers and ExactTronScheme
-      // get a conforming signature without their own adapter. Mirrors
-      // createClientEvmSigner.
-      signTypedData: async args => {
-        const sig = await wallet.signTypedData(args);
-        return `0x${sig.replace(/^0x/, "")}` as `0x${string}`;
-      },
-    },
-    tronWeb,
-  );
-
-  // Give the TronWeb instance a default issuer for builds/reads (no key needed).
-  (tronWeb as unknown as WriteCapableTronWeb).setAddress(address);
-
-  // ensureAllowance is always exposed: it reads the Permit2 allowance and, when
-  // an approve is needed, broadcasts it via the wallet's signTransaction (the
-  // permit2 path uses this; eip3009 never calls it). If the wallet can't sign
-  // transactions, it throws a clear error only when an approve is actually
-  // required — pre-approved sign-only wallets still work.
-  const signTransaction = wallet.signTransaction?.bind(wallet);
-  const approvalPolicy = opts.approvalPolicy ?? createTrc20ApprovalPolicy();
-
-  return {
-    ...base,
-    network: normalizeTronNetwork(opts.network),
-    approvalPolicy,
-    ensureAllowance: allowanceArgs =>
-      ensurePermit2Allowance(
-        {
-          tronWeb,
-          ownerAddress: address,
-          signTransaction,
-          readContract: base.readContract,
-          approvalPolicy,
-        },
-        { ...allowanceArgs, mode: allowanceArgs.mode ?? opts.allowanceMode },
-      ),
-    ...(signTransaction
-      ? {
-          signPermit2Approval: async (args: {
-            token: string;
-            network: string;
-            minimumLifetimeSeconds: number;
-          }) => {
-            const permit2Address = PERMIT2_ADDRESSES[args.network];
-            if (!permit2Address) {
-              throw new Error(`No Permit2 contract address configured for network ${args.network}`);
-            }
-            const signed = await buildAndSignContract(
-              tronWeb,
-              address,
-              signTransaction,
-              {
-                address: args.token,
-                abi: erc20ApproveAbi as unknown as readonly Record<string, unknown>[],
-                functionName: "approve",
-                args: [permit2Address, MAX_UINT256],
-              },
-              {
-                feeLimit: APPROVE_FEE_LIMIT_SUN,
-                minimumLifetimeSeconds: args.minimumLifetimeSeconds,
-              },
-            );
-            return serializeSignedTronTransaction(signed);
-          },
-        }
-      : {}),
-  };
-}
-
-/**
  * A typed-data signer with an eagerly-resolved address — the receiver-authorizer
  * key for batch-settlement (signs `ClaimBatch` / `Refund` TIP-712 digests).
  */
@@ -386,29 +255,8 @@ export interface TronAuthorizerSignerLike {
 }
 
 /**
- * Creates a TRON authorizer signer (address + typed-data signing) from a wallet —
- * e.g. the batch-settlement `receiverAuthorizer`. No TronWeb is built (signing is
- * offline); the address is resolved eagerly and the `0x` prefix re-added.
- *
- * @param wallet - The wallet that holds the authorizer key.
- * @returns A signer satisfying batch-settlement's `TronAuthorizerSigner`.
- */
-export async function createAuthorizerTronSigner(
-  wallet: ClientTronWallet,
-): Promise<TronAuthorizerSignerLike> {
-  const address = await wallet.getAddress();
-  return {
-    address,
-    signTypedData: async args => {
-      const sig = await wallet.signTypedData(args);
-      return `0x${sig.replace(/^0x/, "")}` as `0x${string}`;
-    },
-  };
-}
-
-/**
  * Facilitator wallet abstraction for on-chain settlement — the chain-agnostic
- * {@link FacilitatorWallet} from core (`getAddress` + `signTransaction`). Lets the
+ * {@link FacilitatorWallet} from the TRON package (`getAddress` + `signTransaction`). Lets the
  * facilitator sign settlement transactions without handing a raw key to the SDK.
  * Only `exact`/permit2 settlement uses this; GasFree settles via the relayer and
  * needs no signing key.
@@ -434,628 +282,16 @@ export interface FacilitatorTronSignerOptions {
   confirmationTimeoutMs?: number;
 }
 
-type AbiTypeNode = { name?: string; type: string; components?: readonly AbiTypeNode[] };
-type AbiFunctionNode = { type: string; name: string; inputs?: readonly AbiTypeNode[] };
 
-/** Minimal TronWeb surface used for wallet-signed contract writes. */
-type WriteCapableTronWeb = {
-  transactionBuilder: {
-    triggerSmartContract(
-      contractAddress: string,
-      functionSelector: string,
-      options: Record<string, unknown>,
-      parameters: ReadonlyArray<{ type: string; value: unknown }>,
-      issuerAddress: string,
-    ): Promise<{ result?: { result?: boolean }; transaction: Record<string, unknown> }>;
-  };
-  trx: {
-    sendRawTransaction(
-      signed: Record<string, unknown>,
-    ): Promise<{ result?: boolean; txid?: string }>;
-  };
-  setAddress(address: string): void;
-};
-
-/**
- * Canonical ABI type string, recursing into tuples (e.g. `(address,uint256)`).
- *
- * @param node - The ABI input node.
- * @returns The canonical type string.
- */
-function canonicalAbiType(node: AbiTypeNode): string {
-  if (node.components && node.type.startsWith("tuple")) {
-    const inner = `(${node.components.map(canonicalAbiType).join(",")})`;
-    return node.type.endsWith("[]") ? `${inner}[]` : inner;
-  }
-  return node.type;
+/** Read only when the selected payment path requires RPC capability. */
+export function readTronContract(
+  signer: Pick<ClientTronSigner, "readContract">,
+  args: Parameters<NonNullable<ClientTronSigner["readContract"]>>[0],
+): Promise<unknown> {
+  if (!signer.readContract) throw new Error("This TRON payment path requires signer.readContract");
+  return signer.readContract(args);
 }
 
-/**
- * Build a function selector string from an ABI entry
- * (e.g. `settle(((address,uint256),uint256,uint256),address,(address,uint256),bytes)`).
- *
- * @param fn - The ABI function entry.
- * @returns The function selector string.
- */
-function buildFunctionSelector(fn: AbiFunctionNode): string {
-  return `${fn.name}(${(fn.inputs ?? []).map(canonicalAbiType).join(",")})`;
-}
-
-/**
- * Map raw args to `triggerSmartContract` `{type, value}` parameters via the ABI.
- *
- * @param fn - The ABI function entry.
- * @param args - The raw argument values, positional per `fn.inputs`.
- * @returns The typed parameter array.
- */
-function encodeTriggerParameters(
-  fn: AbiFunctionNode,
-  args: readonly unknown[],
-): { type: string; value: unknown }[] {
-  return (fn.inputs ?? []).map((input, i) => ({ type: canonicalAbiType(input), value: args[i] }));
-}
-
-/**
- * Find a function entry in an ABI by name.
- *
- * @param abi - The contract ABI.
- * @param name - The function name.
- * @returns The matching ABI function entry.
- */
-function findAbiFunction(abi: readonly Record<string, unknown>[], name: string): AbiFunctionNode {
-  const fn = (abi as readonly AbiFunctionNode[]).find(
-    e => e.type === "function" && e.name === name,
-  );
-  if (!fn) {
-    throw new Error(`Function ${name} not found in ABI`);
-  }
-  return fn;
-}
-
-/**
- * Normalize a wallet's signTransaction result into a broadcastable signed tx.
- *
- * Accepts a signed-tx object, a JSON string of one, or a raw signature hex
- * (mirrors agent-wallet's TronWallet, which returns a JSON-encoded signed tx).
- *
- * @param result - The wallet's signTransaction return value.
- * @param unsigned - The original unsigned transaction.
- * @returns A transaction object ready to broadcast.
- */
-export function normalizeSignedTronTransaction(
-  result: string | Record<string, unknown>,
-  unsigned: Record<string, unknown>,
-): Record<string, unknown> {
-  const normalizeSignatures = (transaction: Record<string, unknown>): Record<string, unknown> => {
-    const signatures = transaction.signature;
-    if (!Array.isArray(signatures)) return transaction;
-    return {
-      ...transaction,
-      signature: signatures.map(signature => {
-        if (typeof signature !== "string") return signature;
-        const prefix = signature.startsWith("0x") ? "0x" : "";
-        const hex = signature.slice(prefix.length);
-        if (!/^[0-9a-fA-F]{130}$/.test(hex)) return signature;
-        const recovery = Number.parseInt(hex.slice(-2), 16);
-        if (recovery !== 27 && recovery !== 28) return signature;
-        return `${prefix}${hex.slice(0, -2)}${(recovery - 27).toString(16).padStart(2, "0")}`;
-      }),
-    };
-  };
-
-  if (typeof result !== "string") {
-    return normalizeSignatures(result);
-  }
-  const trimmed = result.trim();
-  if (trimmed.startsWith("{")) {
-    let parsed: Record<string, unknown>;
-    try {
-      parsed = JSON.parse(trimmed) as Record<string, unknown>;
-    } catch (err) {
-      throw new Error(
-        `signTransaction returned a malformed JSON string: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    }
-    if (Array.isArray((parsed as { signature?: unknown }).signature)) {
-      return normalizeSignatures({ ...unsigned, ...parsed });
-    }
-    return normalizeSignatures(parsed);
-  }
-  return normalizeSignatures({ ...unsigned, signature: [trimmed.replace(/^0x/, "")] });
-}
-
-/** Wallet hook that signs a built TRON transaction for broadcast. */
-type SignTransactionFn = (
-  transaction: Record<string, unknown>,
-) => Promise<string | Record<string, unknown>>;
-
-type ContractWriteArgs = {
-  address: string;
-  abi: readonly Record<string, unknown>[];
-  functionName: string;
-  args: readonly unknown[];
-};
-
-/**
- * Build a contract write and obtain the wallet-signed transaction without broadcasting it.
- *
- * @param tronWeb - The TronWeb instance used to build the transaction.
- * @param issuerAddress - The transaction owner/issuer.
- * @param signTransaction - Wallet hook that signs the built transaction.
- * @param args - Contract call arguments.
- * @param args.address - Contract address.
- * @param args.abi - Contract ABI.
- * @param args.functionName - Contract function name.
- * @param args.args - Positional contract arguments.
- * @param options - Transaction policy options.
- * @param options.feeLimit - Maximum energy fee in SUN.
- * @param options.permissionId - Optional TRON multi-signature permission id.
- * @param options.minimumLifetimeSeconds - Minimum remaining transaction lifetime.
- * @returns Wallet-signed transaction object.
- */
-async function buildAndSignContract(
-  tronWeb: TronWeb,
-  issuerAddress: string,
-  signTransaction: SignTransactionFn,
-  args: ContractWriteArgs,
-  options: { feeLimit: number; permissionId?: number; minimumLifetimeSeconds?: number },
-): Promise<Record<string, unknown>> {
-  const tw = tronWeb as unknown as WriteCapableTronWeb;
-  const fn = findAbiFunction(args.abi, args.functionName);
-  const selector = buildFunctionSelector(fn);
-  const parameters = encodeTriggerParameters(fn, args.args);
-  log.debug("x402 tron: build+sign start", {
-    contract: args.address,
-    method: args.functionName,
-    issuer: issuerAddress,
-    feeLimit: options.feeLimit,
-    ...(options.permissionId != null ? { permissionId: options.permissionId } : {}),
-  });
-  const built = await tw.transactionBuilder.triggerSmartContract(
-    args.address,
-    selector,
-    {
-      feeLimit: options.feeLimit,
-      callValue: 0,
-      ...(options.permissionId != null ? { permissionId: options.permissionId } : {}),
-    },
-    parameters,
-    issuerAddress,
-  );
-  if (!built.result?.result) {
-    throw new Error(`triggerSmartContract failed: ${JSON.stringify(built)}`);
-  }
-  const unsigned = extendTransactionLifetime(built.transaction, options.minimumLifetimeSeconds);
-  return normalizeSignedTronTransaction(await signTransaction(unsigned), unsigned);
-}
-
-/**
- * Extends an unsigned TRON transaction and recomputes its authoritative identity.
- *
- * @param transaction - RPC-built unsigned transaction.
- * @param minimumLifetimeSeconds - Required lifetime measured from the local clock.
- * @returns The original transaction or an immutable extended transaction.
- */
-function extendTransactionLifetime(
-  transaction: Record<string, unknown>,
-  minimumLifetimeSeconds?: number,
-): Record<string, unknown> {
-  if (minimumLifetimeSeconds == null) return transaction;
-  if (
-    !Number.isSafeInteger(minimumLifetimeSeconds) ||
-    minimumLifetimeSeconds <= 0 ||
-    minimumLifetimeSeconds > 86_400
-  ) {
-    throw new Error("minimumLifetimeSeconds must be an integer between 1 and 86400");
-  }
-  const rawData = transaction.raw_data as Record<string, unknown> | undefined;
-  if (!rawData || typeof rawData.expiration !== "number") {
-    throw new Error("TRON transaction is missing raw_data.expiration");
-  }
-  const minimumExpiration = Date.now() + minimumLifetimeSeconds * 1_000;
-  if (rawData.expiration >= minimumExpiration) return transaction;
-
-  const extended = {
-    ...transaction,
-    raw_data: { ...rawData, expiration: minimumExpiration },
-  };
-  const transactionPb = tronUtils.transaction.txJsonToPb(extended);
-  return {
-    ...extended,
-    raw_data_hex: tronUtils.transaction.txPbToRawDataHex(transactionPb).toLowerCase(),
-    txID: tronUtils.transaction.txPbToTxID(transactionPb).replace(/^0x/, "").toLowerCase(),
-  };
-}
-
-/**
- * Serialize a signed TRON transaction object into its complete protobuf wire bytes.
- *
- * @param transaction - Wallet-signed TRON transaction object.
- * @returns Complete signed Transaction protobuf as lowercase hex.
- */
-export function serializeSignedTronTransaction(transaction: Record<string, unknown>): string {
-  const signatures = transaction.signature;
-  if (!Array.isArray(signatures) || signatures.length !== 1 || typeof signatures[0] !== "string") {
-    throw new Error("TRON Approval requires exactly one transaction signature");
-  }
-  const signature = signatures[0].replace(/^0x/, "").toLowerCase();
-  if (!/^[0-9a-f]{130}$/.test(signature)) {
-    throw new Error("TRON Approval signature must be 65-byte hexadecimal");
-  }
-
-  const transactionPb = tronUtils.transaction.txJsonToPb(transaction) as {
-    addSignature(bytes: Uint8Array): void;
-    serializeBinary(): Uint8Array;
-  };
-  transactionPb.addSignature(Uint8Array.from(tronUtils.code.hexStr2byteArray(signature)));
-  return tronUtils.code.byteArray2hexStr(transactionPb.serializeBinary()).toLowerCase();
-}
-
-/**
- * Build a contract-write tx, hand it to the wallet to sign (the key never
- * enters the SDK), then broadcast it. Shared by the facilitator settlement path
- * and the client one-time Permit2 approve.
- *
- * @param tronWeb - The TronWeb instance used to build and broadcast.
- * @param issuerAddress - The transaction owner/issuer (pays the on-chain fee).
- * @param signTransaction - Wallet hook that signs the built transaction.
- * @param args - The contract address, ABI, function name, and positional args.
- * @param options - Fee limit (SUN) and optional multi-sig permission id.
- * @param options.feeLimit - Maximum Energy burn in SUN.
- * @param options.permissionId - Optional TRON permission id.
- * @returns The broadcast transaction id.
- */
-async function buildSignAndBroadcast(
-  tronWeb: TronWeb,
-  issuerAddress: string,
-  signTransaction: SignTransactionFn,
-  args: ContractWriteArgs,
-  options: { feeLimit: number; permissionId?: number },
-): Promise<string> {
-  const tw = tronWeb as unknown as WriteCapableTronWeb;
-  const signed = await buildAndSignContract(tronWeb, issuerAddress, signTransaction, args, options);
-  const broadcast = await tw.trx.sendRawTransaction(signed);
-  if (!broadcast.result) {
-    log.error("x402 tron: broadcast rejected", {
-      contract: args.address,
-      method: args.functionName,
-      response: JSON.stringify(broadcast),
-    });
-    throw new Error(`sendRawTransaction failed: ${JSON.stringify(broadcast)}`);
-  }
-  if (!isValidTronTxHash(broadcast.txid)) {
-    // Broadcast reported success but returned no usable txid; without one the
-    // caller cannot reconcile an indeterminate settlement. Fail terminally.
-    log.error("x402 tron: broadcast returned invalid txid", {
-      contract: args.address,
-      method: args.functionName,
-      response: JSON.stringify(broadcast),
-    });
-    throw new Error(`sendRawTransaction returned invalid txid: ${JSON.stringify(broadcast)}`);
-  }
-  const txid = broadcast.txid.replace(/^0x/i, "").toLowerCase();
-  log.info("x402 tron: broadcast ok", {
-    contract: args.address,
-    method: args.functionName,
-    txid,
-  });
-  return txid;
-}
-
-type TronTxInfo = {
-  blockNumber?: number;
-  receipt?: { result?: string };
-};
-
-const TERMINAL_RECEIPT_FAILURES = new Set([
-  "REVERT",
-  "BAD_JUMP_DESTINATION",
-  "OUT_OF_MEMORY",
-  "PRECOMPILED_CONTRACT",
-  "STACK_TOO_SMALL",
-  "STACK_TOO_LARGE",
-  "ILLEGAL_OPERATION",
-  "STACK_OVERFLOW",
-  "OUT_OF_ENERGY",
-  "OUT_OF_TIME",
-  "JVM_STACK_OVER_FLOW",
-  "UNKNOWN",
-  "TRANSFER_FAILED",
-  "INVALID_CODE",
-]);
-
-/**
- * Resolve and validate a caller-supplied packed-receipt timeout.
- *
- * @param value - Configured timeout, or undefined to use the default.
- * @returns The validated confirmation timeout in milliseconds.
- */
-function resolveConfirmationTimeoutMs(value: number | undefined): number {
-  const timeoutMs = value ?? DEFAULT_CONFIRMATION_TIMEOUT_MS;
-  if (
-    !Number.isSafeInteger(timeoutMs) ||
-    timeoutMs <= 0 ||
-    timeoutMs > MAX_CONFIRMATION_TIMEOUT_MS
-  ) {
-    throw new Error(
-      `confirmationTimeoutMs must be a positive integer no greater than ${MAX_CONFIRMATION_TIMEOUT_MS}, got ${timeoutMs}`,
-    );
-  }
-  return timeoutMs;
-}
-
-/**
- * Await a single RPC request without allowing it to exceed the remaining budget.
- *
- * @param request - Receipt RPC request to await.
- * @param timeoutMs - Remaining confirmation budget in milliseconds.
- * @returns The RPC response when it completes within the remaining budget.
- */
-async function requestWithin<T>(request: Promise<T>, timeoutMs: number): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([
-      request,
-      new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error("TRON receipt RPC timed out")), timeoutMs);
-      }),
-    ]);
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
-}
-
-/**
- * Poll TRON for a transaction's confirmed result via the fullNode
- * `gettransactioninfobyid` endpoint.
- *
- * Unlike `getTransaction` (which returns a preconfirm `contractRet` that can
- * transiently read REVERT on mainnet), this endpoint only populates
- * `blockNumber` once the tx is packed into a block (~3-6s). The
- * `receipt.result` field then carries the execution status for that provisional
- * FullNode head. This mirrors tronpy's
- * `get_transaction_info`, which uses the same fullNode endpoint.
- *
- * (tronweb's own `trx.getTransactionInfo` reaches the solidityNode variant
- * `walletsolidity/gettransactioninfobyid`, which only returns after the block
- * solidifies (~19 confirmations / ~60s) — too slow. Calling the fullNode
- * endpoint directly avoids that delay while staying accurate.)
- *
- * @param tronWeb - The TronWeb instance used to read the transaction.
- * @param hash - The transaction id to wait for.
- * @param timeoutMs - Total confirmation budget in milliseconds.
- * @returns `success` / `reverted` once packed, or `pending` when still indeterminate.
- */
-async function pollTransactionPacked(
-  tronWeb: TronWeb,
-  hash: string,
-  timeoutMs: number = DEFAULT_CONFIRMATION_TIMEOUT_MS,
-): Promise<TronTransactionReceipt> {
-  if (!isValidTronTxHash(hash)) {
-    throw new Error(`invalid TRON transaction id: ${hash}`);
-  }
-  const rpcHash = hash.replace(/^0x/i, "").toLowerCase();
-  const delayMs = 3_000;
-  const deadline = Date.now() + timeoutMs;
-
-  while (Date.now() < deadline) {
-    let info: TronTxInfo | null = null;
-    try {
-      info = await requestWithin(
-        tronWeb.fullNode.request(
-          "wallet/gettransactioninfobyid",
-          { value: rpcHash },
-          "post",
-        ) as Promise<TronTxInfo | null>,
-        Math.max(1, deadline - Date.now()),
-      );
-    } catch {
-      // Not yet confirmed / transient node or rate-limit error — keep polling.
-    }
-    if (info?.blockNumber != null) {
-      const result = info.receipt?.result;
-      if (result === "SUCCESS") {
-        log.info("x402 tron: tx packed", {
-          hash,
-          status: "success",
-          contractRet: result,
-        });
-        return { status: "success" };
-      }
-      if (result && TERMINAL_RECEIPT_FAILURES.has(result)) {
-        log.warn("x402 tron: tx packed", {
-          hash,
-          status: "reverted",
-          contractRet: result,
-        });
-        return { status: "reverted" };
-      }
-      log.info("x402 tron: tx receipt incomplete", {
-        hash,
-        contractRet: result,
-      });
-    }
-
-    const remainingMs = deadline - Date.now();
-    if (remainingMs <= 0) break;
-    await new Promise(resolve => setTimeout(resolve, Math.min(delayMs, remainingMs)));
-  }
-
-  log.warn("x402 tron: tx confirm timeout (pending)", { hash, timeoutMs });
-  return { status: "pending" };
-}
-
-/**
- * Ensure the token's Permit2 allowance covers `amount`, broadcasting a one-time
- * `approve(Permit2, MAX_UINT256)` if it does not. Mirrors the Python client's
- * `ensure_allowance`, with two deliberate differences: the spender is the
- * canonical Permit2 (not Python's PaymentPermit), and an allowance-read error is
- * surfaced rather than swallowed (so we never approve on bad/zeroed data).
- *
- * @param deps - TronWeb, the owner address, the wallet sign hook, and a reader.
- * @param deps.tronWeb - TronWeb instance used to build and broadcast approval transactions.
- * @param deps.ownerAddress - Token owner granting the allowance.
- * @param deps.signTransaction - Optional wallet hook for signing an approval transaction.
- * @param deps.readContract - Contract reader used to inspect the current allowance.
- * @param deps.approvalPolicy - Token-specific Approval update policy.
- * @param args - Token, required amount (payment + fee), network, and mode.
- * @param args.token - TRC-20 token contract address.
- * @param args.amount - Required Permit2 allowance.
- * @param args.network - Canonical TRON CAIP-2 network.
- * @param args.mode - Allowance handling mode.
- * @returns `true` once the allowance is sufficient.
- */
-async function ensurePermit2Allowance(
-  deps: {
-    tronWeb: TronWeb;
-    ownerAddress: string;
-    signTransaction?: SignTransactionFn;
-    readContract: ClientTronSigner["readContract"];
-    approvalPolicy: Trc20ApprovalPolicy;
-  },
-  args: { token: string; amount: bigint; network: string; mode?: AllowanceMode },
-): Promise<boolean> {
-  const mode = args.mode ?? "auto";
-  if (mode === "skip") {
-    return true;
-  }
-  if (mode === "interactive") {
-    throw new Error("ensureAllowance: interactive approval mode is not implemented");
-  }
-
-  const permit2Address = PERMIT2_ADDRESSES[args.network];
-  if (!permit2Address) {
-    throw new Error(`No Permit2 contract address configured for network ${args.network}`);
-  }
-
-  // Read the ERC-20 allowance the token grants Permit2. Do NOT swallow errors:
-  // approving on a failed/zeroed read would burn TRX needlessly.
-  const currentRaw = (await deps.readContract({
-    address: args.token,
-    abi: erc20AllowanceAbi as unknown as readonly Record<string, unknown>[],
-    functionName: "allowance",
-    args: [deps.ownerAddress, permit2Address],
-  })) as bigint | string | number;
-  // Normalize: tronweb contract reads can surface a string/number rather than a
-  // bigint; comparing a non-bigint against `args.amount` (bigint) misbehaves or
-  // throws. Mirror readGasFreeBalance's BigInt() coercion.
-  const current = BigInt(currentRaw);
-
-  if (current >= args.amount) {
-    return true;
-  }
-
-  const strategy = deps.approvalPolicy.strategyFor(args.network, args.token);
-  if (strategy === "unsupported") {
-    throw new Error("approval_asset_unsupported");
-  }
-  if (current !== 0n && strategy === "zero-first") {
-    throw new Error("approval_reset_required");
-  }
-
-  // An approve is required but this wallet only signs typed data — surface a
-  // clear error early rather than failing later at facilitator settlement.
-  if (!deps.signTransaction) {
-    throw new Error(
-      "ensureAllowance: a one-time Permit2 approve is required but the wallet " +
-        "cannot sign transactions (no signTransaction). Approve Permit2 out-of-band " +
-        "or use a wallet that supports signTransaction.",
-    );
-  }
-
-  // One-time approve(Permit2, MAX_UINT256); the user's wallet pays the TRX.
-  const txid = await buildSignAndBroadcast(
-    deps.tronWeb,
-    deps.ownerAddress,
-    deps.signTransaction,
-    {
-      address: args.token,
-      abi: erc20ApproveAbi as unknown as readonly Record<string, unknown>[],
-      functionName: "approve",
-      args: [permit2Address, MAX_UINT256],
-    },
-    { feeLimit: APPROVE_FEE_LIMIT_SUN },
-  );
-
-  // Confirm at packed speed (~3s), not solidification (~60s): the allowance is
-  // live once the approve is packed, which is all the following payment needs.
-  const receipt = await pollTransactionPacked(deps.tronWeb, txid);
-  if (receipt.status !== "success") {
-    throw new Error(`Permit2 approval did not succeed (status=${receipt.status}, tx=${txid})`);
-  }
-  return true;
-}
-
-/**
- * Creates a FacilitatorTronSigner from a {@link FacilitatorTronWallet}. The
- * TronWeb client (reads / verification / writes) is built internally from
- * `opts.network`.
- *
- * The transaction is built, handed to the wallet to sign (the private key never
- * enters the SDK), then broadcast — mirroring the production facilitator that
- * resolves a keystore-backed wallet unlocked out-of-band. For dev/test, wrap a
- * key in a wallet yourself (e.g. via TronWeb's `trx.sign`).
- *
- * @param wallet - The wallet that signs settlement transactions.
- * @param opts - Target network (+ optional RPC / API key / fee limit / permission id).
- * @returns A FacilitatorTronSigner backed by the wallet.
- *
- * @example
- * ```typescript
- * const signer = await createFacilitatorTronSigner(wallet, { network: "tron:3448148188" });
- * facilitator.register("tron:3448148188", new ExactTronScheme(signer));
- * ```
- */
-export async function createFacilitatorTronSigner(
-  wallet: FacilitatorTronWallet,
-  opts: FacilitatorTronSignerOptions,
-): Promise<FacilitatorTronSigner> {
-  const tronWeb = buildTronWeb(opts.network, { rpcUrl: opts.rpcUrl, apiKey: opts.apiKey });
-  const address = await wallet.getAddress();
-  const feeLimit = opts.feeLimit ?? DEFAULT_FEE_LIMIT_SUN;
-  const confirmationTimeoutMs = resolveConfirmationTimeoutMs(opts.confirmationTimeoutMs);
-
-  // Reads and tx building need a default issuer address; set it without a key.
-  (tronWeb as unknown as WriteCapableTronWeb).setAddress(address);
-
-  return toFacilitatorTronSigner({
-    address,
-    async readContract(args) {
-      const contract = (await tronWeb.contract(
-        args.abi as unknown as TronContractAbi,
-        args.address,
-      )) as unknown as TronContract;
-      const method = contract.methods[args.functionName];
-      if (!method) {
-        throw new Error(`Method ${args.functionName} not found on contract ${args.address}`);
-      }
-      return method(...args.args).call();
-    },
-    async verifyTypedData(args) {
-      const mutableTypes = Object.fromEntries(
-        Object.entries(args.types).map(([name, fields]) => [name, [...fields]]),
-      );
-      const recovered = tronUtils.typedData.verifyTypedData(
-        args.domain,
-        mutableTypes,
-        args.message,
-        args.signature,
-      );
-
-      return tronAddressToEvm(args.address) === tronAddressToEvm(recovered);
-    },
-    async writeContract(args) {
-      // Build the tx, let the wallet sign it (the key never enters the SDK),
-      // then broadcast. Mirrors bankofai TronFacilitatorSigner.writeContract.
-      return buildSignAndBroadcast(tronWeb, address, tx => wallet.signTransaction(tx), args, {
-        feeLimit,
-        ...(opts.permissionId != null ? { permissionId: opts.permissionId } : {}),
-      });
-    },
-    async waitForTransactionReceipt(args) {
-      // Match the EVM signer behavior: wait for a low-latency execution receipt,
-      // not consensus finality. Callers receive settlement_pending on timeout.
-      return pollTransactionPacked(tronWeb, args.hash, confirmationTimeoutMs);
-    },
-  });
-}
+export { createClientTronSigner, createFacilitatorTronSigner, createAuthorizerTronSigner } from "./adapters/wallet";
+export { normalizeSignedTronTransaction, serializeSignedTronTransaction } from "./transactions/signatures";
+export { DEFAULT_CONFIRMATION_TIMEOUT_MS } from "./transactions/receipt";

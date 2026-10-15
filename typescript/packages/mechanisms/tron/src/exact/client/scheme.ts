@@ -1,3 +1,4 @@
+import { readTronContract } from "../../signer";
 import {
   PaymentRequirements,
   SchemeNetworkClient,
@@ -63,7 +64,7 @@ export class ExactTronScheme implements SchemeNetworkClient {
    */
   async checkBalance(asset: string, network: string): Promise<bigint> {
     void network;
-    const balance = (await this.signer.readContract({
+    const balance = (await readTronContract(this.signer, {
       address: asset,
       abi: transferWithAuthorizationABI as unknown as readonly Record<string, unknown>[],
       functionName: "balanceOf",

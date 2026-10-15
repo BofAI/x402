@@ -1,3 +1,4 @@
+import { readTronContract } from "../../signer";
 import {
   PaymentRequirements,
   PaymentPayloadResult,
@@ -215,7 +216,7 @@ export class ExactGasFreeTronScheme implements SchemeNetworkClient {
    * @returns The balance in smallest units.
    */
   private async readGasFreeBalance(asset: string, gasfreeAddress: string): Promise<bigint> {
-    const balance = (await this.signer.readContract({
+    const balance = (await readTronContract(this.signer, {
       address: asset,
       abi: transferWithAuthorizationABI as unknown as readonly Record<string, unknown>[],
       functionName: "balanceOf",

@@ -54,6 +54,8 @@ export { createUptoPermit2Payload } from "./upto/client/permit2";
 
 // Signers
 export {
+  toClientTronSigner,
+  toFacilitatorTronSigner,
   createClientTronSigner,
   createFacilitatorTronSigner,
   createAuthorizerTronSigner,

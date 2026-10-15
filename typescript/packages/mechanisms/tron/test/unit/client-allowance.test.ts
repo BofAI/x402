@@ -325,3 +325,13 @@ describe("createPermit2Payload — allowance injection", () => {
     expect(calls).toEqual(["ensure", "sign"]);
   });
 });
+
+
+describe("wallet adapter network intent", () => {
+  it("rejects a different approval network before querying or signing", async () => {
+    const tw = fakeTronWeb({ allowance: MAX_UINT256 });
+    const signer = await makeClientSigner(tw, { getAddress: () => OWNER, signTypedData: async () => "01", signTransaction: async () => ({}) });
+    await expect(signer.ensureAllowance!({ token: TOKEN, amount: 1n, network: "tron:728126428" })).rejects.toThrow(/network_mismatch/);
+    await expect(signer.signPermit2Approval!({ token: TOKEN, network: "tron:728126428", minimumLifetimeSeconds: 60 })).rejects.toThrow(/network_mismatch/);
+  });
+});
