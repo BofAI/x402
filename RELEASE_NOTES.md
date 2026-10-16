@@ -1,3 +1,33 @@
+# v3.0.0-beta.1 — TRON official Core integration
+
+Prepared: October 16, 2026. Distribution tag: `beta`. This is a prerelease for integration testing.
+The exact version is shared by `@bankofai/x402-tron` and `@bankofai/x402-tron-extensions`.
+Only these two packages are in this beta's publish list; existing stable tags remain unchanged.
+
+## Installation and migration
+
+```sh
+npm install @x402/core@2.28.0 @bankofai/x402-tron@3.0.0-beta.1
+# Optional resource sponsorship
+npm install @bankofai/x402-tron-extensions@3.0.0-beta.1
+```
+
+- Use official Core and HTTP/MCP integration packages in the same application call chain.
+- Import wallet compatibility contracts and logging from the TRON package.
+- Import resource runtime, coordinator, schema and Approval validation from the new extension package.
+- Explicitly register the extension's client and facilitator factories. Raw `{ key, runtime }` registration is no longer sufficient.
+- The extension pins the mechanism to the exact same beta version. Changesets groups both packages for future aligned releases.
+
+## Acceptance still pending
+
+M3 service migration, real testnet execution, persistent coordinator and cross-service recovery are
+not accepted. The reference in-memory coordinator is for development only. Upto still inherits
+optimistic verification when allowance or balance RPC reads fail; a fail-closed change is required
+before stable release. Existing resource-sponsorship runtime tests and offline signed transactions
+do not establish production readiness. M4 legacy caller migration and retirement remain separate.
+
+---
+
 # v1.2.0 — TRON Approval Resource Sponsoring
 
 Release date: August 28, 2026

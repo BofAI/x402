@@ -1,9 +1,11 @@
 {
   "name": "@bankofai/x402-tron-extensions",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "beta",
+    "registry": "https://registry.npmjs.org/"
   },
-  "version": "1.0.0",
+  "version": "3.0.0-beta.1",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/cjs/index.d.ts",
@@ -28,7 +30,11 @@
   ],
   "license": "Apache-2.0",
   "author": "x402 Foundation",
-  "repository": "https://github.com/x402-foundation/x402",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BofAI/x402.git",
+    "directory": "typescript/packages/extensions"
+  },
   "description": "TRON resource-sponsoring extensions for official x402 Core",
   "devDependencies": {
     "@eslint/js": "^9.24.0",
@@ -50,7 +56,7 @@
     "@bankofai/agent-wallet": "2.4.0"
   },
   "dependencies": {
-    "@bankofai/x402-tron": "workspace:~",
+    "@bankofai/x402-tron": "workspace:3.0.0-beta.1",
     "ajv": "^8.17.1",
     "tronweb": "6.3.0"
   },

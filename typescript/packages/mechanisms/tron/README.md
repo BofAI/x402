@@ -1,5 +1,21 @@
 # `@bankofai/x402-tron`
 
+## Beta 3.0.0-beta.1
+
+The mechanism and optional resource extension share the same beta version. Install the exact
+versions for integration testing:
+
+```sh
+npm install @x402/core@2.28.0 @bankofai/x402-tron@3.0.0-beta.1
+# Optional resource sponsorship
+npm install @bankofai/x402-tron-extensions@3.0.0-beta.1
+```
+
+Use official HTTP/MCP integration packages with this Core version. Resource sponsorship requires
+explicit client and facilitator extension registration. Live-chain service integration and durable
+production recovery are not yet accepted. Upto currently preserves optimistic verification on
+allowance/balance RPC errors; a fail-closed change remains required before stable release.
+
 TRON (TVM) implementation of the x402 payment protocol — pay with TRC-20 tokens using the **Exact** scheme over TIP-712 signed authorizations.
 
 ## Installation

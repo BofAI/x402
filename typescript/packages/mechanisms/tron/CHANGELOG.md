@@ -1,5 +1,13 @@
 # @bankofai/x402-tron
 
+## 3.0.0-beta.1
+
+- Use official `@x402/core@2.28.0` for all four TRON mechanisms; old Core is no longer a runtime dependency.
+- Separate signing, wallet adaptation, RPC configuration and transaction utilities; preserve compatible wallet factories.
+- Move resource sponsorship into `@bankofai/x402-tron-extensions@3.0.0-beta.1`; explicitly register client and facilitator extensions.
+- Support strict ESM/CJS consumers and publish the two TRON packages on a shared version line.
+- Beta limitation: live-chain service integration and production durable-coordinator recovery remain pending. Upto allowance/balance RPC errors currently retain the previous optimistic verification behavior; the fail-closed change is required before a stable release.
+
 ## 1.2.0
 
 ### Minor Changes

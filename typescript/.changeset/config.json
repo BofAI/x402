@@ -7,7 +7,12 @@
     }
   ],
   "commit": false,
-  "fixed": [],
+  "fixed": [
+    [
+      "@bankofai/x402-tron",
+      "@bankofai/x402-tron-extensions"
+    ]
+  ],
   "linked": [],
   "access": "public",
   "baseBranch": "develop",
