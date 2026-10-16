@@ -1,0 +1,552 @@
+{
+  "verifiedAt": "2026-10-16T07:35:53.764052+00:00",
+  "network": "tron:3448148188",
+  "facilitator": "https://facilitator.bankofai.io",
+  "deploymentSdkVersion": "unknown; /version returns404; x402Version2 is protocol only",
+  "packages": {
+    "@bankofai/x402-tron": "3.0.0-beta.1",
+    "@bankofai/x402-tron-extensions": "3.0.0-beta.1",
+    "@x402/core": "2.28.0"
+  },
+  "cases": {
+    "ordinary": {
+      "startedAt": "2026-10-16T07:09:09.775Z",
+      "mode": "ordinary",
+      "network": "tron:3448148188",
+      "rpc": "https://nile.trongrid.io",
+      "facilitator": "https://facilitator.bankofai.io",
+      "deploymentSdkVersion": "unknown",
+      "sdk": "3.0.0-beta.1",
+      "walletId": "tron_client",
+      "payer": "TTX1Us19zqsLXhY39PPR7KRUoMa93s3J3i",
+      "recipient": "TTX1Us19zqsLXhY39PPR7KRUoMa93s3J3i",
+      "stages": [
+        {
+          "stage": "preflight",
+          "at": "2026-10-16T07:09:12.473Z",
+          "trxSun": "1382146469",
+          "usdtAtomic": "9150563779",
+          "allowance": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+          "energyAvailable": 368569,
+          "bandwidthStakedAvailable": 12753,
+          "supportedSchemes": [
+            "exact",
+            "exact_gasfree",
+            "upto",
+            "batch-settlement"
+          ]
+        },
+        {
+          "stage": "invalid-signature",
+          "at": "2026-10-16T07:09:13.317Z",
+          "status": 400,
+          "deliveries": 0
+        },
+        {
+          "stage": "gateway-live-payment",
+          "at": "2026-10-16T07:09:17.632Z",
+          "status": 200,
+          "deliveries": 1,
+          "success": true,
+          "transaction": "a54a50f6d54dfcc168cb2d82f2989d3b48397d71395db6330c2c52ea2df6b029"
+        },
+        {
+          "stage": "chain-receipt",
+          "at": "2026-10-16T07:10:16.913Z",
+          "transaction": "a54a50f6d54dfcc168cb2d82f2989d3b48397d71395db6330c2c52ea2df6b029",
+          "blockNumber": 71867544,
+          "result": "SUCCESS",
+          "energy": 45193
+        },
+        {
+          "stage": "ordinary/settle",
+          "at": "2026-10-16T07:10:17.603Z",
+          "status": 200,
+          "success": false,
+          "transaction": "",
+          "reason": "permit2_nonce_consumed"
+        },
+        {
+          "stage": "official-settlement-query",
+          "at": "2026-10-16T07:10:17.888Z",
+          "status": 200,
+          "successes": 1
+        },
+        {
+          "stage": "complete",
+          "at": "2026-10-16T07:10:17.890Z",
+          "passed": true
+        }
+      ]
+    },
+    "upto": {
+      "startedAt": "2026-10-16T07:10:28.655Z",
+      "mode": "upto",
+      "network": "tron:3448148188",
+      "rpc": "https://nile.trongrid.io",
+      "facilitator": "https://facilitator.bankofai.io",
+      "deploymentSdkVersion": "unknown",
+      "sdk": "3.0.0-beta.1",
+      "walletId": "tron_client",
+      "payer": "TTX1Us19zqsLXhY39PPR7KRUoMa93s3J3i",
+      "recipient": "TTX1Us19zqsLXhY39PPR7KRUoMa93s3J3i",
+      "stages": [
+        {
+          "stage": "preflight",
+          "at": "2026-10-16T07:10:30.410Z",
+          "trxSun": "1382146469",
+          "usdtAtomic": "9150563779",
+          "allowance": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+          "energyAvailable": 368569,
+          "bandwidthStakedAvailable": 12753,
+          "supportedSchemes": [
+            "exact",
+            "exact_gasfree",
+            "upto",
+            "batch-settlement"
+          ]
+        },
+        {
+          "stage": "upto/verify",
+          "at": "2026-10-16T07:10:31.524Z",
+          "status": 200,
+          "isValid": true
+        },
+        {
+          "stage": "upto/settle",
+          "at": "2026-10-16T07:10:35.411Z",
+          "status": 200,
+          "success": true,
+          "transaction": "0c876c8f995e308ba9b30bf83fa7dc01725ad440b7201b6f93415dab2f56067a",
+          "amount": "1"
+        },
+        {
+          "stage": "chain-receipt",
+          "at": "2026-10-16T07:11:27.735Z",
+          "transaction": "0c876c8f995e308ba9b30bf83fa7dc01725ad440b7201b6f93415dab2f56067a",
+          "blockNumber": 71867568,
+          "result": "SUCCESS",
+          "energy": 45649
+        },
+        {
+          "stage": "upto/settle",
+          "at": "2026-10-16T07:11:28.677Z",
+          "status": 200,
+          "success": false,
+          "transaction": "",
+          "reason": "permit2_nonce_consumed"
+        },
+        {
+          "stage": "complete",
+          "at": "2026-10-16T07:11:28.678Z",
+          "passed": true
+        }
+      ]
+    },
+    "batch": {
+      "startedAt": "2026-10-16T07:11:54.547Z",
+      "mode": "batch",
+      "network": "tron:3448148188",
+      "rpc": "https://nile.trongrid.io",
+      "facilitator": "https://facilitator.bankofai.io",
+      "deploymentSdkVersion": "unknown",
+      "sdk": "3.0.0-beta.1",
+      "walletId": "tron_client",
+      "payer": "TTX1Us19zqsLXhY39PPR7KRUoMa93s3J3i",
+      "recipient": "TTX1Us19zqsLXhY39PPR7KRUoMa93s3J3i",
+      "stages": [
+        {
+          "stage": "preflight",
+          "at": "2026-10-16T07:11:56.150Z",
+          "trxSun": "1382146469",
+          "usdtAtomic": "9150563779",
+          "allowance": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+          "energyAvailable": 368569,
+          "bandwidthStakedAvailable": 12753,
+          "supportedSchemes": [
+            "exact",
+            "exact_gasfree",
+            "upto",
+            "batch-settlement"
+          ]
+        },
+        {
+          "stage": "batch/verify",
+          "at": "2026-10-16T07:11:57.074Z",
+          "status": 200,
+          "isValid": true
+        },
+        {
+          "stage": "batch/settle",
+          "at": "2026-10-16T07:12:01.609Z",
+          "status": 200,
+          "success": true,
+          "transaction": "d34a4a673bae4057aefa7ce75145dde8ef3bc1a7409f92c589f81bcd100de595",
+          "amount": "3"
+        },
+        {
+          "stage": "chain-receipt",
+          "at": "2026-10-16T07:12:02.695Z",
+          "transaction": "d34a4a673bae4057aefa7ce75145dde8ef3bc1a7409f92c589f81bcd100de595",
+          "blockNumber": 71867597,
+          "result": "SUCCESS",
+          "confirmation": "packed",
+          "energy": 78099
+        },
+        {
+          "stage": "batch/verify",
+          "at": "2026-10-16T07:12:03.236Z",
+          "status": 200,
+          "isValid": true
+        },
+        {
+          "stage": "batch/settle",
+          "at": "2026-10-16T07:12:06.958Z",
+          "status": 200,
+          "success": true,
+          "transaction": "1a062f1e57ca9f7d28bb7387228f5c5a38dd20ec740b6d409ee932b7c181a49b",
+          "amount": ""
+        },
+        {
+          "stage": "chain-receipt",
+          "at": "2026-10-16T07:12:07.213Z",
+          "transaction": "1a062f1e57ca9f7d28bb7387228f5c5a38dd20ec740b6d409ee932b7c181a49b",
+          "blockNumber": 71867599,
+          "result": "SUCCESS",
+          "confirmation": "packed",
+          "energy": 44580
+        },
+        {
+          "stage": "batch/settle",
+          "at": "2026-10-16T07:12:11.016Z",
+          "status": 200,
+          "success": true,
+          "transaction": "17ae4f555781302a1a09d5d928c1ceed777a3d02e095acd7e3d3292bc4989062",
+          "amount": "1"
+        },
+        {
+          "stage": "chain-receipt",
+          "at": "2026-10-16T07:12:11.280Z",
+          "transaction": "17ae4f555781302a1a09d5d928c1ceed777a3d02e095acd7e3d3292bc4989062",
+          "blockNumber": 71867600,
+          "result": "SUCCESS",
+          "confirmation": "packed",
+          "energy": 23974
+        },
+        {
+          "stage": "batch/settle",
+          "at": "2026-10-16T07:12:15.053Z",
+          "status": 200,
+          "success": true,
+          "transaction": "6d768cb992157bcf91a632423e8e0394c47093a05e4bbb2c1fe5f550e0c33c9e",
+          "amount": "2"
+        },
+        {
+          "stage": "chain-receipt",
+          "at": "2026-10-16T07:12:15.622Z",
+          "transaction": "6d768cb992157bcf91a632423e8e0394c47093a05e4bbb2c1fe5f550e0c33c9e",
+          "blockNumber": 71867601,
+          "result": "SUCCESS",
+          "confirmation": "packed",
+          "energy": 51698
+        },
+        {
+          "stage": "batch-channel-closed",
+          "at": "2026-10-16T07:12:15.622Z",
+          "channelId": "0x2773888c20a0ebfe7f60ba301817d8eb2d2a796a7cbd123dc2e48554c1295b9f",
+          "deposit": "3",
+          "claimed": "1",
+          "refunded": "2"
+        },
+        {
+          "stage": "complete",
+          "at": "2026-10-16T07:12:15.623Z",
+          "passed": true
+        }
+      ],
+      "postCheck": {
+        "channelBalance": "1",
+        "totalClaimed": "1",
+        "remainingSpendable": "0",
+        "source": "published readChannelBalanceAndTotalClaimed against Nile"
+      }
+    },
+    "gasfree": {
+      "startedAt": "2026-10-16T07:13:16.647Z",
+      "mode": "gasfree",
+      "network": "tron:3448148188",
+      "rpc": "https://nile.trongrid.io",
+      "facilitator": "https://facilitator.bankofai.io",
+      "deploymentSdkVersion": "unknown",
+      "sdk": "3.0.0-beta.1",
+      "walletId": "tron_client",
+      "payer": "TTX1Us19zqsLXhY39PPR7KRUoMa93s3J3i",
+      "recipient": "TTX1Us19zqsLXhY39PPR7KRUoMa93s3J3i",
+      "stages": [
+        {
+          "stage": "preflight",
+          "at": "2026-10-16T07:13:18.640Z",
+          "trxSun": "1382146469",
+          "usdtAtomic": "9150563779",
+          "allowance": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+          "energyAvailable": 368569,
+          "bandwidthStakedAvailable": 12753,
+          "supportedSchemes": [
+            "exact",
+            "exact_gasfree",
+            "upto",
+            "batch-settlement"
+          ]
+        },
+        {
+          "stage": "gateway-live-payment",
+          "at": "2026-10-16T07:13:26.075Z",
+          "status": 200,
+          "deliveries": 1,
+          "success": true,
+          "transaction": "b7ae23e1e65e0600fa137d6c7f3c1f20dbc9baa3b8382d2ac7a6fb2d9f302793"
+        },
+        {
+          "stage": "chain-receipt",
+          "at": "2026-10-16T07:13:26.845Z",
+          "transaction": "b7ae23e1e65e0600fa137d6c7f3c1f20dbc9baa3b8382d2ac7a6fb2d9f302793",
+          "blockNumber": 71867625,
+          "result": "SUCCESS",
+          "confirmation": "packed",
+          "energy": 52573
+        },
+        {
+          "stage": "official-settlement-query",
+          "at": "2026-10-16T07:13:28.118Z",
+          "status": 200,
+          "successes": 1
+        },
+        {
+          "stage": "complete",
+          "at": "2026-10-16T07:13:28.120Z",
+          "passed": true
+        }
+      ],
+      "authorizationSummary": {
+        "value": "1",
+        "maxFee": "300000",
+        "nonce": "61",
+        "deadline": "1792138395"
+      }
+    },
+    "resource-fixed": {
+      "startedAt": "2026-10-16T07:32:51.526Z",
+      "mode": "resource",
+      "network": "tron:3448148188",
+      "rpc": "https://nile.trongrid.io",
+      "facilitator": "https://facilitator.bankofai.io",
+      "deploymentSdkVersion": "unknown",
+      "sdk": "3.0.0-beta.1",
+      "walletId": "payer",
+      "payer": "TWdGY4P91fJSFzhR3zy3D9JRWXzhucZcbC",
+      "recipient": "TTX1Us19zqsLXhY39PPR7KRUoMa93s3J3i",
+      "stages": [
+        {
+          "stage": "preflight",
+          "at": "2026-10-16T07:32:54.363Z",
+          "trxSun": "999998",
+          "usdtAtomic": "10",
+          "allowance": "0",
+          "energyAvailable": 0,
+          "bandwidthStakedAvailable": 0,
+          "supportedSchemes": [
+            "exact",
+            "exact_gasfree",
+            "upto",
+            "batch-settlement"
+          ]
+        },
+        {
+          "stage": "signed-approval",
+          "at": "2026-10-16T07:32:55.310Z",
+          "approvalTxID": "a004d9aac30a9a3a279eeb149f87e5e0886676896f48921a3812c316259863ba",
+          "payer": "TWdGY4P91fJSFzhR3zy3D9JRWXzhucZcbC",
+          "allowanceBefore": "0"
+        },
+        {
+          "stage": "invalid-signature",
+          "at": "2026-10-16T07:32:55.592Z",
+          "status": 400,
+          "deliveries": 0
+        },
+        {
+          "stage": "gateway-live-payment",
+          "at": "2026-10-16T07:33:13.861Z",
+          "status": 200,
+          "deliveries": 1,
+          "success": true,
+          "transaction": "0319976176e25495748fb141b39ae6c00411f6cabe80cca94cc2ccbed37b8850"
+        },
+        {
+          "stage": "chain-receipt",
+          "at": "2026-10-16T07:33:15.226Z",
+          "transaction": "0319976176e25495748fb141b39ae6c00411f6cabe80cca94cc2ccbed37b8850",
+          "blockNumber": 71868021,
+          "result": "SUCCESS",
+          "confirmation": "packed",
+          "energy": 45193
+        },
+        {
+          "stage": "chain-receipt",
+          "at": "2026-10-16T07:33:15.470Z",
+          "transaction": "a004d9aac30a9a3a279eeb149f87e5e0886676896f48921a3812c316259863ba",
+          "blockNumber": 71868019,
+          "result": "SUCCESS",
+          "confirmation": "packed",
+          "energy": 22688
+        },
+        {
+          "stage": "sponsored-approval-confirmed",
+          "at": "2026-10-16T07:33:15.769Z",
+          "approvalTxID": "a004d9aac30a9a3a279eeb149f87e5e0886676896f48921a3812c316259863ba",
+          "allowanceAfter": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+        },
+        {
+          "stage": "resource-chain-action",
+          "at": "2026-10-16T07:33:17.511Z",
+          "action": "DelegateResourceContract",
+          "transaction": "f4c94cb4f8b2107468d9a39c92a67cff564120248877dac7e2c2c95736474a9c",
+          "resource": "ENERGY",
+          "stakeSun": "461769446",
+          "owner": "THuJK6PNaXibaQhxUdqUXczU57Y8EKhpex",
+          "blockNumber": 71868017
+        },
+        {
+          "stage": "chain-receipt",
+          "at": "2026-10-16T07:33:17.760Z",
+          "transaction": "f4c94cb4f8b2107468d9a39c92a67cff564120248877dac7e2c2c95736474a9c",
+          "blockNumber": 71868017,
+          "result": "SUCCESS",
+          "confirmation": "packed"
+        },
+        {
+          "stage": "resource-chain-action",
+          "at": "2026-10-16T07:33:18.396Z",
+          "action": "DelegateResourceContract",
+          "transaction": "0e38bee0d6c1ac929315e7a029847aa37c2e82ac8eade97ae77b906ba0789983",
+          "resource": "BANDWIDTH",
+          "stakeSun": "601864146",
+          "owner": "THuJK6PNaXibaQhxUdqUXczU57Y8EKhpex",
+          "blockNumber": 71868018
+        },
+        {
+          "stage": "chain-receipt",
+          "at": "2026-10-16T07:33:18.646Z",
+          "transaction": "0e38bee0d6c1ac929315e7a029847aa37c2e82ac8eade97ae77b906ba0789983",
+          "blockNumber": 71868018,
+          "result": "SUCCESS",
+          "confirmation": "packed"
+        },
+        {
+          "stage": "resource-chain-action",
+          "at": "2026-10-16T07:33:19.880Z",
+          "action": "UnDelegateResourceContract",
+          "transaction": "8b35961754b76f74a3e2d406639c06ddebe2dc9fbd3aec8ccc68b6a2b9f37369",
+          "resource": "ENERGY",
+          "stakeSun": "461769446",
+          "owner": "THuJK6PNaXibaQhxUdqUXczU57Y8EKhpex",
+          "blockNumber": 71868021
+        },
+        {
+          "stage": "chain-receipt",
+          "at": "2026-10-16T07:33:20.121Z",
+          "transaction": "8b35961754b76f74a3e2d406639c06ddebe2dc9fbd3aec8ccc68b6a2b9f37369",
+          "blockNumber": 71868021,
+          "result": "SUCCESS",
+          "confirmation": "packed"
+        },
+        {
+          "stage": "resource-chain-action",
+          "at": "2026-10-16T07:33:20.122Z",
+          "action": "UnDelegateResourceContract",
+          "transaction": "941224bc27b2fbe59689be8e1ae0119881b019f0a7c15e31dd2c34d6660de438",
+          "resource": "BANDWIDTH",
+          "stakeSun": "601864146",
+          "owner": "THuJK6PNaXibaQhxUdqUXczU57Y8EKhpex",
+          "blockNumber": 71868021
+        },
+        {
+          "stage": "chain-receipt",
+          "at": "2026-10-16T07:33:20.370Z",
+          "transaction": "941224bc27b2fbe59689be8e1ae0119881b019f0a7c15e31dd2c34d6660de438",
+          "blockNumber": 71868021,
+          "result": "SUCCESS",
+          "confirmation": "packed"
+        },
+        {
+          "stage": "resource/settle",
+          "at": "2026-10-16T07:33:21.151Z",
+          "status": 200,
+          "success": false,
+          "transaction": "",
+          "reason": "permit2_nonce_consumed"
+        },
+        {
+          "stage": "official-settlement-query",
+          "at": "2026-10-16T07:33:21.434Z",
+          "status": 200,
+          "successes": 1
+        },
+        {
+          "stage": "complete",
+          "at": "2026-10-16T07:33:21.435Z",
+          "passed": true
+        }
+      ]
+    }
+  },
+  "regressionsFound": {
+    "resourceDefaultTimeout": {
+      "before": "Gateway10s returned504; original officialsettle succeeded; no upstreamdelivery; originalnonce neverrepaid",
+      "original": {
+        "payer": "TYGRoRimcfoWcvr7u2z3YPN8p9RUNaWiaq",
+        "settlement": "d159dd357a0acaa5f0adb632a5f278104ef1283b48d2ee471937059d1cfe39d5",
+        "settlementBlock": 71867834,
+        "result": "SUCCESS",
+        "actions": [
+          {
+            "action": "DelegateResourceContract",
+            "resource": "ENERGY",
+            "stakeSun": "461769446",
+            "owner": "THuJK6PNaXibaQhxUdqUXczU57Y8EKhpex",
+            "transaction": "9f7ed7f6912f140e020bef1c10d3f5a88c3a2ce9e548fee09904b71b399e104b",
+            "blockNumber": 71867830
+          },
+          {
+            "action": "DelegateResourceContract",
+            "resource": "BANDWIDTH",
+            "stakeSun": "601864146",
+            "owner": "THuJK6PNaXibaQhxUdqUXczU57Y8EKhpex",
+            "transaction": "c77f11a9437a015bcce2fb54cd47b297aec8f807346447ba2b853cd469d77f99",
+            "blockNumber": 71867832
+          },
+          {
+            "action": "UnDelegateResourceContract",
+            "resource": "BANDWIDTH",
+            "stakeSun": "601864146",
+            "owner": "THuJK6PNaXibaQhxUdqUXczU57Y8EKhpex",
+            "transaction": "bb5d65b4dc9feecec59dfdd092a4ba4abfb32dfc9347e44dbc6c2bdde828283d",
+            "blockNumber": 71867834
+          },
+          {
+            "action": "UnDelegateResourceContract",
+            "resource": "ENERGY",
+            "stakeSun": "461769446",
+            "owner": "THuJK6PNaXibaQhxUdqUXczU57Y8EKhpex",
+            "transaction": "9d681d55a012c1463bfc609eba712a400a57db938961d840b86011fc762d4a68",
+            "blockNumber": 71867836
+          }
+        ]
+      },
+      "after": "opt-in resource only defaultmax240s/global; dedicatedoverride; freshpayer Gateway200/delivery1+bothresource reclaim receipts"
+    }
+  },
+  "gatewayCommit": "c5b933bbce5e2279db7a76102f9b1151b09dd746",
+  "facilitatorLocalCommit": "d6335c87ff16183f842f9cb913b31b3bdb9a066b",
+  "facilitatorRuntimeFixCommit": "55f0e461990afd881145f4cb4eb50cbfb363f6d1"
+}
