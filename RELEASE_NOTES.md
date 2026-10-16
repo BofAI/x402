@@ -1,8 +1,11 @@
 # v3.0.0-beta.1 — TRON official Core integration
 
-Prepared: October 16, 2026. Distribution tag: `beta`. This is a prerelease for integration testing.
+Published: October 16, 2026. Distribution tag: `beta`. This is a prerelease for integration testing.
 The exact version is shared by `@bankofai/x402-tron` and `@bankofai/x402-tron-extensions`.
-Only these two packages are in this beta's publish list; existing stable tags remain unchanged.
+Only these two packages are in this beta's publish list; the mechanism's existing stable tag remains 2.0.0.
+The new extension also has an extra `latest` tag pointing at this beta. npm rejected token-based
+removal of that tag; interactive tag cleanup remains pending. Install the explicit version below.
+Registry hashes and independent strict ESM/CJS installs have been verified for both packages.
 
 ## Installation and migration
 
