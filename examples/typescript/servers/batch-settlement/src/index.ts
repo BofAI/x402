@@ -8,12 +8,10 @@
  * `src/chains/`; a chain registers only when its payout address is set.
  */
 import express from "express";
-import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
-import { createResourceServer } from "@bankofai/x402-core";
-import {
-  x402HTTPResourceServer,
-  paymentMiddlewareFromHTTPServer,
-} from "@bankofai/x402-express";
+import { HTTPFacilitatorClient } from "@x402/core/server";
+import { x402ResourceServer } from "@x402/core/server";
+import { x402HTTPResourceServer } from "@x402/core/http";
+import { paymentMiddlewareFromHTTPServer } from "@x402/express";
 
 import { hasEvm, registerEvm, evmAccepts, type StoppableManager } from "./chains/evm.js";
 import { hasTron, registerTron, tronAccepts } from "./chains/tron.js";
@@ -34,6 +32,7 @@ const FACILITATOR_API_KEY = process.env.FACILITATOR_API_KEY;
 
 const apiKeyHeaders: Record<string, string> = FACILITATOR_API_KEY ? { "X-API-KEY": FACILITATOR_API_KEY } : {};
 const httpFacilitator = new HTTPFacilitatorClient({
+  timeoutMs: 120_000,
   url: FACILITATOR_URL,
   ...(FACILITATOR_API_KEY
     ? {
@@ -48,8 +47,8 @@ const httpFacilitator = new HTTPFacilitatorClient({
 const facilitatorClient = STRIP_RESOURCE_URL
   ? new ResourceStrippingFacilitatorClient(httpFacilitator)
   : httpFacilitator;
-// createResourceServer pre-attaches verify/settle logging (see express example).
-const resourceServer = createResourceServer(facilitatorClient);
+// Add lifecycle hooks here if the application needs verify/settle logging.
+const resourceServer = new x402ResourceServer(facilitatorClient);
 
 // Register each chain (and start its channel manager) only when its payout is set.
 type Accept = ReturnType<typeof evmAccepts>[number] | ReturnType<typeof tronAccepts>[number];

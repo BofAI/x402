@@ -1,5 +1,7 @@
 # `@bankofai/x402-tron`
 
+2.1 正式版迁移准备见 [迁移说明](../../../../docs/migrations/tron-2.1.md)。
+
 ## Beta 2.1.0-beta.2
 
 The mechanism and optional resource extension share the same beta version. Install the exact

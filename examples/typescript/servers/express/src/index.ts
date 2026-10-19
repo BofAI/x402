@@ -6,14 +6,10 @@
  * facilitator over HTTP. Per-chain setup lives in `src/chains/`.
  */
 import express from "express";
-import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
-// createResourceServer = new x402ResourceServer + verify/settle logging
-// pre-attached (the resource-server mirror of createFacilitator).
-import { createResourceServer } from "@bankofai/x402-core";
-import {
-  x402HTTPResourceServer,
-  paymentMiddlewareFromHTTPServer,
-} from "@bankofai/x402-express";
+import { HTTPFacilitatorClient } from "@x402/core/server";
+import { x402ResourceServer } from "@x402/core/server";
+import { x402HTTPResourceServer } from "@x402/core/http";
+import { paymentMiddlewareFromHTTPServer } from "@x402/express";
 
 import { hasEvm, registerEvm, evmAccepts, evmExtensions } from "./chains/evm.js";
 import { hasTron, registerTron, tronAccepts } from "./chains/tron.js";
@@ -32,6 +28,7 @@ const FACILITATOR_API_KEY = process.env.FACILITATOR_API_KEY;
 
 const apiKeyHeaders: Record<string, string> = FACILITATOR_API_KEY ? { "X-API-KEY": FACILITATOR_API_KEY } : {};
 const httpFacilitator = new HTTPFacilitatorClient({
+  timeoutMs: 120_000,
   url: FACILITATOR_URL,
   ...(FACILITATOR_API_KEY
     ? {
@@ -46,9 +43,7 @@ const httpFacilitator = new HTTPFacilitatorClient({
 const facilitatorClient = STRIP_RESOURCE_URL
   ? new ResourceStrippingFacilitatorClient(httpFacilitator)
   : httpFacilitator;
-// Logging pre-attached: verify/settle results (incl. the invalidReason/
-// errorReason the middleware otherwise swallows on a 402) print via the SDK.
-const resourceServer = createResourceServer(facilitatorClient);
+const resourceServer = new x402ResourceServer(facilitatorClient);
 
 // Register each chain (and advertise its tokens) only when its payout is set.
 // Each chain may advertise multiple tokens, so accepts is flattened. EVM prices

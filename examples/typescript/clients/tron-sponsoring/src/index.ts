@@ -1,10 +1,12 @@
 /**
  * TRON Approval Resource Sponsoring payer on Nile.
  *
- * The Server declaration makes the exact Client attach a signed, unbroadcast
+ * The Server declaration and registered client extension attach a signed, unbroadcast
  * TRC-20 Approval. The Facilitator supplies Energy/Bandwidth and broadcasts it.
  */
-import { x402Client, wrapFetchWithPayment } from '@bankofai/x402-fetch'
+import { createTrc20ApprovalResourceSponsoringClientExtension } from "@bankofai/x402-tron-extensions";
+import { x402Client } from "@x402/core/client";
+import { wrapFetchWithPayment } from "@x402/fetch";
 import { createClientTronSigner, TRON_NILE } from '@bankofai/x402-tron'
 import { ExactTronScheme } from '@bankofai/x402-tron/exact/client'
 
@@ -18,7 +20,7 @@ const signer = await createClientTronSigner(wallet, {
   apiKey: process.env.TRON_GRID_API_KEY,
   ...(rpcUrl ? { rpcUrl } : {}),
 })
-const client = new x402Client().register(TRON_NILE, new ExactTronScheme(signer))
+const client = new x402Client().register(TRON_NILE, new ExactTronScheme(signer)).registerExtension(createTrc20ApprovalResourceSponsoringClientExtension(signer))
 const fetchWithPayment = wrapFetchWithPayment(fetch, client)
 
 console.info(`[tron-sponsoring] payer ${signer.address}`)

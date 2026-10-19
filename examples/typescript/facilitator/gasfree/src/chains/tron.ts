@@ -14,7 +14,7 @@ import {
   TRON_NILE,
 } from "@bankofai/x402-tron";
 import { registerExactGasFreeTronScheme } from "@bankofai/x402-tron/gasfree/facilitator";
-import type { x402Facilitator } from "@bankofai/x402-core/facilitator";
+import type { x402Facilitator } from "@x402/core/facilitator";
 
 import { tryResolveTronWallet } from "../env.js";
 

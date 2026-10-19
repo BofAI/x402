@@ -14,7 +14,7 @@ import {
   TRON_MAINNET,
 } from "@bankofai/x402-tron";
 import { UptoTronScheme } from "@bankofai/x402-tron/upto/facilitator";
-import type { x402Facilitator } from "@bankofai/x402-core/facilitator";
+import type { x402Facilitator } from "@x402/core/facilitator";
 
 import { tryResolveWallet } from "../env.js";
 

@@ -9,8 +9,8 @@
  * the ERC-20 approval gas-sponsoring extension — see `servers/express`.
  */
 import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
-import type { Network } from "@bankofai/x402-core/types";
-import type { ResourceConfig, x402ResourceServer } from "@bankofai/x402-core/server";
+import type { Network } from "@x402/core/types";
+import type { ResourceConfig, x402ResourceServer } from "@x402/core/server";
 
 /** CAIP-2 network this server accepts EVM payments on (BSC testnet). */
 export const EVM_NETWORK: Network = "eip155:97";

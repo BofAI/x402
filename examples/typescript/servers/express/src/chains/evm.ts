@@ -17,8 +17,8 @@
  */
 import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
 import { declareErc20ApprovalGasSponsoringExtension } from "@bankofai/x402-extensions";
-import type { Network } from "@bankofai/x402-core/types";
-import type { x402ResourceServer } from "@bankofai/x402-express";
+import type { Network } from "@x402/core/types";
+import type { x402ResourceServer } from "@x402/core/server";
 import { selectPayTargetNetworks } from "../payTargets.js";
 
 type EvmToken = {

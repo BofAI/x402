@@ -18,8 +18,8 @@ import {
   normalizeTronNetwork,
 } from "@bankofai/x402-tron";
 import { BatchSettlementTronScheme } from "@bankofai/x402-tron/batch-settlement/server";
-import type { FacilitatorClient } from "@bankofai/x402-core/server";
-import type { x402ResourceServer } from "@bankofai/x402-express";
+import type { FacilitatorClient } from "@x402/core/server";
+import type { x402ResourceServer } from "@x402/core/server";
 
 import type { StoppableManager } from "./evm.js";
 

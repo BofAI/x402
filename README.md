@@ -14,6 +14,12 @@ x402 currently supports the **TRON** and **BSC** networks, with plans to expand 
 
 Version `2.0.0`. The SDK is a **TypeScript-only** pnpm/turbo monorepo published as granular `@bankofai/x402-*` packages (there is no umbrella package). `core` and the EVM mechanism are forks of the [`x402-foundation/x402`](https://github.com/x402-foundation/x402) upstream; the TRON mechanism is in-house. Supported schemes: `exact` (ERC-3009 / Permit2), `upto`, `batch-settlement`, `auth-capture` (EVM), and `exact_gasfree` (TRON). See [the v2.0.0 release notes](RELEASE_NOTES.md#v200--canonical-tron-networks-and-pending-settlement) for upgrade details.
 
+## TRON 2.1 release preparation
+
+TRON 2.1 moves to official Core 2.28.0 and publishes resource sponsorship as a separate package.
+This requires source migration from 2.0. Read the [TRON 2.1 migration guide](docs/migrations/tron-2.1.md)
+before upgrading. The stable 2.1.0 publication is pending; the current stable examples below describe 2.0.
+
 ## Features
 
 - **Protocol Native**: Restores the HTTP `402` status code to its intended purpose.

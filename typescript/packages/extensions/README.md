@@ -1,5 +1,7 @@
 # `@bankofai/x402-tron-extensions`
 
+2.1 正式版迁移准备见 [迁移说明](../../../docs/migrations/tron-2.1.md)。
+
 TRON 资源代付独立扩展包。Beta 版本与机制包统一为 `2.1.0-beta.2`，使用官方
 `@x402/core@2.28.0`，扩展精确依赖同版本机制包。
 

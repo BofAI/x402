@@ -12,7 +12,7 @@ import {
   normalizeTronNetwork,
 } from "@bankofai/x402-tron";
 import { ExactTronScheme } from "@bankofai/x402-tron/exact/client";
-import type { Network, SchemeNetworkClient } from "@bankofai/x402-core/types";
+import type { Network, SchemeNetworkClient } from "@x402/core/types";
 
 import { tryResolveWallet } from "../env.js";
 

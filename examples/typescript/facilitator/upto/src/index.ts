@@ -8,13 +8,13 @@
  * registers only when its wallet resolves.
  */
 import express from "express";
-import { x402Facilitator } from "@bankofai/x402-core/facilitator";
+import { x402Facilitator } from "@x402/core/facilitator";
 import type {
   PaymentPayload,
   PaymentRequirements,
   SettleResponse,
   VerifyResponse,
-} from "@bankofai/x402-core/types";
+} from "@x402/core/types";
 
 import { registerEvm } from "./chains/evm.js";
 import { registerTron } from "./chains/tron.js";

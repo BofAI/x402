@@ -12,7 +12,7 @@
  */
 import { createClientEvmSigner } from "@bankofai/x402-evm/adapters/agent-wallet";
 import { BatchSettlementEvmScheme } from "@bankofai/x402-evm/batch-settlement/client";
-import type { x402Client } from "@bankofai/x402-fetch";
+import type { x402Client } from "@x402/core/client";
 
 import {
   tryResolveWallet,

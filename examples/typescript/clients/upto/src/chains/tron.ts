@@ -16,7 +16,7 @@ import {
   TRON_MAINNET,
 } from "@bankofai/x402-tron";
 import { UptoTronScheme } from "@bankofai/x402-tron/upto/client";
-import type { x402Client } from "@bankofai/x402-fetch";
+import type { x402Client } from "@x402/core/client";
 
 import { tryResolveWallet } from "../env.js";
 

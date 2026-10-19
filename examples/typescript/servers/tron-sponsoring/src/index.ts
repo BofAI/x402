@@ -1,10 +1,11 @@
 /** TRON Approval Resource Sponsoring resource server on Nile. */
 import express from 'express'
-import { createResourceServer } from '@bankofai/x402-core'
-import type { RoutesConfig } from '@bankofai/x402-core/http'
-import { HTTPFacilitatorClient } from '@bankofai/x402-core/server'
-import { paymentMiddlewareFromHTTPServer, x402HTTPResourceServer } from '@bankofai/x402-express'
-import { declareTrc20ApprovalResourceSponsoringExtension } from '@bankofai/x402-extensions'
+import { x402ResourceServer } from "@x402/core/server";
+import type { RoutesConfig } from '@x402/core/http'
+import { HTTPFacilitatorClient } from '@x402/core/server'
+import { x402HTTPResourceServer } from "@x402/core/http";
+import { paymentMiddlewareFromHTTPServer } from "@x402/express";
+import { declareTrc20ApprovalResourceSponsoringExtension } from '@bankofai/x402-tron-extensions'
 import { TRON_NILE } from '@bankofai/x402-tron'
 import { ExactTronScheme } from '@bankofai/x402-tron/exact/server'
 
@@ -13,7 +14,7 @@ const facilitatorUrl = process.env.FACILITATOR_URL || 'http://localhost:4042'
 const payTo = process.env.TRON_ADDRESS?.trim()
 if (!payTo) throw new Error('TRON_ADDRESS is required')
 
-const resourceServer = createResourceServer(new HTTPFacilitatorClient({ url: facilitatorUrl }))
+const resourceServer = new x402ResourceServer(new HTTPFacilitatorClient({ url: facilitatorUrl, timeoutMs: 120_000 }))
 resourceServer.register(TRON_NILE, new ExactTronScheme())
 const routes: RoutesConfig = {
   'GET /weather': {

@@ -10,7 +10,7 @@ import {
   TRON_SHASTA,
 } from "@bankofai/x402-tron";
 import { ExactTronScheme } from "@bankofai/x402-tron/exact/facilitator";
-import type { x402Facilitator } from "@bankofai/x402-core/facilitator";
+import type { x402Facilitator } from "@x402/core/facilitator";
 
 import { tryResolveWallet } from "../env.js";
 

@@ -13,7 +13,7 @@ import {
   normalizeTronNetwork,
 } from "@bankofai/x402-tron";
 import { registerExactGasFreeTronScheme } from "@bankofai/x402-tron/gasfree/server";
-import type { x402ResourceServer } from "@bankofai/x402-express";
+import type { x402ResourceServer } from "@x402/core/server";
 
 // Switch to TRON_MAINNET for production (REAL FUNDS); only the client and
 // facilitator TronWeb/relayer endpoints change, this module is unchanged.

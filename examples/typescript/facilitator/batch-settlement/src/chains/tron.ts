@@ -18,7 +18,7 @@ import {
   TRON_MAINNET,
 } from "@bankofai/x402-tron";
 import { BatchSettlementTronScheme } from "@bankofai/x402-tron/batch-settlement/facilitator";
-import type { x402Facilitator } from "@bankofai/x402-core/facilitator";
+import type { x402Facilitator } from "@x402/core/facilitator";
 
 import { tryResolveWallet } from "../env.js";
 

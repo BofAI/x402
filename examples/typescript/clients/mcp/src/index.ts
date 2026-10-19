@@ -28,8 +28,9 @@ import {
 } from "@bankofai/x402-tron";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
-import { x402Client, wrapMCPClientWithPayment } from "@bankofai/x402-mcp";
-import type { Network } from "@bankofai/x402-core/types";
+import { x402Client } from "@x402/core/client";
+import { wrapMCPClientWithPayment } from "@x402/mcp";
+import type { Network } from "@x402/core/types";
 
 import { evmSchemes } from "./chains/evm.js";
 import { tronSchemes } from "./chains/tron.js";

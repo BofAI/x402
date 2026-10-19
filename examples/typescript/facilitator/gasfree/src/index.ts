@@ -7,23 +7,21 @@
  * `tron.ts`, gated on whether an agent-wallet is configured.
  */
 import express from "express";
-import { createFacilitator } from "@bankofai/x402-core";
+import { x402Facilitator } from "@x402/core/facilitator";
 import type {
   PaymentPayload,
   PaymentRequirements,
   SettleResponse,
   VerifyResponse,
-} from "@bankofai/x402-core/types";
+} from "@x402/core/types";
 
 import { registerTronGasFree } from "./chains/tron.js";
 
 // Dedicated env var (set in .env-gasfree) so the GasFree line keeps its own :4032.
 const PORT = parseInt(process.env.FACILITATOR_PORT || "4032", 10);
 
-// createFacilitator() returns an x402Facilitator with structured verify/settle
-// logging pre-attached (via the hook surface, routed through the SDK's injectable
-// global logger). Use new x402Facilitator() instead for a log-free instance.
-const facilitator = createFacilitator();
+// Add lifecycle hooks here if the application needs verify/settle logging.
+const facilitator = new x402Facilitator();
 
 const tron = await registerTronGasFree(facilitator);
 if (!tron) {

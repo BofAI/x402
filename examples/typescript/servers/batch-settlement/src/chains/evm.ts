@@ -17,9 +17,9 @@ import {
   BatchSettlementEvmScheme,
   type BatchSettlementChannelManager,
 } from "@bankofai/x402-evm/batch-settlement/server";
-import type { FacilitatorClient } from "@bankofai/x402-core/server";
-import type { Network } from "@bankofai/x402-core/types";
-import type { x402ResourceServer } from "@bankofai/x402-express";
+import type { FacilitatorClient } from "@x402/core/server";
+import type { Network } from "@x402/core/types";
+import type { x402ResourceServer } from "@x402/core/server";
 
 type EvmToken = {
   asset: `0x${string}`;

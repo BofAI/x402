@@ -23,7 +23,8 @@ import {
   TRON_MAINNET,
   TRON_SHASTA,
 } from "@bankofai/x402-tron";
-import { x402Client, wrapFetchWithPayment } from "@bankofai/x402-fetch";
+import { x402Client } from "@x402/core/client";
+import { wrapFetchWithPayment } from "@x402/fetch";
 
 import { registerEvm } from "./chains/evm.js";
 import { registerTron } from "./chains/tron.js";

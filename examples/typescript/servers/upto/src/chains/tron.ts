@@ -16,7 +16,7 @@ import {
   normalizeTronNetwork,
 } from "@bankofai/x402-tron";
 import { UptoTronScheme } from "@bankofai/x402-tron/upto/server";
-import type { x402ResourceServer } from "@bankofai/x402-express";
+import type { x402ResourceServer } from "@x402/core/server";
 
 // Switch to TRON_MAINNET for production (REAL FUNDS): USDT is registered there
 // too — only the facilitator/client TronWeb `fullHost` must point at mainnet.

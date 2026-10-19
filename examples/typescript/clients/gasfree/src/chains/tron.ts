@@ -16,7 +16,7 @@ import {
   TRON_NILE,
 } from "@bankofai/x402-tron";
 import { registerExactGasFreeTronScheme } from "@bankofai/x402-tron/gasfree/client";
-import type { x402Client } from "@bankofai/x402-fetch";
+import type { x402Client } from "@x402/core/client";
 
 import { tryResolveTronWallet } from "../env.js";
 

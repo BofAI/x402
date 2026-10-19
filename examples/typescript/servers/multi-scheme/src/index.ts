@@ -13,12 +13,10 @@
  * dispatches accordingly.
  */
 import express from "express";
-import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
-import { createResourceServer } from "@bankofai/x402-core";
-import {
-  x402HTTPResourceServer,
-  paymentMiddlewareFromHTTPServer,
-} from "@bankofai/x402-express";
+import { HTTPFacilitatorClient } from "@x402/core/server";
+import { x402ResourceServer } from "@x402/core/server";
+import { x402HTTPResourceServer } from "@x402/core/http";
+import { paymentMiddlewareFromHTTPServer } from "@x402/express";
 
 import { hasEvm, registerEvm, evmAccepts, evmExtensions } from "./chains/evm.js";
 import { hasTron, registerTron, tronAccepts } from "./chains/tron.js";
@@ -46,6 +44,7 @@ const FACILITATOR_API_KEY = process.env.FACILITATOR_API_KEY;
 
 function makeFacilitator(url: string): HTTPFacilitatorClient {
   return new HTTPFacilitatorClient({
+  timeoutMs: 120_000,
     url,
     ...(FACILITATOR_API_KEY
       ? {
@@ -64,8 +63,8 @@ function wrap(client: HTTPFacilitatorClient): HTTPFacilitatorClient | ResourceSt
 }
 
 const facilitatorClients = FACILITATOR_URLS.map(url => wrap(makeFacilitator(url)));
-// createResourceServer pre-attaches verify/settle logging (see express example).
-const resourceServer = createResourceServer(facilitatorClients);
+// Add lifecycle hooks here if the application needs verify/settle logging.
+const resourceServer = new x402ResourceServer(facilitatorClients);
 
 if (!hasEvm() && !hasTron()) {
   console.error("❌ No payout address configured (set EVM_ADDRESS and/or TRON_ADDRESS).");

@@ -12,9 +12,9 @@
  * `approve(Permit2)`).
  */
 import { UptoEvmScheme } from "@bankofai/x402-evm/upto/server";
-import type { Network } from "@bankofai/x402-core/types";
-import { convertToTokenAmount, parseMoney } from "@bankofai/x402-core/utils";
-import type { x402ResourceServer } from "@bankofai/x402-express";
+import type { Network } from "@x402/core/types";
+import { convertToTokenAmount, parseMoney } from "@x402/core/utils";
+import type { x402ResourceServer } from "@x402/core/server";
 
 /** CAIP-2 network → explicit token used for upto authorizations. */
 const EVM_TOKENS: Record<string, { asset: `0x${string}`; decimals: number }> = {

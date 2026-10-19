@@ -1,17 +1,15 @@
 /** Standalone TRON Approval Resource Sponsoring Facilitator on Nile. */
 import express from 'express'
-import { x402Facilitator } from '@bankofai/x402-core/facilitator'
+import { x402Facilitator } from '@x402/core/facilitator'
 import type {
   PaymentPayload,
   PaymentRequirements,
   SettleResponse,
   VerifyResponse,
-} from '@bankofai/x402-core/types'
-import { createTrc20ApprovalResourceSponsoringExtension } from '@bankofai/x402-extensions'
+} from '@x402/core/types'
+import { createTrc20ResourceSponsoringRuntime, InMemoryTrc20SponsoringCoordinator, createTrc20ApprovalResourceSponsoringExtension } from '@bankofai/x402-tron-extensions'
 import {
   createFacilitatorTronSigner,
-  createTrc20ResourceSponsoringRuntime,
-  InMemoryTrc20SponsoringCoordinator,
   TRON_NILE,
 } from '@bankofai/x402-tron'
 import { ExactTronScheme } from '@bankofai/x402-tron/exact/facilitator'

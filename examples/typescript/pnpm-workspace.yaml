@@ -6,6 +6,7 @@ packages:
   # Link the in-repo SDK packages so examples build against local source.
   - "../../typescript/packages/core"
   - "../../typescript/packages/extensions"
+  - "../../typescript/packages/legacy/extensions"
   - "../../typescript/packages/http/*"
   - "../../typescript/packages/mcp"
   - "../../typescript/packages/mechanisms/*"
@@ -20,3 +21,7 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
   utf-8-validate: true
+
+# Use one Express 4 declaration tree for our Express 4 examples and middleware.
+overrides:
+  "@types/express": "4.17.25"

@@ -1,6 +1,12 @@
 # x402 TypeScript examples (EVM + TRON)
 
-Runnable examples for the `@bankofai/x402-*` SDK, scoped to **EVM and TRON**.
+Runnable examples for the SDK, scoped to **EVM and TRON**. The TRON 2.1 candidate
+uses official `@x402/core`, HTTP and MCP integrations at `2.28.0`, and the local
+TRON mechanism/extension packages. See the [TRON 2.1 migration guide](../../docs/migrations/tron-2.1.md).
+The EVM mechanism and its ERC-20 extension remain the existing workspace packages;
+they are not part of the TRON 2.1 publish list. The separate logging example still
+demonstrates the legacy Core logger. The examples retain Express 4 and pin one Express 4 declaration tree across their
+workspace so HTTP middleware and application types resolve consistently.
 
 The x402 core is chain-agnostic; each example registers chains at one boundary
 (`src/chains/{evm,tron}.ts`) and self-skips a chain whose credentials are absent

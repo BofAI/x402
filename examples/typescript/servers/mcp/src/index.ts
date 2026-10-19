@@ -13,11 +13,11 @@ import crypto from "node:crypto";
 import express from "express";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
-import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
-import type { ResourceConfig } from "@bankofai/x402-core/server";
-import type { PaymentRequirements } from "@bankofai/x402-core/types";
-import { createResourceServer } from "@bankofai/x402-core";
-import { createPaymentWrapper } from "@bankofai/x402-mcp";
+import { HTTPFacilitatorClient } from "@x402/core/server";
+import type { ResourceConfig } from "@x402/core/server";
+import type { PaymentRequirements } from "@x402/core/types";
+import { x402ResourceServer } from "@x402/core/server";
+import { createPaymentWrapper } from "@x402/mcp";
 import { z } from "zod";
 
 import { hasEvm, registerEvm, evmAccepts } from "./chains/evm.js";
@@ -51,6 +51,7 @@ function getWeatherData(city: string): { city: string; weather: string; temperat
  */
 async function buildServer(): Promise<McpServer> {
   const facilitatorClient = new HTTPFacilitatorClient({
+    timeoutMs: 120_000,
     url: FACILITATOR_URL,
     ...(FACILITATOR_API_KEY
       ? {
@@ -62,8 +63,8 @@ async function buildServer(): Promise<McpServer> {
         }
       : {}),
   });
-  // createResourceServer pre-attaches verify/settle logging (see express example).
-  const resourceServer = createResourceServer(facilitatorClient);
+  // Add lifecycle hooks here if the application needs verify/settle logging.
+  const resourceServer = new x402ResourceServer(facilitatorClient);
 
   // Register each chain (and collect its advertised resource configs) only when
   // its payout address is set.

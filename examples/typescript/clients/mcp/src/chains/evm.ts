@@ -6,7 +6,7 @@
  */
 import { createClientEvmSigner } from "@bankofai/x402-evm/adapters/agent-wallet";
 import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
-import type { Network, SchemeNetworkClient } from "@bankofai/x402-core/types";
+import type { Network, SchemeNetworkClient } from "@x402/core/types";
 
 import { tryResolveWallet } from "../env.js";
 

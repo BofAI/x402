@@ -15,11 +15,11 @@ import {
   normalizeTronNetwork,
 } from "@bankofai/x402-tron";
 import { ExactTronScheme } from "@bankofai/x402-tron/exact/server";
-import type { Network } from "@bankofai/x402-core/types";
+import type { Network } from "@x402/core/types";
 import type {
   ResourceConfig,
   x402ResourceServer,
-} from "@bankofai/x402-core/server";
+} from "@x402/core/server";
 
 /** CAIP-2 network this server accepts TRON payments on. Switch to TRON_MAINNET
  *  for production (REAL FUNDS); USDT/USDD are registered there too. */

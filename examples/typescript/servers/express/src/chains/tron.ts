@@ -10,7 +10,7 @@
 import { TRON_NILE, TRON_MAINNET, TRON_SHASTA } from "@bankofai/x402-tron";
 import { ExactTronScheme } from "@bankofai/x402-tron/exact/server";
 import { getNetworkTokens } from "@bankofai/x402-tron";
-import type { x402ResourceServer } from "@bankofai/x402-express";
+import type { x402ResourceServer } from "@x402/core/server";
 import { selectPayTargetNetworks } from "../payTargets.js";
 
 // Switch to TRON_MAINNET for production (REAL FUNDS). USDT/USDD are registered

@@ -12,7 +12,7 @@
  */
 import { createFacilitatorEvmSigner } from "@bankofai/x402-evm/adapters/agent-wallet";
 import { UptoEvmScheme } from "@bankofai/x402-evm/upto/facilitator";
-import type { x402Facilitator } from "@bankofai/x402-core/facilitator";
+import type { x402Facilitator } from "@x402/core/facilitator";
 
 import { tryResolveWallet } from "../env.js";
 
