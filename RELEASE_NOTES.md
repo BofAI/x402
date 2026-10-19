@@ -1,11 +1,14 @@
 # v2.1.0 — TRON official Core and independent resource extension (planned)
 
-Release preparation; stable publication has not occurred. Only `@bankofai/x402-tron`
-and `@bankofai/x402-tron-extensions` are planned at `2.1.0`, with an exact matching dependency.
-Other workspace packages retain their existing versions and are outside this publish list.
+Release preparation; stable publication has not occurred. `@bankofai/x402-tron` and
+`@bankofai/x402-tron-extensions` target `2.1.0`, with an exact matching dependency.
+The Express, Fastify, Hono, and Next.js adapters target patch release `1.1.2` to replace
+the retired generic extension dependency with official `@x402/extensions@2.28.0`.
+Other workspace packages retain their existing versions.
 
 - Migrate the payment call chain to official `@x402/core@2.28.0` and matching HTTP/MCP integrations.
 - Install resource sponsorship separately and explicitly register both client and facilitator extensions.
+- Remove local legacy packages; use official `@x402/extensions@2.28.0` directly for upstream extension functionality.
 - Preserve the 2.0 Agent Wallet 3 transaction artifacts, canonical TRON networks and pending transaction IDs.
 - Reject failed/malformed upto allowance and balance reads with `chain_read_failed` before settlement broadcast.
 - Apply resolved spend caps to actual batch deposits and GasFree value plus maximum provider fee.

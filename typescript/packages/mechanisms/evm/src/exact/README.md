@@ -103,7 +103,7 @@ The preferred path. If the payment token supports [EIP-2612](https://eips.ethere
 **Server:** Declare the extension in your route config and ensure the token's `name` and `version` are included in `extra` (the default for EIP-2612-compatible tokens):
 
 ```typescript
-import { declareEip2612GasSponsoringExtension } from "@bankofai/x402-extensions";
+import { declareEip2612GasSponsoringExtension } from "@x402/extensions";
 
 {
   "GET /weather": {
@@ -125,7 +125,7 @@ import { declareEip2612GasSponsoringExtension } from "@bankofai/x402-extensions"
 **Facilitator:** Register the extension:
 
 ```typescript
-import { EIP2612_GAS_SPONSORING } from "@bankofai/x402-extensions";
+import { EIP2612_GAS_SPONSORING } from "@x402/extensions";
 
 facilitator.registerExtension(EIP2612_GAS_SPONSORING);
 ```
@@ -137,7 +137,7 @@ Fallback for tokens that **do not** support EIP-2612. The client signs a raw ERC
 **Server:** Declare the extension and omit `name`/`version` from the token config to signal clients to skip EIP-2612:
 
 ```typescript
-import { declareErc20ApprovalGasSponsoringExtension } from "@bankofai/x402-extensions";
+import { declareErc20ApprovalGasSponsoringExtension } from "@x402/extensions";
 
 {
   "GET /weather": {
@@ -154,7 +154,7 @@ import { declareErc20ApprovalGasSponsoringExtension } from "@bankofai/x402-exten
 **Facilitator:** Register with a signer that can broadcast transactions:
 
 ```typescript
-import { createErc20ApprovalGasSponsoringExtension } from "@bankofai/x402-extensions";
+import { createErc20ApprovalGasSponsoringExtension } from "@x402/extensions";
 
 facilitator.registerExtension(createErc20ApprovalGasSponsoringExtension(erc20ApprovalSigner));
 ```

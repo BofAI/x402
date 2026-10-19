@@ -36,7 +36,7 @@ The client before hook validates declaration version and network. The mechanism 
 - Low-level pre-signing/dedicated validation moves from mechanism internals to public extension entrypoints.
 - Payment schemes and compatible wallet factories remain in `@bankofai/x402-tron`.
 - Generic RPC configuration and transaction utilities use mechanism `/rpc` and `/transactions`.
-- The legacy generic `@bankofai/x402-extensions` package temporarily remains at `packages/legacy/extensions` for callers that have not migrated.
+- Use official `@x402/extensions@2.28.0` directly for Bazaar, Sign-in-with-x, EVM gas sponsorship, and other upstream extensions. No legacy extension package is retained.
 
 This package exposes its root and `trc20-approval-resource-sponsoring`, plus `client`, `facilitator`, and `resourceService` beneath that subpath. All entrypoints support ESM/CJS.
 

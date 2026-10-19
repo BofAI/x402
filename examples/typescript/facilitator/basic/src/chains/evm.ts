@@ -21,7 +21,7 @@ import { ExactEvmScheme } from "@bankofai/x402-evm/exact/facilitator";
 import {
   createErc20ApprovalGasSponsoringExtension,
   type Erc20ApprovalGasSponsoringSigner,
-} from "@bankofai/x402-extensions";
+} from "@x402/extensions";
 import type { x402Facilitator } from "@x402/core/facilitator";
 
 import { tryResolveWallet } from "../env.js";

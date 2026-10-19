@@ -187,9 +187,9 @@ importers:
       '@bankofai/x402-core':
         specifier: workspace:~
         version: link:../../core
-      '@bankofai/x402-extensions':
-        specifier: workspace:~
-        version: link:../../legacy/extensions
+      '@x402/extensions':
+        specifier: 2.28.0
+        version: 2.28.0(ethers@6.13.5)(typescript@5.9.3)
     devDependencies:
       '@eslint/js':
         specifier: ^9.24.0
@@ -248,9 +248,9 @@ importers:
       '@bankofai/x402-core':
         specifier: workspace:~
         version: link:../../core
-      '@bankofai/x402-extensions':
-        specifier: workspace:~
-        version: link:../../legacy/extensions
+      '@x402/extensions':
+        specifier: 2.28.0
+        version: 2.28.0(ethers@6.13.5)(typescript@5.9.3)
     devDependencies:
       '@eslint/js':
         specifier: ^9.24.0
@@ -358,9 +358,9 @@ importers:
       '@bankofai/x402-core':
         specifier: workspace:~
         version: link:../../core
-      '@bankofai/x402-extensions':
-        specifier: workspace:~
-        version: link:../../legacy/extensions
+      '@x402/extensions':
+        specifier: 2.28.0
+        version: 2.28.0(ethers@6.13.5)(typescript@5.9.3)
     devDependencies:
       '@eslint/js':
         specifier: ^9.24.0
@@ -416,88 +416,12 @@ importers:
       '@bankofai/x402-core':
         specifier: workspace:~
         version: link:../../core
-      '@bankofai/x402-extensions':
-        specifier: workspace:~
-        version: link:../../legacy/extensions
+      '@x402/extensions':
+        specifier: 2.28.0
+        version: 2.28.0(ethers@6.13.5)(typescript@5.9.3)
       next:
         specifier: '>=16.2.6'
         version: 16.2.9(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-    devDependencies:
-      '@eslint/js':
-        specifier: ^9.24.0
-        version: 9.39.4
-      '@types/node':
-        specifier: ^22.13.4
-        version: 22.19.21
-      '@typescript-eslint/eslint-plugin':
-        specifier: ^8.29.1
-        version: 8.61.1(@typescript-eslint/parser@8.61.1(eslint@9.39.4)(typescript@5.9.3))(eslint@9.39.4)(typescript@5.9.3)
-      '@typescript-eslint/parser':
-        specifier: ^8.29.1
-        version: 8.61.1(eslint@9.39.4)(typescript@5.9.3)
-      eslint:
-        specifier: ^9.24.0
-        version: 9.39.4
-      eslint-plugin-import:
-        specifier: ^2.31.0
-        version: 2.32.0(@typescript-eslint/parser@8.61.1(eslint@9.39.4)(typescript@5.9.3))(eslint@9.39.4)
-      eslint-plugin-jsdoc:
-        specifier: ^50.6.9
-        version: 50.8.0(eslint@9.39.4)
-      eslint-plugin-prettier:
-        specifier: ^5.2.6
-        version: 5.5.6(eslint@9.39.4)(prettier@3.5.2)
-      prettier:
-        specifier: 3.5.2
-        version: 3.5.2
-      tsup:
-        specifier: ^8.4.0
-        version: 8.5.1(postcss@8.5.15)(tsx@4.22.4)(typescript@5.9.3)
-      tsx:
-        specifier: ^4.21.0
-        version: 4.22.4
-      typescript:
-        specifier: ^5.7.3
-        version: 5.9.3
-      vite:
-        specifier: ^6.2.6
-        version: 6.4.3(@types/node@22.19.21)(tsx@4.22.4)
-      vite-tsconfig-paths:
-        specifier: ^5.1.4
-        version: 5.1.4(typescript@5.9.3)(vite@6.4.3(@types/node@22.19.21)(tsx@4.22.4))
-      vitest:
-        specifier: ^3.0.5
-        version: 3.2.6(@types/node@22.19.21)(tsx@4.22.4)
-
-  ../../typescript/packages/legacy/extensions:
-    dependencies:
-      '@bankofai/x402-core':
-        specifier: workspace:~
-        version: link:../../core
-      '@noble/curves':
-        specifier: ^1.9.0
-        version: 1.9.7
-      '@scure/base':
-        specifier: ^1.2.6
-        version: 1.2.6
-      '@signinwithethereum/siwe':
-        specifier: ^4.1.0
-        version: 4.2.0(ethers@6.13.5)(viem@2.52.2(typescript@5.9.3)(zod@3.25.76))
-      ajv:
-        specifier: ^8.17.1
-        version: 8.20.0
-      jose:
-        specifier: ^5.9.6
-        version: 5.10.0
-      tweetnacl:
-        specifier: ^1.0.3
-        version: 1.0.3
-      viem:
-        specifier: ^2.48.11
-        version: 2.52.2(typescript@5.9.3)(zod@3.25.76)
-      zod:
-        specifier: ^3.24.2
-        version: 3.25.76
     devDependencies:
       '@eslint/js':
         specifier: ^9.24.0
@@ -934,15 +858,15 @@ importers:
       '@bankofai/x402-evm':
         specifier: workspace:*
         version: link:../../../../typescript/packages/mechanisms/evm
-      '@bankofai/x402-extensions':
-        specifier: workspace:*
-        version: link:../../../../typescript/packages/legacy/extensions
       '@bankofai/x402-tron':
         specifier: workspace:*
         version: link:../../../../typescript/packages/mechanisms/tron
       '@x402/core':
         specifier: 2.28.0
         version: 2.28.0
+      '@x402/extensions':
+        specifier: 2.28.0
+        version: 2.28.0(ethers@6.13.5)(typescript@5.9.3)
       express:
         specifier: ^4.21.2
         version: 4.22.2
@@ -1107,12 +1031,9 @@ importers:
 
   logging:
     dependencies:
-      '@bankofai/x402-core':
+      '@bankofai/x402-tron':
         specifier: workspace:*
-        version: link:../../../typescript/packages/core
-      '@bankofai/x402-extensions':
-        specifier: workspace:*
-        version: link:../../../typescript/packages/legacy/extensions
+        version: link:../../../typescript/packages/mechanisms/tron
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
@@ -1160,9 +1081,6 @@ importers:
       '@bankofai/x402-evm':
         specifier: workspace:*
         version: link:../../../../typescript/packages/mechanisms/evm
-      '@bankofai/x402-extensions':
-        specifier: workspace:*
-        version: link:../../../../typescript/packages/legacy/extensions
       '@bankofai/x402-tron':
         specifier: workspace:*
         version: link:../../../../typescript/packages/mechanisms/tron
@@ -1172,6 +1090,9 @@ importers:
       '@x402/express':
         specifier: 2.28.0
         version: 2.28.0(ethers@6.13.5)(express@4.22.2)(typescript@5.9.3)
+      '@x402/extensions':
+        specifier: 2.28.0
+        version: 2.28.0(ethers@6.13.5)(typescript@5.9.3)
       express:
         specifier: ^4.21.2
         version: 4.22.2
@@ -1259,9 +1180,6 @@ importers:
       '@bankofai/x402-evm':
         specifier: workspace:*
         version: link:../../../../typescript/packages/mechanisms/evm
-      '@bankofai/x402-extensions':
-        specifier: workspace:*
-        version: link:../../../../typescript/packages/legacy/extensions
       '@bankofai/x402-tron':
         specifier: workspace:*
         version: link:../../../../typescript/packages/mechanisms/tron
@@ -1271,6 +1189,9 @@ importers:
       '@x402/express':
         specifier: 2.28.0
         version: 2.28.0(ethers@6.13.5)(express@4.22.2)(typescript@5.9.3)
+      '@x402/extensions':
+        specifier: 2.28.0
+        version: 2.28.0(ethers@6.13.5)(typescript@5.9.3)
       express:
         specifier: ^4.21.2
         version: 4.22.2

@@ -1,22 +1,13 @@
 /**
- * Logging example — redirect ALL `@bankofai/x402-*` SDK logs to a file.
+ * Capture TRON SDK logs through its public logger, without keys or network I/O.
+ * Official Core and extension packages retain their own logging behavior.
  *
- * The SDK writes every log line through one process-global logger. By default it
- * writes to `console`; calling `setLogger(...)` once at startup re-routes every
- * package (core, mechanisms, http middleware, extensions) — no per-call wiring,
- * no change to any SDK function signature.
- *
- * This script installs a file logger, then triggers a real SDK code path
- * (`validateBazaarRouteExtensions` with a malformed route) so you can see genuine
- * SDK output land in the file — offline, no keys, no network.
- *
- * Run:  pnpm dev:logging      (from examples/typescript)
- * Then: cat ./x402.log
+ * Run: pnpm dev:logging, then inspect ./x402.log.
  */
 import { createWriteStream } from "node:fs";
 import { resolve } from "node:path";
-import { setLogger, noopLogger, type Logger } from "@bankofai/x402-core";
-import { validateBazaarRouteExtensions } from "@bankofai/x402-extensions/bazaar";
+import { setLogger, noopLogger, type Logger } from "@bankofai/x402-tron";
+import { resolveTronRpcUrl } from "@bankofai/x402-tron/rpc";
 
 const LOG_FILE = resolve(process.cwd(), "x402.log");
 
@@ -47,31 +38,21 @@ function fileLogger(path: string): Logger {
   };
 }
 
-// A route whose bazaar extension is malformed — the SDK warns about it.
-const badRoutes = {
-  "GET /weather": {
-    accepts: { scheme: "exact", payTo: "0x0", price: "$0.01", network: "eip155:97" },
-    extensions: { bazaar: "not-an-object" },
-  },
-};
-
+/** Demonstrates the default, custom, and silent TRON log sinks without RPC calls. */
 function main(): void {
-  // 1) Default behavior (console) — no setLogger call yet.
-  console.log("--- before setLogger: SDK logs go to console ---");
-  validateBazaarRouteExtensions(badRoutes as never);
+  // Each network emits its fallback warning once per process.
+  console.log("--- default TRON logger ---");
+  resolveTronRpcUrl("tron:3448148188");
 
-  // 2) Redirect every SDK log to the file (one call, global).
-  console.log(`\n--- after setLogger: SDK logs now also captured in ${LOG_FILE} ---`);
+  console.log(`--- capture TRON logs in ${LOG_FILE} ---`);
   setLogger(fileLogger(LOG_FILE));
-  validateBazaarRouteExtensions(badRoutes as never);
+  resolveTronRpcUrl("tron:728126428");
 
-  // 3) Silence the SDK entirely.
-  console.log("\n--- after setLogger(noopLogger): SDK is silent ---");
+  console.log("--- silence TRON logs ---");
   setLogger(noopLogger);
-  validateBazaarRouteExtensions(badRoutes as never);
-  console.log("(nothing logged above — SDK silenced)\n");
+  resolveTronRpcUrl("tron:2494104990");
 
-  console.log(`Done. Inspect captured SDK output:\n  cat ${LOG_FILE}`);
+  console.log(`Inspect captured TRON output: ${LOG_FILE}`);
 }
 
 main();

@@ -16,7 +16,7 @@
  * per the token's decimals.
  */
 import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
-import { declareErc20ApprovalGasSponsoringExtension } from "@bankofai/x402-extensions";
+import { declareErc20ApprovalGasSponsoringExtension } from "@x402/extensions";
 import type { Network } from "@x402/core/types";
 import type { x402ResourceServer } from "@x402/core/server";
 

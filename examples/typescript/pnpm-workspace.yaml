@@ -6,7 +6,6 @@ packages:
   # Link the in-repo SDK packages so examples build against local source.
   - "../../typescript/packages/core"
   - "../../typescript/packages/extensions"
-  - "../../typescript/packages/legacy/extensions"
   - "../../typescript/packages/http/*"
   - "../../typescript/packages/mcp"
   - "../../typescript/packages/mechanisms/*"

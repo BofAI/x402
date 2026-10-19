@@ -8,8 +8,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@bankofai/x402-core": "workspace:*",
-    "@bankofai/x402-extensions": "workspace:*"
+    "@bankofai/x402-tron": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

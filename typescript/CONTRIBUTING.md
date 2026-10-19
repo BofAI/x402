@@ -21,16 +21,15 @@ typescript/
 │   ├── core/              # @bankofai/x402-core - Protocol implementation
 │   ├── mechanisms/
 │   │   ├── evm/           # @bankofai/x402-evm - Ethereum/EVM chains
-│   │   └── svm/           # @bankofai/x402-svm - Solana
+│   │   └── tron/          # @bankofai/x402-tron - TRON
 │   ├── http/
 │   │   ├── axios/         # @bankofai/x402-axios - Axios interceptor
 │   │   ├── express/       # @bankofai/x402-express - Express middleware
 │   │   ├── fetch/         # @bankofai/x402-fetch - Fetch wrapper
+│   │   ├── fastify/       # @bankofai/x402-fastify - Fastify middleware
 │   │   ├── hono/          # @bankofai/x402-hono - Hono middleware
-│   │   ├── next/          # @bankofai/x402-next - Next.js integration
-│   │   └── paywall/       # @bankofai/x402-paywall - Browser paywall UI
-│   ├── extensions/        # @bankofai/x402-extensions - Bazaar, Sign-in-with-x
-│   └── legacy/            # Legacy v1 packages (deprecated)
+│   │   └── next/          # @bankofai/x402-next - Next.js integration
+│   └── extensions/        # @bankofai/x402-tron-extensions - TRON resource sponsorship
 ├── site/                  # x402.org marketing site
 ├── turbo.json
 └── pnpm-workspace.yaml
@@ -41,12 +40,16 @@ typescript/
 ```
 @bankofai/x402-core
     ↑
-@bankofai/x402-evm, @bankofai/x402-svm
+@bankofai/x402-evm
     ↑
 @bankofai/x402-express, @bankofai/x402-hono, @bankofai/x402-next, @bankofai/x402-axios, @bankofai/x402-fetch
 ```
 
-The core package provides transport-agnostic primitives. Mechanism packages (`evm`, `svm`) implement chain-specific logic. HTTP packages provide framework integrations.
+TRON uses official `@x402/core@2.28.0`; its resource sponsorship extension depends on the
+TRON mechanism through public entrypoints. Use official `@x402/extensions@2.28.0` directly
+for upstream extensions. Legacy v1 packages are not maintained in this repository.
+
+The core package provides transport-agnostic primitives. Mechanism packages (`evm`, `tron`) implement chain-specific logic. HTTP packages provide framework integrations.
 
 ## Development Setup
 

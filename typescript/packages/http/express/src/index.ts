@@ -134,14 +134,14 @@ export function paymentMiddlewareFromHTTPServer(
   let bazaarPromise: Promise<void> | null = null;
   if (checkIfBazaarNeeded(httpServer.routes)) {
     if (!httpServer.server.hasExtension("bazaar")) {
-      bazaarPromise = import("@bankofai/x402-extensions/bazaar").then(
+      bazaarPromise = import("@x402/extensions/bazaar").then(
         ({ bazaarResourceServerExtension }) => {
           httpServer.server.registerExtension(bazaarResourceServerExtension);
         },
       );
     }
     bazaarPromise = (bazaarPromise ?? Promise.resolve())
-      .then(() => import("@bankofai/x402-extensions/bazaar"))
+      .then(() => import("@x402/extensions/bazaar"))
       .then(({ validateBazaarRouteExtensions }) => {
         validateBazaarRouteExtensions(httpServer.routes);
       })

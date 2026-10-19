@@ -3,10 +3,10 @@
 Runnable examples for the SDK, scoped to **EVM and TRON**. The TRON 2.1 candidate
 uses official `@x402/core`, HTTP and MCP integrations at `2.28.0`, and the local
 TRON mechanism/extension packages. See the [TRON 2.1 migration guide](../../docs/migrations/tron-2.1.md).
-The EVM mechanism and its ERC-20 extension remain the existing workspace packages;
-they are not part of the TRON 2.1 publish list. The separate logging example still
-demonstrates the legacy Core logger. The examples retain Express 4 and pin one Express 4 declaration tree across their
-workspace so HTTP middleware and application types resolve consistently.
+The EVM mechanism remains a workspace package; its ERC-20 extensions use official
+`@x402/extensions@2.28.0` directly. The logging example demonstrates the TRON logger.
+The examples retain Express 4 and pin one Express 4 declaration tree across their workspace
+so HTTP middleware and application types resolve consistently.
 
 The x402 core is chain-agnostic; each example registers chains at one boundary
 (`src/chains/{evm,tron}.ts`) and self-skips a chain whose credentials are absent
@@ -233,28 +233,23 @@ serves both chains — and set the server's payout addresses
 
 ## Logging / Observability
 
-Every `@bankofai/x402-*` package writes its logs through **one process-global
-logger** exported from `@bankofai/x402-core`. By default it writes to `console`
-(so doing nothing keeps the current behavior). Call `setLogger(...)` **once** at
-startup to redirect all SDK output — across core, mechanisms, http middleware,
-and extensions — to a file, `pino`/`winston`, or nowhere. No per-call wiring and
-no change to any SDK function signature.
+TRON mechanism logs use the public logger exported by `@bankofai/x402-tron`.
+Official Core and extensions retain their own logging and lifecycle hooks.
 
 ```ts
-import { setLogger, noopLogger, type Logger } from "@bankofai/x402-core";
+import { setLogger, noopLogger, type Logger } from "@bankofai/x402-tron";
 
-// Logger is console-shaped: debug / info / warn / error, variadic args.
-setLogger(myFileLogger);     // capture all SDK logs
-// setLogger(noopLogger);    // or silence the SDK entirely
+// Logger methods: debug / info / warn / error, with variadic arguments.
+setLogger(myFileLogger); // capture TRON logs
+// setLogger(noopLogger); // silence TRON logs
 ```
 
 | Example | What it shows | Run |
-|---|---|---|
-| [`logging`](logging) | redirect all SDK logs to `x402.log`; then silence | `pnpm dev:logging` |
+| --- | --- | --- |
+| [`logging`](logging) | Capture TRON logs in `x402.log`, then silence them | `pnpm dev:logging` |
 
-The example is keyless/offline — it triggers a real SDK log path and writes the
-output to `./x402.log`. See [`logging/README.md`](logging/README.md) for `pino` /
-`winston` adapters.
+The example needs no keys or network calls. See [logging/README.md](logging/README.md)
+for the default, custom, and silent logger behavior.
 
 ## Relationship to `tests/integrations`
 

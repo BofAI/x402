@@ -4,7 +4,6 @@ packages:
   - packages/mcp
   - packages/http/*
   - packages/mechanisms/*
-  - packages/legacy/*
   - examples/**/*
 overrides:
   cssstyle: 5.3.6

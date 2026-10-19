@@ -85,14 +85,14 @@ export function paymentProxyFromHTTPServer(
   let bazaarPromise: Promise<void> | null = null;
   if (checkIfBazaarNeeded(httpServer.routes)) {
     if (!httpServer.server.hasExtension("bazaar")) {
-      bazaarPromise = import(/* webpackIgnore: true */ "@bankofai/x402-extensions/bazaar").then(
+      bazaarPromise = import(/* webpackIgnore: true */ "@x402/extensions/bazaar").then(
         ({ bazaarResourceServerExtension }) => {
           httpServer.server.registerExtension(bazaarResourceServerExtension);
         },
       );
     }
     bazaarPromise = (bazaarPromise ?? Promise.resolve())
-      .then(() => import(/* webpackIgnore: true */ "@bankofai/x402-extensions/bazaar"))
+      .then(() => import(/* webpackIgnore: true */ "@x402/extensions/bazaar"))
       .then(({ validateBazaarRouteExtensions }) => {
         validateBazaarRouteExtensions(httpServer.routes);
       })
@@ -291,14 +291,14 @@ export function withX402FromHTTPServer<T = unknown>(
   let bazaarPromise: Promise<void> | null = null;
   if (checkIfBazaarNeeded(httpServer.routes)) {
     if (!httpServer.server.hasExtension("bazaar")) {
-      bazaarPromise = import(/* webpackIgnore: true */ "@bankofai/x402-extensions/bazaar").then(
+      bazaarPromise = import(/* webpackIgnore: true */ "@x402/extensions/bazaar").then(
         ({ bazaarResourceServerExtension }) => {
           httpServer.server.registerExtension(bazaarResourceServerExtension);
         },
       );
     }
     bazaarPromise = (bazaarPromise ?? Promise.resolve())
-      .then(() => import(/* webpackIgnore: true */ "@bankofai/x402-extensions/bazaar"))
+      .then(() => import(/* webpackIgnore: true */ "@x402/extensions/bazaar"))
       .then(({ validateBazaarRouteExtensions }) => {
         validateBazaarRouteExtensions(httpServer.routes);
       })
