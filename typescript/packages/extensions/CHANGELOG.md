@@ -2,6 +2,7 @@
 
 ## 2.1.0-beta.1
 
+- Correct the legacy `module` field to the built `.mjs` entry and verify all package entry fields.
 - Align with @bankofai/x402-tron@2.1.0-beta.1; retain official Core 2.28.0 and independent resource-runtime ownership.
 - Preserve the earlier 3.0.0-beta.1 release record.
 

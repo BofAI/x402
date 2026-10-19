@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync, cpSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync, cpSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -55,6 +55,10 @@ try {
   run(process.execPath, ["compiled/payment.mjs"]);
   run(process.execPath, ["compiled/payment.cjs"]);
   const manifest = JSON.parse(readFileSync(join(packageDir, "package.json"), "utf8"));
+  for (const field of ["main", "module", "types"]) {
+    if (!existsSync(join(temp, "node_modules", manifest.name, manifest[field])))
+      throw new Error(`${manifest.name}: missing ${field} entry ${manifest[field]}`);
+  }
   for (const entry of Object.keys(manifest.exports)) {
     const specifier = entry === "." ? manifest.name : manifest.name + entry.slice(1);
     run(process.execPath, [
