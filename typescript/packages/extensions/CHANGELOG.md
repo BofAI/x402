@@ -1,5 +1,9 @@
 # @bankofai/x402-tron-extensions
 
+## 2.1.0-beta.2
+
+- Align the exact mechanism dependency with `@bankofai/x402-tron@2.1.0-beta.2`, including fail-closed upto account reads. Resource sponsorship still defers pre-Approval allowance checks while requiring balance checks and post-delegation revalidation.
+
 ## 2.1.0-beta.1
 
 - Correct the legacy `module` field to the built `.mjs` entry and verify all package entry fields.

@@ -1,6 +1,6 @@
 # @bankofai/x402-tron
 
-## Unreleased
+## 2.1.0-beta.2
 
 - Reject upto allowance/balance RPC failures and malformed uint256 reads with `chain_read_failed`. Settlement and resource revalidation stop before payment broadcast. Preserve explicit insufficient allowance/funds errors and sponsored Approval allowance deferral.
 

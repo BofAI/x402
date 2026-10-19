@@ -85,7 +85,7 @@ importers:
   packages/extensions:
     dependencies:
       '@bankofai/x402-tron':
-        specifier: workspace:2.1.0-beta.1
+        specifier: workspace:2.1.0-beta.2
         version: link:../mechanisms/tron
       ajv:
         specifier: ^8.17.1

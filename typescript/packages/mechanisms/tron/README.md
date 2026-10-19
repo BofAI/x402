@@ -1,22 +1,21 @@
 # `@bankofai/x402-tron`
 
-## Beta 2.1.0-beta.1
+## Beta 2.1.0-beta.2
 
 The mechanism and optional resource extension share the same beta version. Install the exact
 versions for integration testing:
 
 ```sh
-npm install @x402/core@2.28.0 @bankofai/x402-tron@2.1.0-beta.1
+npm install @x402/core@2.28.0 @bankofai/x402-tron@2.1.0-beta.2
 # Optional resource sponsorship
-npm install @bankofai/x402-tron-extensions@2.1.0-beta.1
+npm install @bankofai/x402-tron-extensions@2.1.0-beta.2
 ```
 
 Use official HTTP/MCP integration packages with this Core version. Resource sponsorship requires
 explicit client and facilitator extension registration. Live-chain service integration and durable
-production recovery are not yet accepted. The published `2.1.0-beta.1` retains optimistic upto
-allowance/balance RPC verification. Current source includes an unreleased fix: failed or malformed
-required account reads return `chain_read_failed`, and settlement stops before broadcasting.
-This source fix has not been published to npm.
+production recovery are not yet accepted. Starting with `2.1.0-beta.2`, failed or malformed required
+upto allowance/balance reads return `chain_read_failed`, and settlement stops before broadcasting.
+Published `2.1.0-beta.1` does not include this fix.
 
 This release follows the requested 2.1 beta line; `3.0.0-beta.1` remains a historical experimental
 release. It is a migration beta, not a drop-in source upgrade from 2.0.0: replace the legacy Core

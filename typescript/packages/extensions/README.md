@@ -1,10 +1,10 @@
 # `@bankofai/x402-tron-extensions`
 
-TRON 资源代付独立扩展包。Beta 版本与机制包统一为 `2.1.0-beta.1`，使用官方
+TRON 资源代付独立扩展包。Beta 版本与机制包统一为 `2.1.0-beta.2`，使用官方
 `@x402/core@2.28.0`，扩展精确依赖同版本机制包。
 
 ```sh
-npm install @x402/core@2.28.0 @bankofai/x402-tron@2.1.0-beta.1 @bankofai/x402-tron-extensions@2.1.0-beta.1
+npm install @x402/core@2.28.0 @bankofai/x402-tron@2.1.0-beta.2 @bankofai/x402-tron-extensions@2.1.0-beta.2
 ```
 
 机制包只维护支付机制、公共契约和交易工具。扩展包维护声明/schema、客户端预签、
