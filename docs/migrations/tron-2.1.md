@@ -1,6 +1,6 @@
 # TRON SDK 2.1 Migration Guide
 
-The target stable version is `2.1.0`; release preparation is in progress. Install that version once both packages have been published and verified. Current integration tests can use `2.1.0-beta.2`. The historical experimental `3.0.0-beta.1` is no longer the planned version line.
+The target stable version is `2.1.0`; release preparation is in progress. Install that version once both packages have been published and verified. Current integration tests can use `2.1.0-beta.3`. The historical experimental `3.0.0-beta.1` is no longer the planned version line.
 
 ## Installation and compatibility
 

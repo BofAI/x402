@@ -17,7 +17,7 @@
     "lint:check": "turbo run lint:check",
     "format:check": "turbo run format:check",
     "test": "turbo run test",
-    "test:integration": "pnpm --filter @bankofai/x402-core --filter @bankofai/x402-tron test:integration",
+    "test:integration": "pnpm --filter @bankofai/x402-core --filter @bankofai/x402-tron-extensions test:integration",
     "test:all": "pnpm test && pnpm test:integration"
   },
   "keywords": [],

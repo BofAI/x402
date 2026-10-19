@@ -1,5 +1,10 @@
 # @bankofai/x402-tron-extensions
 
+## 2.1.0-beta.3
+
+- Align the exact mechanism dependency with `@bankofai/x402-tron@2.1.0-beta.3`, including pending settlement recovery and original-transaction retries.
+- Provide the Nile integration suite, environment template, and documented test entrypoint in this package. Include integration suite discovery in repository CI.
+
 ## 2.1.0-beta.2
 
 - Align the exact mechanism dependency with `@bankofai/x402-tron@2.1.0-beta.2`, including fail-closed upto account reads. Resource sponsorship still defers pre-Approval allowance checks while requiring balance checks and post-delegation revalidation.

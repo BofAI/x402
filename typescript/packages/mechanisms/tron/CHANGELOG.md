@@ -1,5 +1,11 @@
 # @bankofai/x402-tron
 
+## 2.1.0-beta.3
+
+- Recover pending exact, upto, batch, and GasFree settlements using the original transaction or relayer trace, without repeating authorization, resource sponsorship, or broadcast. Preserve batch snapshots and redact storage failures.
+- Expose an injectable pending settlement store; production recovery requires persistent shared storage with exclusive locking.
+- Align all TRON examples with official Core and HTTP/MCP integrations. Move the Nile resource-sponsoring integration entrypoint and environment template to the independent extension package.
+
 ## 2.1.0-beta.2
 
 - Reject upto allowance/balance RPC failures and malformed uint256 reads with `chain_read_failed`. Settlement and resource revalidation stop before payment broadcast. Preserve explicit insufficient allowance/funds errors and sponsored Approval allowance deferral.

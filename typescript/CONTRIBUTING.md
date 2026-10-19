@@ -215,12 +215,12 @@ required environment variables are not set, so you only need to populate the
 subsets you want to exercise.
 
 For TRON Nile setup, follow
-[`packages/mechanisms/tron/test/integrations/README.md`](packages/mechanisms/tron/test/integrations/README.md).
+[`packages/extensions/test/integrations/README.md`](packages/extensions/test/integrations/README.md).
 Each suite documents its required wallet and RPC configuration. Keep actual credentials outside Git.
 The MCP EVM interoperability suite uses official `@x402/evm` and is separate from local mechanism tests.
 
 ```bash
-pnpm --filter @bankofai/x402-tron test:integration
+pnpm --filter @bankofai/x402-tron-extensions test:integration
 ```
 
 ### Test File Organization

@@ -52,6 +52,9 @@ jobs:
       - name: Run unit tests
         run: pnpm test
 
+      - name: Run integration suites (Nile skips without credentials)
+        run: pnpm test:integration
+
       - name: Verify independent TRON package consumers
         run: pnpm --filter @bankofai/x402-tron test:consumer
 

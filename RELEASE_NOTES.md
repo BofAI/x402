@@ -18,6 +18,12 @@ This is a source migration from 2.0. See the [migration guide](docs/migrations/t
 for imports, wallet capabilities, resource runtime registration, limits and pending recovery.
 Persistent resource coordination and application HTTP delivery/recovery remain deployment responsibilities.
 
+## Current beta: 2.1.0-beta.3
+
+Both TRON packages share `2.1.0-beta.3` and the npm `beta` tag. This candidate includes
+pending settlement recovery and the corrected resource-extension integration test entrypoint.
+Install both packages at the same exact version for integration testing.
+
 ---
 
 # v2.0.0 — Canonical TRON Networks and Pending Settlement

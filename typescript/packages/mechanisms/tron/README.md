@@ -2,15 +2,15 @@
 
 For 2.1 stable release preparation, see the [migration guide](../../../../docs/migrations/tron-2.1.md).
 
-## Beta 2.1.0-beta.2
+## Beta 2.1.0-beta.3
 
 The mechanism and optional resource extension share the same beta version. Install the exact
 versions for integration testing:
 
 ```sh
-npm install @x402/core@2.28.0 @bankofai/x402-tron@2.1.0-beta.2
+npm install @x402/core@2.28.0 @bankofai/x402-tron@2.1.0-beta.3
 # Optional resource sponsorship
-npm install @bankofai/x402-tron-extensions@2.1.0-beta.2
+npm install @bankofai/x402-tron-extensions@2.1.0-beta.3
 ```
 
 Use official HTTP/MCP integration packages with this Core version. Resource sponsorship requires
@@ -18,6 +18,10 @@ explicit client and facilitator extension registration. Live-chain service integ
 production recovery are not yet accepted. Starting with `2.1.0-beta.2`, failed or malformed required
 upto allowance/balance reads return `chain_read_failed`, and settlement stops before broadcasting.
 Published `2.1.0-beta.1` does not include this fix.
+
+Beta.3 adds settlement recovery against the original transaction or GasFree relayer trace,
+including serializable batch snapshots. Production recovery requires an injected durable
+pending store with shared locking; HTTP delivery and live-chain integration need application validation.
 
 This release follows the requested 2.1 beta line; `3.0.0-beta.1` remains a historical experimental
 release. It is a migration beta, not a drop-in source upgrade from 2.0.0: replace the legacy Core

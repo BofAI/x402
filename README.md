@@ -34,11 +34,11 @@ and matching official packages. Historical 2.0 installation details remain in th
 Install the TRON 2.1 candidate with matching official integrations:
 
 ```bash
-npm install @x402/core@2.28.0 @x402/fetch@2.28.0 @bankofai/x402-tron@2.1.0-beta.2
+npm install @x402/core@2.28.0 @x402/fetch@2.28.0 @bankofai/x402-tron@2.1.0-beta.3
 # Express resource server
 npm install @x402/express@2.28.0
 # Optional TRON resource sponsorship
-npm install @bankofai/x402-tron-extensions@2.1.0-beta.2
+npm install @bankofai/x402-tron-extensions@2.1.0-beta.3
 ```
 
 For EVM, install official `@x402/evm@2.28.0` with matching official Core and transports.
