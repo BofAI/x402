@@ -29,21 +29,20 @@ const TRON_NETWORKS = [TRON_NILE, TRON_SHASTA, TRON_MAINNET] as const;
  * @returns `true` if registered, `false` if no TRON wallet was configured.
  */
 export async function registerTron(client: x402Client): Promise<boolean> {
-  const wallet = await tryResolveWallet("tron");
-  if (!wallet) {
-    return false;
-  }
-
   // The agent-wallet satisfies ClientTronWallet directly (getAddress /
   // signTypedData / signTransaction); the factory handles `this`-binding and
   // auto-broadcasts the one-time Permit2 approve for USDT/USDD.
+  let registered = false;
   for (const network of TRON_NETWORKS) {
+    const wallet = await tryResolveWallet(network);
+    if (!wallet) continue;
     const signer = await createClientTronSigner(wallet, {
       network,
       apiKey: process.env.TRON_GRID_API_KEY,
     });
     client.register(network, new ExactTronScheme(signer));
     console.info(`[tron] client registered ${network} (${signer.address})`);
+    registered = true;
   }
-  return true;
+  return registered;
 }

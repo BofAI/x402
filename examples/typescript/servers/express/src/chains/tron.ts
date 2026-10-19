@@ -11,11 +11,16 @@ import { TRON_NILE, TRON_MAINNET, TRON_SHASTA } from "@bankofai/x402-tron";
 import { ExactTronScheme } from "@bankofai/x402-tron/exact/server";
 import { getNetworkTokens } from "@bankofai/x402-tron";
 import type { x402ResourceServer } from "@bankofai/x402-express";
+import { selectPayTargetNetworks } from "../payTargets.js";
 
 // Switch to TRON_MAINNET for production (REAL FUNDS). USDT/USDD are registered
 // for mainnet too (both permit2), so `tronAccepts()` works unchanged — only the
 // client/facilitator TronWeb `fullHost` must point at a mainnet node.
 export const TRON_NETWORKS = [TRON_NILE, TRON_SHASTA, TRON_MAINNET] as const;
+
+function tronNetworks() {
+  return selectPayTargetNetworks(TRON_NETWORKS);
+}
 
 /** TRON is enabled when a payout address is configured. */
 export function hasTron(): boolean {
@@ -28,7 +33,7 @@ export function hasTron(): boolean {
  * @param resourceServer - The resource server to register on.
  */
 export function registerTron(resourceServer: x402ResourceServer): void {
-  for (const network of TRON_NETWORKS) {
+  for (const network of tronNetworks()) {
     resourceServer.register(network, new ExactTronScheme());
   }
 }
@@ -40,7 +45,7 @@ export function registerTron(resourceServer: x402ResourceServer): void {
  */
 export function tronAccepts() {
   const payTo = process.env.TRON_ADDRESS as string;
-  return TRON_NETWORKS.flatMap((network) =>
+  return tronNetworks().flatMap((network) =>
     Object.keys(getNetworkTokens(network)).map((symbol) => ({
       scheme: "exact",
       network,

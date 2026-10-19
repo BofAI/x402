@@ -79,6 +79,26 @@ describe("createClientEvmSigner", () => {
     expect(wallet.signTransaction).toHaveBeenCalled();
   });
 
+  it("unwraps an agent-wallet 3.x EVM transaction artifact", async () => {
+    const wallet = {
+      ...makeWallet("0xsig"),
+      signTransaction: vi.fn(async () => ({ family: "evm" as const, rawTransaction: "beef" })),
+    };
+    const signer = await createClientEvmSigner(wallet, { network: NETWORK });
+
+    await expect(
+      signer.signTransaction?.({
+        to: ADDRESS,
+        data: "0x",
+        nonce: 0,
+        gas: 1n,
+        maxFeePerGas: 1n,
+        maxPriorityFeePerGas: 1n,
+        chainId: 97,
+      }),
+    ).resolves.toBe("0xbeef");
+  });
+
   it("omits signTransaction when the wallet lacks it", async () => {
     const signer = await createClientEvmSigner(makeWallet("0xabcd"), { network: NETWORK });
     expect(signer.signTransaction).toBeUndefined();

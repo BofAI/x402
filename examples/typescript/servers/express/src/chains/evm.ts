@@ -19,6 +19,7 @@ import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
 import { declareErc20ApprovalGasSponsoringExtension } from "@bankofai/x402-extensions";
 import type { Network } from "@bankofai/x402-core/types";
 import type { x402ResourceServer } from "@bankofai/x402-express";
+import { selectPayTargetNetworks } from "../payTargets.js";
 
 type EvmToken = {
   asset: string;
@@ -65,6 +66,10 @@ const EVM_TOKENS: Record<string, EvmToken[]> = {
   // "eip155:84532": [ { asset: "0x036CbD…", amount: "1000", extra: { name: "USDC", version: "2" } } ],
 };
 
+function evmNetworks(): Network[] {
+  return selectPayTargetNetworks(Object.keys(EVM_TOKENS) as Network[]);
+}
+
 /** EVM is enabled when a payout address is configured. */
 export function hasEvm(): boolean {
   return !!process.env.EVM_ADDRESS;
@@ -76,7 +81,7 @@ export function hasEvm(): boolean {
  * @param resourceServer - The resource server to register on.
  */
 export function registerEvm(resourceServer: x402ResourceServer): void {
-  for (const network of Object.keys(EVM_TOKENS) as Network[]) {
+  for (const network of evmNetworks()) {
     resourceServer.register(network, new ExactEvmScheme());
   }
 }
@@ -89,15 +94,15 @@ export function registerEvm(resourceServer: x402ResourceServer): void {
  */
 export function evmAccepts() {
   const payTo = process.env.EVM_ADDRESS as string;
-  return (Object.entries(EVM_TOKENS) as [Network, EvmToken[]][]).flatMap(
-    ([network, tokens]) =>
-      tokens.map((token) => ({
-        scheme: "exact",
-        network,
-        payTo,
-        price: { amount: token.amount, asset: token.asset, extra: token.extra },
-      })),
-  );
+  return evmNetworks().flatMap((network) => {
+    const tokens = EVM_TOKENS[network] ?? [];
+    return tokens.map((token) => ({
+      scheme: "exact",
+      network,
+      payTo,
+      price: { amount: token.amount, asset: token.asset, extra: token.extra },
+    }));
+  });
 }
 
 /**

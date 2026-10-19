@@ -544,7 +544,17 @@ export function normalizeSignedTronTransaction(
   };
 
   if (typeof result !== "string") {
-    return normalizeSignatures(result);
+    if (result.family === "evm") {
+      throw new Error("TRON signTransaction returned an EVM signed transaction artifact");
+    }
+    if (result.family === "tron") {
+      const transaction = result.transaction;
+      if (!transaction || typeof transaction !== "object" || Array.isArray(transaction)) {
+        throw new Error("TRON signTransaction returned a malformed transaction artifact");
+      }
+      return normalizeSignatures(transaction as Record<string, unknown>);
+    }
+    return normalizeSignatures(result as Record<string, unknown>);
   }
   const trimmed = result.trim();
   if (trimmed.startsWith("{")) {

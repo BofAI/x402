@@ -12,6 +12,7 @@
  */
 import {
   createClientTronSigner,
+  normalizeTronNetwork,
   TRON_NILE,
   TRON_MAINNET,
 } from "@bankofai/x402-tron";
@@ -24,8 +25,9 @@ import {
   type RefundableScheme,
 } from "../env.js";
 
-const TRON_NETWORK = (process.env.TRON_NETWORK ??
-  TRON_NILE) as `${string}:${string}`;
+const TRON_NETWORK = normalizeTronNetwork(
+  process.env.TRON_NETWORK ?? TRON_NILE,
+) as `${string}:${string}`;
 
 /**
  * Registers the TRON `batch-settlement` client scheme, if a TRON wallet is
@@ -39,7 +41,7 @@ export async function registerTron(
   client: x402Client,
   opts: BatchClientOptions,
 ): Promise<RefundableScheme[]> {
-  const wallet = await tryResolveWallet("tron");
+  const wallet = await tryResolveWallet(TRON_NETWORK);
   if (!wallet) {
     return [];
   }

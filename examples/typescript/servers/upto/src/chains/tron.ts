@@ -9,14 +9,20 @@
  * `"$"` form (the scheme maps it to USDT). USDT is a **Permit2** token, so the
  * client authorizes via Permit2 — the payer needs a one-time `approve(Permit2)`.
  */
-import { TRON_NILE, TRON_MAINNET, TRON_SHASTA } from "@bankofai/x402-tron";
+import {
+  TRON_NILE,
+  TRON_MAINNET,
+  TRON_SHASTA,
+  normalizeTronNetwork,
+} from "@bankofai/x402-tron";
 import { UptoTronScheme } from "@bankofai/x402-tron/upto/server";
 import type { x402ResourceServer } from "@bankofai/x402-express";
 
 // Switch to TRON_MAINNET for production (REAL FUNDS): USDT is registered there
 // too — only the facilitator/client TronWeb `fullHost` must point at mainnet.
-export const TRON_NETWORK: `${string}:${string}` = (process.env.TRON_NETWORK ??
-  TRON_NILE) as `${string}:${string}`;
+export const TRON_NETWORK = normalizeTronNetwork(
+  process.env.TRON_NETWORK ?? TRON_NILE,
+) as `${string}:${string}`;
 
 /** TRON is enabled when a payout address is configured. */
 export function hasTron(): boolean {

@@ -10,14 +10,19 @@
  *
  * GasFree is TRON-only — there is no EVM counterpart.
  */
-import { createClientTronSigner, TRON_NILE } from "@bankofai/x402-tron";
+import {
+  createClientTronSigner,
+  normalizeTronNetwork,
+  TRON_NILE,
+} from "@bankofai/x402-tron";
 import { registerExactGasFreeTronScheme } from "@bankofai/x402-tron/gasfree/client";
 import type { x402Client } from "@bankofai/x402-fetch";
 
 import { tryResolveTronWallet } from "../env.js";
 
-const TRON_NETWORK = (process.env.TRON_NETWORK ??
-  TRON_NILE) as `${string}:${string}`;
+const TRON_NETWORK = normalizeTronNetwork(
+  process.env.TRON_NETWORK ?? TRON_NILE,
+) as `${string}:${string}`;
 
 /**
  * Registers the TRON `exact_gasfree` client scheme, if a TRON wallet resolves.
@@ -28,7 +33,7 @@ const TRON_NETWORK = (process.env.TRON_NETWORK ??
 export async function registerTronGasFree(
   client: x402Client,
 ): Promise<boolean> {
-  const wallet = await tryResolveTronWallet();
+  const wallet = await tryResolveTronWallet(TRON_NETWORK);
   if (!wallet) {
     return false;
   }

@@ -7,9 +7,14 @@
  * needs no gas-sponsoring extension. Prices use the `"<amount> <symbol>"` form so
  * the TRON scheme resolves each token from its registry.
  */
-import { TRON_NILE, TRON_MAINNET, TRON_SHASTA } from "@bankofai/x402-tron";
+import {
+  TRON_NILE,
+  TRON_MAINNET,
+  TRON_SHASTA,
+  getNetworkTokens,
+  normalizeTronNetwork,
+} from "@bankofai/x402-tron";
 import { ExactTronScheme } from "@bankofai/x402-tron/exact/server";
-import { getNetworkTokens } from "@bankofai/x402-tron";
 import type { Network } from "@bankofai/x402-core/types";
 import type {
   ResourceConfig,
@@ -18,8 +23,9 @@ import type {
 
 /** CAIP-2 network this server accepts TRON payments on. Switch to TRON_MAINNET
  *  for production (REAL FUNDS); USDT/USDD are registered there too. */
-export const TRON_NETWORK: Network = (process.env.TRON_NETWORK ??
-  TRON_NILE) as Network;
+export const TRON_NETWORK = normalizeTronNetwork(
+  process.env.TRON_NETWORK ?? TRON_NILE,
+) as Network;
 
 /** TRON is enabled when a payout address is configured. */
 export function hasTron(): boolean {
@@ -42,10 +48,13 @@ export function registerTron(resourceServer: x402ResourceServer): void {
  */
 export function tronAccepts(): ResourceConfig[] {
   const payTo = process.env.TRON_ADDRESS as string;
-  return Object.keys(getNetworkTokens(TRON_NETWORK)).map((symbol) => ({
-    scheme: "exact",
-    network: TRON_NETWORK,
-    payTo,
-    price: `0.001 ${symbol}`,
-  }) as ResourceConfig);
+  return Object.keys(getNetworkTokens(TRON_NETWORK)).map(
+    (symbol) =>
+      ({
+        scheme: "exact",
+        network: TRON_NETWORK,
+        payTo,
+        price: `0.001 ${symbol}`,
+      }) as ResourceConfig,
+  );
 }

@@ -8,15 +8,22 @@
  * schemes coexist on `TRON_NILE` without conflict — the client picks one via
  * the `accepts` entry it honors in the 402 challenge.
  */
-import { TRON_NILE, TRON_MAINNET, TRON_SHASTA, getNetworkTokens } from "@bankofai/x402-tron";
+import {
+  TRON_NILE,
+  TRON_MAINNET,
+  TRON_SHASTA,
+  getNetworkTokens,
+  normalizeTronNetwork,
+} from "@bankofai/x402-tron";
 import { ExactTronScheme } from "@bankofai/x402-tron/exact/server";
 import { registerExactGasFreeTronScheme } from "@bankofai/x402-tron/gasfree/server";
 import type { x402ResourceServer } from "@bankofai/x402-express";
 
 // Switch to TRON_MAINNET for production (REAL FUNDS); only the client and
 // facilitator TronWeb/relayer endpoints change, this module is unchanged.
-export const TRON_NETWORK: `${string}:${string}` = (process.env.TRON_NETWORK ??
-  TRON_NILE) as `${string}:${string}`;
+export const TRON_NETWORK = normalizeTronNetwork(
+  process.env.TRON_NETWORK ?? TRON_NILE,
+) as `${string}:${string}`;
 
 /** TRON is enabled when a payout address is configured. */
 export function hasTron(): boolean {
