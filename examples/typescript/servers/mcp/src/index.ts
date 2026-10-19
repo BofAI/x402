@@ -1,13 +1,6 @@
 /**
- * x402 MCP resource server — dual-chain (BSC testnet + TRON Nile).
- *
- * Exposes a paid MCP tool (`get_weather`) and a free one (`ping`) over SSE. The
- * resource server is keyless: it advertises `accepts` for every enabled chain and
- * delegates verify/settle to a facilitator over HTTP. A 402 challenge offers BOTH
- * chains at once; the client picks whichever it can pay. Per-chain setup lives in
- * `src/chains/`, each gated on its payout address — run EVM-only, TRON-only, or both.
- *
- * Pair with `facilitator/basic` (already dual-chain) and `clients/mcp`.
+ * TRON mcp server example using official x402 integrations.
+ * TRON registration lives in src/chains/tron.ts; wallet keys remain in agent-wallet.
  */
 import crypto from "node:crypto";
 import express from "express";
@@ -20,7 +13,6 @@ import { x402ResourceServer } from "@x402/core/server";
 import { createPaymentWrapper } from "@x402/mcp";
 import { z } from "zod";
 
-import { hasEvm, registerEvm, evmAccepts } from "./chains/evm.js";
 import { hasTron, registerTron, tronAccepts } from "./chains/tron.js";
 
 const PORT = parseInt(process.env.MCP_SERVER_PORT || "4023", 10);
@@ -29,7 +21,9 @@ const FACILITATOR_URL = process.env.FACILITATOR_URL || "http://localhost:4022";
 // facilitator call (verify/settle/supported). Hosted facilitators use it to pick
 // a rate-limit tier; anonymous calls still work, so it's unset by default.
 const FACILITATOR_API_KEY = process.env.FACILITATOR_API_KEY;
-const apiKeyHeaders: Record<string, string> = FACILITATOR_API_KEY ? { "X-API-KEY": FACILITATOR_API_KEY } : {};
+const apiKeyHeaders: Record<string, string> = FACILITATOR_API_KEY
+  ? { "X-API-KEY": FACILITATOR_API_KEY }
+  : {};
 
 /**
  * Fake weather data for the demo tool.
@@ -44,7 +38,7 @@ function getWeatherData(city: string): { city: string; weather: string; temperat
 }
 
 /**
- * Wire the resource server, register enabled chains, and build the dual-chain
+ * Wire the resource server, register enabled chains, and build the TRON
  * `accepts` for the paid tool.
  *
  * @returns The MCP server with tools registered.
@@ -69,16 +63,12 @@ async function buildServer(): Promise<McpServer> {
   // Register each chain (and collect its advertised resource configs) only when
   // its payout address is set.
   const configs: ResourceConfig[] = [];
-  if (hasEvm()) {
-    registerEvm(resourceServer);
-    configs.push(...evmAccepts());
-  }
   if (hasTron()) {
     registerTron(resourceServer);
     configs.push(...tronAccepts());
   }
   if (configs.length === 0) {
-    console.error("❌ No payout address configured (set EVM_ADDRESS and/or TRON_ADDRESS).");
+    console.error("❌ No payout address configured (set TRON_ADDRESS).");
     process.exit(1);
   }
   await resourceServer.initialize();
@@ -91,14 +81,16 @@ async function buildServer(): Promise<McpServer> {
 
   const paidWeather = createPaymentWrapper(resourceServer, { accepts });
 
-  const mcpServer = new McpServer({ name: "x402 Weather Service (dual-chain)", version: "1.0.0" });
+  const mcpServer = new McpServer({ name: "TRON x402 Weather Service", version: "1.0.0" });
 
   mcpServer.tool(
     "get_weather",
-    "Get current weather for a city. Requires payment (~$0.001 on BSC testnet or TRON Nile).",
+    "Get current weather for a city. Requires payment (~$0.001 on TRON Nile).",
     { city: z.string().describe("The city name to get weather for") },
     paidWeather(async (args: { city: string }) => ({
-      content: [{ type: "text" as const, text: JSON.stringify(getWeatherData(args.city), null, 2) }],
+      content: [
+        { type: "text" as const, text: JSON.stringify(getWeatherData(args.city), null, 2) },
+      ],
     })),
   );
 
@@ -132,11 +124,11 @@ app.post("/messages", express.json(), async (req, res) => {
 });
 
 app.get("/health", (_req, res) => {
-  res.json({ status: "ok", evm: hasEvm(), tron: hasTron() });
+  res.json({ status: "ok", tron: hasTron() });
 });
 
 app.listen(PORT, () => {
   console.log(
-    `🚀 x402 MCP server on http://localhost:${PORT}/sse  (evm=${hasEvm()}, tron=${hasTron()}) → facilitator ${FACILITATOR_URL}${FACILITATOR_API_KEY ? " [api key]" : ""}`,
+    `🚀 x402 MCP server on http://localhost:${PORT}/sse  (tron=${hasTron()}) → facilitator ${FACILITATOR_URL}${FACILITATOR_API_KEY ? " [api key]" : ""}`,
   );
 });

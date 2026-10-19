@@ -1,5 +1,5 @@
 /**
- * TRON client setup for the upto scheme. Mirrors the EVM module: the
+ * TRON client setup for the upto scheme. the
  * agent-wallet's methods are passed to `createClientTronSigner`, which resolves
  * the address and re-adds the `0x` prefix agent-wallet strips. The TronWeb
  * instance carries no private key.
@@ -42,8 +42,6 @@ export async function registerTron(client: x402Client): Promise<string[]> {
   });
 
   client.register(TRON_NETWORK, new UptoTronScheme(signer));
-  console.info(
-    `[tron] client registered ${TRON_NETWORK} upto (${signer.address})`,
-  );
+  console.info(`[tron] client registered ${TRON_NETWORK} upto (${signer.address})`);
   return [TRON_NETWORK];
 }

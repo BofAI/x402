@@ -1,31 +1,18 @@
-# MCP client — dual-chain (BSC testnet + TRON Nile)
+# TRON mcp client
 
-Connects to an MCP server over SSE and calls its tools. On a 402, the SDK pays
-automatically using whichever registered scheme matches the server's offered
-network — **BSC testnet** (`eip155:97`) or **TRON Nile** (`tron:3448148188`).
+Registers the TRON exact client with official @x402/mcp and calls the paid get_weather tool.
 
-Both chains are registered in one `createx402MCPClient({ schemes })` call; the
-payment-selection pipeline filters by the offered network and picks a match. Each
-chain registers only when its agent-wallet resolves (`src/chains/`), so the client
-runs EVM-only, TRON-only, or both. Key custody stays in `@bankofai/agent-wallet`.
+From `examples/typescript`:
 
-## Run
-
-Shares `.env-exact` with the `exact` trio (`cp .env-exact.example .env-exact`):
-
-```bash
-pnpm dev:facilitator     # facilitator/basic on :4022   (terminal 1)
-pnpm dev:mcp-server      # MCP server on :4023           (terminal 2)
-pnpm dev:mcp-client      # this client                   (terminal 3)
+```sh
+cp .env-exact.example .env-exact
+# Fill in the scenario configuration.
+pnpm dev:mcp-client
 ```
 
-Env (from `.env-exact`): `AGENT_WALLET_PRIVATE_KEY` (one key, both chains),
-optional `TRON_GRID_API_KEY`. MCP-specific: `MCP_SERVER_URL` (default
-`http://localhost:4023`).
+Configure an agent-wallet source for the selected TRON network. Wallet keys remain in the wallet provider.
+Start `pnpm dev:facilitator` first; both MCP examples share `.env-exact`.
 
-## What it does
-
-1. Lists tools.
-2. Calls `ping` (free — no payment).
-3. Calls `get_weather` — pays on whichever chain the server offered and this
-   client supports, then prints the settlement tx.
+See the [TRON scenario guide](../../README.md) for the other roles and prerequisites.
+Use the [official examples](https://github.com/x402-foundation/x402/tree/main/examples/typescript)
+for generic framework and upstream-chain setup.

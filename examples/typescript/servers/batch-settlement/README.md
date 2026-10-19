@@ -1,41 +1,17 @@
-# Batch-settlement resource server (EVM + TRON)
+# TRON batch-settlement server
 
-Express resource server that protects `GET /weather` behind the
-**`batch-settlement`** scheme. The first request on a fresh channel carries an
-on-chain deposit; subsequent requests are paid by off-chain vouchers. A per-chain
-`BatchSettlementChannelManager` claims those vouchers and settles them to `payTo`
-in the background.
+Protects GET /weather on port 4041 and runs the TRON channel manager. It claims vouchers, settles payments, reclaims idle channel balances, and flushes on SIGINT.
 
-Key-less: it advertises `accepts` and delegates verify/settle to the
-[facilitator](../../facilitator/batch-settlement/README.md) over HTTP, which also
-supplies the `receiverAuthorizer` (fetched via `/supported`).
+From `examples/typescript`:
 
-## Prerequisites
-
-- Set the payout address(es) you want to accept:
-  - `EVM_ADDRESS` → BSC (`eip155:97`), token USDC (Permit2)
-  - `TRON_ADDRESS` → TRON Nile (`tron:3448148188`), token USDT (Permit2)
-- A running batch-settlement facilitator (default `FACILITATOR_URL=http://localhost:4042`).
-
-## Run
-
-```bash
-pnpm dev          # from this dir, or:
-pnpm --filter @bankofai/x402-example-batch-server dev        # from repo root
+```sh
+cp .env-batch.example .env-batch
+# Fill in the scenario configuration.
+pnpm dev:batch-server
 ```
 
-Listens on `SERVER_PORT` (default **4041**). Start it **after** the
-facilitator and **before** the client.
+`TRON_NETWORK` selects the network and defaults to Nile. Ordinary Permit2 Approval requires payer TRX.
 
-## Notes
-
-- BSC testnet USDC is an SDK default asset; this example still declares its
-  address, atomic price, and Permit2 transfer method explicitly to make the
-  deposit path visible. TRON uses the `"$"` price form and resolves its default
-  USDT from the token registry.
-- The channel manager runs claim/settle/refund loops on short, example-friendly
-  intervals (60s / 120s / 180s). On `SIGINT` it flushes pending claims before
-  exiting so vouchers aren't lost.
-- This example charges a fixed price per request. For usage-based billing, set a
-  higher `price` (the max authorized) and call `setSettlementOverrides(res, { amount })`
-  in the route handler to bill actual usage.
+See the [TRON scenario guide](../../README.md) for the other roles and prerequisites.
+Use the [official examples](https://github.com/x402-foundation/x402/tree/main/examples/typescript)
+for generic framework and upstream-chain setup.

@@ -1,5 +1,5 @@
 /**
- * TRON setup for the batch-settlement resource server — mirrors the EVM module.
+ * TRON setup for the batch-settlement resource server —
  *
  * Key-less: registers the `batch-settlement` server scheme, advertises `accepts`,
  * and runs a `BatchSettlementChannelManager` that claims + settles to `payTo`.
@@ -11,17 +11,12 @@
  * Permit2 token (no ERC-3009), so the client deposits via Permit2 — the payer
  * needs a one-time `approve(Permit2)` (the shipped client auto-broadcasts it).
  */
-import {
-  TRON_NILE,
-  TRON_MAINNET,
-  TRON_SHASTA,
-  normalizeTronNetwork,
-} from "@bankofai/x402-tron";
+import { TRON_NILE, TRON_MAINNET, TRON_SHASTA, normalizeTronNetwork } from "@bankofai/x402-tron";
 import { BatchSettlementTronScheme } from "@bankofai/x402-tron/batch-settlement/server";
 import type { FacilitatorClient } from "@x402/core/server";
 import type { x402ResourceServer } from "@x402/core/server";
 
-import type { StoppableManager } from "./evm.js";
+export type StoppableManager = { stop(opts?: { flush?: boolean }): Promise<void> };
 
 // Switch to TRON_MAINNET for production (REAL FUNDS): USDT is registered there
 // too — only the facilitator/client TronWeb `fullHost` must point at mainnet.
@@ -57,28 +52,17 @@ export function registerTron(
     refundIntervalSecs: 180,
     maxClaimsPerBatch: 100,
     selectRefundChannels: (channels, context) =>
-      channels.filter((channel) => {
+      channels.filter(channel => {
         if (BigInt(channel.balance) === 0n) return false;
-        if (
-          channel.pendingRequest &&
-          channel.pendingRequest.expiresAt > context.now
-        )
-          return false;
+        if (channel.pendingRequest && channel.pendingRequest.expiresAt > context.now) return false;
         return context.now - channel.lastRequestTimestamp >= 180_000;
       }),
-    onClaim: (r) =>
-      console.log(
-        `[tron] claimed ${r.vouchers} vouchers (tx ${r.transaction})`,
-      ),
-    onSettle: (r) =>
-      console.log(`[tron] settled to ${payTo} (tx ${r.transaction})`),
-    onRefund: (r) =>
-      console.log(`[tron] refunded channel ${r.channel} (tx ${r.transaction})`),
-    onError: (e) => console.error("[tron] settlement error:", e),
+    onClaim: r => console.log(`[tron] claimed ${r.vouchers} vouchers (tx ${r.transaction})`),
+    onSettle: r => console.log(`[tron] settled to ${payTo} (tx ${r.transaction})`),
+    onRefund: r => console.log(`[tron] refunded channel ${r.channel} (tx ${r.transaction})`),
+    onError: e => console.error("[tron] settlement error:", e),
   });
-  console.info(
-    `[tron] server registered ${TRON_NETWORK} batch-settlement (payTo ${payTo})`,
-  );
+  console.info(`[tron] server registered ${TRON_NETWORK} batch-settlement (payTo ${payTo})`);
   return [manager];
 }
 

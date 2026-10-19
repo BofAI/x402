@@ -1,23 +1,6 @@
 /**
- * x402 MCP client — dual-chain (BSC testnet + TRON Nile), env-driven targets.
- *
- * Connects to an MCP server over SSE and calls its tools. When the paid tool
- * returns a 402, the SDK pays automatically. Which chains/tokens to exercise —
- * and in what order — is controlled by `PAY_TARGETS`; the paid tool is called
- * once per target. A mutable selector pins the payment pipeline to the current
- * target, so EVM and TRON (and per-token, e.g. USDT vs USDD) each settle exactly
- * once. Each chain registers only when its agent-wallet resolves. Per-chain setup
- * lives in `src/chains/`.
- *
- * PAY_TARGETS — comma-separated, one paid call per entry, in order:
- *   <network>[@<token>]   network: full CAIP-2 ("eip155:97", TRON_NILE) or a
- *   family prefix ("eip155"/"tron") when no token is specified;
- *   token: symbol (DHLU on EVM; USDT/USDD on TRON) or an asset address (requires
- *   a full CAIP-2 network to resolve); omit ⇒ the network's first advertised token.
- *   (`@` not `#` — dotenv treats `#` as a comment.)
- *   Unset ⇒ each configured chain once.
- *
- * Pair with `servers/mcp` and `facilitator/basic`.
+ * TRON mcp client example using official x402 integrations.
+ * TRON registration lives in src/chains/tron.ts; wallet keys remain in agent-wallet.
  */
 import {
   normalizeTronNetwork,
@@ -32,17 +15,12 @@ import { x402Client } from "@x402/core/client";
 import { wrapMCPClientWithPayment } from "@x402/mcp";
 import type { Network } from "@x402/core/types";
 
-import { evmSchemes } from "./chains/evm.js";
 import { tronSchemes } from "./chains/tron.js";
 
 const SERVER_URL = process.env.MCP_SERVER_URL || "http://localhost:4023";
 
 // Friendly token symbol → asset address, mirroring what `servers/mcp` advertises.
 const TOKEN_ADDRESSES: Record<string, Record<string, string>> = {
-  "eip155:97": {
-    DHLU: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816", // ERC-3009
-    USDC: "0x64544969ed7EBf5f083679233325356EbE738930", // permit2
-  },
   [TRON_NILE]: {
     USDT: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf", // permit2
     USDD: "TGjgvdTWWrybVLaVeFqSyVqJQWjxqRYbaK", // permit2
@@ -64,11 +42,6 @@ const EXAMPLE_SPEND_CONTROL_ASSETS: Array<{
   asset: string;
   maxAmountPerPayment: string;
 }> = [
-  {
-    network: "eip155:97" as const,
-    asset: TOKEN_ADDRESSES["eip155:97"]!.DHLU!,
-    maxAmountPerPayment: "1000",
-  },
   {
     network: TRON_NILE,
     asset: TOKEN_ADDRESSES[TRON_NILE]!.USDD!,
@@ -109,11 +82,7 @@ function resolveToken(prefix: string, token: string): string {
 
 /** Match canonical TRON IDs and their deprecated hexadecimal aliases. */
 function matchesNetwork(network: string, prefix: string): boolean {
-  if (
-    network.startsWith("tron:") &&
-    prefix.startsWith("tron:") &&
-    prefix !== "tron:"
-  ) {
+  if (network.startsWith("tron:") && prefix.startsWith("tron:") && prefix !== "tron:") {
     return tronNetworksEqual(network, prefix);
   }
   return network.startsWith(prefix);
@@ -125,10 +94,13 @@ function parsePayTargets(): PayTarget[] {
   if (!raw) return [];
   return raw
     .split(",")
-    .map((s) => s.trim())
+    .map(s => s.trim())
     .filter(Boolean)
-    .map((entry) => {
+    .map(entry => {
       const [prefix, token] = entry.split("@", 2);
+      if (prefix!.trim() !== "tron" && !prefix!.trim().startsWith("tron:")) {
+        throw new Error(`Only TRON payment targets are supported: ${entry}`);
+      }
       const normalizedPrefix = prefix!.trim().startsWith("tron:")
         ? normalizeTronNetwork(prefix!.trim())
         : prefix!.trim();
@@ -140,13 +112,10 @@ function parsePayTargets(): PayTarget[] {
     });
 }
 
-const evm = await evmSchemes();
 const tron = await tronSchemes();
-const schemes = [...evm, ...tron];
+const schemes = tron;
 if (schemes.length === 0) {
-  console.error(
-    "❌ No wallet configured for EVM or TRON (see agent-wallet setup).",
-  );
+  console.error("❌ No wallet configured for TRON (see agent-wallet setup).");
   process.exit(1);
 }
 
@@ -156,7 +125,7 @@ const paymentClient = new x402Client((_x402Version, accepts) => {
   const t = target;
   if (!t) return accepts[0]!;
   const match = accepts.find(
-    (a) =>
+    a =>
       matchesNetwork(a.network, t.prefix) &&
       (!t.asset || a.asset.toLowerCase() === t.asset.toLowerCase()),
   );
@@ -172,34 +141,23 @@ for (const s of schemes) {
 // Default (PAY_TARGETS unset): each configured chain once.
 let targets = parsePayTargets();
 if (targets.length === 0) {
-  if (evm.length > 0) targets.push({ raw: "eip155", prefix: "eip155:" });
   if (tron.length > 0) targets.push({ raw: "tron", prefix: "tron:" });
 }
 for (const t of targets) {
-  if (t.prefix.startsWith("eip155") && evm.length === 0) {
-    console.error(
-      `❌ target "${t.raw}" needs an EVM wallet, but none is configured.`,
-    );
-    process.exit(1);
-  }
   if (t.prefix.startsWith("tron") && tron.length === 0) {
-    console.error(
-      `❌ target "${t.raw}" needs a TRON wallet, but none is configured.`,
-    );
+    console.error(`❌ target "${t.raw}" needs a TRON wallet, but none is configured.`);
     process.exit(1);
   }
 }
 
 const mcpClient = new Client({
-  name: "x402-mcp-dual-chain-client",
+  name: "x402-mcp-tron-client",
   version: "1.0.0",
 });
 const x402Mcp = wrapMCPClientWithPayment(mcpClient, paymentClient, {
   autoPayment: true,
-  onPaymentRequested: async (context) => {
-    console.log(
-      `\n💰 Payment required for tool: ${context.toolName} (target ${target?.raw})`,
-    );
+  onPaymentRequested: async context => {
+    console.log(`\n💰 Payment required for tool: ${context.toolName} (target ${target?.raw})`);
     return true; // approve
   },
 });
@@ -209,15 +167,11 @@ await x402Mcp.connect(transport);
 console.log(`✅ Connected to MCP server at ${SERVER_URL}`);
 
 const tools = await x402Mcp.listTools();
-console.log("📋 Tools:", tools.tools.map((t) => t.name).join(", "));
+console.log("📋 Tools:", tools.tools.map(t => t.name).join(", "));
 
 // Free tool — no payment.
 const ping = await x402Mcp.callTool("ping");
-console.log(
-  "\n🆓 ping →",
-  ping.content[0]?.text,
-  `(paymentMade=${ping.paymentMade})`,
-);
+console.log("\n🆓 ping →", ping.content[0]?.text, `(paymentMade=${ping.paymentMade})`);
 
 // Paid tool — once per target.
 for (const t of targets) {

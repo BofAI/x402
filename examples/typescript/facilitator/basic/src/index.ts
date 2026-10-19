@@ -1,10 +1,6 @@
 /**
- * Basic x402 facilitator — chain-agnostic.
- *
- * Exposes /verify, /settle, /supported over HTTP and dispatches by the payment's
- * `network` field. EVM and TRON are registered from their own modules under
- * `chains/`, each gated on whether an agent-wallet is configured — so this file
- * never imports a chain SDK or touches a key.
+ * TRON basic facilitator example using official x402 integrations.
+ * TRON registration lives in src/chains/tron.ts; wallet keys remain in agent-wallet.
  */
 import express from "express";
 import { x402Facilitator } from "@x402/core/facilitator";
@@ -15,7 +11,6 @@ import type {
   VerifyResponse,
 } from "@x402/core/types";
 
-import { registerEvm } from "./chains/evm.js";
 import { registerTron } from "./chains/tron.js";
 
 const PORT = parseInt(process.env.FACILITATOR_PORT || "4022", 10);
@@ -25,11 +20,10 @@ const facilitator = new x402Facilitator()
   .onAfterSettle(async ctx => console.log("[settle] after", ctx.requirements.network))
   .onSettleFailure(async ctx => console.log("[settle] failure", ctx));
 
-// Register each chain only if its wallet resolves. Run EVM-only, TRON-only, or both.
-const evm = await registerEvm(facilitator);
+// Register each chain only if its wallet resolves. Only TRON networks are registered.
 const tron = await registerTron(facilitator);
-if (!evm && !tron) {
-  console.error("❌ No wallet configured for EVM or TRON (see agent-wallet setup).");
+if (!tron) {
+  console.error("❌ No wallet configured for TRON (see agent-wallet setup).");
   process.exit(1);
 }
 
@@ -79,5 +73,5 @@ app.get("/supported", (_req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Facilitator on http://localhost:${PORT}  (evm=${evm}, tron=${tron})`);
+  console.log(`🚀 Facilitator on http://localhost:${PORT}  (tron=${tron})`);
 });

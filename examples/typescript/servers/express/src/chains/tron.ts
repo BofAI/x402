@@ -1,5 +1,5 @@
 /**
- * TRON setup for the resource server — mirrors the EVM module. Keyless: just the
+ * TRON setup for the resource server — Keyless: just the
  * `exact` server scheme and `accepts` entries with the TRON payout address.
  *
  * Offers both USDT and USDD on `TRON_NILE`. Both are permit2 tokens (no ERC-3009);
@@ -45,8 +45,8 @@ export function registerTron(resourceServer: x402ResourceServer): void {
  */
 export function tronAccepts() {
   const payTo = process.env.TRON_ADDRESS as string;
-  return tronNetworks().flatMap((network) =>
-    Object.keys(getNetworkTokens(network)).map((symbol) => ({
+  return tronNetworks().flatMap(network =>
+    Object.keys(getNetworkTokens(network)).map(symbol => ({
       scheme: "exact",
       network,
       payTo,

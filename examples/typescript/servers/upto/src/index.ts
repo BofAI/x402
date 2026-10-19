@@ -1,14 +1,6 @@
 /**
- * x402 upto resource server (Express) — chain-agnostic, EVM + TRON.
- *
- * Protects `GET /generate` behind the `upto` scheme. The client authorizes up to
- * the advertised maximum (`MAX_PRICE`); the route handler then decides the REAL
- * usage for this request and tells the middleware to settle only that much via a
- * `Settlement-Overrides` response header. This is usage-based billing: authorize
- * a ceiling once, charge actual usage per request.
- *
- * Per-chain setup lives in `src/chains/`; a chain registers only when its payout
- * address is set.
+ * TRON upto server example using official x402 integrations.
+ * TRON registration lives in src/chains/tron.ts; wallet keys remain in agent-wallet.
  */
 import express from "express";
 import { HTTPFacilitatorClient } from "@x402/core/server";
@@ -16,7 +8,6 @@ import { x402ResourceServer } from "@x402/core/server";
 import { x402HTTPResourceServer } from "@x402/core/http";
 import { paymentMiddlewareFromHTTPServer, setSettlementOverrides } from "@x402/express";
 
-import { hasEvm, registerEvm, evmAccepts } from "./chains/evm.js";
 import { hasTron, registerTron, tronAccepts } from "./chains/tron.js";
 import { ResourceStrippingFacilitatorClient } from "./resourceStrippingFacilitator.js";
 
@@ -34,7 +25,9 @@ const STRIP_RESOURCE_URL = process.env.STRIP_RESOURCE_URL === "true";
 // a rate-limit tier; anonymous calls still work, so it's unset by default.
 const FACILITATOR_API_KEY = process.env.FACILITATOR_API_KEY;
 
-const apiKeyHeaders: Record<string, string> = FACILITATOR_API_KEY ? { "X-API-KEY": FACILITATOR_API_KEY } : {};
+const apiKeyHeaders: Record<string, string> = FACILITATOR_API_KEY
+  ? { "X-API-KEY": FACILITATOR_API_KEY }
+  : {};
 const httpFacilitator = new HTTPFacilitatorClient({
   timeoutMs: 120_000,
   url: FACILITATOR_URL,
@@ -55,18 +48,14 @@ const facilitatorClient = STRIP_RESOURCE_URL
 const resourceServer = new x402ResourceServer(facilitatorClient);
 
 // Register each chain and collect its accepts, only when its payout is set.
-type Accept = ReturnType<typeof evmAccepts>[number] | ReturnType<typeof tronAccepts>[number];
+type Accept = ReturnType<typeof tronAccepts>[number];
 const accepts: Accept[] = [];
-if (hasEvm()) {
-  registerEvm(resourceServer);
-  accepts.push(...evmAccepts(MAX_PRICE));
-}
 if (hasTron()) {
   registerTron(resourceServer);
   accepts.push(...tronAccepts(MAX_PRICE));
 }
 if (accepts.length === 0) {
-  console.error("❌ No payout address configured (set EVM_ADDRESS and/or TRON_ADDRESS).");
+  console.error("❌ No payout address configured (set TRON_ADDRESS).");
   process.exit(1);
 }
 
@@ -106,7 +95,7 @@ app.get("/generate", (_req, res) => {
 
 app.listen(PORT, () => {
   console.log(
-    `🧾 Upto server on http://localhost:${PORT}  (evm=${hasEvm()}, tron=${hasTron()}) → facilitator ${FACILITATOR_URL}${STRIP_RESOURCE_URL ? " [resource.url stripped]" : ""}${FACILITATOR_API_KEY ? " [api key]" : ""}`,
+    `🧾 Upto server on http://localhost:${PORT}  (tron=${hasTron()}) → facilitator ${FACILITATOR_URL}${STRIP_RESOURCE_URL ? " [resource.url stripped]" : ""}${FACILITATOR_API_KEY ? " [api key]" : ""}`,
   );
   console.log(`  GET /generate — usage-based billing via upto (max ${MAX_PRICE})`);
 });

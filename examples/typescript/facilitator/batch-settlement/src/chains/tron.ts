@@ -1,5 +1,5 @@
 /**
- * TRON chain setup for the batch-settlement facilitator. Mirrors the EVM module.
+ * TRON chain setup for the batch-settlement facilitator.
  *
  * `createFacilitatorTronSigner` sets the issuer address from the wallet and
  * builds/signs/broadcasts the on-chain `deposit` / `claimWithSignature` /
@@ -34,9 +34,7 @@ export const TRON_NETWORK = normalizeTronNetwork(
  * @param facilitator - The facilitator to register the scheme on.
  * @returns `true` if registered, `false` if no TRON wallet was configured.
  */
-export async function registerTron(
-  facilitator: x402Facilitator,
-): Promise<boolean> {
+export async function registerTron(facilitator: x402Facilitator): Promise<boolean> {
   const wallet = await tryResolveWallet(TRON_NETWORK);
   if (!wallet) {
     return false;
@@ -51,10 +49,7 @@ export async function registerTron(
   });
   const authorizerSigner = await createAuthorizerTronSigner(wallet);
 
-  facilitator.register(
-    TRON_NETWORK,
-    new BatchSettlementTronScheme(signer, authorizerSigner),
-  );
+  facilitator.register(TRON_NETWORK, new BatchSettlementTronScheme(signer, authorizerSigner));
   console.info(
     `[tron] facilitator registered ${TRON_NETWORK} batch-settlement (${authorizerSigner.address})`,
   );

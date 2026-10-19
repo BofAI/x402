@@ -8,12 +8,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@bankofai/x402-evm": "workspace:*",
     "@bankofai/x402-tron": "workspace:*",
     "@bankofai/agent-wallet": "^3.0.0",
     "express": "^4.21.2",
     "tronweb": "^6.0.0",
-    "viem": "^2.48.11",
     "@x402/core": "2.28.0"
   },
   "devDependencies": {

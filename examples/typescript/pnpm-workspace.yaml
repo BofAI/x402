@@ -3,12 +3,9 @@ packages:
   - "servers/*"
   - "facilitator/*"
   - "logging"
-  # Link the in-repo SDK packages so examples build against local source.
-  - "../../typescript/packages/core"
+  # Only TRON packages are local; use official npm integrations.
   - "../../typescript/packages/extensions"
-  - "../../typescript/packages/http/*"
-  - "../../typescript/packages/mcp"
-  - "../../typescript/packages/mechanisms/*"
+  - "../../typescript/packages/mechanisms/tron"
 minimumReleaseAge: 4320 # Only install package versions that have been published for at least 3 days.
 minimumReleaseAgeStrict: true
 allowBuilds:

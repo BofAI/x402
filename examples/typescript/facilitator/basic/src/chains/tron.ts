@@ -1,5 +1,5 @@
 /**
- * TRON chain setup for the facilitator. Mirrors the EVM module: key custody is
+ * TRON chain setup for the facilitator. key custody is
  * in `@bankofai/agent-wallet`, and `createFacilitatorTronSigner` sets the
  * issuer address from the wallet (the TronWeb instance carries no private key).
  */
@@ -24,9 +24,7 @@ export const TRON_NETWORKS = [TRON_NILE, TRON_SHASTA, TRON_MAINNET] as const;
  * @param facilitator - The facilitator to register the scheme on.
  * @returns `true` if registered, `false` if no TRON wallet was configured.
  */
-export async function registerTron(
-  facilitator: x402Facilitator,
-): Promise<boolean> {
+export async function registerTron(facilitator: x402Facilitator): Promise<boolean> {
   let registered = false;
   for (const network of TRON_NETWORKS) {
     const wallet = await tryResolveWallet(network);

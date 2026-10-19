@@ -8,7 +8,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@bankofai/x402-evm": "workspace:*",
     "@bankofai/x402-tron": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.12.1",
     "express": "^4.21.2",

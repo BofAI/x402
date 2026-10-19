@@ -4,14 +4,9 @@
  * with the TRON payout address. Funds settle from the payer's GasFree custodial
  * wallet via a relayer; the server only needs the payout address.
  *
- * GasFree is TRON-only — there is no EVM counterpart.
+ * GasFree is specific to TRON.
  */
-import {
-  TRON_NILE,
-  TRON_MAINNET,
-  TRON_SHASTA,
-  normalizeTronNetwork,
-} from "@bankofai/x402-tron";
+import { TRON_NILE, TRON_MAINNET, TRON_SHASTA, normalizeTronNetwork } from "@bankofai/x402-tron";
 import { registerExactGasFreeTronScheme } from "@bankofai/x402-tron/gasfree/server";
 import type { x402ResourceServer } from "@x402/core/server";
 
@@ -43,7 +38,5 @@ export function registerTron(resourceServer: x402ResourceServer): void {
  */
 export function tronAccepts() {
   const payTo = process.env.TRON_ADDRESS as string;
-  return [
-    { scheme: "exact_gasfree", network: TRON_NETWORK, payTo, price: "$0.001" },
-  ];
+  return [{ scheme: "exact_gasfree", network: TRON_NETWORK, payTo, price: "$0.001" }];
 }

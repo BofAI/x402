@@ -44,7 +44,7 @@ The repo itself is a `pnpm` (>=11) workspace; from `typescript/` run `pnpm insta
 
 ## Quick Start
 
-A full loop has three roles: **Client** (payer), **Resource Server** (seller), **Facilitator** (verify + settle on-chain). Runnable trios for every scheme live under [`examples/typescript/`](examples/typescript/) — start there.
+A full loop has three roles: **Client** (payer), **Resource Server** (seller), **Facilitator** (verify + settle on-chain). Runnable TRON trios live under [`examples/typescript/`](examples/typescript/). For general framework and upstream-chain examples, use the [official examples](https://github.com/x402-foundation/x402/tree/main/examples/typescript).
 
 ### Client (Buyer)
 
@@ -158,7 +158,7 @@ x402 currently supports TRC-20 tokens on the TRON network and BEP-20 tokens on t
 | **BSC Testnet** | `eip155:97` | Testnet | **Development & Testing** |
 | **BSC Mainnet** | `eip155:56` | Mainnet | Production |
 
-**Tokens seen in the examples:** BSC testnet — `DHLU` (ERC-3009) and `USDC` (Permit2); TRON Nile — `USDT` and `USDD` (Permit2).
+**Tokens in the local TRON examples:** Nile `USDT` and `USDD` (Permit2).
 
 ## Supported Payment Schemes
 

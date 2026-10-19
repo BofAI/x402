@@ -1,11 +1,6 @@
 /**
- * x402 batch-settlement resource server (Express) — chain-agnostic, EVM + TRON.
- *
- * Protects `GET /weather` behind the `batch-settlement` scheme. The first request
- * on a fresh channel carries an on-chain deposit; subsequent requests are paid by
- * off-chain vouchers. A per-chain `BatchSettlementChannelManager` claims the
- * vouchers and settles to `payTo` in the background. Per-chain setup lives in
- * `src/chains/`; a chain registers only when its payout address is set.
+ * TRON batch-settlement server example using official x402 integrations.
+ * TRON registration lives in src/chains/tron.ts; wallet keys remain in agent-wallet.
  */
 import express from "express";
 import { HTTPFacilitatorClient } from "@x402/core/server";
@@ -13,8 +8,7 @@ import { x402ResourceServer } from "@x402/core/server";
 import { x402HTTPResourceServer } from "@x402/core/http";
 import { paymentMiddlewareFromHTTPServer } from "@x402/express";
 
-import { hasEvm, registerEvm, evmAccepts, type StoppableManager } from "./chains/evm.js";
-import { hasTron, registerTron, tronAccepts } from "./chains/tron.js";
+import { hasTron, registerTron, tronAccepts, type StoppableManager } from "./chains/tron.js";
 import { ResourceStrippingFacilitatorClient } from "./resourceStrippingFacilitator.js";
 
 const PORT = parseInt(process.env.SERVER_PORT || "4041", 10);
@@ -30,7 +24,9 @@ const STRIP_RESOURCE_URL = process.env.STRIP_RESOURCE_URL === "true";
 // a rate-limit tier; anonymous calls still work, so it's unset by default.
 const FACILITATOR_API_KEY = process.env.FACILITATOR_API_KEY;
 
-const apiKeyHeaders: Record<string, string> = FACILITATOR_API_KEY ? { "X-API-KEY": FACILITATOR_API_KEY } : {};
+const apiKeyHeaders: Record<string, string> = FACILITATOR_API_KEY
+  ? { "X-API-KEY": FACILITATOR_API_KEY }
+  : {};
 const httpFacilitator = new HTTPFacilitatorClient({
   timeoutMs: 120_000,
   url: FACILITATOR_URL,
@@ -51,19 +47,15 @@ const facilitatorClient = STRIP_RESOURCE_URL
 const resourceServer = new x402ResourceServer(facilitatorClient);
 
 // Register each chain (and start its channel manager) only when its payout is set.
-type Accept = ReturnType<typeof evmAccepts>[number] | ReturnType<typeof tronAccepts>[number];
+type Accept = ReturnType<typeof tronAccepts>[number];
 const accepts: Accept[] = [];
 const managers: StoppableManager[] = [];
-if (hasEvm()) {
-  managers.push(...registerEvm(resourceServer, facilitatorClient));
-  accepts.push(...evmAccepts());
-}
 if (hasTron()) {
   managers.push(...registerTron(resourceServer, facilitatorClient));
   accepts.push(...tronAccepts());
 }
 if (accepts.length === 0) {
-  console.error("❌ No payout address configured (set EVM_ADDRESS and/or TRON_ADDRESS).");
+  console.error("❌ No payout address configured (set TRON_ADDRESS).");
   process.exit(1);
 }
 
@@ -86,7 +78,7 @@ app.get("/weather", (_req, res) => {
 
 const server = app.listen(PORT, () => {
   console.log(
-    `🌤️  Batch-settlement server on http://localhost:${PORT}  (evm=${hasEvm()}, tron=${hasTron()}) → facilitator ${FACILITATOR_URL}${STRIP_RESOURCE_URL ? " [resource.url stripped]" : ""}${FACILITATOR_API_KEY ? " [api key]" : ""}`,
+    `🌤️  Batch-settlement server on http://localhost:${PORT}  (tron=${hasTron()}) → facilitator ${FACILITATOR_URL}${STRIP_RESOURCE_URL ? " [resource.url stripped]" : ""}${FACILITATOR_API_KEY ? " [api key]" : ""}`,
   );
 });
 

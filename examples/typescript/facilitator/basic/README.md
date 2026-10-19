@@ -1,43 +1,17 @@
-# Basic facilitator (EVM + TRON)
+# TRON basic facilitator
 
-A standalone x402 facilitator exposing `/verify`, `/settle`, `/supported`. The
-HTTP layer (`src/index.ts`) is **chain-agnostic** and dispatches by the payment's
-`network`; each chain's setup lives in its own module under `src/chains/`.
+Registers the TRON exact scheme with official Core and exposes /supported, /verify, and /settle on port 4022.
 
-## Wallet model — agent-wallet, never a raw key
+From `examples/typescript`:
 
-The signer factories are **wallet-only**:
-
-- EVM: `createFacilitatorEvmSigner(wallet, { network, rpcUrl })`
-- TRON: `createFacilitatorTronSigner(wallet, { network, apiKey })`
-
-The `wallet` comes from `resolveWallet({ network })` in `@bankofai/agent-wallet`,
-which signs through a configured `raw_secret`, `wallet_cli`, or Privy backend. **This example never
-reads a private key.** The factories build the viem `publicClient` / `TronWeb`
-internally and they carry no account — they only do chain reads and broadcast.
-
-A chain registers only if its wallet resolves, so you can run EVM-only,
-TRON-only, or both.
-
-## Run
-
-```bash
-# From examples/typescript: cp .env-exact.example .env-exact and fill the wallet.
-pnpm install
-pnpm dev   # or: pnpm --filter @bankofai/x402-example-facilitator-basic dev
+```sh
+cp .env-exact.example .env-exact
+# Fill in the scenario configuration.
+pnpm dev:facilitator
 ```
 
-Configure the wallet via agent-wallet — a single `AGENT_WALLET_PRIVATE_KEY`
-serves both chains in `raw_secret` mode. See agent-wallet's docs for the full
-provider matrix.
+Configure an agent-wallet source for the selected TRON network. Wallet keys remain in the wallet provider.
 
-## Networks
-
-| Chain | Network | Scheme |
-|---|---|---|
-| EVM | `eip155:97` (BSC testnet) | `exact` — DHLU via eip3009, USDC via permit2 + gas-sponsored approve |
-| TRON | `tron:3448148188` | `exact` — USDT/USDD via permit2 (auto-approve) |
-
-Add another EVM network (e.g. Base Sepolia) by adding one entry to the
-`EVM_NETWORKS` table in `src/chains/evm.ts`. The ERC-20 approval gas-sponsoring
-extension is registered once with a per-network signer resolver.
+See the [TRON scenario guide](../../README.md) for the other roles and prerequisites.
+Use the [official examples](https://github.com/x402-foundation/x402/tree/main/examples/typescript)
+for generic framework and upstream-chain setup.
