@@ -13,8 +13,10 @@ npm install @bankofai/x402-tron-extensions@2.1.0-beta.1
 
 Use official HTTP/MCP integration packages with this Core version. Resource sponsorship requires
 explicit client and facilitator extension registration. Live-chain service integration and durable
-production recovery are not yet accepted. Upto currently preserves optimistic verification on
-allowance/balance RPC errors; a fail-closed change remains required before stable release.
+production recovery are not yet accepted. The published `2.1.0-beta.1` retains optimistic upto
+allowance/balance RPC verification. Current source includes an unreleased fix: failed or malformed
+required account reads return `chain_read_failed`, and settlement stops before broadcasting.
+This source fix has not been published to npm.
 
 This release follows the requested 2.1 beta line; `3.0.0-beta.1` remains a historical experimental
 release. It is a migration beta, not a drop-in source upgrade from 2.0.0: replace the legacy Core

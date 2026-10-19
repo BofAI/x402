@@ -1,5 +1,7 @@
 import { createTrc20ApprovalResourceSponsoringExtension } from "../../src/trc20-approval-resource-sponsoring";
 import { describe, expect, it, vi } from "vitest";
+import { x402Facilitator } from "@x402/core/facilitator";
+import type { PaymentPayload, PaymentRequirements } from "@x402/core/types";
 import { TronWeb, utils as tronUtils } from "tronweb";
 import {
   PERMIT2_ADDRESSES,
@@ -13,6 +15,7 @@ import {
 import {
   TRC20_APPROVAL_MAX_AMOUNT,
   type Trc20ApprovalResourceSponsoringInfo,
+  type Trc20ApprovalResourceSponsoringRuntime,
 } from "@bankofai/x402-tron/exact/extensions";
 import { ExactTronScheme } from "@bankofai/x402-tron/exact/facilitator";
 import type { FacilitatorTronSigner } from "@bankofai/x402-tron";
@@ -470,6 +473,74 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
     expect(settled).toMatchObject({ success: true, amount: "400000" });
     expect(calls).toEqual(["verify-sponsor", "sponsor", "revalidate", "settlement"]);
   });
+
+  it.each(["preflight", "revalidation"])(
+    "rejects upto balance RPC failure at %s with a registered resource extension",
+    async stage => {
+      const runtime: Trc20ApprovalResourceSponsoringRuntime = {
+        verify: vi.fn(async () => ({ isValid: true })),
+        sponsor: vi.fn<Trc20ApprovalResourceSponsoringRuntime["sponsor"]>(
+          async (_request, options) => {
+            const checked = await options?.revalidate?.();
+            expect(checked).toMatchObject({ isValid: false, invalidReason: "chain_read_failed" });
+            return {
+              success: false,
+              errorReason: checked?.invalidReason,
+              errorMessage: checked?.invalidMessage,
+            };
+          },
+        ),
+      };
+      let balanceReads = 0;
+      const signer: FacilitatorTronSigner = {
+        getAddresses: () => [PAYER],
+        verifyTypedData: vi.fn(async () => true),
+        readContract: vi.fn(async args => {
+          expect(args.functionName).toBe("balanceOf");
+          balanceReads++;
+          if (stage === "preflight" || balanceReads === 2)
+            throw new Error("private RPC URL must not escape");
+          return 2_000_000n;
+        }),
+        writeContract: vi.fn(),
+        waitForTransactionReceipt: vi.fn(),
+      };
+      const uptoRequirements: PaymentRequirements = {
+        ...requirements,
+        scheme: "upto",
+        extra: { assetTransferMethod: "permit2", permit2FacilitatorAddress: PAYER },
+      };
+      const payment: PaymentPayload = {
+        x402Version: 2,
+        accepted: uptoRequirements,
+        payload: {
+          signature: "0xpermit2-signature",
+          permit2Authorization: {
+            from: PAYER,
+            permitted: { token: TOKEN, amount: "1000000" },
+            spender: normalizeAddressForSigning(X402_UPTO_PERMIT2_PROXY_ADDRESSES[NETWORK]),
+            nonce: "1",
+            deadline: String(Math.floor(Date.now() / 1000) + 600),
+            witness: { to: PAYER, facilitator: PAYER, validAfter: "0" },
+          },
+        },
+        extensions: { trc20ApprovalResourceSponsoring: { info: info(buildSignedApproval()) } },
+      };
+      const facilitator = new x402Facilitator().register(NETWORK, new UptoFacilitator(signer));
+      facilitator.registerExtension(createTrc20ApprovalResourceSponsoringExtension(runtime));
+      const result = await facilitator.settle(payment, { ...uptoRequirements, amount: "400000" });
+      expect(result).toMatchObject({
+        success: false,
+        transaction: "",
+        errorReason: "chain_read_failed",
+        payer: PAYER,
+      });
+      expect(JSON.stringify(result)).not.toContain("private RPC URL");
+      expect(runtime.sponsor).toHaveBeenCalledTimes(stage === "preflight" ? 0 : 1);
+      expect(signer.writeContract).not.toHaveBeenCalled();
+      expect(signer.waitForTransactionReceipt).not.toHaveBeenCalled();
+    },
+  );
 
   it("sponsors the batch deposit amount before submitting the channel deposit", async () => {
     const calls: string[] = [];

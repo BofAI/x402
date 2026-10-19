@@ -30,6 +30,28 @@ interface UptoVerificationOptions {
 }
 
 /**
+ * Decode an account read without accepting coercible or truncated RPC results.
+ *
+ * @param value - Decoded allowance or balance RPC result.
+ * @returns Valid unsigned 256-bit atomic amount.
+ */
+function accountUint256(value: unknown): bigint {
+  if (typeof value === "number" && !Number.isSafeInteger(value)) {
+    throw new Error("Invalid account uint256");
+  }
+  if (
+    typeof value !== "bigint" &&
+    typeof value !== "number" &&
+    !(typeof value === "string" && /^(?:[0-9]+|0x[0-9a-f]+)$/i.test(value))
+  ) {
+    throw new Error("Invalid account uint256");
+  }
+  const amount = BigInt(value);
+  if (amount < 0n || amount >= 1n << 256n) throw new Error("Invalid account uint256");
+  return amount;
+}
+
+/**
  * Verifies an Upto Permit2 payment payload on TRON.
  *
  * `requirements.amount` is treated as the authorized maximum: it must equal
@@ -165,29 +187,38 @@ export async function verifyUptoPermit2(
   // not supplied through the resource-sponsoring extension.
   try {
     if (options.requireAllowance ?? sponsorship === null) {
-      const allowance = (await signer.readContract({
-        address: requirements.asset,
-        abi: erc20AllowanceAbi as unknown as readonly Record<string, unknown>[],
-        functionName: "allowance",
-        args: [payer, permit2Address],
-      })) as bigint;
+      const allowance = accountUint256(
+        await signer.readContract({
+          address: requirements.asset,
+          abi: erc20AllowanceAbi as unknown as readonly Record<string, unknown>[],
+          functionName: "allowance",
+          args: [payer, permit2Address],
+        }),
+      );
 
       if (allowance < BigInt(requirements.amount)) {
         return { isValid: false, invalidReason: errors.PERMIT2_ALLOWANCE_REQUIRED, payer };
       }
     }
   } catch {
-    // If allowance check fails, proceed optimistically
+    return {
+      isValid: false,
+      invalidReason: errors.CHAIN_READ_FAILED,
+      invalidMessage: "TRON contract read failed",
+      payer,
+    };
   }
 
   // Check balance covers the authorized maximum
   try {
-    const balance = (await signer.readContract({
-      address: requirements.asset,
-      abi: transferWithAuthorizationABI as unknown as readonly Record<string, unknown>[],
-      functionName: "balanceOf",
-      args: [payer],
-    })) as bigint;
+    const balance = accountUint256(
+      await signer.readContract({
+        address: requirements.asset,
+        abi: transferWithAuthorizationABI as unknown as readonly Record<string, unknown>[],
+        functionName: "balanceOf",
+        args: [payer],
+      }),
+    );
 
     if (balance < BigInt(requirements.amount)) {
       return {
@@ -198,7 +229,12 @@ export async function verifyUptoPermit2(
       };
     }
   } catch {
-    // If balance check fails, continue
+    return {
+      isValid: false,
+      invalidReason: errors.CHAIN_READ_FAILED,
+      invalidMessage: "TRON contract read failed",
+      payer,
+    };
   }
 
   return { isValid: true, invalidReason: undefined, payer };

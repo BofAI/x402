@@ -166,6 +166,52 @@ async function main() {
   });
   assert.equal((await server.verifyPayment(payment, accepts[0])).isValid, true);
   assert.equal((await server.settlePayment(payment, accepts[0])).success, true);
+  const uptoRequirements = {
+    ...accepts[0],
+    scheme: "upto",
+    extra: {
+      assetTransferMethod: "permit2",
+      permit2FacilitatorAddress: settlementSigner.getAddresses()[0],
+    },
+  };
+  const uptoPayment = await new x402Client()
+    .register(network, new UptoClient.UptoTronScheme(signer))
+    .createPaymentPayload({
+      x402Version: 2,
+      accepts: [uptoRequirements],
+      resource: { url: "https://example.test/upto" },
+    });
+  for (const failedRead of ["allowance", "balanceOf"]) {
+    let broadcasts = 0;
+    const uptoFacilitator = new x402Facilitator().register(
+      network,
+      new UptoFacilitator.UptoTronScheme({
+        ...settlementSigner,
+        readContract: async args => {
+          if (args.functionName === failedRead) throw new Error("RPC unavailable");
+          return 1000000n;
+        },
+        writeContract: async () => {
+          broadcasts++;
+          return "11".repeat(32);
+        },
+      }),
+    );
+    assert.deepEqual(await uptoFacilitator.verify(uptoPayment, uptoRequirements), {
+      isValid: false,
+      invalidReason: "chain_read_failed",
+      invalidMessage: "TRON contract read failed",
+      payer: signer.address,
+    });
+    const rejectedSettlement = await uptoFacilitator.settle(uptoPayment, {
+      ...uptoRequirements,
+      amount: "0",
+    });
+    assert.equal(rejectedSettlement.success, false);
+    assert.equal(rejectedSettlement.errorReason, "chain_read_failed");
+    assert.equal(rejectedSettlement.transaction, "");
+    assert.equal(broadcasts, 0);
+  }
   assert.equal(new UptoClient.UptoTronScheme(signer).scheme, "upto");
   assert.equal(new UptoServer.UptoTronScheme().scheme, "upto");
   assert.equal(new UptoFacilitator.UptoTronScheme(settlementSigner).scheme, "upto");

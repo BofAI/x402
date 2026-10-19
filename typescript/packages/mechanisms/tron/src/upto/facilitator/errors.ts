@@ -14,6 +14,7 @@ export const PERMIT2_AMOUNT_MISMATCH = "permit2_amount_mismatch";
 export const PERMIT2_TOKEN_MISMATCH = "permit2_token_mismatch";
 export const PERMIT2_INVALID_SIGNATURE = "invalid_permit2_signature";
 export const PERMIT2_ALLOWANCE_REQUIRED = "permit2_allowance_required";
+export const CHAIN_READ_FAILED = "chain_read_failed";
 
 // Settlement
 export const SETTLEMENT_EXCEEDS_AMOUNT = "upto_settlement_exceeds_amount";
