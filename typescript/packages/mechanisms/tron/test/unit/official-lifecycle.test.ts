@@ -11,7 +11,7 @@ import { BatchSettlementTronScheme as BatchFacilitator } from "../../src/batch-s
 import { ExactGasFreeTronScheme as GasClient } from "../../src/gasfree/client";
 import { ExactGasFreeTronScheme as GasServer } from "../../src/gasfree/server";
 import { ExactGasFreeTronScheme as GasFacilitator } from "../../src/gasfree/facilitator";
-import { GasFreeAPIClient } from "../../src/shared/gasfree/api";
+import { GasFreeTransactionStatusError, GasFreeAPIClient } from "../../src/shared/gasfree/api";
 import { createFacilitatorTronSigner } from "../../src/signer";
 import type { ClientTronSigner } from "../../src/signer";
 import type {
@@ -55,11 +55,11 @@ async function batch(status: "success" | "pending" = "success") {
       if (functionName === "refundNonce") return 0n;
       return 100000000n;
     },
-    writeContract: async () => {
+    writeContract: vi.fn(async () => {
       if (status === "success") balance = 500000n;
       return TX;
-    },
-    waitForTransactionReceipt: async () => ({ status }),
+    }),
+    waitForTransactionReceipt: vi.fn(async () => ({ status })),
   };
   const facilitator = new x402Facilitator().register(NETWORK, new BatchFacilitator(chain, signer));
   const serverScheme = new BatchServer(ADDRESS);
@@ -85,6 +85,7 @@ async function batch(status: "success" | "pending" = "success") {
   const payment = await client.createPaymentPayload({ x402Version: 2, accepts, resource });
   const channelId = (payment.payload as BatchSettlementDepositPayload).voucher.channelId;
   return {
+    chain,
     server,
     facilitator,
     clientStorage,
@@ -254,6 +255,23 @@ describe("batch lifecycle dispatched by official Core", () => {
     });
     const stored = await f.serverScheme.getStorage().get(f.channelId);
     expect(stored?.chargedCumulativeAmount ?? "0").toBe("0");
+    expect(f.chain.writeContract).toHaveBeenCalledTimes(1);
+  });
+
+  it("recovers a pending deposit with its original tx and confirmed channel snapshot", async () => {
+    const f = await batch();
+    f.chain.waitForTransactionReceipt.mockResolvedValueOnce({ status: "pending" });
+    await f.server.verifyPayment(f.payment, f.requirements);
+    expect(await f.server.settlePayment(f.payment, f.requirements)).toMatchObject({
+      success: true,
+      transaction: TX,
+      amount: "500000",
+      extra: { channelState: { balance: "500000" } },
+    });
+    expect(f.chain.writeContract).toHaveBeenCalledTimes(1);
+    expect((await f.serverScheme.getStorage().get(f.channelId))?.chargedCumulativeAmount).toBe(
+      "100000",
+    );
   });
 
   it("rejects concurrent reservations and returns corrective channel state for stale vouchers", async () => {
@@ -298,96 +316,137 @@ describe("batch lifecycle dispatched by official Core", () => {
 });
 
 describe("GasFree composed with official Core", () => {
-  it("signs, verifies and settles using the injected relayer", async () => {
-    const api = new GasFreeAPIClient("http://127.0.0.1:1");
-    const gasFreeAddress = TronWeb.address.fromPrivateKey("02".padStart(64, "0")) as string;
-    const provider = TronWeb.address.fromPrivateKey("03".padStart(64, "0")) as string;
-    vi.spyOn(api, "getAddressInfo").mockResolvedValue({
-      accountAddress: ADDRESS,
-      gasFreeAddress,
-      active: true,
-      allowSubmit: true,
-      nonce: 4,
-      assets: [
+  it.each(["direct", "pending", "success", "reverted", "trace"] as const)(
+    "signs and settles without resubmission when relayer recovery is %s",
+    async recovery => {
+      const api = new GasFreeAPIClient("http://127.0.0.1:1");
+      const gasFreeAddress = TronWeb.address.fromPrivateKey("02".padStart(64, "0")) as string;
+      const provider = TronWeb.address.fromPrivateKey("03".padStart(64, "0")) as string;
+      vi.spyOn(api, "getAddressInfo").mockResolvedValue({
+        accountAddress: ADDRESS,
+        gasFreeAddress,
+        active: true,
+        allowSubmit: true,
+        nonce: 4,
+        assets: [
+          {
+            tokenAddress: TOKEN,
+            tokenSymbol: "USDT",
+            transferFee: "10000",
+            activateFee: "0",
+            decimal: 6,
+            frozen: 0,
+          },
+        ],
+      });
+      vi.spyOn(api, "getProviders").mockResolvedValue([
         {
-          tokenAddress: TOKEN,
-          tokenSymbol: "USDT",
-          transferFee: "10000",
-          activateFee: "0",
-          decimal: 6,
-          frozen: 0,
+          address: provider,
+          name: "test",
+          icon: "",
+          website: "",
+          config: {
+            maxPendingTransfer: 10,
+            minDeadlineDuration: 60,
+            maxDeadlineDuration: 3600,
+            defaultDeadlineDuration: 600,
+          },
         },
-      ],
-    });
-    vi.spyOn(api, "getProviders").mockResolvedValue([
-      {
-        address: provider,
-        name: "test",
-        icon: "",
-        website: "",
-        config: {
-          maxPendingTransfer: 10,
-          minDeadlineDuration: 60,
-          maxDeadlineDuration: 3600,
-          defaultDeadlineDuration: 600,
-        },
-      },
-    ]);
-    vi.spyOn(api, "submit").mockResolvedValue("trace-1");
-    vi.spyOn(api, "waitForSuccess").mockResolvedValue({
-      id: "trace-1",
-      state: "SUCCEED",
-      createdAt: "",
-      accountAddress: ADDRESS,
-      gasFreeAddress,
-      providerAddress: provider,
-      targetAddress: ADDRESS,
-      nonce: 4,
-      tokenAddress: TOKEN,
-      amount: "100000",
-      expiredAt: "",
-      txnHash: TX,
-    });
-    const base = await createFacilitatorTronSigner(
-      { getAddress: () => ADDRESS, signTransaction: async () => ({}) },
-      { network: NETWORK },
-    );
-    const facilitator = new x402Facilitator().register(
-      NETWORK,
-      new GasFacilitator({ ...base, readContract: async () => 10000000n }, { [NETWORK]: api }),
-    );
-    const server = new x402ResourceServer({
-      getSupported: async () => ({
-        ...facilitator.getSupported(),
-        kinds: facilitator.getSupported().kinds.map(kind => ({ ...kind, network: NETWORK })),
-      }),
-      verify: (p, r) => facilitator.verify(p, r),
-      settle: (p, r) => facilitator.settle(p, r),
-    }).register(NETWORK, new GasServer());
-    await server.initialize();
-    const accepts = await server.buildPaymentRequirements({
-      scheme: "exact_gasfree",
-      network: NETWORK,
-      price: "0.1 USDT",
-      payTo: ADDRESS,
-      maxTimeoutSeconds: 600,
-    });
-    const client = new x402Client().register(
-      NETWORK,
-      new GasClient(
-        { ...signer, readContract: async () => 10000000n },
-        { apiClients: { [NETWORK]: api } },
-      ),
-    );
-    const payment = await client.createPaymentPayload({ x402Version: 2, accepts, resource });
-    expect(payment.payload).toMatchObject({
-      gasfree: { nonce: "4", value: "100000", maxFee: "10000" },
-    });
-    expect(await server.verifyPayment(payment, accepts[0])).toMatchObject({ isValid: true });
-    expect(await server.settlePayment(payment, accepts[0])).toMatchObject({
-      success: true,
-      transaction: TX,
-      network: NETWORK,
-    });
-  });
+      ]);
+      vi.spyOn(api, "submit").mockResolvedValue("trace-1");
+      vi.spyOn(api, "waitForSuccess").mockResolvedValue({
+        id: "trace-1",
+        state: "SUCCEED",
+        createdAt: "",
+        accountAddress: ADDRESS,
+        gasFreeAddress,
+        providerAddress: provider,
+        targetAddress: ADDRESS,
+        nonce: 4,
+        tokenAddress: TOKEN,
+        amount: "100000",
+        expiredAt: "",
+        txnHash: TX,
+      });
+      if (recovery !== "direct") {
+        vi.mocked(api.waitForSuccess).mockRejectedValue(
+          new GasFreeTransactionStatusError("not confirmed", TX, false),
+        );
+      }
+      if (recovery === "trace") {
+        vi.mocked(api.waitForSuccess)
+          .mockReset()
+          .mockRejectedValueOnce(
+            new GasFreeTransactionStatusError("no chain hash yet", undefined, false),
+          )
+          .mockResolvedValue({
+            id: "trace-1",
+            state: "SUCCEED",
+            txnHash: TX,
+          } as Awaited<ReturnType<typeof api.waitForSuccess>>);
+      }
+      const receipt = vi.fn(async () => ({
+        status: recovery === "direct" || recovery === "trace" ? ("success" as const) : recovery,
+      }));
+      const base = await createFacilitatorTronSigner(
+        { getAddress: () => ADDRESS, signTransaction: async () => ({}) },
+        { network: NETWORK },
+      );
+      const facilitator = new x402Facilitator().register(
+        NETWORK,
+        new GasFacilitator(
+          { ...base, waitForTransactionReceipt: receipt, readContract: async () => 10000000n },
+          { [NETWORK]: api },
+        ),
+      );
+      const server = new x402ResourceServer({
+        getSupported: async () => ({
+          ...facilitator.getSupported(),
+          kinds: facilitator.getSupported().kinds.map(kind => ({ ...kind, network: NETWORK })),
+        }),
+        verify: (p, r) => facilitator.verify(p, r),
+        settle: (p, r) => facilitator.settle(p, r),
+      }).register(NETWORK, new GasServer());
+      await server.initialize();
+      const accepts = await server.buildPaymentRequirements({
+        scheme: "exact_gasfree",
+        network: NETWORK,
+        price: "0.1 USDT",
+        payTo: ADDRESS,
+        maxTimeoutSeconds: 600,
+      });
+      const client = new x402Client().register(
+        NETWORK,
+        new GasClient(
+          { ...signer, readContract: async () => 10000000n },
+          { apiClients: { [NETWORK]: api } },
+        ),
+      );
+      const payment = await client.createPaymentPayload({ x402Version: 2, accepts, resource });
+      expect(payment.payload).toMatchObject({
+        gasfree: { nonce: "4", value: "100000", maxFee: "10000" },
+      });
+      expect(await server.verifyPayment(payment, accepts[0])).toMatchObject({ isValid: true });
+      const result = await server.settlePayment(payment, accepts[0]);
+      expect(result).toMatchObject({
+        success: recovery === "direct" || recovery === "success",
+        transaction: recovery === "trace" ? "" : TX,
+        network: NETWORK,
+      });
+      if (recovery === "pending") expect(result.errorReason).toBe("settlement_pending");
+      if (recovery === "trace") {
+        expect(result).toMatchObject({
+          errorReason: "settlement_pending",
+          extra: { gasfreeTraceId: "trace-1" },
+        });
+        expect(await server.settlePayment(payment, accepts[0])).toMatchObject({
+          success: true,
+          transaction: TX,
+        });
+      }
+      expect(api.submit).toHaveBeenCalledTimes(1);
+      expect(api.waitForSuccess).toHaveBeenCalledTimes(recovery === "trace" ? 2 : 1);
+      expect(receipt).toHaveBeenCalledTimes(recovery === "direct" || recovery === "trace" ? 0 : 1);
+    },
+  );
 });

@@ -1,3 +1,4 @@
+import type { TronPendingSettlementContext } from "../../shared/pendingSettlement";
 import {
   FacilitatorContext,
   PaymentPayload,
@@ -252,6 +253,7 @@ export async function verifyUptoPermit2(
  * @param requirements - The payment requirements (amount = actual settlement amount).
  * @param permit2Payload - The Upto Permit2 specific payload.
  * @param context - Registered Facilitator extension capabilities.
+ * @param pending - Original-transaction tracking for this attempt.
  * @returns The settlement response.
  */
 export async function settleUptoPermit2(
@@ -260,8 +262,23 @@ export async function settleUptoPermit2(
   requirements: PaymentRequirements,
   permit2Payload: UptoPermit2Payload,
   context?: FacilitatorContext,
+  pending?: TronPendingSettlementContext,
 ): Promise<SettleResponse> {
   const payer = permit2Payload.permit2Authorization.from;
+  if (pending?.record) {
+    return waitAndReturnSettleResponse(
+      signer,
+      pending.record.transaction,
+      payload.accepted.network,
+      payer,
+      {
+        failedStatusReason: errors.INVALID_TRANSACTION_STATE,
+        amount: requirements.amount,
+        pending,
+      },
+    );
+  }
+
   const settlementAmount = BigInt(requirements.amount);
   const maxAmount = BigInt(permit2Payload.permit2Authorization.permitted.amount);
 
@@ -352,6 +369,7 @@ export async function settleUptoPermit2(
     });
 
     return waitAndReturnSettleResponse(signer, tx, payload.accepted.network, payer, {
+      pending,
       failedStatusReason: errors.INVALID_TRANSACTION_STATE,
       amount: settlementAmount.toString(),
     });

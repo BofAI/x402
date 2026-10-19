@@ -1,3 +1,4 @@
+import type { TronSettlementOptions } from "../../shared/pendingSettlement";
 import { x402Facilitator } from "@x402/core/facilitator";
 import { Network } from "@x402/core/types";
 import { normalizeTronNetwork } from "../../network";
@@ -7,7 +8,7 @@ import { ExactTronScheme } from "./scheme";
 /**
  * Configuration options for registering TRON schemes to an x402Facilitator
  */
-export interface TronFacilitatorConfig {
+export interface TronFacilitatorConfig extends TronSettlementOptions {
   signer: FacilitatorTronSigner;
   networks: Network | Network[];
 }
@@ -26,6 +27,6 @@ export function registerExactTronScheme(
   const networks = (Array.isArray(config.networks) ? config.networks : [config.networks]).map(
     network => normalizeTronNetwork(network) as Network,
   );
-  facilitator.register([...new Set(networks)], new ExactTronScheme(config.signer));
+  facilitator.register([...new Set(networks)], new ExactTronScheme(config.signer, config));
   return facilitator;
 }

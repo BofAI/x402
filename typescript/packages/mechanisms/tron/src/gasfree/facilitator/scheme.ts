@@ -1,4 +1,9 @@
 import {
+  TronSettlementTracker,
+  type TronSettlementOptions,
+  type TronPendingSettlementContext,
+} from "../../shared/pendingSettlement";
+import {
   PaymentPayload,
   PaymentRequirements,
   SchemeNetworkFacilitator,
@@ -12,7 +17,7 @@ import { isValidTronTxHash, normalizeAddressForSigning } from "../../utils";
 import { GasFreeAPIClient, GasFreeTransactionStatusError } from "../../shared/gasfree/api";
 import { getTronNetworkValue, tronNetworksEqual } from "../../network";
 import { assembleGasFreeTransaction } from "../../shared/gasfree/assemble";
-import { SETTLEMENT_PENDING } from "../../shared/settleReceipt";
+import { SETTLEMENT_PENDING, waitAndReturnSettleResponse } from "../../shared/settleReceipt";
 import * as errors from "./errors";
 
 /**
@@ -45,17 +50,22 @@ function invalidTransactionHashResponse(
 export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
   readonly scheme = "exact_gasfree";
   readonly caipFamily = "tron:*";
+  private readonly settlement: TronSettlementTracker;
 
   /**
    * Create the GasFree facilitator scheme.
    *
    * @param signer - The TRON facilitator signer (verify + balance reads).
    * @param apiClients - GasFree relayer clients keyed by CAIP-2 network.
+   * @param options - Pending settlement storage configuration.
    */
   constructor(
     private readonly signer: FacilitatorTronSigner,
     private readonly apiClients: Record<string, GasFreeAPIClient>,
-  ) {}
+    options: TronSettlementOptions = {},
+  ) {
+    this.settlement = new TronSettlementTracker(options.pendingSettlementStore);
+  }
 
   /**
    * Returns undefined — the GasFree facilitator advertises no extra config.
@@ -132,18 +142,52 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
     requirements: PaymentRequirements,
     context?: FacilitatorContext,
   ): Promise<SettleResponse> {
+    return this.settlement.run(payload, requirements, pending =>
+      this.settleOnce(payload, requirements, context, pending),
+    );
+  }
+
+  /**
+   * Dispatch a settlement using the original transaction when one exists.
+   *
+   * @param payload - Payment payload for this settlement.
+   * @param requirements - Effective payment requirements, including the actual settlement amount.
+   * @param context - Registered facilitator extension capabilities.
+   * @param pending - Original-transaction tracking for this attempt.
+   * @returns Settlement result preserving the original transaction identity.
+   */
+  private async settleOnce(
+    payload: PaymentPayload,
+    requirements: PaymentRequirements,
+    context: FacilitatorContext | undefined,
+    pending: TronPendingSettlementContext,
+  ): Promise<SettleResponse> {
     void context;
     const gf = payload.payload as ExactGasFreePayload;
+    if (pending.record?.transaction) {
+      return waitAndReturnSettleResponse(
+        this.signer,
+        pending.record.transaction,
+        requirements.network,
+        gf.gasfree.user,
+        {
+          failedStatusReason: errors.TRANSACTION_FAILED,
+          pending,
+        },
+      );
+    }
 
-    const verifyResult = await this.verify(payload, requirements, context);
-    if (!verifyResult.isValid) {
-      return {
-        success: false,
-        errorReason: verifyResult.invalidReason ?? errors.INVALID_SCHEME,
-        transaction: "",
-        network: requirements.network,
-        payer: gf?.gasfree?.user,
-      };
+    if (!pending.record) {
+      const verifyResult = await this.verify(payload, requirements, context);
+      if (!verifyResult.isValid) {
+        return {
+          success: false,
+          errorReason: verifyResult.invalidReason ?? errors.INVALID_SCHEME,
+          transaction: "",
+          network: requirements.network,
+          payer: gf?.gasfree?.user,
+        };
+      }
     }
 
     const payer = gf.gasfree.user;
@@ -163,25 +207,30 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
       };
     }
 
-    // Best-effort balance preflight against the GasFree wallet.
-    try {
-      const balance = await this.readBalance(requirements.asset, gf.gasfreeAddress);
-      const required = BigInt(requirements.amount) + BigInt(gf.gasfree.maxFee);
-      if (balance < required) {
-        return {
-          success: false,
-          errorReason: errors.INSUFFICIENT_FUNDS,
-          transaction: "",
-          network: requirements.network,
-          payer,
-        };
+    if (!pending.record) {
+      // Best-effort balance preflight against the GasFree wallet.
+      try {
+        const balance = await this.readBalance(requirements.asset, gf.gasfreeAddress);
+        const required = BigInt(requirements.amount) + BigInt(gf.gasfree.maxFee);
+        if (balance < required) {
+          return {
+            success: false,
+            errorReason: errors.INSUFFICIENT_FUNDS,
+            transaction: "",
+            network: requirements.network,
+            payer,
+          };
+        }
+      } catch {
+        // Balance read failed — continue; the relayer will return the exact reason.
       }
-    } catch {
-      // Balance read failed — continue; the relayer will return the exact reason.
     }
 
+    let activeTraceId = pending.record?.data?.gasfreeTraceId;
+    let tracked = false;
     try {
-      const traceId = await api.submit(gf.gasfree, gf.signature);
+      const traceId =
+        pending.record?.data?.gasfreeTraceId ?? (await api.submit(gf.gasfree, gf.signature));
       if (!traceId) {
         return {
           success: false,
@@ -192,6 +241,9 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
         };
       }
 
+      activeTraceId = traceId;
+      await pending.save("", { gasfreeTraceId: traceId });
+      tracked = true;
       const result = await api.waitForSuccess(traceId);
       if (!result.txnHash) {
         return {
@@ -208,10 +260,21 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
 
       return { success: true, transaction: result.txnHash, network: requirements.network, payer };
     } catch (err) {
+      if (activeTraceId && !tracked) throw err;
+      if (!activeTraceId) {
+        return {
+          success: false,
+          errorReason: err instanceof Error ? err.message : String(err),
+          transaction: "",
+          network: requirements.network,
+          payer,
+        };
+      }
       if (err instanceof GasFreeTransactionStatusError) {
         if (err.transaction !== undefined && !isValidTronTxHash(err.transaction)) {
           return invalidTransactionHashResponse(requirements.network, payer);
         }
+        if (err.transaction && !err.terminal) await pending.save(err.transaction);
         if (err.terminal || err.transaction) {
           return {
             success: false,
@@ -225,10 +288,12 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
       }
       return {
         success: false,
-        errorReason: err instanceof Error ? err.message : String(err),
+        errorReason: SETTLEMENT_PENDING,
+        errorMessage: err instanceof Error ? err.message : String(err),
         transaction: "",
         network: requirements.network,
         payer,
+        extra: { gasfreeTraceId: activeTraceId ?? "" },
       };
     }
   }

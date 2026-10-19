@@ -1,3 +1,4 @@
+import type { TronPendingSettlementContext } from "../../shared/pendingSettlement";
 import { SettleResponse, PaymentRequirements } from "@x402/core/types";
 import { FacilitatorTronSigner } from "../../signer";
 import { normalizeAddressForSigning } from "../../utils";
@@ -40,6 +41,7 @@ export function buildVoucherClaimArgs(claims: BatchSettlementClaimPayload["claim
  * @param requirements - Payment requirements for network identification.
  * @param authorizerSigner - Dedicated key for producing `ClaimBatch` TIP-712 signatures.
  *   When omitted, the payload must already carry a `claimAuthorizerSignature`.
+ * @param pending - Original-transaction tracking for this attempt.
  * @returns A {@link SettleResponse} with the transaction hash on success.
  */
 export async function executeClaimWithSignature(
@@ -47,8 +49,16 @@ export async function executeClaimWithSignature(
   payload: BatchSettlementClaimPayload,
   requirements: PaymentRequirements,
   authorizerSigner: TronAuthorizerSigner | undefined,
+  pending?: TronPendingSettlementContext,
 ): Promise<SettleResponse> {
   const network = requirements.network;
+  if (pending?.record)
+    return waitAndReturnSettleResponse(signer, pending.record.transaction, network, undefined, {
+      failedStatusReason: Errors.ErrClaimTransactionFailed,
+      amount: "",
+      pending,
+    });
+
   const claimArgs = buildVoucherClaimArgs(payload.claims);
 
   let sig = payload.claimAuthorizerSignature;
@@ -86,6 +96,7 @@ export async function executeClaimWithSignature(
     });
 
     return waitAndReturnSettleResponse(signer, tx, network, undefined, {
+      pending,
       failedStatusReason: Errors.ErrClaimTransactionFailed,
       amount: "",
     });

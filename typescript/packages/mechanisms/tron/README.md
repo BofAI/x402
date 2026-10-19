@@ -295,3 +295,16 @@ adapters and their types have moved out of this package's root exports. Use the
 extension root instead. Ordinary payments require only this package and official Core.
 The mechanism retains `/exact/extensions` contracts and `/rpc`, `/transactions` tools;
 it does not depend on the resource extension.
+
+## Pending settlement recovery
+
+The official Core retries a pending settlement once when a transaction ID is known.
+Facilitator schemes retain and reconcile the original transaction before verification or
+broadcasting again. Batch snapshots and GasFree relayer traces survive these retries.
+
+The default pending store covers a single process and never expires uncertain transactions.
+Production restarts or multiple facilitator replicas require a durable shared
+`TronPendingSettlementStore`, exported from each facilitator role entrypoint. Inject it via
+`pendingSettlementStore` in the scheme options. Its `withLock` must exclude all replicas for
+the full callback, including receipt waiting. See the migration guide for constructor positions,
+store-failure handling and the separate resource coordinator requirement.

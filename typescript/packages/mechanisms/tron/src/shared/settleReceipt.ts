@@ -1,3 +1,4 @@
+import type { TronPendingSettlementContext } from "./pendingSettlement";
 import type { Network, SettleResponse } from "@x402/core/types";
 import type { FacilitatorTronSigner, TronTransactionReceipt } from "../signer";
 import { isValidTronTxHash, truncateErrorMessage } from "../utils";
@@ -8,6 +9,8 @@ export const SETTLEMENT_PENDING = "settlement_pending";
 /** Optional behavior for {@link waitAndReturnSettleResponse}. */
 export interface WaitForSettleReceiptOptions {
   /** Scheme/action-specific reason used for invalid txids and reverted receipts. */
+  pending?: TronPendingSettlementContext;
+  pendingData?: Record<string, string>;
   failedStatusReason?: string;
   /** Settled amount attached to the default success response. */
   amount?: string;
@@ -44,6 +47,19 @@ export async function waitAndReturnSettleResponse(
       errorReason: failedStatusReason,
       errorMessage: `signer returned an invalid transaction hash: ${String(tx)}`,
       transaction: "",
+      network,
+      payer,
+    };
+  }
+
+  try {
+    await options.pending?.save(tx, options.pendingData);
+  } catch (error) {
+    return {
+      success: false,
+      errorReason: "settlement_store_unavailable",
+      errorMessage: error instanceof Error ? error.message : String(error),
+      transaction: tx,
       network,
       payer,
     };

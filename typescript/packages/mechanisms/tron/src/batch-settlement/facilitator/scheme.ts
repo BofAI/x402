@@ -1,4 +1,9 @@
 import {
+  TronSettlementTracker,
+  type TronSettlementOptions,
+  type TronPendingSettlementContext,
+} from "../../shared/pendingSettlement";
+import {
   PaymentPayload,
   PaymentRequirements,
   SchemeNetworkFacilitator,
@@ -48,6 +53,7 @@ function carriesApprovalSponsoring(payload: PaymentPayload): boolean {
 export class BatchSettlementTronScheme implements SchemeNetworkFacilitator {
   readonly scheme = BATCH_SETTLEMENT_SCHEME;
   readonly caipFamily = "tron:*";
+  private readonly settlement: TronSettlementTracker;
 
   /**
    * Creates a facilitator scheme for verifying and settling batch-settlement payments.
@@ -56,11 +62,15 @@ export class BatchSettlementTronScheme implements SchemeNetworkFacilitator {
    * @param authorizerSigner - Optional dedicated key that provides TIP-712 signatures for
    *   `claimWithSignature` / `refundWithSignature` when the server omits them. When omitted,
    *   no `receiverAuthorizer` is advertised and servers must supply their own signatures.
+   * @param options - Pending settlement storage configuration.
    */
   constructor(
     private readonly signer: FacilitatorTronSigner,
     private readonly authorizerSigner?: TronAuthorizerSigner,
-  ) {}
+    options: TronSettlementOptions = {},
+  ) {
+    this.settlement = new TronSettlementTracker(options.pendingSettlementStore);
+  }
 
   /**
    * Returns facilitator-specific extra fields to be merged into payment requirements.
@@ -142,6 +152,26 @@ export class BatchSettlementTronScheme implements SchemeNetworkFacilitator {
     requirements: PaymentRequirements,
     context?: FacilitatorContext,
   ): Promise<SettleResponse> {
+    return this.settlement.run(payload, requirements, pending =>
+      this.settleOnce(payload, requirements, context, pending),
+    );
+  }
+
+  /**
+   * Dispatch a settlement using the original transaction when one exists.
+   *
+   * @param payload - Payment payload for this settlement.
+   * @param requirements - Effective payment requirements, including the actual settlement amount.
+   * @param context - Registered facilitator extension capabilities.
+   * @param pending - Original-transaction tracking for this attempt.
+   * @returns Settlement result preserving the original transaction identity.
+   */
+  private async settleOnce(
+    payload: PaymentPayload,
+    requirements: PaymentRequirements,
+    context: FacilitatorContext | undefined,
+    pending: TronPendingSettlementContext,
+  ): Promise<SettleResponse> {
     const rawPayload = payload.payload;
 
     if (
@@ -165,7 +195,7 @@ export class BatchSettlementTronScheme implements SchemeNetworkFacilitator {
     }
 
     if (isBatchSettlementDepositPayload(rawPayload)) {
-      return settleDeposit(this.signer, payload, rawPayload, requirements, context);
+      return settleDeposit(this.signer, payload, rawPayload, requirements, context, pending);
     }
     if (carriesApprovalSponsoring(payload)) {
       return {
@@ -181,6 +211,7 @@ export class BatchSettlementTronScheme implements SchemeNetworkFacilitator {
         rawPayload,
         requirements,
         this.authorizerSigner,
+        pending,
       );
     }
     if (isBatchSettlementEnrichedRefundPayload(rawPayload)) {
@@ -189,10 +220,11 @@ export class BatchSettlementTronScheme implements SchemeNetworkFacilitator {
         rawPayload,
         requirements,
         this.authorizerSigner,
+        pending,
       );
     }
     if (isBatchSettlementSettlePayload(rawPayload)) {
-      return executeSettle(this.signer, rawPayload, requirements);
+      return executeSettle(this.signer, rawPayload, requirements, pending);
     }
 
     return {

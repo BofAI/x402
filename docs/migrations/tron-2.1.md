@@ -108,6 +108,27 @@ Facilitator 用 `createTrc20ResourceSponsoringRuntime(...)` 构造 runtime，再
 - HTTP 超时属于应用集成配置。迁移到官方 HTTP/MCP 包后，必须重新核对其请求超时、
   pending 重试和资源交付策略；SDK 通过不表示外围服务的这些配置已经完成迁移。
 
+## Facilitator 的 pending 存储
+
+官方 Core 会对带有 txID 的 `settlement_pending` 自动重试一次。2.1 的 Facilitator
+先保存原交易，再等待回执；相同 payment 与实际结算 requirements 的重试会恢复原交易，
+跳过重新预检、资源代付和广播。batch 的 deposit/refund/settle 恢复原始金额和状态快照。
+GasFree 已取得 relayer trace、尚无链上 hash 时，保留 `extra.gasfreeTraceId`，后续调用
+查询同一任务，不再次 submit。没有 hash 的 pending 不触发 Core 的自动重试。
+
+默认 `InMemoryTronPendingSettlementStore` 仅覆盖同一进程；未确认记录不会自动过期。
+生产重启恢复或多副本需要持久化、共享的 `TronPendingSettlementStore`。接口从各
+`/facilitator` 入口导出，包含 `get`、`set`、`delete` 和 `withLock`；记录是可序列化的
+原 txID / relayer trace 与必要快照。`withLock` 必须在整个回调（包括等待回执）期间，
+对所有副本持有同一 key 的排他锁；租约需要覆盖或续期到回调结束。
+
+通过构造器的 `pendingSettlementStore` 选项注入实现：exact / upto 是第二个参数，
+GasFree 是第三个参数，batch 是 signer、可选 authorizerSigner 后的第三个参数。
+exact、GasFree 的注册工厂也接受同名配置。存储读取失败时在广播前拒绝；广播后保存
+失败返回 `settlement_store_unavailable` 并保留已知 txID / trace。应用应先对账原任务，
+避免在存储故障或进程退出后直接重新提交。资源 coordinator 与 pending 交易存储各自
+负责自己的恢复记录，生产需要同时提供。
+
 ## 升级验证
 
 先在隔离环境验证严格 TypeScript 编译、ESM/CJS 加载和三角色注册，再验证所需支付路径。

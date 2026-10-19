@@ -1,3 +1,4 @@
+import type { TronPendingSettlementContext } from "../../shared/pendingSettlement";
 import { SettleResponse, PaymentRequirements } from "@x402/core/types";
 import { FacilitatorTronSigner } from "../../signer";
 import { normalizeAddressForSigning } from "../../utils";
@@ -107,6 +108,7 @@ function buildRefundExtra(
  * @param requirements - Payment requirements for network identification.
  * @param authorizerSigner - Dedicated key for producing TIP-712 signatures.
  *   When omitted, the payload must already carry the required authorizer signatures.
+ * @param pending - Original-transaction tracking for this attempt.
  * @returns A {@link SettleResponse} with the transaction hash on success.
  */
 export async function executeRefundWithSignature(
@@ -114,12 +116,30 @@ export async function executeRefundWithSignature(
   payload: BatchSettlementEnrichedRefundPayload,
   requirements: PaymentRequirements,
   authorizerSigner: TronAuthorizerSigner | undefined,
+  pending?: TronPendingSettlementContext,
 ): Promise<SettleResponse> {
   const network = requirements.network;
   const address = getBatchSettlementAddress(network);
 
   try {
     const channelId = computeChannelId(payload.channelConfig, network);
+    if (pending?.record) {
+      const snapshot = JSON.parse(pending.record.data!.refundSnapshot);
+      return waitForRefund(
+        signer,
+        pending.record.transaction,
+        payload,
+        channelId,
+        network,
+        {
+          balance: BigInt(snapshot.balance),
+          totalClaimed: BigInt(snapshot.totalClaimed),
+          refundNonce: BigInt(snapshot.refundNonce),
+          withdrawRequestedAt: Number(snapshot.withdrawRequestedAt),
+        },
+        pending,
+      );
+    }
     const preState = await readChannelState(signer, channelId, network);
     const refundableAmount = getRefundableAmount(payload, preState, channelId, network);
 
@@ -214,20 +234,7 @@ export async function executeRefundWithSignature(
       });
     }
 
-    return waitAndReturnSettleResponse(signer, tx, network, payload.channelConfig.payer, {
-      failedStatusReason: Errors.ErrRefundTransactionFailed,
-      onSuccess: () => {
-        const refundDetails = buildRefundExtra(payload, channelId, preState);
-        return {
-          success: true,
-          transaction: tx,
-          network,
-          payer: payload.channelConfig.payer,
-          amount: refundDetails.amount,
-          extra: refundDetails.extra,
-        };
-      },
-    });
+    return waitForRefund(signer, tx, payload, channelId, network, preState, pending);
   } catch (e) {
     return {
       success: false,
@@ -237,4 +244,50 @@ export async function executeRefundWithSignature(
       network,
     };
   }
+}
+
+/**
+ * Complete an original refund against its saved pre-broadcast channel state.
+ *
+ * @param signer - TRON signer used to read confirmed chain state.
+ * @param tx - Original broadcast transaction ID.
+ * @param payload - Payment payload for this settlement.
+ * @param channelId - Canonical channel identifier.
+ * @param network - Network on which the transaction was broadcast.
+ * @param preState - Channel snapshot from before the original refund.
+ * @param pending - Original-transaction tracking for this attempt.
+ * @returns Settlement result preserving the original transaction identity.
+ */
+async function waitForRefund(
+  signer: FacilitatorTronSigner,
+  tx: string,
+  payload: BatchSettlementEnrichedRefundPayload,
+  channelId: `0x${string}`,
+  network: PaymentRequirements["network"],
+  preState: ChannelState,
+  pending?: TronPendingSettlementContext,
+): Promise<SettleResponse> {
+  return waitAndReturnSettleResponse(signer, tx, network, payload.channelConfig.payer, {
+    pending,
+    pendingData: {
+      refundSnapshot: JSON.stringify({
+        balance: preState.balance.toString(),
+        totalClaimed: preState.totalClaimed.toString(),
+        refundNonce: preState.refundNonce.toString(),
+        withdrawRequestedAt: preState.withdrawRequestedAt,
+      }),
+    },
+    failedStatusReason: Errors.ErrRefundTransactionFailed,
+    onSuccess: () => {
+      const refundDetails = buildRefundExtra(payload, channelId, preState);
+      return {
+        success: true,
+        transaction: tx,
+        network,
+        payer: payload.channelConfig.payer,
+        amount: refundDetails.amount,
+        extra: refundDetails.extra,
+      };
+    },
+  });
 }
