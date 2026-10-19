@@ -1,20 +1,31 @@
 # `@bankofai/x402-tron`
 
-## Beta 3.0.0-beta.1
+## Beta 2.1.0-beta.1
 
 The mechanism and optional resource extension share the same beta version. Install the exact
 versions for integration testing:
 
 ```sh
-npm install @x402/core@2.28.0 @bankofai/x402-tron@3.0.0-beta.1
+npm install @x402/core@2.28.0 @bankofai/x402-tron@2.1.0-beta.1
 # Optional resource sponsorship
-npm install @bankofai/x402-tron-extensions@3.0.0-beta.1
+npm install @bankofai/x402-tron-extensions@2.1.0-beta.1
 ```
 
 Use official HTTP/MCP integration packages with this Core version. Resource sponsorship requires
 explicit client and facilitator extension registration. Live-chain service integration and durable
 production recovery are not yet accepted. Upto currently preserves optimistic verification on
 allowance/balance RPC errors; a fail-closed change remains required before stable release.
+
+This release follows the requested 2.1 beta line; `3.0.0-beta.1` remains a historical experimental
+release. It is a migration beta, not a drop-in source upgrade from 2.0.0: replace the legacy Core
+and HTTP/MCP imports with official packages, and import resource runtime factories, policies,
+coordinators and chain adapters from `@bankofai/x402-tron-extensions`. Wallet factories and
+payment messages remain available. Stable source compatibility has not been declared.
+
+Official Core's resolved `maxAmountPerPayment` now applies to actual batch deposit amounts and
+GasFree `value + maxFee` before signing. A default batch deposit above the cap is rejected;
+choose a smaller `depositStrategy` (at least the required top-up), explicitly raise the cap, or
+disable spend controls deliberately. Voucher cumulative totals are not new deposit amounts.
 
 TRON (TVM) implementation of the x402 payment protocol — pay with TRC-20 tokens using the **Exact** scheme over TIP-712 signed authorizations.
 

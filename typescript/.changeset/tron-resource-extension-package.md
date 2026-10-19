@@ -1,5 +1,5 @@
 ---
-"@bankofai/x402-tron": major
+"@bankofai/x402-tron": minor
 "@bankofai/x402-tron-extensions": minor
 ---
 

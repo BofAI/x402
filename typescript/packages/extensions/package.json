@@ -5,7 +5,7 @@
     "tag": "beta",
     "registry": "https://registry.npmjs.org/"
   },
-  "version": "3.0.0-beta.1",
+  "version": "2.1.0-beta.1",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/cjs/index.d.ts",
@@ -56,7 +56,7 @@
     "@bankofai/agent-wallet": "2.4.0"
   },
   "dependencies": {
-    "@bankofai/x402-tron": "workspace:3.0.0-beta.1",
+    "@bankofai/x402-tron": "workspace:2.1.0-beta.1",
     "ajv": "^8.17.1",
     "tronweb": "6.3.0"
   },

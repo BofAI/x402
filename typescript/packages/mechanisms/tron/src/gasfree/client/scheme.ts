@@ -9,6 +9,7 @@ import { ClientTronSigner } from "../../signer";
 import { ExactGasFreePayload, GasFreeMessage } from "../../types";
 import { getDecimals } from "../../shared/tokens";
 import { log } from "../../logger";
+import { assertTronSpendCap } from "../../shared/spendControls";
 import { transferWithAuthorizationABI } from "../../constants";
 import {
   GasFreeAPIClient,
@@ -150,6 +151,7 @@ export class ExactGasFreeTronScheme implements SchemeNetworkClient {
     const maxFee = this.computeMaxFee(requirements, accountInfo, asset);
 
     const skipBalanceCheck = (context?.extensions?.skipBalanceCheck as boolean) ?? false;
+    assertTronSpendCap(BigInt(requirements.amount) + maxFee, context?.maxAmountPerPayment);
     if (!skipBalanceCheck) {
       if (!asset) {
         throw new Error(

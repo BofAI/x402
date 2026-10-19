@@ -1,5 +1,12 @@
 # @bankofai/x402-tron
 
+## 2.1.0-beta.1
+
+- Continue the release line as 2.1.0-beta.1; keep the earlier 3.0.0 beta as historical experimental publication.
+- Enforce official Core atomic spend caps against batch deposits and GasFree value plus fee before signing.
+- Migration beta: use official Core 2.28.0 and move resource-runtime imports to the independent extension package; this is not a drop-in source upgrade from SDK2.
+
+
 ## 3.0.0-beta.1
 
 - Use official `@x402/core@2.28.0` for all four TRON mechanisms; old Core is no longer a runtime dependency.

@@ -1,5 +1,5 @@
 ---
-"@bankofai/x402-tron": major
+"@bankofai/x402-tron": minor
 ---
 
 Migrate all four TRON mechanisms to the official `@x402/core@2.28.0` peer dependency.

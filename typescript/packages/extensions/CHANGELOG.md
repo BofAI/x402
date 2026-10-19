@@ -1,5 +1,11 @@
 # @bankofai/x402-tron-extensions
 
+## 2.1.0-beta.1
+
+- Align with @bankofai/x402-tron@2.1.0-beta.1; retain official Core 2.28.0 and independent resource-runtime ownership.
+- Preserve the earlier 3.0.0-beta.1 release record.
+
+
 ## 3.0.0-beta.1
 
 - First independent TRON resource-sponsorship package, aligned with `@bankofai/x402-tron@3.0.0-beta.1` and official `@x402/core@2.28.0`.

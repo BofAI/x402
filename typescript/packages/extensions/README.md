@@ -1,15 +1,18 @@
 # `@bankofai/x402-tron-extensions`
 
-TRON 资源代付独立扩展包。Beta 版本与机制包统一为 `3.0.0-beta.1`，使用官方
+TRON 资源代付独立扩展包。Beta 版本与机制包统一为 `2.1.0-beta.1`，使用官方
 `@x402/core@2.28.0`，扩展精确依赖同版本机制包。
 
 ```sh
-npm install @x402/core@2.28.0 @bankofai/x402-tron@3.0.0-beta.1 @bankofai/x402-tron-extensions@3.0.0-beta.1
+npm install @x402/core@2.28.0 @bankofai/x402-tron@2.1.0-beta.1 @bankofai/x402-tron-extensions@2.1.0-beta.1
 ```
 
 机制包只维护支付机制、公共契约和交易工具。扩展包维护声明/schema、客户端预签、
 Approval 交易校验、资源预算、能量/带宽委托、回收及 coordinator runtime。
 基础支付无需安装本包，也不要求安装 Agent Wallet。
+
+本次按项目规划延续 2.1 beta 版本线，已发布的 `3.0.0-beta.1` 保留为历史实验版本。
+这是需要调整导入和显式注册扩展的迁移预发行版，不声明 2.0 源码无改动升级兼容。
 
 ## 客户端注册
 
