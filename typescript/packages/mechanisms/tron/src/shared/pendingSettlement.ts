@@ -87,6 +87,7 @@ export interface TronSettlementOptions {
 /** Per-attempt context passed to the concrete settlement implementation. */
 export interface TronPendingSettlementContext {
   readonly record: TronPendingSettlement | undefined;
+  markTerminal(): void;
   save(transaction: string, data?: Record<string, string>): Promise<void>;
 }
 
@@ -146,8 +147,12 @@ export class TronSettlementTracker {
         ) {
           throw new Error("invalid pending transaction record");
         }
+        let terminal = false;
         const pending: TronPendingSettlementContext = {
           record: known,
+          markTerminal: () => {
+            terminal = true;
+          },
           save: async (transaction, data = known?.data) => {
             if (
               !isValidTronTxHash(transaction) &&
@@ -179,6 +184,7 @@ export class TronSettlementTracker {
           };
         }
         if (
+          terminal ||
           result.success ||
           ((!known || isValidTronTxHash(result.transaction)) &&
             result.errorReason !== "settlement_pending" &&

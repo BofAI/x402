@@ -20,7 +20,7 @@ import {
 } from "@bankofai/x402-tron";
 import { ExactTronScheme as ExactClient } from "@bankofai/x402-tron/exact/client";
 import { ExactTronScheme as ExactServer } from "@bankofai/x402-tron/exact/server";
-import { ExactTronScheme as ExactFacilitator } from "@bankofai/x402-tron/exact/facilitator";
+import { InMemoryTronPendingSettlementStore, type TronPendingSettlementStore, ExactTronScheme as ExactFacilitator } from "@bankofai/x402-tron/exact/facilitator";
 import * as UptoClient from "@bankofai/x402-tron/upto/client";
 import * as UptoServer from "@bankofai/x402-tron/upto/server";
 import * as UptoFacilitator from "@bankofai/x402-tron/upto/facilitator";
@@ -128,9 +128,10 @@ async function main() {
     writeContract: async () => "11".repeat(32),
     waitForTransactionReceipt: async () => ({ status: "success" }),
   };
+  const pendingSettlementStore: TronPendingSettlementStore = new InMemoryTronPendingSettlementStore();
   const facilitator = new x402Facilitator().register(
     network,
-    new ExactFacilitator(settlementSigner),
+    new ExactFacilitator(settlementSigner, { pendingSettlementStore }),
   );
   const server = new x402ResourceServer({
     getSupported: async () => {
@@ -214,14 +215,14 @@ async function main() {
   }
   assert.equal(new UptoClient.UptoTronScheme(signer).scheme, "upto");
   assert.equal(new UptoServer.UptoTronScheme().scheme, "upto");
-  assert.equal(new UptoFacilitator.UptoTronScheme(settlementSigner).scheme, "upto");
+  assert.equal(new UptoFacilitator.UptoTronScheme(settlementSigner, { pendingSettlementStore }).scheme, "upto");
   assert.equal(
     new GasClient.ExactGasFreeTronScheme(signer, { apiClients: {} }).scheme,
     "exact_gasfree",
   );
   assert.equal(new GasServer.ExactGasFreeTronScheme().scheme, "exact_gasfree");
   assert.equal(
-    new GasFacilitator.ExactGasFreeTronScheme(settlementSigner, {}).scheme,
+    new GasFacilitator.ExactGasFreeTronScheme(settlementSigner, {}, { pendingSettlementStore }).scheme,
     "exact_gasfree",
   );
   assert.equal(new BatchClient.BatchSettlementTronScheme(signer).scheme, "batch-settlement");
@@ -230,7 +231,7 @@ async function main() {
     "batch-settlement",
   );
   assert.equal(
-    new BatchFacilitator.BatchSettlementTronScheme(settlementSigner).scheme,
+    new BatchFacilitator.BatchSettlementTronScheme(settlementSigner, undefined, { pendingSettlementStore }).scheme,
     "batch-settlement",
   );
 }

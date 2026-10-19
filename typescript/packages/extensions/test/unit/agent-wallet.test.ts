@@ -1,8 +1,10 @@
+import { x402ResourceServer } from "@x402/core/server";
+import { ExactTronScheme as ExactServer } from "@bankofai/x402-tron/exact/server";
 import {
   createTrc20ApprovalResourceSponsoringClientExtension,
   createTrc20ApprovalResourceSponsoringExtension,
 } from "../../src/trc20-approval-resource-sponsoring";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { TronWeb, utils } from "tronweb";
 import { x402Client } from "@x402/core/client";
 import { x402Facilitator } from "@x402/core/facilitator";
@@ -149,36 +151,53 @@ describe("real BOA 2.4.0 wallet + existing TRON adapters + official Core", () =>
     );
   });
 
-  it("official extension context rejects missing runtime and executes a registered runtime", async () => {
-    const e = await setup();
-    const required = {
-      ...e.required,
-      extensions: { [TRC20_APPROVAL_RESOURCE_SPONSORING_KEY]: { info: { version: "1" } } },
-    };
-    const payment = await e.client.createPaymentPayload(required);
-    expect(await e.fac.verify(payment, e.requirements)).toMatchObject({
-      isValid: false,
-      invalidReason: "sponsor_runtime_unavailable",
-    });
-    e.fac.registerExtension(
-      createTrc20ApprovalResourceSponsoringExtension({
-        verify: async () => ({ isValid: true }),
-        sponsor: async () => {
-          e.rpc.state.allowance = MAX;
-          return { success: true };
-        },
-      }),
-    );
-    expect(await e.fac.verify(payment, e.requirements)).toMatchObject({ isValid: true });
-    const invalid = structuredClone(payment);
-    invalid.extensions = { [TRC20_APPROVAL_RESOURCE_SPONSORING_KEY]: { info: { version: "1" } } };
-    expect(await e.fac.verify(invalid, e.requirements)).toMatchObject({
-      isValid: false,
-      invalidReason: "approval_extension_invalid",
-    });
-    expect(await e.fac.settle(payment, e.requirements)).toMatchObject({ success: true });
-    expect(e.rpc.state.broadcasts).toHaveLength(1);
-  });
+  it.each([false, true])(
+    "registered runtime executes once when pending recovery is %s",
+    async pending => {
+      const e = await setup();
+      const required = {
+        ...e.required,
+        extensions: { [TRC20_APPROVAL_RESOURCE_SPONSORING_KEY]: { info: { version: "1" } } },
+      };
+      const payment = await e.client.createPaymentPayload(required);
+      expect(await e.fac.verify(payment, e.requirements)).toMatchObject({
+        isValid: false,
+        invalidReason: "sponsor_runtime_unavailable",
+      });
+      let sponsorships = 0;
+      e.fac.registerExtension(
+        createTrc20ApprovalResourceSponsoringExtension({
+          verify: async () => ({ isValid: true }),
+          sponsor: async () => {
+            sponsorships++;
+            e.rpc.state.allowance = MAX;
+            return { success: true };
+          },
+        }),
+      );
+      expect(await e.fac.verify(payment, e.requirements)).toMatchObject({ isValid: true });
+      const invalid = structuredClone(payment);
+      invalid.extensions = { [TRC20_APPROVAL_RESOURCE_SPONSORING_KEY]: { info: { version: "1" } } };
+      expect(await e.fac.verify(invalid, e.requirements)).toMatchObject({
+        isValid: false,
+        invalidReason: "approval_extension_invalid",
+      });
+      if (pending) {
+        vi.spyOn(e.facSigner, "waitForTransactionReceipt").mockResolvedValueOnce({
+          status: "pending",
+        });
+      }
+      const server = new x402ResourceServer({
+        getSupported: async () => e.fac.getSupported(),
+        verify: (p, r) => e.fac.verify(p, r),
+        settle: (p, r) => e.fac.settle(p, r),
+      }).register(NETWORK, new ExactServer());
+      await server.initialize();
+      expect(await server.settlePayment(payment, e.requirements)).toMatchObject({ success: true });
+      expect(e.rpc.state.broadcasts).toHaveLength(1);
+      expect(sponsorships).toBe(1);
+    },
+  );
 
   it("resource sponsoring pre-signs a verifiable Approval without client broadcast", async () => {
     const e = await setup();

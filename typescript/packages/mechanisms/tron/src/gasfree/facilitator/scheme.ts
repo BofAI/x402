@@ -271,6 +271,7 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
         };
       }
       if (err instanceof GasFreeTransactionStatusError) {
+        if (err.terminal) pending.markTerminal();
         if (err.transaction !== undefined && !isValidTronTxHash(err.transaction)) {
           return invalidTransactionHashResponse(requirements.network, payer);
         }

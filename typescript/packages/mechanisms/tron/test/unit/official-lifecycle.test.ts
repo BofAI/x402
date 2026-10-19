@@ -1,3 +1,4 @@
+import { InMemoryTronPendingSettlementStore } from "../../src/gasfree/facilitator";
 import { InMemoryClientChannelStorage } from "../../src/batch-settlement/client";
 import { InMemoryChannelStorage } from "../../src/batch-settlement/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -316,7 +317,7 @@ describe("batch lifecycle dispatched by official Core", () => {
 });
 
 describe("GasFree composed with official Core", () => {
-  it.each(["direct", "pending", "success", "reverted", "trace"] as const)(
+  it.each(["direct", "pending", "success", "reverted", "trace", "failed-trace"] as const)(
     "signs and settles without resubmission when relayer recovery is %s",
     async recovery => {
       const api = new GasFreeAPIClient("http://127.0.0.1:1");
@@ -385,8 +386,18 @@ describe("GasFree composed with official Core", () => {
             txnHash: TX,
           } as Awaited<ReturnType<typeof api.waitForSuccess>>);
       }
+      if (recovery === "failed-trace") {
+        vi.mocked(api.waitForSuccess).mockRejectedValue(
+          new GasFreeTransactionStatusError("relayer rejected", undefined, true),
+        );
+      }
+      const pendingSettlementStore = new InMemoryTronPendingSettlementStore();
+      const saved = vi.spyOn(pendingSettlementStore, "set");
       const receipt = vi.fn(async () => ({
-        status: recovery === "direct" || recovery === "trace" ? ("success" as const) : recovery,
+        status:
+          recovery === "direct" || recovery === "trace" || recovery === "failed-trace"
+            ? ("success" as const)
+            : recovery,
       }));
       const base = await createFacilitatorTronSigner(
         { getAddress: () => ADDRESS, signTransaction: async () => ({}) },
@@ -397,6 +408,7 @@ describe("GasFree composed with official Core", () => {
         new GasFacilitator(
           { ...base, waitForTransactionReceipt: receipt, readContract: async () => 10000000n },
           { [NETWORK]: api },
+          { pendingSettlementStore },
         ),
       );
       const server = new x402ResourceServer({
@@ -430,10 +442,14 @@ describe("GasFree composed with official Core", () => {
       const result = await server.settlePayment(payment, accepts[0]);
       expect(result).toMatchObject({
         success: recovery === "direct" || recovery === "success",
-        transaction: recovery === "trace" ? "" : TX,
+        transaction: recovery === "trace" || recovery === "failed-trace" ? "" : TX,
         network: NETWORK,
       });
       if (recovery === "pending") expect(result.errorReason).toBe("settlement_pending");
+      if (recovery === "failed-trace") {
+        expect(result.errorReason).toBe("gasfree_transaction_failed");
+        expect(await pendingSettlementStore.get(saved.mock.calls[0][0])).toBeUndefined();
+      }
       if (recovery === "trace") {
         expect(result).toMatchObject({
           errorReason: "settlement_pending",
@@ -446,7 +462,9 @@ describe("GasFree composed with official Core", () => {
       }
       expect(api.submit).toHaveBeenCalledTimes(1);
       expect(api.waitForSuccess).toHaveBeenCalledTimes(recovery === "trace" ? 2 : 1);
-      expect(receipt).toHaveBeenCalledTimes(recovery === "direct" || recovery === "trace" ? 0 : 1);
+      expect(receipt).toHaveBeenCalledTimes(
+        recovery === "direct" || recovery === "trace" || recovery === "failed-trace" ? 0 : 1,
+      );
     },
   );
 });

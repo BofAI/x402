@@ -9,6 +9,7 @@ Other workspace packages retain their existing versions and are outside this pub
 - Preserve the 2.0 Agent Wallet 3 transaction artifacts, canonical TRON networks and pending transaction IDs.
 - Reject failed/malformed upto allowance and balance reads with `chain_read_failed` before settlement broadcast.
 - Apply resolved spend caps to actual batch deposits and GasFree value plus maximum provider fee.
+- Reconcile pending payments against the original transaction or GasFree trace, preserving batch snapshots and preventing duplicate broadcasts. Production recovery uses an injected durable pending store with shared locking.
 
 This is a source migration from 2.0. See the [migration guide](docs/migrations/tron-2.1.md)
 for imports, wallet capabilities, resource runtime registration, limits and pending recovery.
