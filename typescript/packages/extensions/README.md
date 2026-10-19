@@ -1,22 +1,18 @@
 # `@bankofai/x402-tron-extensions`
 
-2.1 正式版迁移准备见 [迁移说明](../../../docs/migrations/tron-2.1.md)。
+For 2.1 stable release preparation, see the [migration guide](../../../docs/migrations/tron-2.1.md).
 
-TRON 资源代付独立扩展包。Beta 版本与机制包统一为 `2.1.0-beta.2`，使用官方
-`@x402/core@2.28.0`，扩展精确依赖同版本机制包。
+Independent TRON resource sponsorship extension. Both beta packages use `2.1.0-beta.2` and official `@x402/core@2.28.0`; the extension depends on the exact same mechanism version.
 
 ```sh
 npm install @x402/core@2.28.0 @bankofai/x402-tron@2.1.0-beta.2 @bankofai/x402-tron-extensions@2.1.0-beta.2
 ```
 
-机制包只维护支付机制、公共契约和交易工具。扩展包维护声明/schema、客户端预签、
-Approval 交易校验、资源预算、能量/带宽委托、回收及 coordinator runtime。
-基础支付无需安装本包，也不要求安装 Agent Wallet。
+The mechanism maintains payment schemes, public contracts, and transaction utilities. The extension maintains declarations/schemas, client pre-signing, Approval transaction validation, resource budgets, energy/bandwidth delegation, reclamation, and the coordinator runtime. Basic payments require neither this package nor an Agent Wallet installation.
 
-本次按项目规划延续 2.1 beta 版本线，已发布的 `3.0.0-beta.1` 保留为历史实验版本。
-这是需要调整导入和显式注册扩展的迁移预发行版，不声明 2.0 源码无改动升级兼容。
+The project continues on the 2.1 beta line. Published `3.0.0-beta.1` remains a historical experimental version. This migration prerelease requires import changes and explicit extension registration; it does not claim an unchanged-source upgrade from 2.0.
 
-## 客户端注册
+## Client registration
 
 ```ts
 import { x402Client } from "@x402/core/client";
@@ -30,30 +26,21 @@ const client = new x402Client()
   .registerExtension(createTrc20ApprovalResourceSponsoringClientExtension(signer));
 ```
 
-服务端通过 `declareTrc20ApprovalResourceSponsoringExtension()` 声明扩展。
-Facilitator 使用 `createTrc20ApprovalResourceSponsoringExtension(runtime)` 注册完整能力；
-不能只手动注册 `{ key, runtime }`。runtime 可由
-`createTrc20ResourceSponsoringRuntime({ network, resourceOwnerSigner, coordinator, allowedAssets, permissionId, ... })`
-创建，也可以注入符合接口的实现。应用负责 Resource Owner 签名桥接、供应商和持久化存储。
+The resource server declares the extension with `declareTrc20ApprovalResourceSponsoringExtension()`. The facilitator registers full capability with `createTrc20ApprovalResourceSponsoringExtension(runtime)`; manually registering only `{ key, runtime }` is insufficient. Create the runtime through `createTrc20ResourceSponsoringRuntime({ network, resourceOwnerSigner, coordinator, allowedAssets, permissionId, ... })` or inject an implementation satisfying the interface. Applications supply Resource Owner signer bridging, providers, and persistent storage.
 
-客户端 before hook 校验声明版本和网络；机制创建最终授权，扩展根据实际授权金额
-（batch 为实际存款额）决定是否预签。已有 allowance 或自费 fallback 成功时，最终 hook
-移除未使用的资源声明。声明对象不会被修改，复用/并发调用彼此隔离。
-未注册客户端扩展时，官方 Core 组合会返回 `trc20_approval_client_extension_not_registered`。
-缺失 Facilitator 执行能力会返回 `sponsor_runtime_unavailable`。
+The client before hook validates declaration version and network. The mechanism creates the final authorization, and the extension uses its actual amount (the actual deposit for batch) to decide whether to pre-sign. When existing allowance or self-funded fallback succeeds, the final hook removes unused resource declarations. Declaration objects are not mutated; reused and concurrent calls remain isolated. Without client extension registration, official Core composition returns `trc20_approval_client_extension_not_registered`. Missing facilitator execution capability returns `sponsor_runtime_unavailable`.
 
-## 迁移入口
+## Migration entrypoints
 
-- 资源工厂、coordinator、策略、资源链适配和专用类型，从机制根入口迁到本包根入口。
-- 低层预签/专用校验从机制内部路径迁到本包公开入口。
-- 支付机制与兼容钱包工厂继续使用 `@bankofai/x402-tron`。
-- 通用 RPC 配置和交易工具使用机制包 `/rpc`、`/transactions`。
-- 通用旧扩展包 `@bankofai/x402-extensions` 暂时位于 `packages/legacy/extensions`，供未迁移调用方使用。
+- Resource factories, coordinator, policies, resource chain adapters, and dedicated types move from the mechanism root to this package root.
+- Low-level pre-signing/dedicated validation moves from mechanism internals to public extension entrypoints.
+- Payment schemes and compatible wallet factories remain in `@bankofai/x402-tron`.
+- Generic RPC configuration and transaction utilities use mechanism `/rpc` and `/transactions`.
+- The legacy generic `@bankofai/x402-extensions` package temporarily remains at `packages/legacy/extensions` for callers that have not migrated.
 
-本包提供根入口和 `trc20-approval-resource-sponsoring` 子入口，以及该子入口下的
-`client`、`facilitator`、`resourceService`。所有入口支持 ESM/CJS。
+This package exposes its root and `trc20-approval-resource-sponsoring`, plus `client`, `facilitator`, and `resourceService` beneath that subpath. All entrypoints support ESM/CJS.
 
-## 验证与运行边界
+## Validation and operational boundaries
 
 ```sh
 pnpm --filter @bankofai/x402-tron build
@@ -62,11 +49,6 @@ pnpm --filter @bankofai/x402-tron-extensions test
 pnpm --filter @bankofai/x402-tron-extensions test:consumer
 ```
 
-独立消费验证使用两个 tarball、官方 Core 和严格 NodeNext（`skipLibCheck: false`），
-测试 ESM/CJS 的真实 Approval 签名、扩展注册与普通付款。隔离测试还覆盖权限、预算、
-失败回收、pending 保留和真实 Agent Wallet 签名。
+Independent consumer validation uses both tarballs, official Core, and strict NodeNext (`skipLibCheck: false`) to test real Approval signatures, extension registration, and ordinary payments in ESM/CJS. Isolated tests also cover permissions, budgets, failure reclamation, pending retention, and real Agent Wallet signing.
 
-生产必须提供持久化 coordinator，并持续调用 `runtime.reconcile()` 对账/恢复；
-示例 `InMemoryTrc20SponsoringCoordinator` 只用于单进程验证。资源动作、Approval 或付款
-结果不明时，沿用原 txID 对账，保留相应记录和资源，避免重复广播或重复代付。
-M3 服务联调、真实测试网执行及持久化恢复仍需单独验收。
+Production must supply a persistent coordinator and continuously call `runtime.reconcile()` for reconciliation/recovery. The example `InMemoryTrc20SponsoringCoordinator` is for single-process validation only. When resource operations, Approval, or payment outcomes are unknown, reconcile the original txID and retain the corresponding records and resources to avoid duplicate broadcast or sponsorship. M3 service integration, live testnet execution, and persistent recovery require separate acceptance.

@@ -1,58 +1,45 @@
-# TRON 官方 SDK 改造 M1 验证记录
+# TRON Official SDK Migration M1 Validation Record
 
-日期：2026-10-15（Asia/Shanghai）。分支：`feat/tron-official-sdk`。
-基线：`origin/develop` 的 `e50e9f09149203a97e35110ee1cd64073487f30d`。
+Date: 2026-10-15 (Asia/Shanghai). Branch: `feat/tron-official-sdk`. Baseline: `e50e9f09149203a97e35110ee1cd64073487f30d` on `origin/develop`.
 
-## 本次交付
+## Deliverables
 
-- 四类 TRON 支付机制使用官方 `@x402/core@2.28.0` 的公开类型与运行实例。
-- 官方 Core 作为精确 peer/dev 依赖并从构建产物中外部化；基础消费不安装旧 Core 或 Agent Wallet。
-- 签名接口、钱包包装、交易构建、签名归一化、广播和回执处理分开维护。
-- 纯签名支付按路径要求 RPC；钱包工厂保留确定的 RPC 能力与原调用形状。
-- 钱包结构类型、日志接口迁入 TRON；新增 `/exact/extensions` 公开契约入口。
-- 增加迁移说明、major Changeset 和独立消费 CI 步骤。
+- Four TRON payment schemes use public types and runtime instances from official `@x402/core@2.28.0`.
+- Official Core is an exact peer/dev dependency, externalized from build artifacts; basic consumers install neither legacy Core nor Agent Wallet.
+- Signing interfaces, wallet wrappers, transaction construction, signature normalization, broadcast, and receipt handling are maintained separately.
+- Signature-only payments require RPC capabilities according to their path; wallet factories preserve guaranteed RPC capabilities and existing call shapes.
+- Structural wallet types and logging interfaces moved into TRON; `/exact/extensions` exposes the public contract.
+- Migration documentation, a major Changeset, and independent consumer CI were added.
 
-## 验证结果
+## Validation results
 
-在 worktree 的 `typescript/` 目录使用 pnpm 11.1.1 执行：
+Commands ran in the worktree's `typescript/` directory using pnpm 11.1.1:
 
-| 命令 | 结果 |
-| --- | --- |
-| `pnpm --filter @bankofai/x402-tron test` | 31 个文件、312 个测试通过 |
-| `pnpm --filter @bankofai/x402-tron exec tsc --noEmit` | 通过 |
-| `pnpm --filter @bankofai/x402-tron build` | ESM、CJS 和声明构建通过 |
-| `pnpm --filter @bankofai/x402-tron lint:check` | 通过 |
-| `pnpm --filter @bankofai/x402-tron format:check` | 通过 |
-| `pnpm --filter @bankofai/x402-tron test:consumer` | 严格 NodeNext ESM/CJS 消费、基础支付和全部 18 个入口通过 |
-| `git diff --check` | 通过 |
+| Command                                               | Result                                                                |
+| ----------------------------------------------------- | --------------------------------------------------------------------- |
+| `pnpm --filter @bankofai/x402-tron test`              | 31 files, 312 tests passed                                            |
+| `pnpm --filter @bankofai/x402-tron exec tsc --noEmit` | Passed                                                                |
+| `pnpm --filter @bankofai/x402-tron build`             | ESM, CJS, and declarations passed                                     |
+| `pnpm --filter @bankofai/x402-tron lint:check`        | Passed                                                                |
+| `pnpm --filter @bankofai/x402-tron format:check`      | Passed                                                                |
+| `pnpm --filter @bankofai/x402-tron test:consumer`     | Strict NodeNext ESM/CJS, basic payment, and all 18 entrypoints passed |
+| `git diff --check`                                    | Passed                                                                |
 
-独立消费项目使用 TypeScript 5.7.3、`strict: true` 和 `skipLibCheck: false`。
-源码验证使用 TypeScript 5.9.2。执行环境 Node.js 25.6.0；本地安装的 TronWeb
-为 6.3.0、Agent Wallet 为 2.4.0。CI 配置使用 Node.js 22。
+Independent consumers used TypeScript 5.7.3, `strict: true`, and `skipLibCheck: false`. Source validation used TypeScript 5.9.2. Runtime: Node.js 25.6.0, locally installed TronWeb 6.3.0 and Agent Wallet 2.4.0. CI is configured for Node.js 22.
 
-测试覆盖真实官方 Core 注册、payload 创建、verify/settle 和扩展 context 分派；
-GasFree、batch 存款、免链上交易 voucher 扣款、pending、取消、并发拦截、纠正响应、
-退款，以及重建客户端和服务端后的存储状态恢复。真实 Agent Wallet 的本地隔离测试
-覆盖 Permit2 签名、首次 approve、交易 JSON/恢复位归一化、结算权限和 Approval 预签。
+Tests cover real official Core registration, payload creation, verify/settle, and extension context dispatch; GasFree, batch deposits, off-chain voucher debits, pending, cancellation, concurrency rejection, corrected responses, refunds, and stored-state recovery after rebuilding clients and servers. Real Agent Wallet local isolated tests cover Permit2 signing, initial approve, transaction JSON/recovery-bit normalization, settlement permissions, and Approval pre-signing.
 
-原始基线在构建旧 Core 后为 26 个文件、290 个测试通过。
-运行日志包含测试刻意触发的 RPC fallback 提示，以及 Node.js 25 对现有 ESLint
-配置模块格式的提示；这些不影响检查退出状态。
+The original baseline passed 26 files and 290 tests after building legacy Core. Logs include intentional RPC fallback messages and Node.js 25 warnings about the existing ESLint configuration's module format; these did not affect check exit status.
 
-## 独立审查与修复
+## Independent review and fixes
 
-独立审查范围为 `e50e9f09..fd680826`，发现两项 P2 问题：
+Independent review of `e50e9f09..fd680826` found two P2 issues:
 
-1. 钱包工厂返回类型随最小 Signer 一起将 `readContract` 变成可选，破坏原有严格类型调用。
-   已用 ESM/CJS 消费编译失败复现，增加 `ClientTronSignerWithRpc` 返回类型和组合重载后通过。
-2. CommonJS 多入口各自包含日志状态，根入口的 `setLogger` 无法接管 GasFree 子入口日志。
-   已在打包消费项目中复现自定义 sink 收不到日志，启用 CJS 共享 chunk 后通过。
+1. Wallet factory return types made `readContract` optional along with the minimal Signer, breaking existing strict consumers. ESM/CJS compilation reproduced failure; adding `ClientTronSignerWithRpc` return types and composition overloads made it pass.
+2. CommonJS entrypoints each held separate logging state, so root `setLogger` could not control GasFree subpath logs. A packed consumer reproduced the missing custom sink output; shared CJS chunks fixed it.
 
-审查建议补充的状态恢复测试也已加入。审查后的修改通过上述完整检查；未再安排第二轮独立审查。
+Additional state-recovery tests suggested by review were added. The reviewed changes passed all checks above; a second independent review round was not scheduled.
 
-## 尚未验收的范围
+## Scope not yet accepted
 
-M2 的资源扩展独立拆包、M3 的外围服务迁移与真实测试网执行、M4 的旧包退出维护
-尚未实施。本次链状态和 relayer 执行使用隔离测试服务；测试通过不代表真实链执行、
-生产供应商、持久化 coordinator 或跨服务恢复已验收。没有运行整个 monorepo 的全量测试，
-也没有合并、推送或发布候选版本。
+M2 independent resource extension extraction, M3 external service migration/live testnet execution, and M4 legacy package retirement had not been implemented at this stage. Chain state and relayer execution used isolated test services. Passing tests does not establish live chain execution, production providers, persistent coordinators, or cross-service recovery acceptance. The entire monorepo suite was not run, and no candidate was merged, pushed, or published.

@@ -1,35 +1,33 @@
-# Upto RPC fail-closed 验证记录
+# Upto RPC Fail-Closed Validation Record
 
-日期：2026-10-19（Asia/Shanghai）。范围：`b414fc8a..a39d486e`，分支 `feat/tron-official-sdk`。
-用户要求修掉 TRON upto RPC 异常时乐观预检通过的问题，补测试并再次走读。
+Date: 2026-10-19 (Asia/Shanghai). Range: `b414fc8a..a39d486e`; branch `feat/tron-official-sdk`. Requested scope: fix optimistic TRON upto preflight on RPC errors, add tests, and review again.
 
-## 行为
+## Behavior
 
-- 必须读取的 allowance/balance RPC 抛错，统一返回 `isValid:false`、`invalidReason:chain_read_failed`、固定 `invalidMessage:TRON contract read failed` 和 payer。
-- 无效 uint256 输出也拒绝：缺失/null/bool/object/array、非法或空字符串、负值、溢出、非整数、非安全整数、NaN/Infinity。不使用隐式关系比较接受无效结果。
-- 保留 bigint、原子十进制/十六进制字符串、安全整数；正常不足仍为 `permit2_allowance_required` / `insufficient_funds`。离线检查真实 TronWeb ABI uint256 解码结果为 bigint，单输出 `.call()` 会返回该元素。
-- settle 仍先按已授权最大额重新验证，再处理部分或零结算。失败返回 `success:false`、`errorReason:chain_read_failed`、空 transaction，不签发结算交易、不等待回执。
-- 资源扩展预检仍可在 Approval 前暂缓 allowance；balance 始终必须读取。委托后的 scheme revalidation 失败会向 runtime 返回拒绝，已注册扩展的集成用例验证不继续结算。
-- 原始 RPC URL、凭据片段或异常诊断不回显。
+- Required allowance/balance RPC exceptions return `isValid:false`, `invalidReason:chain_read_failed`, fixed `invalidMessage:TRON contract read failed`, and payer.
+- Invalid uint256 outputs also reject: missing/null/bool/object/array, invalid or empty strings, negative values, overflow, non-integers, unsafe integers, and NaN/Infinity. Implicit relational comparisons are not used to accept invalid results.
+- Bigint, atomic decimal/hex strings, and safe integers remain supported. Genuine insufficiency still returns `permit2_allowance_required` / `insufficient_funds`. Offline inspection confirms real TronWeb uint256 ABI decoding produces bigint, returned directly by single-output `.call()`.
+- Settle still revalidates the authorized maximum before partial or zero settlement. Failure returns `success:false`, `errorReason:chain_read_failed`, and an empty transaction, without signing a settlement transaction or waiting for a receipt.
+- Resource extension preflight can still defer allowance until Approval, but balance is always required. Post-delegation scheme revalidation failure rejects through the runtime; registered extension integration tests confirm settlement does not proceed.
+- Responses do not expose original RPC URLs, credential fragments, or exception diagnostics.
 
-## 回归证据
+## Regression evidence
 
-- 新增机制用例36个：基线29失败/7通过；修复后36通过。包含官方 Core 的 verify/settle、两类读取失败、非法值、有效值、真实不足、部分和零金额、资源回调的余额拒绝。
-- 新增资源扩展集成用例2个：使用真实离线签名 Approval、官方 Core extension 注册；旧机制产物运行失败，重建修复后的机制产物后通过。覆盖首次预检和委托后 revalidation 的 RPC 失败。
-- 完整机制：28文件、266/266；完整扩展：7文件、103/103。
-- 两包 source TypeScript、build、lint、format 通过。Node25 对既有 ESLint config 的 module 类型提示不影响检查退出状态。
-- 独立打包消费：严格 TypeScript5.7.3 NodeNext、ESM/CJS、20+5公开入口、真实离线 Approval 签名及扩展注册通过。机制 ESM/CJS 消费脚本额外断言 allowance/balance 失败时 verify 拒绝、settle 拒绝且广播次数为0。
-- 执行日志保存在 `/tmp/upto-fail-closed-` 前缀的 red、green、full、extension-red、ext-green、consumer、ext-consumer 等 `.log` 文件。
+- 36 new mechanism cases: baseline 29 failed/7 passed; fixed 36 passed. Coverage includes official Core verify/settle, both read failure types, invalid/valid values, genuine insufficiency, partial/zero amounts, and resource callback balance rejection.
+- Two new resource extension integration cases use real offline signed Approval and official Core extension registration. They failed with old mechanism artifacts and passed after rebuilding fixed artifacts, covering initial preflight and post-delegation RPC revalidation.
+- Full mechanism: 28 files, 266/266; full extension: 7 files, 103/103.
+- Both packages passed source TypeScript, build, lint, and format. Node25 warnings about the existing ESLint config's module type did not affect exit status.
+- Independent packed consumers passed strict TypeScript 5.7.3 NodeNext, ESM/CJS, 20+5 public entrypoints, real offline Approval signing, and extension registration. Mechanism ESM/CJS consumers additionally assert verify/settle rejection and zero broadcasts on allowance/balance failure.
+- Logs are `/tmp/upto-fail-closed-` prefixed `.log` files, including red, green, full, extension-red, ext-green, consumer, and ext-consumer.
 
-## 范围
+## Scope
 
-本次只修改源码、回归测试和待发布 patch changeset；未变更 npm 版本/标签、未发布、未推送或合并、未部署、未发起真实链交易。
-已发布 `2.1.0-beta.1` 仍不含此修复，README 明确区别已发布制品与当前未发布源码。
+This phase changed source, regressions, and a pending patch changeset only. It did not change npm versions/tags, publish, push, merge, deploy, or initiate live chain transactions. Published `2.1.0-beta.1` did not include this fix; README distinguished published artifacts from then-unreleased source.
 
-## 独立走读
+## Independent review
 
-审查者以全新上下文只读审阅 `b414fc8a..a39d486e`，未发现阻断问题、需要延期的minor或本次修改引入的可触发回归。独立使用不加载默认环境变量的隔离配置重跑两个upto测试文件，46/46通过。另以离线stub `triggerSmartContract` 实际执行TronWeb allowance/balanceOf的相同ABI `.call()`，两者均返回 `2000000n`。
+A fresh-context reviewer inspected `b414fc8a..a39d486e` read-only, finding no blocker, deferred minor, or triggerable regression introduced by the patch. The reviewer reran two upto test files with isolated configuration that did not load default environment variables: 46/46 passed. An offline stub of `triggerSmartContract` exercised the same real TronWeb allowance/balanceOf ABI `.call()`; both returned `2000000n`.
 
-审查核对了两个catch、uint256转换、部分/零额结算顺序、资源代付allowance延后和必需balance重验。未独立重复全量构建/packed消费者，使用主实现者已运行证据；资源新增测试使用真实扩展注册和模拟runtime，未执行真实委托/链交易/资源恢复。
+Review checked both catch blocks, uint256 conversion, partial/zero settlement ordering, deferred sponsored allowance, and mandatory balance revalidation. Full builds/packed consumers were not independently repeated; implementation-run evidence was used. New resource tests used real extension registration and a simulated runtime, without live delegation, chain transactions, or resource recovery.
 
-发布跟进：此修复随后已包含在 `2.1.0-beta.2`，两个包统一发布，发布后外围兼容验证通过；详见 [beta.2发布记录](../../releases/2.1.0-beta.2.md)。上面的“未发布”描述对应本修复最初验收时的状态。
+Publication follow-up: the fix was subsequently included in `2.1.0-beta.2`, with both packages published together and post-publication external compatibility validation passing. See the [beta.2 release record](../../releases/2.1.0-beta.2.md). The unpublished status above refers to initial acceptance of this fix.

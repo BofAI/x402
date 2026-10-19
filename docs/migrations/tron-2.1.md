@@ -1,54 +1,43 @@
-# TRON SDK 2.1 迁移说明
+# TRON SDK 2.1 Migration Guide
 
-目标正式版本为 `2.1.0`，目前处于发布准备阶段；两个包发布并验证后再安装该版本。
-当前集成测试可使用 `2.1.0-beta.2`。历史实验版本 `3.0.0-beta.1` 不再作为后续版本线。
+The target stable version is `2.1.0`; release preparation is in progress. Install that version once both packages have been published and verified. Current integration tests can use `2.1.0-beta.2`. The historical experimental `3.0.0-beta.1` is no longer the planned version line.
 
-## 安装与兼容范围
+## Installation and compatibility
 
 ```sh
-# 正式发布后的目标组合
+# Target package combination after the stable release
 npm install @x402/core@2.28.0 @bankofai/x402-tron@2.1.0
-# 仅资源代付需要
+# Required only for resource sponsorship
 npm install @bankofai/x402-tron-extensions@2.1.0
-# 根据应用角色选择官方 HTTP / MCP 集成
+# Select official HTTP / MCP integrations for the application role
 npm install @x402/fetch@2.28.0 @x402/express@2.28.0
 ```
 
-2.1 延续项目的版本线，但从 2.0 升级需要迁移源码。协议仍为 x402 v2，保留
-`exact`、`upto`、`batch-settlement`、`exact_gasfree` 四种支付方案及现有钱包工厂；
-这不代表旧 Core 实例与新机制可以混用。同一支付调用链须使用官方 Core 2.28.0，
-HTTP/MCP 适配也须配套升级。`@x402/core` 是机制包的精确 peer dependency。
+2.1 continues the project's version line, but upgrading from 2.0 requires source migration. The protocol remains x402 v2, with `exact`, `upto`, `batch-settlement`, `exact_gasfree`, and the existing wallet factories. This does not make legacy Core instances interchangeable with the new mechanisms. Use official Core 2.28.0 throughout the payment call chain and upgrade HTTP/MCP adapters together. `@x402/core` is an exact peer dependency of the mechanism package.
 
-扩展包精确依赖同版本机制包。应同时升级两个 TRON 包，避免混用 beta 与正式版。
-普通支付仅需机制包与官方 Core，不需要资源扩展，也没有 Agent Wallet 运行时依赖。
+The extension depends on the exact same mechanism version. Upgrade both TRON packages together; avoid mixing beta and stable versions. Ordinary payments require only the mechanism and official Core, without the resource extension or an Agent Wallet runtime dependency.
 
-## 导入调整
+## Import changes
 
-| 2.0 调用位置 | 2.1 调用位置 |
-| --- | --- |
-| `@bankofai/x402-core/client` | `@x402/core/client` |
-| `@bankofai/x402-core/server`、`facilitator`、`types`、`http` | `@x402/core` 对应子入口 |
-| `@bankofai/x402-fetch` 中的 `x402Client` | `@x402/core/client` |
-| `@bankofai/x402-fetch` 中的 `wrapFetchWithPayment` | `@x402/fetch` |
-| `@bankofai/x402-express` / `x402-mcp` | `@x402/express` / `@x402/mcp`，Core 类从其角色子入口导入 |
-| 机制根入口中的资源 runtime、coordinator、策略、资源链适配与类型 | `@bankofai/x402-tron-extensions` |
-| 旧通用扩展包中的 TRON 声明、schema、扩展工厂 | `@bankofai/x402-tron-extensions` |
-| 机制内部的资源 Approval 预签、专用校验 | 扩展包公开入口 |
-| 旧 Core 的 TRON 日志配置 | `@bankofai/x402-tron` 的 `setLogger`、`noopLogger` |
+| 2.0 location                                                                                | 2.1 location                                                                |
+| ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `@bankofai/x402-core/client`                                                                | `@x402/core/client`                                                         |
+| `@bankofai/x402-core/server`, `facilitator`, `types`, `http`                                | Corresponding `@x402/core` subpaths                                         |
+| `x402Client` from `@bankofai/x402-fetch`                                                    | `@x402/core/client`                                                         |
+| `wrapFetchWithPayment` from `@bankofai/x402-fetch`                                          | `@x402/fetch`                                                               |
+| `@bankofai/x402-express` / `x402-mcp`                                                       | `@x402/express` / `@x402/mcp`; import Core classes from their role subpaths |
+| Resource runtime, coordinator, policies, chain adapters, and types at the mechanism root    | `@bankofai/x402-tron-extensions`                                            |
+| TRON declarations, schemas, and extension factories in the legacy generic extension package | `@bankofai/x402-tron-extensions`                                            |
+| Resource Approval pre-signing and dedicated validation inside the mechanism                 | Public extension package entrypoints                                        |
+| Legacy Core TRON logging configuration                                                      | `setLogger`, `noopLogger` from `@bankofai/x402-tron`                        |
 
-钱包工厂、钱包结构类型和支付方案继续从机制包导入。公共 RPC 和交易工具分别从
-`@bankofai/x402-tron/rpc`、`@bankofai/x402-tron/transactions` 导入。
-`/exact/extensions` 保留机制与扩展间的公共契约，不包含资源执行 runtime。
+Continue importing wallet factories, structural wallet types, and payment schemes from the mechanism package. Import public RPC and transaction utilities from `@bankofai/x402-tron/rpc` and `@bankofai/x402-tron/transactions`. `/exact/extensions` retains the public contract between the mechanism and extension; it does not include the resource execution runtime.
 
-扩展包公开根入口、`/trc20-approval-resource-sponsoring`，以及该入口下的
-`/client`、`/facilitator`、`/resourceService`；全部支持 ESM 和 CommonJS。
-不要导入未公开的 `src/` 或 `dist/` 内部路径。
+The extension exposes its root, `/trc20-approval-resource-sponsoring`, and the `/client`, `/facilitator`, `/resourceService` subpaths under that entrypoint, all supporting ESM and CommonJS. Do not import private `src/` or `dist/` paths.
 
-旧 Core 的 `createResourceServer`、`createFacilitator` 是本仓库的日志封装，
-迁移为官方 `new x402ResourceServer(facilitatorClient)`、`new x402Facilitator()`；
-需要日志时显式注册对应生命周期 hook。
+Legacy Core's `createResourceServer` and `createFacilitator` are repository-specific logging wrappers. Replace them with official `new x402ResourceServer(facilitatorClient)` and `new x402Facilitator()`; explicitly register lifecycle hooks where logging is needed.
 
-## 普通支付与钱包
+## Ordinary payments and wallets
 
 ```ts
 import { x402Client } from "@x402/core/client";
@@ -61,21 +50,15 @@ const client = new x402Client().register(TRON_NILE, new ExactTronScheme(signer))
 const paidFetch = wrapFetchWithPayment(fetch, client);
 ```
 
-`wallet` 由应用持有，继续满足 `ClientTronWallet` / `FacilitatorTronWallet` 结构契约。
-工厂仍为异步函数，参数顺序为钱包、网络/RPC 配置；签名服务也可以直接实现 signer 契约。
-Agent Wallet 3 的 `{ family: "tron", transaction }` 签名结果会被解包，兼容旧版签名交易对象、
-JSON 字符串及原始签名；EVM artifact 或错误的 TRON transaction 封装会被拒绝。
+The application owns `wallet`, which continues to satisfy the `ClientTronWallet` / `FacilitatorTronWallet` structural contract. Factories remain asynchronous, taking the wallet first and network/RPC configuration second. Signing services can implement the signer contract directly. Agent Wallet 3 `{ family: "tron", transaction }` signing results are unwrapped; legacy signed transaction objects, JSON strings, and raw signatures remain supported. EVM artifacts and malformed TRON transaction envelopes are rejected.
 
-仅 TIP-712 签名的 signer 只能覆盖所需签名能力已具备的支付路径。余额/allowance 查询需要
-`readContract`；自动 Approval 还需要交易签名。未提供 allowance 能力时由应用预先完成授权，
-不能把签名成功当作已经获得链上 allowance。
+A signer with only TIP-712 signing can serve only payment paths whose signing requirements it meets. Balance/allowance queries require `readContract`; automatic Approval also needs transaction signing. Applications must arrange allowance in advance when that capability is unavailable. A successful signature does not establish on-chain allowance.
 
-网络输出继续使用十进制 CAIP-2：主网 `tron:728126428`、Nile `tron:3448148188`、
-Shasta `tron:2494104990`；旧十六进制标识仍作为输入别名接受。
+Network output continues to use decimal CAIP-2: mainnet `tron:728126428`, Nile `tron:3448148188`, and Shasta `tron:2494104990`. Legacy hexadecimal identifiers remain accepted input aliases.
 
-## 资源代付的三端注册
+## Register resource sponsorship for all three roles
 
-客户端在普通支付注册后显式注册预签扩展：
+After registering ordinary payments, explicitly register the client pre-signing extension:
 
 ```ts
 import { createTrc20ApprovalResourceSponsoringClientExtension } from "@bankofai/x402-tron-extensions";
@@ -83,55 +66,27 @@ import { createTrc20ApprovalResourceSponsoringClientExtension } from "@bankofai/
 client.registerExtension(createTrc20ApprovalResourceSponsoringClientExtension(signer));
 ```
 
-资源服务器在需要代付的路由中设置
-`extensions: declareTrc20ApprovalResourceSponsoringExtension()`，声明工厂从扩展包导入。
-Facilitator 用 `createTrc20ResourceSponsoringRuntime(...)` 构造 runtime，再通过
-`facilitator.registerExtension(createTrc20ApprovalResourceSponsoringExtension(runtime))`
-注册完整能力。手工注册 `{ key, runtime }` 无法替代这些工厂。
+On resource server routes requiring sponsorship, set `extensions: declareTrc20ApprovalResourceSponsoringExtension()`, importing the declaration factory from the extension package. On the facilitator, construct the runtime with `createTrc20ResourceSponsoringRuntime(...)`, then register the full capability with `facilitator.registerExtension(createTrc20ApprovalResourceSponsoringExtension(runtime))`. Manually registering `{ key, runtime }` does not replace these factories.
 
-应用继续负责 Resource Owner 钱包、权限 ID、允许代付的资产、资源容量和预算配置。
-未注册客户端扩展会返回 `trc20_approval_client_extension_not_registered`；缺失 Facilitator
-执行能力会返回 `sponsor_runtime_unavailable`。普通支付不需要注册这些扩展。
+Applications remain responsible for the Resource Owner wallet, permission ID, allowed assets, resource capacity, and budget. An unregistered client extension returns `trc20_approval_client_extension_not_registered`; missing facilitator execution capability returns `sponsor_runtime_unavailable`. Ordinary payments do not require these extensions.
 
-`InMemoryTrc20SponsoringCoordinator` 只用于开发验证。生产部署须提供持久化 coordinator，
-持续执行 `runtime.reconcile()`，并在重启后恢复未完成的委托、付款与回收任务。
+`InMemoryTrc20SponsoringCoordinator` is for development validation only. Production deployments must supply a persistent coordinator, continuously run `runtime.reconcile()`, and recover unfinished delegation, payment, and reclamation tasks after restarts.
 
-## 预检、限额与 pending
+## Preflight, spend caps, and pending settlement
 
-- Upto 必需的 allowance 或余额 RPC 读取失败、返回错误数据时，明确返回
-  `chain_read_failed`，不会继续结算广播。应修复 RPC 后重试预检。
-- 官方 Core 的 `maxAmountPerPayment` 按实际授权金额检查：batch 使用本次 deposit，
-  GasFree 使用 `value + maxFee`。默认 batch deposit 超过限额时会被拒绝，应配置合适的
-  `depositStrategy` 或明确调整限额；累计 voucher 总额不等于新增 deposit。
-- 保留 2.0 的 `settlement_pending` 语义：交易已广播但回执未知时，保存原交易 ID 对账，
-  不要重发授权或把超时当作未扣款。资源动作未知时，同样保留记录和资源等待恢复。
-- HTTP 超时属于应用集成配置。迁移到官方 HTTP/MCP 包后，必须重新核对其请求超时、
-  pending 重试和资源交付策略；SDK 通过不表示外围服务的这些配置已经完成迁移。
+- Failed or malformed required upto allowance/balance RPC reads return `chain_read_failed` without broadcasting settlement. Repair RPC access before retrying preflight.
+- Official Core's `maxAmountPerPayment` is checked against the actual authorized amount: the current deposit for batch, and `value + maxFee` for GasFree. A default batch deposit above the cap is rejected. Configure an appropriate `depositStrategy` or explicitly adjust the cap; the cumulative voucher amount is not the new deposit amount.
+- Preserve 2.0 `settlement_pending` semantics: when broadcast succeeds but the receipt is unknown, save and reconcile the original transaction ID. Do not reauthorize or interpret a timeout as proof that no funds were spent. Retain records and resources for recovery when resource operations have unknown outcomes as well.
+- HTTP timeouts are application integration settings. After switching to official HTTP/MCP packages, recheck request timeouts, pending retries, and resource delivery policies. SDK validation does not establish that these external service settings have been migrated.
 
-## Facilitator 的 pending 存储
+## Facilitator pending storage
 
-官方 Core 会对带有 txID 的 `settlement_pending` 自动重试一次。2.1 的 Facilitator
-先保存原交易，再等待回执；相同 payment 与实际结算 requirements 的重试会恢复原交易，
-跳过重新预检、资源代付和广播。batch 的 deposit/refund/settle 恢复原始金额和状态快照。
-GasFree 已取得 relayer trace、尚无链上 hash 时，保留 `extra.gasfreeTraceId`，后续调用
-查询同一任务，不再次 submit。没有 hash 的 pending 不触发 Core 的自动重试。
+Official Core automatically retries `settlement_pending` once when a txID is present. The 2.1 facilitator saves the original transaction before waiting for its receipt. A retry with the same payment and effective settlement requirements resumes that transaction, skipping repeated preflight, sponsorship, and broadcast. Batch deposit/refund/settle recovery restores original amount and state snapshots. When GasFree has a relayer trace but no on-chain hash, it preserves `extra.gasfreeTraceId`; later calls query the same task without submitting again. Pending results without a hash do not trigger Core's automatic retry.
 
-默认 `InMemoryTronPendingSettlementStore` 仅覆盖同一进程；未确认记录不会自动过期。
-生产重启恢复或多副本需要持久化、共享的 `TronPendingSettlementStore`。接口从各
-`/facilitator` 入口导出，包含 `get`、`set`、`delete` 和 `withLock`；记录是可序列化的
-原 txID / relayer trace 与必要快照。`withLock` 必须在整个回调（包括等待回执）期间，
-对所有副本持有同一 key 的排他锁；租约需要覆盖或续期到回调结束。
+The default `InMemoryTronPendingSettlementStore` covers one process only; unconfirmed records do not expire automatically. Production restart recovery or multiple replicas require a persistent, shared `TronPendingSettlementStore`. Exported from each `/facilitator` entrypoint, the interface provides `get`, `set`, `delete`, and `withLock`. Records contain serializable original txID / relayer trace data and required snapshots. `withLock` must hold an exclusive lock for the same key across all replicas throughout the callback, including receipt waits. Leases must last or be renewed until the callback finishes.
 
-通过构造器的 `pendingSettlementStore` 选项注入实现：exact / upto 是第二个参数，
-GasFree 是第三个参数，batch 是 signer、可选 authorizerSigner 后的第三个参数。
-exact、GasFree 的注册工厂也接受同名配置。存储读取失败时在广播前拒绝；广播后保存
-失败返回 `settlement_store_unavailable` 并保留已知 txID / trace。应用应先对账原任务，
-避免在存储故障或进程退出后直接重新提交。资源 coordinator 与 pending 交易存储各自
-负责自己的恢复记录，生产需要同时提供。
+Inject the implementation through the constructor's `pendingSettlementStore` option: the second argument for exact / upto, the third for GasFree, and the third after signer and optional authorizerSigner for batch. The exact and GasFree registration factories accept the same option. A failed storage read rejects before broadcast. A failed save after broadcast returns `settlement_store_unavailable`, preserving the known txID / trace. Applications should reconcile the original task before resubmitting after storage failure or process exit. The resource coordinator and pending transaction store maintain separate recovery records; production needs both.
 
-## 升级验证
+## Upgrade validation
 
-先在隔离环境验证严格 TypeScript 编译、ESM/CJS 加载和三角色注册，再验证所需支付路径。
-仓库 CI 包含两个真实 tarball 的独立消费测试；机制和扩展的版本必须一致，扩展包打包后
-不得残留 `workspace:` 依赖。Nile 历史验收记录见 `docs/releases/2.1.0-beta.2-nile.md`，
-该记录不是正式版已发布或生产持久化恢复已验收的声明。
+First validate strict TypeScript compilation, ESM/CJS loading, and registration of all three roles in an isolated environment, then exercise the required payment paths. Repository CI includes independent consumption tests using both real tarballs. Mechanism and extension versions must match, and packed extension dependencies must not retain `workspace:` references. Historical Nile acceptance is recorded in `docs/releases/2.1.0-beta.2-nile.md`; it does not assert that the stable version has been published or that production persistent recovery has been accepted.

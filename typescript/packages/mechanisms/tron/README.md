@@ -1,6 +1,6 @@
 # `@bankofai/x402-tron`
 
-2.1 正式版迁移准备见 [迁移说明](../../../../docs/migrations/tron-2.1.md)。
+For 2.1 stable release preparation, see the [migration guide](../../../../docs/migrations/tron-2.1.md).
 
 ## Beta 2.1.0-beta.2
 
@@ -64,12 +64,12 @@ are read from the relayer API, not configured via the SDK.
 
 The exact scheme supports two `assetTransferMethod`s, selected via `extra.assetTransferMethod`:
 
-| method | how | when |
-| --- | --- | --- |
+| method    | how                                                               | when                                                   |
+| --------- | ----------------------------------------------------------------- | ------------------------------------------------------ |
 | `eip3009` | TIP-712 `TransferWithAuthorization` (TRON equivalent of EIP-3009) | only tokens that implement `transferWithAuthorization` |
-| `permit2` | Permit2 `PermitWitnessTransferFrom` + `x402ExactPermit2Proxy` | **any TRC-20** — the universal path |
+| `permit2` | Permit2 `PermitWitnessTransferFrom` + `x402ExactPermit2Proxy`     | **any TRC-20** — the universal path                    |
 
-> ⚠️ Mainstream TRON stablecoins (**USDT, USDD**) do **not** implement `transferWithAuthorization`, so real payments use **`permit2`**. The code falls back to `eip3009` only when no method is specified; `shared/defaultAssets.ts` therefore marks the TRON stablecoins as `permit2`. See the design notes in `analysis-report/x402-Tron网络支持方案.md`.
+> ⚠️ Mainstream TRON stablecoins (**USDT, USDD**) do **not** implement `transferWithAuthorization`, so real payments use **`permit2`**. The code falls back to `eip3009` only when no method is specified; `shared/defaultAssets.ts` therefore marks the TRON stablecoins as `permit2`. See the [migration guide](../../../../docs/migrations/tron-2.1.md) for integration requirements.
 
 ### Exact witness shape
 
@@ -83,19 +83,19 @@ The client TIP-712 type, the proxy `settle` ABI, and the on-chain `WITNESS_TYPEH
 
 ## Package exports
 
-| Subpath | Contents |
-| --- | --- |
-| `@bankofai/x402-tron` | client `ExactTronScheme`, `registerExactTronScheme`, signers, types, constants, utils |
-| `@bankofai/x402-tron/exact/client` | client scheme + register + Permit2 helpers |
-| `@bankofai/x402-tron/exact/server` | server scheme + register |
-| `@bankofai/x402-tron/exact/facilitator` | facilitator scheme + register |
-| `@bankofai/x402-tron/upto/client` | upto client scheme + register + Permit2 helpers |
-| `@bankofai/x402-tron/upto/server` | upto server scheme + register |
-| `@bankofai/x402-tron/upto/facilitator` | upto facilitator scheme + register |
-| `@bankofai/x402-tron/gasfree/client` | exact_gasfree client scheme + register |
-| `@bankofai/x402-tron/gasfree/server` | exact_gasfree server scheme + register |
-| `@bankofai/x402-tron/gasfree/facilitator` | exact_gasfree facilitator scheme + register |
-| `@bankofai/x402-tron/batch-settlement/*` | batch-settlement client/server/facilitator |
+| Subpath                                   | Contents                                                                              |
+| ----------------------------------------- | ------------------------------------------------------------------------------------- |
+| `@bankofai/x402-tron`                     | client `ExactTronScheme`, `registerExactTronScheme`, signers, types, constants, utils |
+| `@bankofai/x402-tron/exact/client`        | client scheme + register + Permit2 helpers                                            |
+| `@bankofai/x402-tron/exact/server`        | server scheme + register                                                              |
+| `@bankofai/x402-tron/exact/facilitator`   | facilitator scheme + register                                                         |
+| `@bankofai/x402-tron/upto/client`         | upto client scheme + register + Permit2 helpers                                       |
+| `@bankofai/x402-tron/upto/server`         | upto server scheme + register                                                         |
+| `@bankofai/x402-tron/upto/facilitator`    | upto facilitator scheme + register                                                    |
+| `@bankofai/x402-tron/gasfree/client`      | exact_gasfree client scheme + register                                                |
+| `@bankofai/x402-tron/gasfree/server`      | exact_gasfree server scheme + register                                                |
+| `@bankofai/x402-tron/gasfree/facilitator` | exact_gasfree facilitator scheme + register                                           |
+| `@bankofai/x402-tron/batch-settlement/*`  | batch-settlement client/server/facilitator                                            |
 
 ## Usage
 
@@ -181,11 +181,11 @@ registerExactTronScheme(facilitator, { signer: facilitatorSigner, networks: "tro
 
 The `permit2` path depends on three on-chain contracts. Addresses live in `src/constants.ts`:
 
-| Network | chainId (TIP-712) | Permit2 | x402ExactPermit2Proxy |
-| --- | --- | --- | --- |
-| `tron:3448148188` | 3448148188 | `TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h` | `TFGoaq2KjizijgjtkVxT7yjffW1A5T1j6F` |
-| `tron:728126428` | 728126428 | `TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9` | `TN49yaJmZMZoEdDCqjB4uPzQLHvYkGw95m` |
-| `tron:2494104990` | 2494104990 | `TJMkP7a3ucTMkvi17p7ChhTCw6zriFX3tg` | `TGZkC38n14f2GpBWPMQLF2BpmcpWW3QNhg` |
+| Network           | chainId (TIP-712) | Permit2                              | x402ExactPermit2Proxy                |
+| ----------------- | ----------------- | ------------------------------------ | ------------------------------------ |
+| `tron:3448148188` | 3448148188        | `TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h` | `TFGoaq2KjizijgjtkVxT7yjffW1A5T1j6F` |
+| `tron:728126428`  | 728126428         | `TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9` | `TN49yaJmZMZoEdDCqjB4uPzQLHvYkGw95m` |
+| `tron:2494104990` | 2494104990        | `TJMkP7a3ucTMkvi17p7ChhTCw6zriFX3tg` | `TGZkC38n14f2GpBWPMQLF2BpmcpWW3QNhg` |
 
 > ⚠️ Mainnet uses real funds. The configured Permit2 and
 > `x402ExactPermit2Proxy` addresses are the deployed mainnet contracts; verify
@@ -213,7 +213,6 @@ The suite is fully offline (no network, no keys):
 - **Receipts**: TRON has no instant receipt — the facilitator signer polls `getTransactionInfo` (gated on `blockNumber`, 120s deadline) and tolerates transient/rate-limit errors. A TronGrid API key speeds this up.
 - **EIP-1153**: the deployed proxies use a transient-storage reentrancy guard; deploy only on TVM chains that support it (verified working on Nile).
 - **Gas**: settlement consumes energy/TRX from the facilitator account; the payer needs a one-time Permit2 approval per token.
-
 
 ## Official Core migration (M1)
 
@@ -285,7 +284,6 @@ The consumer check installs the packed artifact in a temporary project, compiles
 strict NodeNext ESM and CommonJS fixtures with `skipLibCheck: false`, runs a payment
 through official Core in both formats and loads every public entrypoint. It rejects
 runtime dependency trees containing old Core or Agent Wallet.
-
 
 ## Resource extension migration (M2)
 

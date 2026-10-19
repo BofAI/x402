@@ -1,57 +1,54 @@
-# TRON 官方 SDK 改造 M2 验证记录
+# TRON Official SDK Migration M2 Validation Record
 
-日期：2026-10-15（Asia/Shanghai）。分支：`feat/tron-official-sdk`。
-M2 基线：M1 完成提交 `a7f4bb0a`。
-M2 实现提交：`9acbd732abdc3ad9e74f6b7b0d7d0119bd3d15f0`。
+Date: 2026-10-15 (Asia/Shanghai). Branch: `feat/tron-official-sdk`. M2 baseline: M1 completion commit `a7f4bb0a`. M2 implementation commit: `9acbd732abdc3ad9e74f6b7b0d7d0119bd3d15f0`.
 
-## 本次交付
+## Deliverables
 
-- 新增独立包 `@bankofai/x402-tron-extensions`，代码位于 `typescript/packages/extensions`。
-- 资源代付 runtime、coordinator、预算/权限策略、资源链适配、Approval 预签、schema 和完整交易验证迁入新包。
-- 依赖方向为扩展包依赖机制包公开入口；机制包不依赖扩展包，也不包含资源代付业务实现。机制新增通用 `/rpc` 与 `/transactions` 入口。
-- exact Permit2、upto Permit2、batch 存款通过官方 Core 2.28.0 的客户端扩展 hooks 组合代付；按最终授权/实际存款金额准备 Approval。
-- 客户端必须显式注册扩展。网络不匹配在签名前拒绝；未注册、缺少签名/授权能力明确失败。已有 allowance、自费回退或仅 voucher 路径清理未使用声明，复用的服务端声明不被修改。
-- Facilitator 必须使用新工厂注册验证/执行能力。旧 `{ key, runtime }` 对象需要迁移；完整 schema、签名、交易绑定和资源安全校验保留在扩展中。
-- 通用 `@bankofai/x402-extensions` 保留为 `typescript/packages/legacy/extensions` 下的过渡 workspace 包。仅调整迁移所需的两处相对路径，业务文件保持不变。
-- 新增独立消费 CI、Changeset 和中文迁移说明。Agent Wallet 仅用于开发测试，生产包不依赖它或旧 Core。
+- New independent `@bankofai/x402-tron-extensions` package at `typescript/packages/extensions`.
+- Resource sponsorship runtime, coordinator, budget/permission policies, resource chain adapters, Approval pre-signing, schemas, and complete transaction validation moved into the new package.
+- Dependencies flow from extension to public mechanism entrypoints. The mechanism does not depend on the extension or contain resource sponsorship business logic. Generic `/rpc` and `/transactions` mechanism entrypoints were added.
+- Exact Permit2, upto Permit2, and batch deposits compose sponsorship through official Core 2.28.0 client extension hooks, preparing Approval for the final authorization/actual deposit.
+- Clients must explicitly register the extension. Network mismatch rejects before signing; missing registration or signing/authorization capabilities fails explicitly. Existing allowance, self-funded fallback, and voucher-only paths remove unused declarations without mutating reused server declarations.
+- Facilitators must register verification/execution using the new factory. Legacy `{ key, runtime }` objects require migration. Full schema, signature, transaction binding, and resource safety validation remain in the extension.
+- Generic `@bankofai/x402-extensions` remains a transitional workspace package at `typescript/packages/legacy/extensions`. Only two migration-required relative paths changed; business files were unchanged.
+- Independent consumer CI, a Changeset, and migration documentation (originally in Chinese) were added. Agent Wallet is for development tests only; production packages depend on neither it nor legacy Core.
 
-## 验证结果
+## Validation results
 
-在 worktree 的 `typescript/` 目录使用 pnpm 11.1.1 执行（本机通过 `npx --yes pnpm@11.1.1` 调用）：
+Commands ran in the worktree's `typescript/` directory using pnpm 11.1.1 (invoked locally as `npx --yes pnpm@11.1.1`):
 
-| 命令 | 结果 |
-| --- | --- |
-| `pnpm --filter @bankofai/x402-tron test` | 26 个文件、224 个测试通过 |
-| `pnpm --filter @bankofai/x402-tron-extensions test` | 7 个文件、101 个测试通过 |
-| `pnpm --filter @bankofai/x402-extensions test` | 10 个文件、532 个测试通过，与迁移前基线一致 |
-| `pnpm --filter @bankofai/x402-tron exec tsc --noEmit` | 通过 |
-| `pnpm --filter @bankofai/x402-tron-extensions exec tsc --noEmit` | 通过 |
-| `pnpm --filter @bankofai/x402-tron build` | ESM、CJS 和声明构建通过 |
-| `pnpm --filter @bankofai/x402-tron-extensions build` | ESM、CJS 和声明构建通过 |
-| `pnpm --filter @bankofai/x402-extensions build` | 过渡包构建通过 |
-| `pnpm --filter @bankofai/x402-tron --filter @bankofai/x402-tron-extensions lint:check` | 通过 |
-| `pnpm --filter @bankofai/x402-tron --filter @bankofai/x402-tron-extensions format:check` | 通过 |
-| `pnpm --filter @bankofai/x402-tron test:consumer` | 严格 ESM/CJS 编译、基础支付与机制包全部 20 个入口通过，无需安装扩展包 |
-| `pnpm --filter @bankofai/x402-tron-extensions test:consumer` | 两个 tarball 独立安装、严格 ESM/CJS 编译、全部 25 个组合入口、真实离线 Approval 签名和代付组合通过 |
-| `git diff --check` | 通过 |
+| Command                                                                                  | Result                                                                                                                                                    |
+| ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm --filter @bankofai/x402-tron test`                                                 | 26 files, 224 tests passed                                                                                                                                |
+| `pnpm --filter @bankofai/x402-tron-extensions test`                                      | 7 files, 101 tests passed                                                                                                                                 |
+| `pnpm --filter @bankofai/x402-extensions test`                                           | 10 files, 532 tests passed, matching the pre-migration baseline                                                                                           |
+| `pnpm --filter @bankofai/x402-tron exec tsc --noEmit`                                    | Passed                                                                                                                                                    |
+| `pnpm --filter @bankofai/x402-tron-extensions exec tsc --noEmit`                         | Passed                                                                                                                                                    |
+| `pnpm --filter @bankofai/x402-tron build`                                                | ESM, CJS, and declarations passed                                                                                                                         |
+| `pnpm --filter @bankofai/x402-tron-extensions build`                                     | ESM, CJS, and declarations passed                                                                                                                         |
+| `pnpm --filter @bankofai/x402-extensions build`                                          | Transitional package build passed                                                                                                                         |
+| `pnpm --filter @bankofai/x402-tron --filter @bankofai/x402-tron-extensions lint:check`   | Passed                                                                                                                                                    |
+| `pnpm --filter @bankofai/x402-tron --filter @bankofai/x402-tron-extensions format:check` | Passed                                                                                                                                                    |
+| `pnpm --filter @bankofai/x402-tron test:consumer`                                        | Strict ESM/CJS compilation, basic payments, and all 20 mechanism entrypoints passed without installing the extension                                      |
+| `pnpm --filter @bankofai/x402-tron-extensions test:consumer`                             | Independent installation of both tarballs, strict ESM/CJS, all 25 combined entrypoints, real offline Approval signing, and sponsorship composition passed |
+| `git diff --check`                                                                       | Passed                                                                                                                                                    |
 
-独立消费项目使用 TypeScript 5.7.3、`strict: true`、`skipLibCheck: false`，检查产物依赖没有旧 Core、通用扩展包或 Agent Wallet。源码验证使用 TypeScript 5.9.2。
-执行环境为 Node.js 25.6.0，实际安装 TronWeb 6.3.0、Agent Wallet 2.4.0，官方 Core 精确版本为 2.28.0。CI 使用 Node.js 22。
+Independent consumers used TypeScript 5.7.3, `strict: true`, and `skipLibCheck: false`, verifying no legacy Core, generic extension, or Agent Wallet in artifact dependencies. Source validation used TypeScript 5.9.2. Runtime: Node.js 25.6.0, installed TronWeb 6.3.0, Agent Wallet 2.4.0, and exact official Core 2.28.0. CI uses Node.js 22.
 
-资源测试覆盖权限/预算拒绝、network/owner/token/spender 与交易绑定、重复协调、失败回收、pending 保留及 reconcile。客户端测试覆盖三种 Permit2 路径、batch 实际存款额度、声明复用与并发、缺少 RPC/签名能力、地址归一化和签名前网络校验。真实 Agent Wallet 通过隔离适配测试签名，打包消费使用离线真实 Approval 交易及签名；链状态、资源委托与结算执行由测试适配器提供。
+Resource tests cover permission/budget rejection, network/owner/token/spender transaction binding, duplicate coordination, failure reclamation, pending retention, and reconciliation. Client tests cover three Permit2 paths, actual batch deposit amounts, declaration reuse/concurrency, missing RPC/signing capabilities, address normalization, and network checks before signing. Real Agent Wallet signs through isolated adapters; packed consumers use real offline Approval transactions and signatures. Test adapters provide chain state, resource delegation, and settlement execution.
 
-针对扩展未注册、网络错误时先签名、十六进制地址不符合 schema 的失败测试，均先观察到失败，再完成实现并验证通过。Node.js 25 对现有 ESLint 配置模块格式的提示不影响检查退出状态。
+Failures were observed before implementation for unregistered extensions, signing before rejecting wrong networks, and hexadecimal addresses failing the schema; all passed after implementation. Node.js 25 warnings about existing ESLint configuration module format did not affect exit status.
 
-## 独立审查
+## Independent review
 
-独立审查范围为 `a7f4bb0a..9acbd732`，覆盖完整 M2 改动及仓库要求的签名/结算安全边界，未发现需要修复的正确性或安全问题。
+Independent review of `a7f4bb0a..9acbd732` covered all M2 changes and repository-required signature/settlement safety boundaries, finding no correctness or security issue requiring a fix.
 
-审查者机械核对了迁移文件，确认通用过渡包仅有两处相对路径变更，资源 runtime 和 Approval 验证器的迁移保持行为；核对了 Core 2.28.0 的真实 hooks 顺序、本地准备标识的传递与清理、单向依赖及 Facilitator 验证/执行分派。
+The reviewer mechanically checked moved files: only two relative paths changed in the generic transitional package, and moving the resource runtime/Approval validator preserved behavior. The review checked actual Core 2.28.0 hook order, local preparation marker propagation/cleanup, one-way dependencies, and facilitator verification/execution dispatch.
 
-审查者独立执行了 ESM/CJS 离线真实签名代付 fixture，并补测 ESM 机制与 CJS 扩展混用时 exact、upto、batch 的自费回退额度、缺少能力拒绝、已有 allowance 清理、voucher 清理、标识移除和声明不可变性，均通过。审查者没有重复运行实现阶段的完整单测和 tarball 安装检查。
+The reviewer independently ran the ESM/CJS real offline signed sponsorship fixture and additional mixed ESM mechanism/CJS extension checks for exact/upto/batch self-funded fallback amounts, missing-capability rejection, existing allowance cleanup, voucher cleanup, marker removal, and declaration immutability. All passed. The reviewer did not repeat the implementation phase's full unit suites or tarball installation checks.
 
-## 后续范围
+## Subsequent scope
 
-M3 仍需迁移外围服务至新工厂、对接真实资源提供方、执行真实测试网流程并验收生产持久化 coordinator 与跨服务恢复。M4 负责通用旧包退出及其调用方迁移。
+M3 still required migrating external services to the new factories, integrating real resource providers, running live testnet flows, and accepting production persistent coordinators and cross-service recovery. M4 covers generic legacy package retirement and caller migration.
 
-本次没有执行真实链交易、整个 monorepo 的全量测试，也没有推送、合并或发布版本。离线验证通过不代表真实链、资源供应商或生产恢复能力已经验收。
+This phase performed no live chain transaction, full-monorepo test run, push, merge, or release. Offline validation does not establish live-chain, resource-provider, or production-recovery acceptance.
