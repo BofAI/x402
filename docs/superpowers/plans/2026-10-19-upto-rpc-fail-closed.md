@@ -17,11 +17,15 @@
 ## Tasks
 - [x] Add targeted account-RPC and Core verify/settle regressions; observe RED.
 - [x] Replace optimistic catches and validate values; preserve success and insufficient-resource behavior; observe GREEN.
-- [ ] Cover real extension registration, preflight and post-delegation balance failures; run mechanism/extension suites, types/build/lint/format and packed consumers.
-- [ ] Fresh review, fix any important finding with a regression, update unreleased docs/changeset and record verified results.
+- [x] Cover real extension registration, preflight and post-delegation balance failures; run mechanism/extension suites, types/build/lint/format and packed consumers.
+- [x] Fresh review, fix any important finding with a regression, update unreleased docs/changeset and record verified results.
 
 ## Ledger
 Base: b414fc8a. Existing isolated feature worktree reused, no original checkout changes.
 
 Implementation verification: 36 new account-state cases produced29 failures/7 passes on baseline; all36 pass after fix. Upto focused46/46, fullmechanism266/266, extension103/103. Actual extension preflight/revalidation regressions failed on old built mechanism then passed after rebuilding. Both packages source types, lint and format pass; mechanism packedstrictESM/CJS consumer (including fail-closed verify/settle assertions) passes. Combined extension packed consumer running.
 Decision: no version bump or npm publish in this task; patch changeset and README explicitly distinguish unreleased source fix from published2.1.0-beta.1.
+
+Final verification: mechanism266/266 and extension103/103; both packedconsumers, type/build/lint/format pass. Independent reviewer running on immutablea39d486e.
+
+Independent review: read-only immutablea39d486e, no blocker/regression/deferred minor. Reviewer independently ranupto46/46 and actualTronWeb ABI calls with offline stub; standard uint256 reads returnbigint. Completed record:2026-10-19-upto-rpc-fail-closed-validation.md.
