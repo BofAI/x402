@@ -54,11 +54,12 @@ export async function waitAndReturnSettleResponse(
 
   try {
     await options.pending?.save(tx, options.pendingData);
-  } catch (error) {
+  } catch {
     return {
       success: false,
       errorReason: "settlement_store_unavailable",
-      errorMessage: error instanceof Error ? error.message : String(error),
+      errorMessage:
+        "Pending settlement storage is unavailable; reconcile the original transaction before retrying",
       transaction: tx,
       network,
       payer,

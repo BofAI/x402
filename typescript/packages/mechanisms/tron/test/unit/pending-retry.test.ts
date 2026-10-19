@@ -187,7 +187,9 @@ describe("pending transaction storage boundaries", () => {
     const { payment, requirements } = fixture("exact-permit2");
     const f = chain();
     const store = new InMemoryTronPendingSettlementStore();
-    vi.spyOn(store, "get").mockRejectedValue(new Error("storage offline"));
+    vi.spyOn(store, "get").mockRejectedValue(
+      new Error("redis://sdk-release:secret@private-storage:6379"),
+    );
     const result = await new ExactFacilitator(f.signer, { pendingSettlementStore: store }).settle(
       payment,
       requirements,
@@ -197,6 +199,7 @@ describe("pending transaction storage boundaries", () => {
       errorReason: "settlement_store_unavailable",
       transaction: "",
     });
+    expect(result.errorMessage).not.toContain("sdk-release:secret");
     expect(f.writeContract).not.toHaveBeenCalled();
   });
 
@@ -204,12 +207,13 @@ describe("pending transaction storage boundaries", () => {
     const { payment, requirements } = fixture("exact-permit2");
     const f = chain();
     const store = new InMemoryTronPendingSettlementStore();
-    vi.spyOn(store, "set").mockRejectedValueOnce(new Error("storage offline"));
+    vi.spyOn(store, "set").mockRejectedValueOnce(
+      new Error("redis://sdk-release:secret@private-storage:6379"),
+    );
     const scheme = new ExactFacilitator(f.signer, { pendingSettlementStore: store });
-    expect(await scheme.settle(payment, requirements)).toMatchObject({
-      errorReason: "settlement_store_unavailable",
-      transaction: TX,
-    });
+    const failed = await scheme.settle(payment, requirements);
+    expect(failed).toMatchObject({ errorReason: "settlement_store_unavailable", transaction: TX });
+    expect(failed.errorMessage).not.toContain("sdk-release:secret");
     f.waitForTransactionReceipt.mockResolvedValue({ status: "success" });
     expect(await scheme.settle(payment, requirements)).toMatchObject({
       success: true,
@@ -222,7 +226,9 @@ describe("pending transaction storage boundaries", () => {
     const { payment, requirements } = fixture("exact-permit2");
     const f = chain();
     const store = new InMemoryTronPendingSettlementStore();
-    vi.spyOn(store, "delete").mockRejectedValue(new Error("storage offline"));
+    vi.spyOn(store, "delete").mockRejectedValue(
+      new Error("redis://sdk-release:secret@private-storage:6379"),
+    );
     f.waitForTransactionReceipt.mockResolvedValue({ status: "success" });
     const scheme = new ExactFacilitator(f.signer, { pendingSettlementStore: store });
     expect(await scheme.settle(payment, requirements)).toMatchObject({

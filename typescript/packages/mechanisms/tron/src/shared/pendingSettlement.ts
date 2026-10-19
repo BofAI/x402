@@ -199,11 +199,12 @@ export class TronSettlementTracker {
         }
         return result;
       });
-    } catch (error) {
+    } catch {
       return {
         success: false,
         errorReason: "settlement_store_unavailable",
-        errorMessage: error instanceof Error ? error.message : String(error),
+        errorMessage:
+          "Pending settlement storage is unavailable; reconcile the original transaction before retrying",
         transaction: known && isValidTronTxHash(known.transaction) ? known.transaction : "",
         ...(known?.data?.gasfreeTraceId
           ? { extra: { gasfreeTraceId: known.data.gasfreeTraceId } }
