@@ -23,7 +23,7 @@ This folder contains Typescript packages to help developers implement the x402 p
 
 | Package | Description | Latest version |
 | --- | --- | --- |
-| **EVM** - [`@bankofai/x402-evm`](./packages/mechanisms/evm) | EVM implementation of x402 using the Exact payment scheme. | [![npm version](https://img.shields.io/npm/v/%40bankofai%2Fx402-evm.svg)](https://www.npmjs.com/package/@bankofai/x402-evm) |
+| **EVM** - [`@x402/evm`](https://www.npmjs.com/package/@x402/evm) | Official EVM implementation; install directly from upstream. | [![npm version](https://img.shields.io/npm/v/%40x402%2Fevm.svg)](https://www.npmjs.com/package/@x402/evm) |
 | **TRON** - [`@bankofai/x402-tron`](./packages/mechanisms/tron) | TRON implementation of x402 (exact, permit, GasFree, batch-settlement). | [![npm version](https://img.shields.io/npm/v/%40bankofai%2Fx402-tron.svg)](https://www.npmjs.com/package/@bankofai/x402-tron) |
 
 

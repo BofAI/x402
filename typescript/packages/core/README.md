@@ -15,7 +15,7 @@ pnpm install @bankofai/x402-core
 ```typescript
 import { x402Client } from '@bankofai/x402-core/client';
 import { x402HTTPClient } from '@bankofai/x402-core/http';
-import { ExactEvmScheme } from '@bankofai/x402-evm/exact/client';
+import { ExactEvmScheme } from '@x402/evm/exact/client';
 
 // Create core client and register payment schemes
 const coreClient = new x402Client()
@@ -54,7 +54,7 @@ if (response.status === 402) {
 ```typescript
 import { x402ResourceServer, HTTPFacilitatorClient } from '@bankofai/x402-core/server';
 import { x402HTTPResourceServer } from '@bankofai/x402-core/http';
-import { ExactEvmScheme } from '@bankofai/x402-evm/exact/server';
+import { ExactEvmScheme } from '@x402/evm/exact/server';
 
 // Connect to facilitator
 const facilitatorClient = new HTTPFacilitatorClient({
@@ -90,7 +90,7 @@ const httpServer = new x402HTTPResourceServer(resourceServer, routes);
 
 ```typescript
 import { x402Facilitator } from '@bankofai/x402-core/facilitator';
-import { registerExactEvmScheme } from '@bankofai/x402-evm/exact/facilitator';
+import { registerExactEvmScheme } from '@x402/evm/exact/facilitator';
 
 const facilitator = new x402Facilitator();
 
@@ -281,7 +281,7 @@ For framework-specific middleware, use:
 
 For blockchain-specific implementations:
 
-- `@bankofai/x402-evm` - Ethereum and EVM-compatible chains
+- `@x402/evm` - Ethereum and EVM-compatible chains
 - `@bankofai/x402-svm` - Solana blockchain
 - `@bankofai/x402-avm` - Algorand blockchain
 

@@ -13,7 +13,7 @@ pnpm install @bankofai/x402-fastify
 ```typescript
 import Fastify from "fastify";
 import { paymentMiddleware, x402ResourceServer } from "@bankofai/x402-fastify";
-import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
+import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
 
 const app = Fastify();
@@ -237,7 +237,7 @@ If you need to use a custom facilitator server, configure it when creating the x
 ```typescript
 import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
 import { x402ResourceServer } from "@bankofai/x402-fastify";
-import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
+import { ExactEvmScheme } from "@x402/evm/exact/server";
 
 const customFacilitator = new HTTPFacilitatorClient({
   url: "https://your-facilitator.com",

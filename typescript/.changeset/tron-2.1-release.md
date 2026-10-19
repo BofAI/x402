@@ -14,5 +14,5 @@ Reject failed upto RPC reads, enforce batch/GasFree spend caps, and recover pend
 settlements using their original transaction or relayer trace without rebroadcasting.
 Production recovery requires persistent storage with shared locking.
 
-Remove legacy packages and use official `@x402/extensions@2.28.0` directly for
-upstream extensions.
+Remove legacy and local EVM packages. Use official `@x402/evm@2.28.0` and
+`@x402/extensions@2.28.0` directly for upstream functionality.

@@ -12,13 +12,14 @@ x402 currently supports the **TRON** and **BSC** networks, with plans to expand 
 
 ## Current Release
 
-Version `2.0.0`. The SDK is a **TypeScript-only** pnpm/turbo monorepo published as granular `@bankofai/x402-*` packages (there is no umbrella package). `core` and the EVM mechanism are forks of the [`x402-foundation/x402`](https://github.com/x402-foundation/x402) upstream; the TRON mechanism is in-house. Supported schemes: `exact` (ERC-3009 / Permit2), `upto`, `batch-settlement`, `auth-capture` (EVM), and `exact_gasfree` (TRON). See [the v2.0.0 release notes](RELEASE_NOTES.md#v200--canonical-tron-networks-and-pending-settlement) for upgrade details.
+Version `2.0.0`. The SDK is a **TypeScript-only** pnpm/turbo monorepo published as granular `@bankofai/x402-*` packages (there is no umbrella package). The TRON mechanism is maintained here; current EVM integrations use the official [`@x402/evm`](https://www.npmjs.com/package/@x402/evm) package rather than a local fork. Supported schemes: `exact` (ERC-3009 / Permit2), `upto`, `batch-settlement`, `auth-capture` (EVM), and `exact_gasfree` (TRON). See [the v2.0.0 release notes](RELEASE_NOTES.md#v200--canonical-tron-networks-and-pending-settlement) for upgrade details.
 
 ## TRON 2.1 release preparation
 
 TRON 2.1 moves to official Core 2.28.0 and publishes resource sponsorship as a separate package.
 This requires source migration from 2.0. Read the [TRON 2.1 migration guide](docs/migrations/tron-2.1.md)
-before upgrading. The stable 2.1.0 publication is pending; the current stable examples below describe 2.0.
+before upgrading. Stable 2.1.0 publication is pending; the examples below use the 2.1 candidate
+and matching official packages. Historical 2.0 installation details remain in the release notes.
 
 ## Features
 
@@ -30,15 +31,19 @@ before upgrading. The stable 2.1.0 publication is pending; the current stable ex
 
 ## Installation
 
-Install only the granular packages you need:
+Install the TRON 2.1 candidate with matching official integrations:
 
 ```bash
-# client (wrapped fetch) + the chains you pay on
-npm install @bankofai/x402-fetch @bankofai/x402-evm @bankofai/x402-tron
-
-# resource server (Express shown; also fastify/hono/next/axios)
-npm install @bankofai/x402-core @bankofai/x402-express
+npm install @x402/core@2.28.0 @x402/fetch@2.28.0 @bankofai/x402-tron@2.1.0-beta.2
+# Express resource server
+npm install @x402/express@2.28.0
+# Optional TRON resource sponsorship
+npm install @bankofai/x402-tron-extensions@2.1.0-beta.2
 ```
+
+For EVM, install official `@x402/evm@2.28.0` with matching official Core and transports.
+Use the [upstream examples](https://github.com/x402-foundation/x402/tree/main/examples/typescript)
+for EVM signer configuration.
 
 The repo itself is a `pnpm` (>=11) workspace; from `typescript/` run `pnpm install && pnpm build`. The `examples/` workspace links these packages and builds from source.
 
@@ -53,7 +58,8 @@ The client wraps `fetch` so `402` challenges are paid automatically. Key custody
 **TRON (Nile) example:**
 
 ```typescript
-import { x402Client, wrapFetchWithPayment } from "@bankofai/x402-fetch";
+import { x402Client } from "@x402/core/client";
+import { wrapFetchWithPayment } from "@x402/fetch";
 import { createClientTronSigner } from "@bankofai/x402-tron";
 import { ExactTronScheme } from "@bankofai/x402-tron/exact/client";
 
@@ -75,28 +81,13 @@ const res = await fetchWithPay("http://localhost:4021/weather"); // 402 handled 
 const data = await res.json();
 ```
 
-**EVM (BSC)** is symmetric — swap the imports and register under the exact chain id:
-
-```typescript
-import { createClientEvmSigner } from "@bankofai/x402-evm/adapters/agent-wallet";
-import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
-
-const signer = await createClientEvmSigner(wallet, {
-  network: "eip155:97",
-  // Permit2 tokens (e.g. USDC) read the chain; set a reliable RPC.
-  // ERC-3009 tokens (e.g. DHLU) sign offline and need none.
-  rpcUrl: "https://bsc-testnet-rpc.publicnode.com",
-});
-client.register("eip155:97", new ExactEvmScheme(signer));
-```
-
 ### Server (Seller)
 
-Build a resource server with `createResourceServer` (from `@bankofai/x402-core`), point it at a facilitator via `HTTPFacilitatorClient` (`@bankofai/x402-core/server`), and protect routes with the framework middleware — e.g. `paymentMiddlewareFromHTTPServer` from `@bankofai/x402-express`. The server is keyless (it only holds a payout address). Facilitator requests default to a 120-second timeout; set `timeoutMs` explicitly when your chain or deployment needs a different bound. See [`examples/typescript/servers/express`](examples/typescript/servers/express) for the full wiring.
+Construct `new x402ResourceServer(facilitatorClient)` from `@x402/core/server`, connect with `HTTPFacilitatorClient`, and protect routes with official middleware such as `paymentMiddlewareFromHTTPServer` from `@x402/express`. The server is keyless (it only holds a payout address). Facilitator requests default to a 120-second timeout; set `timeoutMs` explicitly when your chain or deployment needs a different bound. See [`examples/typescript/servers/express`](examples/typescript/servers/express) for the full wiring.
 
 ### Facilitator
 
-The facilitator verifies signatures and settles on-chain. Construct `new x402Facilitator()` (from `@bankofai/x402-core/facilitator`) and `register(network, scheme)` per chain with a facilitator signer. Self-host it, or use the [officially hosted Facilitator](https://github.com/BofAI/x402-facilitator). See [`examples/typescript/facilitator/basic`](examples/typescript/facilitator/basic).
+The facilitator verifies signatures and settles on-chain. Construct `new x402Facilitator()` (from `@x402/core/facilitator`) and `register(network, scheme)` per chain with a facilitator signer. Self-host it, or use the [officially hosted Facilitator](https://github.com/BofAI/x402-facilitator). See [`examples/typescript/facilitator/basic`](examples/typescript/facilitator/basic).
 
 ## AI Agent Integration
 

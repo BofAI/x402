@@ -16,7 +16,7 @@ npm install @bankofai/x402-mcp @bankofai/x402-core @modelcontextprotocol/sdk
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createPaymentWrapper, x402ResourceServer } from "@bankofai/x402-mcp";
 import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
-import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
+import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { z } from "zod";
 
 // Create standard MCP server
@@ -65,7 +65,7 @@ await mcpServer.connect(transport);
 
 ```typescript
 import { createX402MCPClient } from "@bankofai/x402-mcp";
-import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
+import { ExactEvmScheme } from "@x402/evm/exact/client";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 
 // Create client with factory (simplest approach)
@@ -209,7 +209,7 @@ const paid = createPaymentWrapper(resourceServer, {
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { wrapMCPClientWithPayment, wrapMCPClientWithPaymentFromConfig } from "@bankofai/x402-mcp";
 import { x402Client } from "@bankofai/x402-core/client";
-import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
+import { ExactEvmScheme } from "@x402/evm/exact/client";
 
 // Option 1: Wrap existing client with existing payment client
 const mcpClient = new Client({ name: "my-agent", version: "1.0.0" });

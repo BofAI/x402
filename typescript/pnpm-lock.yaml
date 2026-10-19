@@ -500,12 +500,12 @@ importers:
         specifier: ^3.24.2
         version: 3.25.76
     devDependencies:
-      '@bankofai/x402-evm':
-        specifier: workspace:~
-        version: link:../mechanisms/evm
       '@eslint/js':
         specifier: ^9.24.0
         version: 9.34.0
+      '@types/express':
+        specifier: ^4.17.25
+        version: 4.17.25
       '@types/node':
         specifier: ^22.13.4
         version: 22.18.0
@@ -515,6 +515,9 @@ importers:
       '@typescript-eslint/parser':
         specifier: ^8.29.1
         version: 8.49.0(eslint@9.34.0)(typescript@5.9.2)
+      '@x402/evm':
+        specifier: 2.28.0
+        version: 2.28.0(typescript@5.9.2)
       eslint:
         specifier: ^9.24.0
         version: 9.34.0
@@ -545,64 +548,6 @@ importers:
       viem:
         specifier: ^2.48.11
         version: 2.48.11(typescript@5.9.2)(zod@3.25.76)
-      vite:
-        specifier: ^6.2.6
-        version: 6.3.5(@types/node@22.18.0)(tsx@4.21.0)
-      vite-tsconfig-paths:
-        specifier: ^5.1.4
-        version: 5.1.4(typescript@5.9.2)(vite@6.3.5(@types/node@22.18.0)(tsx@4.21.0))
-      vitest:
-        specifier: ^3.0.5
-        version: 3.2.4(@types/node@22.18.0)(tsx@4.21.0)
-
-  packages/mechanisms/evm:
-    dependencies:
-      '@bankofai/x402-core':
-        specifier: workspace:~
-        version: link:../../core
-      viem:
-        specifier: ^2.48.11
-        version: 2.48.11(typescript@5.9.2)(zod@3.25.76)
-      zod:
-        specifier: ^3.24.2
-        version: 3.25.76
-    devDependencies:
-      '@eslint/js':
-        specifier: ^9.24.0
-        version: 9.34.0
-      '@types/node':
-        specifier: ^22.13.4
-        version: 22.18.0
-      '@typescript-eslint/eslint-plugin':
-        specifier: ^8.29.1
-        version: 8.42.0(@typescript-eslint/parser@8.42.0(eslint@9.34.0)(typescript@5.9.2))(eslint@9.34.0)(typescript@5.9.2)
-      '@typescript-eslint/parser':
-        specifier: ^8.29.1
-        version: 8.42.0(eslint@9.34.0)(typescript@5.9.2)
-      eslint:
-        specifier: ^9.24.0
-        version: 9.34.0
-      eslint-plugin-import:
-        specifier: ^2.31.0
-        version: 2.32.0(@typescript-eslint/parser@8.42.0(eslint@9.34.0)(typescript@5.9.2))(eslint@9.34.0)
-      eslint-plugin-jsdoc:
-        specifier: ^50.6.9
-        version: 50.8.0(eslint@9.34.0)
-      eslint-plugin-prettier:
-        specifier: ^5.2.6
-        version: 5.5.4(eslint@9.34.0)(prettier@3.5.2)
-      prettier:
-        specifier: 3.5.2
-        version: 3.5.2
-      tsup:
-        specifier: ^8.4.0
-        version: 8.5.0(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.2)
-      tsx:
-        specifier: ^4.21.0
-        version: 4.21.0
-      typescript:
-        specifier: ^5.7.3
-        version: 5.9.2
       vite:
         specifier: ^6.2.6
         version: 6.3.5(@types/node@22.18.0)(tsx@4.21.0)
@@ -1891,8 +1836,14 @@ packages:
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
+  '@types/express-serve-static-core@4.19.9':
+    resolution: {integrity: sha512-QP2ESEe/ImWY0HDwNAnK9PvEffUyhLTnWkk7KXzHfyeWAnlrDe1fN77bXl6ia8KT3wPlmA7t9/VPRpnf4Ex9sg==}
+
   '@types/express-serve-static-core@5.0.7':
     resolution: {integrity: sha512-R+33OsgWw7rOhD1emjU7dzCDHucJrgJXMA5PYCzJxVil0dsyx5iBEPHqpPfiKNJQb7lZ1vxwoLR4Z87bBUpeGQ==}
+
+  '@types/express@4.17.25':
+    resolution: {integrity: sha512-dVd04UKsfpINUnK0yBoYHDF3xu7xVH4BuDotC/xGuycx4CgbP48X/KF/586bcObxT0HENHXEU8Nqtu6NR+eKhw==}
 
   '@types/express@5.0.3':
     resolution: {integrity: sha512-wGA0NX93b19/dZC1J18tKWVIYWyyF2ZjT9vin/NRu0qzzvfVzWjs04iq2rQ3H65vCTQYlRqs3YHfY7zjdV+9Kw==}
@@ -2082,6 +2033,9 @@ packages:
 
   '@x402/core@2.28.0':
     resolution: {integrity: sha512-Da/7zKxCKqpBoB4Msc9tFgkAv7tJTD8nG+DSSm+QdXAyJS4PQsmgVSKe17rDJTtlu0pwNbLcOje6MyQ6kaDkig==}
+
+  '@x402/evm@2.28.0':
+    resolution: {integrity: sha512-BZuoaCKMoPQQuMTa4oibvoyI06WdCpgrzgdicUu8d+5NBMAfWb6LAmSQf1KkeiS8C+25/+2JGB4cHSL0VLGnSA==}
 
   '@x402/extensions@2.28.0':
     resolution: {integrity: sha512-M3SVxO8DJnx7gpok/ODQp803jr21s1XrCMholNw0hSgOVvSPRksfTZ+CUNfJwteNaHmaAxGjPelXWBhTCMD9oQ==}
@@ -5427,12 +5381,26 @@ snapshots:
 
   '@types/estree@1.0.8': {}
 
+  '@types/express-serve-static-core@4.19.9':
+    dependencies:
+      '@types/node': 22.19.17
+      '@types/qs': 6.14.0
+      '@types/range-parser': 1.2.7
+      '@types/send': 0.17.5
+
   '@types/express-serve-static-core@5.0.7':
     dependencies:
       '@types/node': 22.19.17
       '@types/qs': 6.14.0
       '@types/range-parser': 1.2.7
       '@types/send': 0.17.5
+
+  '@types/express@4.17.25':
+    dependencies:
+      '@types/body-parser': 1.19.6
+      '@types/express-serve-static-core': 4.19.9
+      '@types/qs': 6.14.0
+      '@types/serve-static': 1.15.8
 
   '@types/express@5.0.3':
     dependencies:
@@ -5714,6 +5682,16 @@ snapshots:
   '@x402/core@2.28.0':
     dependencies:
       zod: 3.25.76
+
+  '@x402/evm@2.28.0(typescript@5.9.2)':
+    dependencies:
+      '@x402/core': 2.28.0
+      viem: 2.48.11(typescript@5.9.2)(zod@3.25.76)
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - bufferutil
+      - typescript
+      - utf-8-validate
 
   '@x402/extensions@2.28.0(ethers@6.13.5)(typescript@5.9.2)':
     dependencies:

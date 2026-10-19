@@ -12,7 +12,7 @@ pnpm install @bankofai/x402-fetch
 
 ```typescript
 import { wrapFetchWithPaymentFromConfig } from "@bankofai/x402-fetch";
-import { ExactEvmScheme } from "@bankofai/x402-evm";
+import { ExactEvmScheme } from "@x402/evm";
 import { privateKeyToAccount } from "viem/accounts";
 
 // Create an account
@@ -77,7 +77,7 @@ A wrapped fetch function that automatically handles 402 responses by:
 import { config } from "dotenv";
 import { wrapFetchWithPaymentFromConfig, decodePaymentResponseHeader } from "@bankofai/x402-fetch";
 import { privateKeyToAccount } from "viem/accounts";
-import { ExactEvmScheme } from "@bankofai/x402-evm";
+import { ExactEvmScheme } from "@x402/evm";
 
 config();
 
@@ -121,7 +121,7 @@ For more control, you can use the builder pattern to register multiple schemes:
 
 ```typescript
 import { wrapFetchWithPayment, x402Client } from "@bankofai/x402-fetch";
-import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
+import { ExactEvmScheme } from "@x402/evm/exact/client";
 import { ExactSvmScheme } from "@bankofai/x402-svm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 import { createKeyPairSignerFromBytes } from "@solana/kit";
@@ -144,7 +144,7 @@ const fetchWithPayment = wrapFetchWithPayment(fetch, client);
 
 ```typescript
 import { wrapFetchWithPaymentFromConfig } from "@bankofai/x402-fetch";
-import { ExactEvmScheme } from "@bankofai/x402-evm";
+import { ExactEvmScheme } from "@x402/evm";
 import { ExactSvmScheme } from "@bankofai/x402-svm";
 
 const fetchWithPayment = wrapFetchWithPaymentFromConfig(fetch, {
@@ -167,7 +167,7 @@ const fetchWithPayment = wrapFetchWithPaymentFromConfig(fetch, {
 
 ```typescript
 import { wrapFetchWithPaymentFromConfig, type SelectPaymentRequirements } from "@bankofai/x402-fetch";
-import { ExactEvmScheme } from "@bankofai/x402-evm";
+import { ExactEvmScheme } from "@x402/evm";
 
 // Custom selector that prefers the cheapest option
 const selectCheapestOption: SelectPaymentRequirements = (version, accepts) => {

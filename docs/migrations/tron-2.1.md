@@ -17,6 +17,10 @@ npm install @x402/fetch@2.28.0 @x402/express@2.28.0
 
 The extension depends on the exact same mechanism version. Upgrade both TRON packages together; avoid mixing beta and stable versions. Ordinary payments require only the mechanism and official Core, without the resource extension or an Agent Wallet runtime dependency.
 
+The local EVM mechanism package is retired. Use official `@x402/evm@2.28.0` for EVM
+and its public signer adapters; the retired `@bankofai/x402-evm/adapters/agent-wallet`
+factory path is not available from the official package. Follow the upstream EVM examples.
+
 Generic extensions such as Bazaar, Sign-in-with-x, and EVM gas sponsorship use official
 `@x402/extensions@2.28.0` directly. The repository no longer contains legacy v1 packages or
 `@bankofai/x402-extensions`. Use published upstream packages if legacy APIs are still needed.
