@@ -1,0 +1,40 @@
+{
+  "packages": [
+    {
+      "name": "@bankofai/x402-tron",
+      "version": "2.1.0-beta.2",
+      "integrity": "sha512-sBjgxz3sgdiwBMWkG63fR6OJj62iFnff9CLGz5invWtbKOK2osEXn5GI0ftqXVIBiOEmjfJ1iuQ/5+UrMmNXXQ==",
+      "distTags": {
+        "latest": "2.0.0",
+        "beta": "2.1.0-beta.2"
+      }
+    },
+    {
+      "name": "@bankofai/x402-tron-extensions",
+      "version": "2.1.0-beta.2",
+      "integrity": "sha512-0VUgSCsAvdZ77MEyvnH5RGTuCb32IiuX7Sjol7TVXQaFSU8VET2OT1mfIe4E22zfBwjOScE4KYh9wXhzlwG4Rw==",
+      "distTags": {
+        "latest": "3.0.0-beta.1",
+        "beta": "2.1.0-beta.2"
+      }
+    }
+  ],
+  "consumer": "strict ESM/CJS, all exports, real offline Approval signatures, facilitator runtime and upto RPC rejection with zero broadcasts",
+  "sourceCommit": "8426530dc9efa0023a1f7eacdd3badc12425910c",
+  "validation": {
+    "mechanism": 266,
+    "extensions": 103,
+    "facilitator_postgres": 504,
+    "facilitator_new_upto_http_cases": 4,
+    "gateway": 77,
+    "catalog_node": 9,
+    "catalog_python": 20,
+    "joint_http": 5,
+    "live_chain_rerun": false
+  },
+  "serviceCommits": {
+    "facilitator": "176552e2ef207d0826c67c04d209d93740271ee5",
+    "gateway": "0d61572e5f11cad0d00844d057b6f406d48dab74",
+    "catalog": "ef213e75f44035ffb50cca199ec2c1ccd5d607a6"
+  }
+}
