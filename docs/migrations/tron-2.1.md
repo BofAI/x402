@@ -89,4 +89,4 @@ Inject the implementation through the constructor's `pendingSettlementStore` opt
 
 ## Upgrade validation
 
-First validate strict TypeScript compilation, ESM/CJS loading, and registration of all three roles in an isolated environment, then exercise the required payment paths. Repository CI includes independent consumption tests using both real tarballs. Mechanism and extension versions must match, and packed extension dependencies must not retain `workspace:` references. Historical Nile acceptance is recorded in `docs/releases/2.1.0-beta.2-nile.md`; it does not assert that the stable version has been published or that production persistent recovery has been accepted.
+First validate strict TypeScript compilation, ESM/CJS loading, and registration of all three roles in an isolated environment, then exercise the required payment paths. Repository CI includes independent consumption tests using both real tarballs. Mechanism and extension versions must match, and packed extension dependencies must not retain `workspace:` references. Validate application timeouts, live-chain flows, and persistent recovery separately before production deployment.
