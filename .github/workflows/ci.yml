@@ -33,7 +33,9 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: typescript/pnpm-lock.yaml
+          cache-dependency-path: |
+            typescript/pnpm-lock.yaml
+            examples/typescript/pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -55,3 +57,15 @@ jobs:
 
       - name: Verify independent TRON resource extension consumers
         run: pnpm --filter @bankofai/x402-tron-extensions test:consumer
+
+      - name: Install example dependencies
+        working-directory: examples/typescript
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck examples
+        working-directory: examples/typescript
+        run: pnpm -r typecheck
+
+      - name: Test example configuration
+        working-directory: examples/typescript
+        run: pnpm test

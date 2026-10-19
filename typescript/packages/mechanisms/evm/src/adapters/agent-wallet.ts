@@ -46,6 +46,25 @@ export interface CreateClientEvmSignerOptions {
 }
 
 /**
+ * Extracts an EVM raw transaction from legacy and agent-wallet 3.x results.
+ *
+ * @param result - Wallet transaction signing result.
+ * @returns A normalized 0x-prefixed serialized transaction.
+ */
+function normalizeSignedEvmTransaction(result: string | Record<string, unknown>): `0x${string}` {
+  const raw =
+    typeof result === "string"
+      ? result
+      : result.family === "evm" && typeof result.rawTransaction === "string"
+        ? result.rawTransaction
+        : undefined;
+  if (raw == null) {
+    throw new Error("EVM signTransaction must return an EVM signed transaction artifact");
+  }
+  return `0x${raw.replace(/^0x/, "")}` as `0x${string}`;
+}
+
+/**
  * Creates a {@link ClientEvmSigner} from a wallet — the EVM counterpart of
  * `createClientTronSigner`. The key never enters the SDK; the wallet signs. The
  * viem public client (for EIP-2612 / permit2 enrichment + the gas-sponsored
@@ -88,10 +107,7 @@ export async function createClientEvmSigner(
         ? {
             signTransaction: async (args: Record<string, unknown>) => {
               const signed = await signTransaction(args);
-              if (typeof signed !== "string") {
-                throw new Error("EVM signTransaction must return a serialized hex string");
-              }
-              return `0x${signed.replace(/^0x/, "")}` as `0x${string}`;
+              return normalizeSignedEvmTransaction(signed);
             },
           }
         : {}),
@@ -299,11 +315,7 @@ export async function createFacilitatorEvmSigner(
       maxPriorityFeePerGas: fees.maxPriorityFeePerGas,
       chainId,
     });
-    if (typeof signed !== "string") {
-      throw new Error("EVM facilitator signTransaction must return a serialized hex string");
-    }
-    // agent-wallet strips the `0x` prefix; strip-then-prefix is robust either way.
-    const serializedTransaction = `0x${signed.replace(/^0x/, "")}` as `0x${string}`;
+    const serializedTransaction = normalizeSignedEvmTransaction(signed);
     log.debug("x402 evm: broadcast start", { to, chainId, nonce });
     try {
       const hash = await client.sendRawTransaction({ serializedTransaction });

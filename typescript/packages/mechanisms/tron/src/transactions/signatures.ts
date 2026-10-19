@@ -3,7 +3,7 @@ import { utils as tronUtils } from "tronweb";
 /**
  * Normalize a wallet's signTransaction result into a broadcastable signed tx.
  *
- * Accepts a signed-tx object, a JSON string of one, or a raw signature hex
+ * Accepts an Agent Wallet 3 TRON artifact, a signed-tx object, a JSON string of one, or a raw signature hex
  * (mirrors agent-wallet's TronWallet, which returns a JSON-encoded signed tx).
  *
  * @param result - The wallet's signTransaction return value.
@@ -32,6 +32,16 @@ export function normalizeSignedTronTransaction(
   };
 
   if (typeof result !== "string") {
+    if (result.family === "evm") {
+      throw new Error("TRON signTransaction returned an EVM signed transaction artifact");
+    }
+    if (result.family === "tron") {
+      const transaction = result.transaction;
+      if (!transaction || typeof transaction !== "object" || Array.isArray(transaction)) {
+        throw new Error("TRON signTransaction returned a malformed transaction artifact");
+      }
+      return normalizeSignatures(transaction as Record<string, unknown>);
+    }
     return normalizeSignatures(result);
   }
   const trimmed = result.trim();

@@ -180,6 +180,37 @@ const resourceOwnerSigner: TronResourceOwnerSigner = {
 };
 
 describe("TronWeb resource-sponsoring chain", () => {
+  it("unwraps an agent-wallet 3.x artifact for Resource Owner transactions", async () => {
+    const mock = createTronWebMock();
+    const unsigned = systemTransaction("DelegateResourceContract");
+    vi.mocked(mock.tronWeb.transactionBuilder.delegateResource).mockResolvedValue(
+      unsigned as never,
+    );
+    const chain = await createTronWebResourceSponsoringChain({
+      tronWeb: mock.tronWeb,
+      network: "tron:3448148188",
+      resourceOwnerSigner: {
+        getAddress: async () => OWNER,
+        signResourceTransaction: async ({ transaction }) => ({
+          family: "tron",
+          transaction: { ...transaction, signature: ["11".repeat(65)] },
+        }),
+      },
+      readContract: vi.fn(),
+      allowedAssets: [TOKEN],
+      permissionId: 2,
+    });
+
+    await expect(
+      chain.prepareDelegate(runtimeRequest(), {
+        resource: "ENERGY",
+        requiredUnits: 100n,
+        delegatedUnits: 100n,
+        stakeSun: 100_000n,
+      }),
+    ).resolves.toMatchObject({ txID: expect.any(String) });
+  });
+
   it("performs exact chain preflight and broadcasts the unchanged Approval bytes", async () => {
     const mock = createTronWebMock();
     const readContract = vi.fn().mockResolvedValueOnce(0n).mockResolvedValueOnce(2_000_000n);

@@ -12,7 +12,7 @@ x402 currently supports the **TRON** and **BSC** networks, with plans to expand 
 
 ## Current Release
 
-Version `1.2.0`. The SDK is a **TypeScript-only** pnpm/turbo monorepo published as granular `@bankofai/x402-*` packages (there is no umbrella package). `core` and the EVM mechanism are forks of the [`x402-foundation/x402`](https://github.com/x402-foundation/x402) upstream; the TRON mechanism is in-house. Supported schemes: `exact` (ERC-3009 / Permit2), `upto`, `batch-settlement`, `auth-capture` (EVM), and `exact_gasfree` (TRON). See [the v1.2.0 release notes](RELEASE_NOTES.md#v120--tron-approval-resource-sponsoring) for upgrade details.
+Version `2.0.0`. The SDK is a **TypeScript-only** pnpm/turbo monorepo published as granular `@bankofai/x402-*` packages (there is no umbrella package). `core` and the EVM mechanism are forks of the [`x402-foundation/x402`](https://github.com/x402-foundation/x402) upstream; the TRON mechanism is in-house. Supported schemes: `exact` (ERC-3009 / Permit2), `upto`, `batch-settlement`, `auth-capture` (EVM), and `exact_gasfree` (TRON). See [the v2.0.0 release notes](RELEASE_NOTES.md#v200--canonical-tron-networks-and-pending-settlement) for upgrade details.
 
 ## Features
 
@@ -96,7 +96,7 @@ The facilitator verifies signatures and settles on-chain. Construct `new x402Fac
 
 x402 is designed for the Agentic Web. AI agents can autonomously negotiate and pay for resources using the [**x402-payment**](https://github.com/BofAI/skills/tree/main/x402-payment) skill, which lets agents detect `402` responses, sign TIP-712/EIP-712 authorizations, and manage the challenge-response loop.
 
-**Configuration:** set up [`agent-wallet`](https://github.com/BofAI/agent-wallet) and let the signer factories resolve the active wallet. When `TRON_GRID_API_KEY` is unset, mainnet TRON RPC routes to a BankofAI-operated fallback (`https://hptg.bankofai.io`); set it for production.
+**Configuration:** set up [`agent-wallet`](https://github.com/BofAI/agent-wallet) 3.0 or newer and let the signer factories resolve the active wallet. Use a `raw_secret`, `wallet_cli`, or `privy` wallet; agent-wallet 3.0 removed the former `local_secure` password flow. When `TRON_GRID_API_KEY` is unset, mainnet TRON RPC routes to a BankofAI-operated fallback (`https://hptg.bankofai.io`); set it for production.
 
 ```bash
 export AGENT_WALLET_PRIVATE_KEY="your_private_key_here"

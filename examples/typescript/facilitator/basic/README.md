@@ -12,7 +12,7 @@ The signer factories are **wallet-only**:
 - TRON: `createFacilitatorTronSigner(wallet, { network, apiKey })`
 
 The `wallet` comes from `resolveWallet({ network })` in `@bankofai/agent-wallet`,
-which loads the secret out-of-band (env / keystore / Privy). **This example never
+which signs through a configured `raw_secret`, `wallet_cli`, or Privy backend. **This example never
 reads a private key.** The factories build the viem `publicClient` / `TronWeb`
 internally and they carry no account — they only do chain reads and broadcast.
 
@@ -28,7 +28,7 @@ pnpm dev   # or: pnpm --filter @bankofai/x402-example-facilitator-basic dev
 ```
 
 Configure the wallet via agent-wallet — a single `AGENT_WALLET_PRIVATE_KEY`
-serves both chains (or a keystore dir). See agent-wallet's docs for the full
+serves both chains in `raw_secret` mode. See agent-wallet's docs for the full
 provider matrix.
 
 ## Networks

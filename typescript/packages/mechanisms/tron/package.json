@@ -38,7 +38,7 @@
   },
   "description": "x402 payment mechanism for TRON (TRC-20 via TIP-712 TransferWithAuthorization and Permit2)",
   "devDependencies": {
-    "@bankofai/agent-wallet": "^2.3.0",
+    "@bankofai/agent-wallet": "^3.0.0",
     "@eslint/js": "^9.24.0",
     "@types/node": "^22.13.4",
     "@typescript-eslint/eslint-plugin": "^8.29.1",

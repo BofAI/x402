@@ -3,8 +3,8 @@
   "private": true,
   "version": "1.2.0",
   "main": "./dist/cjs/index.js",
-  "module": "./dist/esm/index.js",
-  "types": "./dist/index.d.ts",
+  "module": "./dist/esm/index.mjs",
+  "types": "./dist/cjs/index.d.ts",
   "scripts": {
     "start": "tsx --env-file=.env index.ts",
     "test": "vitest run",

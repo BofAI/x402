@@ -41,26 +41,28 @@ const EVM_RPC_NETWORK =
  * @param facilitator - The facilitator to register the scheme on.
  * @returns `true` if at least one network registered, `false` if no EVM wallet.
  */
-export async function registerEvm(facilitator: x402Facilitator): Promise<boolean> {
-  const wallet = await tryResolveWallet("evm");
-  if (!wallet) {
-    return false;
-  }
-
-  // One agent-wallet plays both facilitator roles: submitter (broadcasts the
-  // on-chain txs, built per-network below) and receiver-authorizer (signs the
-  // ClaimBatch/Refund digests). In production these may be separate keys.
-  const authorizerSigner = await createAuthorizerEvmSigner(wallet);
-
+export async function registerEvm(
+  facilitator: x402Facilitator,
+): Promise<boolean> {
+  let registered = false;
   for (const network of EVM_NETWORKS) {
+    const wallet = await tryResolveWallet(network);
+    if (!wallet) continue;
+    // One agent-wallet plays both facilitator roles: submitter and
+    // receiver-authorizer. In production these may be separate keys.
+    const authorizerSigner = await createAuthorizerEvmSigner(wallet);
     const signer = await createFacilitatorEvmSigner(wallet, {
       network,
       rpcUrl: network === EVM_RPC_NETWORK ? EVM_RPC_URL : undefined,
     });
-    facilitator.register(network, new BatchSettlementEvmScheme(signer, authorizerSigner));
+    facilitator.register(
+      network,
+      new BatchSettlementEvmScheme(signer, authorizerSigner),
+    );
     console.info(
       `[evm] facilitator registered ${network} batch-settlement (${authorizerSigner.address})`,
     );
+    registered = true;
   }
-  return true;
+  return registered;
 }

@@ -11,7 +11,12 @@
  * Permit2 token (no ERC-3009), so the client deposits via Permit2 — the payer
  * needs a one-time `approve(Permit2)` (the shipped client auto-broadcasts it).
  */
-import { TRON_NILE, TRON_MAINNET, TRON_SHASTA } from "@bankofai/x402-tron";
+import {
+  TRON_NILE,
+  TRON_MAINNET,
+  TRON_SHASTA,
+  normalizeTronNetwork,
+} from "@bankofai/x402-tron";
 import { BatchSettlementTronScheme } from "@bankofai/x402-tron/batch-settlement/server";
 import type { FacilitatorClient } from "@bankofai/x402-core/server";
 import type { x402ResourceServer } from "@bankofai/x402-express";
@@ -20,8 +25,9 @@ import type { StoppableManager } from "./evm.js";
 
 // Switch to TRON_MAINNET for production (REAL FUNDS): USDT is registered there
 // too — only the facilitator/client TronWeb `fullHost` must point at mainnet.
-export const TRON_NETWORK: `${string}:${string}` = (process.env.TRON_NETWORK ??
-  TRON_NILE) as `${string}:${string}`;
+export const TRON_NETWORK = normalizeTronNetwork(
+  process.env.TRON_NETWORK ?? TRON_NILE,
+) as `${string}:${string}`;
 
 /** TRON is enabled when a payout address is configured. */
 export function hasTron(): boolean {
