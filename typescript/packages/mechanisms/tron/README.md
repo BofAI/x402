@@ -1,46 +1,16 @@
 # `@bankofai/x402-tron`
 
-For 2.1 stable release preparation, see the [migration guide](../../../../docs/migrations/tron-2.1.md).
-
-## Beta 2.1.0-beta.3
-
-The mechanism and optional resource extension share the same beta version. Install the exact
-versions for integration testing:
-
-```sh
-npm install @x402/core@2.28.0 @bankofai/x402-tron@2.1.0-beta.3
-# Optional resource sponsorship
-npm install @bankofai/x402-tron-extensions@2.1.0-beta.3
-```
-
-Use official HTTP/MCP integration packages with this Core version. Resource sponsorship requires
-explicit client and facilitator extension registration. Live-chain service integration and durable
-production recovery are not yet accepted. Starting with `2.1.0-beta.2`, failed or malformed required
-upto allowance/balance reads return `chain_read_failed`, and settlement stops before broadcasting.
-Published `2.1.0-beta.1` does not include this fix.
-
-Beta.3 adds settlement recovery against the original transaction or GasFree relayer trace,
-including serializable batch snapshots. Production recovery requires an injected durable
-pending store with shared locking; HTTP delivery and live-chain integration need application validation.
-
-This release follows the requested 2.1 beta line; `3.0.0-beta.1` remains a historical experimental
-release. It is a migration beta, not a drop-in source upgrade from 2.0.0: replace the legacy Core
-and HTTP/MCP imports with official packages, and import resource runtime factories, policies,
-coordinators and chain adapters from `@bankofai/x402-tron-extensions`. Wallet factories and
-payment messages remain available. Stable source compatibility has not been declared.
-
-Official Core's resolved `maxAmountPerPayment` now applies to actual batch deposit amounts and
-GasFree `value + maxFee` before signing. A default batch deposit above the cap is rejected;
-choose a smaller `depositStrategy` (at least the required top-up), explicitly raise the cap, or
-disable spend controls deliberately. Voucher cumulative totals are not new deposit amounts.
-
-TRON (TVM) implementation of the x402 payment protocol — pay with TRC-20 tokens using the **Exact** scheme over TIP-712 signed authorizations.
+TRON payment schemes for official `@x402/core`: `exact`, `upto`, `batch-settlement`, and `exact_gasfree`. For upgrading from 2.0, see the [migration guide](../../../../docs/migrations/tron-2.1.md).
 
 ## Installation
 
-```bash
-npm install @bankofai/x402-tron @x402/core@2.28.0
+```sh
+npm install @x402/core@2.28.0 @bankofai/x402-tron@2.1.0-beta.3
+# Optional resource sponsorship; use the matching mechanism version
+npm install @bankofai/x402-tron-extensions@2.1.0-beta.3
 ```
+
+Use official HTTP/MCP integration packages with the same Core version.
 
 ## Overview
 
@@ -52,26 +22,20 @@ This package provides the three x402 mechanism roles for TRON, using official Co
 
 It plugs into `@x402/core` via the `tron:*` CAIP family.
 
-TRON network identifiers use decimal CAIP-2 references (`tron:728126428`, `tron:3448148188`, and
-`tron:2494104990`). The SDK accepts the older hexadecimal forms as input aliases, while newly
-created configuration and protocol output use the decimal identifiers.
+TRON network identifiers use decimal CAIP-2 references (`tron:728126428`, `tron:3448148188`, and `tron:2494104990`). The SDK accepts the older hexadecimal forms as input aliases, while newly created configuration and protocol output use the decimal identifiers.
 
 ### Fee behavior
 
-None of the TRON schemes (`exact`, `upto`, `exact_gasfree`) advertise or collect
-a facilitator service fee via the SDK public API. The deployed proxies transfer
-exactly the payment amount. GasFree provider-driven fees (`transferFee`,
-`activateFee`) are inherent to the relayer protocol and remain unchanged — they
-are read from the relayer API, not configured via the SDK.
+None of the TRON schemes (`exact`, `upto`, `exact_gasfree`) advertise or collect a facilitator service fee via the SDK public API. The deployed proxies transfer exactly the payment amount. GasFree provider-driven fees (`transferFee`, `activateFee`) are inherent to the relayer protocol and remain unchanged — they are read from the relayer API, not configured via the SDK.
 
 ## Two transfer paths (and why TRON is effectively Permit2)
 
 The exact scheme supports two `assetTransferMethod`s, selected via `extra.assetTransferMethod`:
 
-| method    | how                                                               | when                                                   |
-| --------- | ----------------------------------------------------------------- | ------------------------------------------------------ |
+| method | how | when |
+| --- | --- | --- |
 | `eip3009` | TIP-712 `TransferWithAuthorization` (TRON equivalent of EIP-3009) | only tokens that implement `transferWithAuthorization` |
-| `permit2` | Permit2 `PermitWitnessTransferFrom` + `x402ExactPermit2Proxy`     | **any TRC-20** — the universal path                    |
+| `permit2` | Permit2 `PermitWitnessTransferFrom` + `x402ExactPermit2Proxy` | **any TRC-20** — the universal path |
 
 > ⚠️ Mainstream TRON stablecoins (**USDT, USDD**) do **not** implement `transferWithAuthorization`, so real payments use **`permit2`**. The code falls back to `eip3009` only when no method is specified; `shared/defaultAssets.ts` therefore marks the TRON stablecoins as `permit2`. See the [migration guide](../../../../docs/migrations/tron-2.1.md) for integration requirements.
 
@@ -87,19 +51,19 @@ The client TIP-712 type, the proxy `settle` ABI, and the on-chain `WITNESS_TYPEH
 
 ## Package exports
 
-| Subpath                                   | Contents                                                                              |
-| ----------------------------------------- | ------------------------------------------------------------------------------------- |
-| `@bankofai/x402-tron`                     | client `ExactTronScheme`, `registerExactTronScheme`, signers, types, constants, utils |
-| `@bankofai/x402-tron/exact/client`        | client scheme + register + Permit2 helpers                                            |
-| `@bankofai/x402-tron/exact/server`        | server scheme + register                                                              |
-| `@bankofai/x402-tron/exact/facilitator`   | facilitator scheme + register                                                         |
-| `@bankofai/x402-tron/upto/client`         | upto client scheme + register + Permit2 helpers                                       |
-| `@bankofai/x402-tron/upto/server`         | upto server scheme + register                                                         |
-| `@bankofai/x402-tron/upto/facilitator`    | upto facilitator scheme + register                                                    |
-| `@bankofai/x402-tron/gasfree/client`      | exact_gasfree client scheme + register                                                |
-| `@bankofai/x402-tron/gasfree/server`      | exact_gasfree server scheme + register                                                |
-| `@bankofai/x402-tron/gasfree/facilitator` | exact_gasfree facilitator scheme + register                                           |
-| `@bankofai/x402-tron/batch-settlement/*`  | batch-settlement client/server/facilitator                                            |
+| Subpath | Contents |
+| --- | --- |
+| `@bankofai/x402-tron` | client `ExactTronScheme`, `registerExactTronScheme`, signers, types, constants, utils |
+| `@bankofai/x402-tron/exact/client` | client scheme + register + Permit2 helpers |
+| `@bankofai/x402-tron/exact/server` | server scheme + register |
+| `@bankofai/x402-tron/exact/facilitator` | facilitator scheme + register |
+| `@bankofai/x402-tron/upto/client` | upto client scheme + register + Permit2 helpers |
+| `@bankofai/x402-tron/upto/server` | upto server scheme + register |
+| `@bankofai/x402-tron/upto/facilitator` | upto facilitator scheme + register |
+| `@bankofai/x402-tron/gasfree/client` | exact_gasfree client scheme + register |
+| `@bankofai/x402-tron/gasfree/server` | exact_gasfree server scheme + register |
+| `@bankofai/x402-tron/gasfree/facilitator` | exact_gasfree facilitator scheme + register |
+| `@bankofai/x402-tron/batch-settlement/*` | batch-settlement client/server/facilitator |
 
 ## Usage
 
@@ -123,12 +87,7 @@ const address = TronWeb.address.fromPrivateKey(privateKey) as string;
 const clientWallet: ClientTronWallet = {
   getAddress: () => address,
   async signTypedData(args) {
-    const sig = await tronWeb.trx._signTypedData(
-      args.domain,
-      args.types,
-      args.message,
-      privateKey,
-    );
+    const sig = await tronWeb.trx._signTypedData(args.domain, args.types, args.message, privateKey);
     return (sig.startsWith("0x") ? sig : `0x${sig}`) as `0x${string}`;
   },
 };
@@ -148,10 +107,7 @@ const facilitatorSigner = await createFacilitatorTronSigner(facilitatorWallet, {
 });
 ```
 
-Both `createClientTronSigner` and `createFacilitatorTronSigner` are `async`
-(they resolve the wallet address and build the TronWeb client from `network`).
-Pass the wallet as the first argument and `{ network, rpcUrl?, apiKey? }` as
-options — the factories build the TronWeb instance internally.
+Both `createClientTronSigner` and `createFacilitatorTronSigner` are `async` (they resolve the wallet address and build the TronWeb client from `network`). Pass the wallet as the first argument and `{ network, rpcUrl?, apiKey? }` as options — the factories build the TronWeb instance internally.
 
 ### Client
 
@@ -185,17 +141,13 @@ registerExactTronScheme(facilitator, { signer: facilitatorSigner, networks: "tro
 
 The `permit2` path depends on three on-chain contracts. Addresses live in `src/constants.ts`:
 
-| Network           | chainId (TIP-712) | Permit2                              | x402ExactPermit2Proxy                |
-| ----------------- | ----------------- | ------------------------------------ | ------------------------------------ |
-| `tron:3448148188` | 3448148188        | `TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h` | `TFGoaq2KjizijgjtkVxT7yjffW1A5T1j6F` |
-| `tron:728126428`  | 728126428         | `TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9` | `TN49yaJmZMZoEdDCqjB4uPzQLHvYkGw95m` |
-| `tron:2494104990` | 2494104990        | `TJMkP7a3ucTMkvi17p7ChhTCw6zriFX3tg` | `TGZkC38n14f2GpBWPMQLF2BpmcpWW3QNhg` |
+| Network | chainId (TIP-712) | Permit2 | x402ExactPermit2Proxy |
+| --- | --- | --- | --- |
+| `tron:3448148188` | 3448148188 | `TYQuuhGbEMxF7nZxUHV3uHJxAVVAegNU9h` | `TFGoaq2KjizijgjtkVxT7yjffW1A5T1j6F` |
+| `tron:728126428` | 728126428 | `TTJxU3P8rHycAyFY4kVtGNfmnMH4ezcuM9` | `TN49yaJmZMZoEdDCqjB4uPzQLHvYkGw95m` |
+| `tron:2494104990` | 2494104990 | `TJMkP7a3ucTMkvi17p7ChhTCw6zriFX3tg` | `TGZkC38n14f2GpBWPMQLF2BpmcpWW3QNhg` |
 
-> ⚠️ Mainnet uses real funds. The configured Permit2 and
-> `x402ExactPermit2Proxy` addresses are the deployed mainnet contracts; verify
-> them against the current release configuration before production use. The
-> proxy `PERMIT2()` immutable must equal the configured Permit2 address, and its
-> `WITNESS_TYPEHASH` must match the 2-field witness.
+> ⚠️ Mainnet uses real funds. The configured Permit2 and `x402ExactPermit2Proxy` addresses are the deployed mainnet contracts; verify them against the current release configuration before production use. The proxy `PERMIT2()` immutable must equal the configured Permit2 address, and its `WITNESS_TYPEHASH` must match the 2-field witness.
 
 ## Testing
 
@@ -211,19 +163,26 @@ The suite is fully offline (no network, no keys):
 - `gasfree-digest.test.ts` / `gasfree-flow.test.ts` — GasFree TIP-712 sign↔verify round-trip plus client/facilitator term-validation and settle flow against a mocked relayer.
 - `tokens.test.ts`, `selection.test.ts`, `signer-wallet.test.ts` — token registry, token selection / balance filtering, and the ClientTronWallet abstraction.
 
+### Package consumers
+
+Verify independent package consumption after building:
+
+```bash
+pnpm --filter @bankofai/x402-tron build
+pnpm --filter @bankofai/x402-tron test:consumer
+```
+
+The consumer check installs the packed artifact in a temporary project, compiles strict NodeNext ESM and CommonJS fixtures with `skipLibCheck: false`, runs a payment through official Core in both formats and loads every public entrypoint. It rejects runtime dependency trees containing old Core or Agent Wallet.
+
 ## Notes & caveats
 
 - **Addresses** are normalized to `0x` hex for TIP-712 signing and converted as needed; TRON Base58 (`T…`) and hex (`41…`) inputs are both accepted (`src/utils.ts`).
 - **Receipts**: TRON has no instant receipt — the facilitator signer polls `getTransactionInfo` (gated on `blockNumber`, 120s deadline) and tolerates transient/rate-limit errors. A TronGrid API key speeds this up.
 - **EIP-1153**: the deployed proxies use a transient-storage reentrancy guard; deploy only on TVM chains that support it (verified working on Nile).
 - **Gas**: settlement consumes energy/TRX from the facilitator account; the payer needs a one-time Permit2 approval per token.
+- **Upto preflight**: failed or malformed required allowance/balance reads return `chain_read_failed` before settlement broadcast.
 
-## Official Core migration (M1)
-
-This candidate pins the peer dependency `@x402/core` to `2.28.0`. Use official
-`@x402/fetch`, `@x402/axios`, `@x402/express`, or other official integration packages
-with a compatible Core version. Existing payment message formats and the four
-TRON schemes are retained.
+## Signer capabilities
 
 A client may supply only the signing capabilities its payment path needs:
 
@@ -238,13 +197,9 @@ const signer = toClientTronSigner({
 const client = new x402Client().register("tron:3448148188", new ExactTronScheme(signer));
 ```
 
-This signature-only example supports authorization creation. Balance checks,
-channel recovery and sponsored Approval preparation need `readContract`.
-Permit2 allowance must already be sufficient or the application must provide an
-`ensureAllowance` implementation. Automatic approve additionally needs transaction
-signing. No allowance capability means the application manages approval itself.
+This signature-only example supports authorization creation. Balance checks, channel recovery and sponsored Approval preparation need `readContract`. Permit2 allowance must already be sufficient or the application must provide an `ensureAllowance` implementation. Automatic approve additionally needs transaction signing. No allowance capability means the application manages approval itself.
 
-Agent Wallet users can retain their wallet object and factory calls:
+Agent Wallet instances can be passed directly to the wallet factories:
 
 ```ts
 import { createClientTronSigner, createFacilitatorTronSigner } from "@bankofai/x402-tron";
@@ -260,53 +215,29 @@ const settlement = await createFacilitatorTronSigner(settlementWallet, {
 });
 ```
 
-The package does not install Agent Wallet at runtime. Offline interoperability tests
-exercise Agent Wallet 2.4.0 with a local RPC fixture, including genuine signatures,
-first approve, settlement permissions and pre-signed Approval validation.
+The package has no Agent Wallet runtime dependency.
 
-Logging now belongs to the TRON package:
+## Logging
+
+Configure logging through the TRON package:
 
 ```ts
 import { setLogger, noopLogger } from "@bankofai/x402-tron";
 setLogger(noopLogger);
 ```
 
-Wallet structural types are exported from the package root. Extension authors can
-import the key, structural contracts and context helpers from
-`@bankofai/x402-tron/exact/extensions`. Resource runtime is published separately as `@bankofai/x402-tron-extensions`;
-service migration and testnet execution remain M3. Offline tests do not constitute
-real-chain or durable-recovery acceptance.
+Wallet structural types are exported from the package root. Public contracts and context helpers for extension authors are available from `@bankofai/x402-tron/exact/extensions`.
 
-Verify independent package consumption after building:
+## Resource sponsorship
 
-```bash
-pnpm --filter @bankofai/x402-tron build
-pnpm --filter @bankofai/x402-tron test:consumer
-```
+Install the matching `@bankofai/x402-tron-extensions` version and register its client and facilitator extensions. See the [resource extension guide](../../extensions/README.md) for registration and runtime configuration.
 
-The consumer check installs the packed artifact in a temporary project, compiles
-strict NodeNext ESM and CommonJS fixtures with `skipLibCheck: false`, runs a payment
-through official Core in both formats and loads every public entrypoint. It rejects
-runtime dependency trees containing old Core or Agent Wallet.
+## Spend controls
 
-## Resource extension migration (M2)
-
-Install the matching `@bankofai/x402-tron-extensions` candidate and explicitly register
-its client and facilitator factories. Resource runtimes, coordinators, policy/chain
-adapters and their types have moved out of this package's root exports. Use the
-extension root instead. Ordinary payments require only this package and official Core.
-The mechanism retains `/exact/extensions` contracts and `/rpc`, `/transactions` tools;
-it does not depend on the resource extension.
+Official Core's resolved `maxAmountPerPayment` applies to actual batch deposit amounts and GasFree `value + maxFee` before signing. A default batch deposit above the cap is rejected; choose a smaller `depositStrategy` (at least the required top-up) or configure an appropriate cap. Voucher cumulative totals are not new deposit amounts.
 
 ## Pending settlement recovery
 
-The official Core retries a pending settlement once when a transaction ID is known.
-Facilitator schemes retain and reconcile the original transaction before verification or
-broadcasting again. Batch snapshots and GasFree relayer traces survive these retries.
+The official Core retries a pending settlement once when a transaction ID is known. Facilitator schemes retain and reconcile the original transaction before verification or broadcasting again. Batch snapshots and GasFree relayer traces survive these retries.
 
-The default pending store covers a single process and never expires uncertain transactions.
-Production restarts or multiple facilitator replicas require a durable shared
-`TronPendingSettlementStore`, exported from each facilitator role entrypoint. Inject it via
-`pendingSettlementStore` in the scheme options. Its `withLock` must exclude all replicas for
-the full callback, including receipt waiting. See the migration guide for constructor positions,
-store-failure handling and the separate resource coordinator requirement.
+The default pending store covers a single process and never expires uncertain transactions. Production restarts or multiple facilitator replicas require a durable shared `TronPendingSettlementStore`, exported from each facilitator role entrypoint. Inject it via `pendingSettlementStore` in the scheme options. Its `withLock` must exclude all replicas for the full callback, including receipt waiting. See the migration guide for constructor positions, store-failure handling and the separate resource coordinator requirement.

@@ -1,10 +1,4 @@
-# v2.1.0 — TRON official Core and independent resource extension (planned)
-
-Release preparation; stable publication has not occurred. `@bankofai/x402-tron` and
-`@bankofai/x402-tron-extensions` target `2.1.0`, with an exact matching dependency.
-The Express, Fastify, Hono, and Next.js adapters target patch release `1.1.2` to replace
-the retired generic extension dependency with official `@x402/extensions@2.28.0`.
-Other workspace packages retain their existing versions.
+# Unreleased — TRON official Core and independent resource extension
 
 - Migrate the payment call chain to official `@x402/core@2.28.0` and matching HTTP/MCP integrations.
 - Install resource sponsorship separately and explicitly register both client and facilitator extensions.
@@ -14,15 +8,7 @@ Other workspace packages retain their existing versions.
 - Apply resolved spend caps to actual batch deposits and GasFree value plus maximum provider fee.
 - Reconcile pending payments against the original transaction or GasFree trace, preserving batch snapshots and preventing duplicate broadcasts. Production recovery uses an injected durable pending store with shared locking.
 
-This is a source migration from 2.0. See the [migration guide](docs/migrations/tron-2.1.md)
-for imports, wallet capabilities, resource runtime registration, limits and pending recovery.
-Persistent resource coordination and application HTTP delivery/recovery remain deployment responsibilities.
-
-## Current beta: 2.1.0-beta.3
-
-Both TRON packages share `2.1.0-beta.3` and the npm `beta` tag. This candidate includes
-pending settlement recovery and the corrected resource-extension integration test entrypoint.
-Install both packages at the same exact version for integration testing.
+This is a source migration from 2.0. See the [migration guide](docs/migrations/tron-2.1.md) for imports, wallet capabilities, resource runtime registration, limits and pending recovery. Persistent resource coordination and application HTTP delivery/recovery remain deployment responsibilities.
 
 ---
 

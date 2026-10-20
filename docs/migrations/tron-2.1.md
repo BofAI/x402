@@ -1,43 +1,39 @@
 # TRON SDK 2.1 Migration Guide
 
-The target stable version is `2.1.0`; release preparation is in progress. Install that version once both packages have been published and verified. Current integration tests can use `2.1.0-beta.3`. The historical experimental `3.0.0-beta.1` is no longer the planned version line.
+Use this guide to migrate application imports, wallet integrations, and resource sponsorship to official Core.
 
 ## Installation and compatibility
 
 ```sh
-# Target package combination after the stable release
-npm install @x402/core@2.28.0 @bankofai/x402-tron@2.1.0
+# Install the matching mechanism and optional extension versions
+npm install @x402/core@2.28.0 @bankofai/x402-tron@2.1.0-beta.3
 # Required only for resource sponsorship
-npm install @bankofai/x402-tron-extensions@2.1.0
+npm install @bankofai/x402-tron-extensions@2.1.0-beta.3
 # Select official HTTP / MCP integrations for the application role
 npm install @x402/fetch@2.28.0 @x402/express@2.28.0
 ```
 
-2.1 continues the project's version line, but upgrading from 2.0 requires source migration. The protocol remains x402 v2, with `exact`, `upto`, `batch-settlement`, `exact_gasfree`, and the existing wallet factories. This does not make legacy Core instances interchangeable with the new mechanisms. Use official Core 2.28.0 throughout the payment call chain and upgrade HTTP/MCP adapters together. `@x402/core` is an exact peer dependency of the mechanism package.
+Upgrading from 2.0 requires source migration. The protocol remains x402 v2, with `exact`, `upto`, `batch-settlement`, `exact_gasfree`, and the existing wallet factories. This does not make legacy Core instances interchangeable with the new mechanisms. Use official Core 2.28.0 throughout the payment call chain and upgrade HTTP/MCP adapters together. `@x402/core` is an exact peer dependency of the mechanism package.
 
 The extension depends on the exact same mechanism version. Upgrade both TRON packages together; avoid mixing beta and stable versions. Ordinary payments require only the mechanism and official Core, without the resource extension or an Agent Wallet runtime dependency.
 
-The local EVM mechanism package is retired. Use official `@x402/evm@2.28.0` for EVM
-and its public signer adapters; the retired `@bankofai/x402-evm/adapters/agent-wallet`
-factory path is not available from the official package. Follow the upstream EVM examples.
+The local EVM mechanism package is retired. Use official `@x402/evm@2.28.0` for EVM and its public signer adapters; the retired `@bankofai/x402-evm/adapters/agent-wallet` factory path is not available from the official package. Follow the upstream EVM examples.
 
-Generic extensions such as Bazaar, Sign-in-with-x, and EVM gas sponsorship use official
-`@x402/extensions@2.28.0` directly. The repository no longer contains legacy v1 packages or
-`@bankofai/x402-extensions`. Use published upstream packages if legacy APIs are still needed.
+Generic extensions such as Bazaar, Sign-in-with-x, and EVM gas sponsorship use official `@x402/extensions@2.28.0` directly. The repository no longer contains legacy v1 packages or `@bankofai/x402-extensions`. Use published upstream packages if legacy APIs are still needed.
 
 ## Import changes
 
-| 2.0 location                                                                                | 2.1 location                                                                |
-| ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `@bankofai/x402-core/client`                                                                | `@x402/core/client`                                                         |
-| `@bankofai/x402-core/server`, `facilitator`, `types`, `http`                                | Corresponding `@x402/core` subpaths                                         |
-| `x402Client` from `@bankofai/x402-fetch`                                                    | `@x402/core/client`                                                         |
-| `wrapFetchWithPayment` from `@bankofai/x402-fetch`                                          | `@x402/fetch`                                                               |
-| `@bankofai/x402-express` / `x402-mcp`                                                       | `@x402/express` / `@x402/mcp`; import Core classes from their role subpaths |
-| Resource runtime, coordinator, policies, chain adapters, and types at the mechanism root    | `@bankofai/x402-tron-extensions`                                            |
-| TRON declarations, schemas, and extension factories in the legacy generic extension package | `@bankofai/x402-tron-extensions`                                            |
-| Resource Approval pre-signing and dedicated validation inside the mechanism                 | Public extension package entrypoints                                        |
-| Legacy Core TRON logging configuration                                                      | `setLogger`, `noopLogger` from `@bankofai/x402-tron`                        |
+| 2.0 location | 2.1 location |
+| --- | --- |
+| `@bankofai/x402-core/client` | `@x402/core/client` |
+| `@bankofai/x402-core/server`, `facilitator`, `types`, `http` | Corresponding `@x402/core` subpaths |
+| `x402Client` from `@bankofai/x402-fetch` | `@x402/core/client` |
+| `wrapFetchWithPayment` from `@bankofai/x402-fetch` | `@x402/fetch` |
+| `@bankofai/x402-express` / `x402-mcp` | `@x402/express` / `@x402/mcp`; import Core classes from their role subpaths |
+| Resource runtime, coordinator, policies, chain adapters, and types at the mechanism root | `@bankofai/x402-tron-extensions` |
+| TRON declarations, schemas, and extension factories in the legacy generic extension package | `@bankofai/x402-tron-extensions` |
+| Resource Approval pre-signing and dedicated validation inside the mechanism | Public extension package entrypoints |
+| Legacy Core TRON logging configuration | `setLogger`, `noopLogger` from `@bankofai/x402-tron` |
 
 Continue importing wallet factories, structural wallet types, and payment schemes from the mechanism package. Import public RPC and transaction utilities from `@bankofai/x402-tron/rpc` and `@bankofai/x402-tron/transactions`. `/exact/extensions` retains the public contract between the mechanism and extension; it does not include the resource execution runtime.
 
