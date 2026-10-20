@@ -69,45 +69,32 @@ The client TIP-712 type, the proxy `settle` ABI, and the on-chain `WITNESS_TYPEH
 
 ### Signers
 
+For an existing Agent Wallet configuration, install the optional wallet integration:
+
+```sh
+npm install @bankofai/agent-wallet@3.0.0
+```
+
 ```ts
-import { TronWeb } from "tronweb";
-import {
-  createClientTronSigner,
-  createFacilitatorTronSigner,
-  type ClientTronWallet,
-  type FacilitatorTronWallet,
-} from "@bankofai/x402-tron";
+import { resolveWallet, type Wallet, type Eip712Capable } from "@bankofai/agent-wallet";
+import { createClientTronSigner, createFacilitatorTronSigner } from "@bankofai/x402-tron";
 
-const privateKey = process.env.TRON_PRIVATE_KEY!.replace(/^0x/, "");
-const tronWeb = new TronWeb({ fullHost: "https://nile.trongrid.io" });
-const address = TronWeb.address.fromPrivateKey(privateKey) as string;
+const network = "tron:3448148188";
+const payerWallet = (await resolveWallet({ network, walletId: "tron_client" })) as Wallet &
+  Eip712Capable;
+if (typeof payerWallet.signTypedData !== "function") {
+  throw new Error("The payer wallet must support TIP-712 signing");
+}
+const settlementWallet = await resolveWallet({ network, walletId: "tron_facilitator" });
 
-// Client: signs TIP-712 typed data. The private key stays in your wallet —
-// the SDK only sees the ClientTronWallet interface, never the raw key.
-const clientWallet: ClientTronWallet = {
-  getAddress: () => address,
-  async signTypedData(args) {
-    const sig = await tronWeb.trx._signTypedData(args.domain, args.types, args.message, privateKey);
-    return (sig.startsWith("0x") ? sig : `0x${sig}`) as `0x${string}`;
-  },
-};
-const clientSigner = await createClientTronSigner(clientWallet, {
-  network: "tron:3448148188",
-});
-
-// Facilitator: signs built settlement transactions for on-chain broadcast.
-const facilitatorWallet: FacilitatorTronWallet = {
-  getAddress: () => address,
-  async signTransaction(transaction) {
-    return tronWeb.trx.sign(transaction, privateKey);
-  },
-};
-const facilitatorSigner = await createFacilitatorTronSigner(facilitatorWallet, {
-  network: "tron:3448148188",
+const clientSigner = await createClientTronSigner(payerWallet, { network });
+const facilitatorSigner = await createFacilitatorTronSigner(settlementWallet, {
+  network,
+  permissionId: 2,
 });
 ```
 
-Both `createClientTronSigner` and `createFacilitatorTronSigner` are `async` (they resolve the wallet address and build the TronWeb client from `network`). Pass the wallet as the first argument and `{ network, rpcUrl?, apiKey? }` as options — the factories build the TronWeb instance internally.
+Both factories are asynchronous. Pass the wallet first and `{ network, rpcUrl?, apiKey? }` second. The wallet signs; the SDK builds its RPC client without a private key. Custom wallets can implement the structural `ClientTronWallet` or `FacilitatorTronWallet` contract instead.
 
 ### Client
 
@@ -116,15 +103,17 @@ import { x402Client } from "@x402/core/client";
 import { registerExactTronScheme } from "@bankofai/x402-tron/exact/client";
 
 const client = new x402Client();
-registerExactTronScheme(client, { signer: clientSigner }); // registers on "tron:*"
+registerExactTronScheme(client, { signer: clientSigner }); // registers on "tron:3448148188"
 ```
 
 ### Server
 
 ```ts
-import { x402ResourceServer } from "@x402/core/server";
+import { HTTPFacilitatorClient, x402ResourceServer } from "@x402/core/server";
 import { registerExactTronScheme } from "@bankofai/x402-tron/exact/server";
 
+const facilitatorClient = new HTTPFacilitatorClient({ url: process.env.FACILITATOR_URL! });
+const server = new x402ResourceServer(facilitatorClient);
 registerExactTronScheme(server); // prices to the network's default stablecoin
 ```
 
@@ -134,12 +123,13 @@ registerExactTronScheme(server); // prices to the network's default stablecoin
 import { x402Facilitator } from "@x402/core/facilitator";
 import { registerExactTronScheme } from "@bankofai/x402-tron/exact/facilitator";
 
+const facilitator = new x402Facilitator();
 registerExactTronScheme(facilitator, { signer: facilitatorSigner, networks: "tron:3448148188" });
 ```
 
 ## Networks & on-chain dependencies
 
-The `permit2` path depends on three on-chain contracts. Addresses live in `src/constants.ts`:
+The `permit2` path uses Permit2 and the x402 Exact Permit2 proxy. Addresses live in `src/constants.ts`:
 
 | Network | chainId (TIP-712) | Permit2 | x402ExactPermit2Proxy |
 | --- | --- | --- | --- |
@@ -177,7 +167,7 @@ The consumer check installs the packed artifact in a temporary project, compiles
 ## Notes & caveats
 
 - **Addresses** are normalized to `0x` hex for TIP-712 signing and converted as needed; TRON Base58 (`T…`) and hex (`41…`) inputs are both accepted (`src/utils.ts`).
-- **Receipts**: TRON has no instant receipt — the facilitator signer polls `getTransactionInfo` (gated on `blockNumber`, 120s deadline) and tolerates transient/rate-limit errors. A TronGrid API key speeds this up.
+- **Receipts**: the facilitator signer polls FullNode `wallet/gettransactioninfobyid` for a packed receipt. The default wait is 90 seconds, configurable through `confirmationTimeoutMs`; indeterminate receipts return `settlement_pending`.
 - **EIP-1153**: the deployed proxies use a transient-storage reentrancy guard; deploy only on TVM chains that support it (verified working on Nile).
 - **Gas**: settlement consumes energy/TRX from the facilitator account; the payer needs a one-time Permit2 approval per token.
 - **Upto preflight**: failed or malformed required allowance/balance reads return `chain_read_failed` before settlement broadcast.
@@ -199,23 +189,7 @@ const client = new x402Client().register("tron:3448148188", new ExactTronScheme(
 
 This signature-only example supports authorization creation. Balance checks, channel recovery and sponsored Approval preparation need `readContract`. Permit2 allowance must already be sufficient or the application must provide an `ensureAllowance` implementation. Automatic approve additionally needs transaction signing. No allowance capability means the application manages approval itself.
 
-Agent Wallet instances can be passed directly to the wallet factories:
-
-```ts
-import { createClientTronSigner, createFacilitatorTronSigner } from "@bankofai/x402-tron";
-
-const payer = await createClientTronSigner(wallet, {
-  network: "tron:3448148188",
-  rpcUrl,
-});
-const settlement = await createFacilitatorTronSigner(settlementWallet, {
-  network: "tron:3448148188",
-  rpcUrl,
-  permissionId: 2,
-});
-```
-
-The package has no Agent Wallet runtime dependency.
+Wallet structural types are exported from the package root. Public contracts and context helpers for extension authors are available from `@bankofai/x402-tron/exact/extensions`. The SDK has no Agent Wallet runtime dependency.
 
 ## Logging
 
@@ -225,8 +199,6 @@ Configure logging through the TRON package:
 import { setLogger, noopLogger } from "@bankofai/x402-tron";
 setLogger(noopLogger);
 ```
-
-Wallet structural types are exported from the package root. Public contracts and context helpers for extension authors are available from `@bankofai/x402-tron/exact/extensions`.
 
 ## Resource sponsorship
 
