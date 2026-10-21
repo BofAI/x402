@@ -91,9 +91,15 @@ export interface TronPendingSettlementContext {
   save(transaction: string, data?: Record<string, string>): Promise<void>;
 }
 
+/** Identifies persistence failures thrown from inside a settlement callback. */
+class SettlementStorageError extends Error {}
+
 /** Holds the original transaction while serializing identical settlement attempts. */
 export class TronSettlementTracker {
-  private readonly fallback = new Map<string, TronPendingSettlement>();
+  private readonly fallback = new Map<
+    string,
+    { record: TronPendingSettlement; persisted: boolean }
+  >();
 
   /**
    * Bind tracking to its storage and locking implementation.
@@ -133,9 +139,16 @@ export class TronSettlementTracker {
       }),
     )}`;
     let known: TronPendingSettlement | undefined;
+    let executionFailed = false;
     try {
       return await this.store.withLock(key, async () => {
-        known = this.fallback.get(key) ?? (await this.store.get(key));
+        const local = this.fallback.get(key);
+        // Keep the txid available if the shared read fails. Once persisted,
+        // however, shared deletion/replacement by another replica is authoritative.
+        known = local?.record;
+        const stored = await this.store.get(key);
+        known = local && !local.persisted ? local.record : stored;
+        if (!known) this.fallback.delete(key);
         if (
           known &&
           !isValidTronTxHash(known.transaction) &&
@@ -164,11 +177,23 @@ export class TronSettlementTracker {
             )
               return;
             known = { transaction, ...(data ? { data } : {}) };
-            this.fallback.set(key, known);
-            await this.store.set(key, known);
+            const local = { record: known, persisted: false };
+            this.fallback.set(key, local);
+            try {
+              await this.store.set(key, known);
+            } catch {
+              throw new SettlementStorageError();
+            }
+            local.persisted = true;
           },
         };
-        let result = await execute(pending);
+        let result: SettleResponse;
+        try {
+          result = await execute(pending);
+        } catch (error) {
+          executionFailed = !(error instanceof SettlementStorageError);
+          throw error;
+        }
         if (known && isValidTronTxHash(known.transaction) && !result.transaction) {
           result = {
             ...result,
@@ -202,9 +227,12 @@ export class TronSettlementTracker {
     } catch {
       return {
         success: false,
-        errorReason: "settlement_store_unavailable",
-        errorMessage:
-          "Pending settlement storage is unavailable; reconcile the original transaction before retrying",
+        errorReason: executionFailed
+          ? "settlement_execution_failed"
+          : "settlement_store_unavailable",
+        errorMessage: executionFailed
+          ? "Settlement execution failed"
+          : "Pending settlement storage is unavailable; reconcile the original transaction before retrying",
         transaction: known && isValidTronTxHash(known.transaction) ? known.transaction : "",
         ...(known?.data?.gasfreeTraceId
           ? { extra: { gasfreeTraceId: known.data.gasfreeTraceId } }

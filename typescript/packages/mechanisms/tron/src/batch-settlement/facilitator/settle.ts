@@ -146,9 +146,15 @@ async function waitForSettle(
     pendingData: { preSettled: preSettled.toString() },
     failedStatusReason: Errors.ErrSettleTransactionFailed,
     onSuccess: async () => {
-      const [, postSettled] = await readReceiver(signer, address, receiver, token);
+      const [totalClaimed, postSettled] = await readReceiver(signer, address, receiver, token);
       const amount = postSettled > preSettled ? (postSettled - preSettled).toString() : "0";
-      return { success: true, transaction: tx, network, amount };
+      return {
+        success: true,
+        transaction: tx,
+        network,
+        amount,
+        extra: { pendingSettle: totalClaimed > postSettled },
+      };
     },
   });
 }

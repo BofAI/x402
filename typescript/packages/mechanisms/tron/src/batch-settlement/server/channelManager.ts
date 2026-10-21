@@ -11,6 +11,7 @@ import { computeChannelId } from "../../shared/batch-settlement/utils";
 import { BATCH_SETTLEMENT_SCHEME } from "../../shared/batch-settlement/constants";
 import { signClaimBatch, signRefund } from "../../shared/batch-settlement/authorizerSigner";
 import type { Channel } from "./storage";
+import { ErrNothingToSettle } from "../errors";
 
 export interface ChannelManagerConfig {
   scheme: BatchSettlementTronScheme;
@@ -113,6 +114,7 @@ export class BatchSettlementChannelManager {
   private lastClaimTime = 0;
   private lastSettleTime = 0;
   private pendingSettle = false;
+  private claimRevision = 0;
   private running = false;
   private pendingJobs = new Set<AutoJob>();
   private drainingJobs = false;
@@ -151,18 +153,24 @@ export class BatchSettlementChannelManager {
   /**
    * Transfers claimed (but unsettled) funds to the receiver by calling `settle(receiver, token)`.
    *
-   * @returns Settle result with the transaction hash.
+   * @returns Settle result with the transaction hash, or an empty hash when
+   * reconciling a pending balance that has already been drained.
    */
   async settle(): Promise<SettleResult> {
+    const wasPending = this.pendingSettle;
+    const claimRevision = this.claimRevision;
     const paymentPayload = this.buildSettlePaymentPayload();
     const requirements = this.buildPaymentRequirements();
 
     const response = await this.facilitator.settle(paymentPayload, requirements);
-    if (!response.success) {
+    if (!response.success && !(wasPending && response.errorReason === ErrNothingToSettle)) {
       throw new Error(formatFacilitatorFailure("Settle", response));
     }
 
-    this.pendingSettle = false;
+    // A confirmed transaction may predate later claims. Keep those claims
+    // scheduled, including ones completed while this response was in flight.
+    this.pendingSettle =
+      response.extra?.pendingSettle === true || this.claimRevision !== claimRevision;
     return { transaction: response.transaction };
   }
 
@@ -180,8 +188,11 @@ export class BatchSettlementChannelManager {
   ): Promise<{ claims: ClaimResult[]; settle?: SettleResult }> {
     const claims = await this.claim(opts);
     let settleResult: SettleResult | undefined;
-    if (claims.length > 0) {
-      settleResult = await this.settle();
+    if (claims.length > 0 || this.pendingSettle) {
+      do {
+        const result = await this.settle();
+        if (result.transaction) settleResult = result;
+      } while (this.pendingSettle);
     }
     return { claims, settle: settleResult };
   }
@@ -483,7 +494,7 @@ export class BatchSettlementChannelManager {
 
       const result = await this.settle();
       this.lastSettleTime = Date.now();
-      cfg.onSettle?.(result);
+      if (result.transaction) cfg.onSettle?.(result);
     } catch (err) {
       cfg.onError?.(err);
     }
@@ -540,11 +551,9 @@ export class BatchSettlementChannelManager {
       const batch = allClaims.slice(i, i + opts.maxClaimsPerBatch);
       const result = await this.submitClaim(batch);
       results.push(result);
-      await this.updateClaimedSessions(batch);
-    }
-
-    if (results.length > 0) {
+      this.claimRevision++;
       this.pendingSettle = true;
+      await this.updateClaimedSessions(batch);
     }
 
     return results;

@@ -15,6 +15,7 @@ import {
 } from "../../src/constants";
 import { normalizeAddressForSigning } from "../../src/utils";
 import type { FacilitatorTronSigner } from "../../src/signer";
+import { TronSettlementTracker } from "../../src/shared/pendingSettlement";
 
 const NETWORK = "tron:3448148188";
 const TX = "11".repeat(32);
@@ -138,6 +139,21 @@ function chain() {
 }
 
 describe("pending transaction storage boundaries", () => {
+  it("does not classify invalid payment data as a storage outage", async () => {
+    const { payment, requirements } = fixture("exact-eip3009");
+    (payment.payload.authorization as { value: string }).value = "not-a-number";
+    const f = chain();
+    const result = await new ExactFacilitator(f.signer).settle(payment, requirements);
+    expect(result).toMatchObject({
+      success: false,
+      errorReason: "settlement_execution_failed",
+      transaction: "",
+    });
+    expect(result.errorMessage).not.toContain("reconcile");
+    expect(f.signer.verifyTypedData).not.toHaveBeenCalled();
+    expect(f.writeContract).not.toHaveBeenCalled();
+  });
+
   it("recovers on another facilitator instance without re-verifying a consumed authorization", async () => {
     const { payment, requirements } = fixture("exact-permit2");
     const f = chain();
@@ -171,6 +187,23 @@ describe("pending transaction storage boundaries", () => {
     expect(f.writeContract).toHaveBeenCalledTimes(1);
   });
 
+  it("uses a replacement shared record instead of its persisted local snapshot", async () => {
+    const { payment, requirements } = fixture("exact-permit2");
+    const f = chain();
+    const store = new InMemoryTronPendingSettlementStore();
+    const saved = vi.spyOn(store, "set");
+    const scheme = new ExactFacilitator(f.signer, { pendingSettlementStore: store });
+    await scheme.settle(payment, requirements);
+    const replacement = "22".repeat(32);
+    await store.set(saved.mock.calls[0][0], { transaction: replacement });
+    f.waitForTransactionReceipt.mockResolvedValue({ status: "success" });
+    expect(await scheme.settle(payment, requirements)).toMatchObject({
+      success: true,
+      transaction: replacement,
+    });
+    expect(f.writeContract).toHaveBeenCalledTimes(1);
+  });
+
   it("does not treat different settlement requirements as a cached success", async () => {
     const { payment, requirements } = fixture("exact-permit2");
     const f = chain();
@@ -201,6 +234,64 @@ describe("pending transaction storage boundaries", () => {
     });
     expect(result.errorMessage).not.toContain("sdk-release:secret");
     expect(f.writeContract).not.toHaveBeenCalled();
+  });
+
+  it("retains the original txID when a shared read fails on the original instance", async () => {
+    const { payment, requirements } = fixture("exact-permit2");
+    const f = chain();
+    const store = new InMemoryTronPendingSettlementStore();
+    const scheme = new ExactFacilitator(f.signer, { pendingSettlementStore: store });
+    await scheme.settle(payment, requirements);
+    vi.spyOn(store, "get").mockRejectedValue(new Error("private storage endpoint"));
+    const result = await scheme.settle(payment, requirements);
+    expect(result).toMatchObject({
+      success: false,
+      errorReason: "settlement_store_unavailable",
+      transaction: TX,
+    });
+    expect(result.errorMessage).not.toContain("private storage endpoint");
+    expect(f.writeContract).toHaveBeenCalledTimes(1);
+  });
+
+  it("classifies a failed save inside the callback as storage failure", async () => {
+    const { payment, requirements } = fixture("exact-permit2");
+    const store = new InMemoryTronPendingSettlementStore();
+    vi.spyOn(store, "set").mockRejectedValue(new Error("private storage endpoint"));
+    const result = await new TronSettlementTracker(store).run(
+      payment,
+      requirements,
+      async pending => {
+        await pending.save(TX);
+        throw new Error("unreachable after failed save");
+      },
+    );
+    expect(result).toMatchObject({
+      success: false,
+      errorReason: "settlement_store_unavailable",
+      transaction: TX,
+    });
+    expect(result.errorMessage).not.toContain("private storage endpoint");
+  });
+
+  it("preserves the known transaction when a callback fails after saving it", async () => {
+    const { payment, requirements } = fixture("exact-permit2");
+    const tracker = new TronSettlementTracker();
+    const failed = await tracker.run(payment, requirements, async pending => {
+      await pending.save(TX);
+      throw new Error("private business exception details");
+    });
+    expect(failed).toMatchObject({
+      success: false,
+      errorReason: "settlement_execution_failed",
+      transaction: TX,
+    });
+    expect(failed.errorMessage).not.toContain("private business exception details");
+    const recovered = await tracker.run(payment, requirements, async pending => ({
+      success: true,
+      transaction: pending.record!.transaction,
+      network: NETWORK,
+    }));
+    expect(recovered).toMatchObject({ success: true, transaction: TX });
   });
 
   it("keeps the original transaction locally if persistence fails after broadcast", async () => {
