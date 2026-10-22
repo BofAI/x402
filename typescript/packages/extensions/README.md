@@ -3,7 +3,7 @@
 Independent TRON resource sponsorship extension for official `@x402/core@2.28.0`. Install the same version as `@bankofai/x402-tron`. For upgrading from 2.0, see the [migration guide](../../../docs/migrations/tron-2.1.md).
 
 ```sh
-npm install @x402/core@2.28.0 @bankofai/x402-tron@2.1.0-beta.3 @bankofai/x402-tron-extensions@2.1.0-beta.3
+npm install @x402/core@2.28.0 @bankofai/x402-tron@2.1.0 @bankofai/x402-tron-extensions@2.1.0
 ```
 
 The mechanism maintains payment schemes, public contracts, and transaction utilities. The extension maintains declarations/schemas, client pre-signing, Approval transaction validation, resource budgets, energy/bandwidth delegation, reclamation, and the coordinator runtime. Basic payments require neither this package nor an Agent Wallet installation.

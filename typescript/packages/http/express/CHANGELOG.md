@@ -1,5 +1,11 @@
 # @bankofai/x402-express Changelog
 
+## 1.1.2
+
+### Patch Changes
+
+- Replace the retired local generic extension dependency with `@x402/extensions@2.28.0` for Bazaar route validation. TRON resource sponsorship is available separately from `@bankofai/x402-tron-extensions@2.1.0`; new TRON integrations use official Core and HTTP adapters.
+
 ## 1.1.1
 
 ### Patch Changes
