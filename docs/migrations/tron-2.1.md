@@ -4,7 +4,7 @@ Use this guide to migrate application imports, wallet integrations, and resource
 
 ## Installation and compatibility
 
-Use Node.js 24.22.1 or newer. Development and CI pin Node.js 24.22.1 in the repository's `.nvmrc`; this security release includes the October 2026 Node.js fixes.
+Use Node.js 24.22.1 or newer. CI workflows explicitly specify Node.js 24.22.1; `.nvmrc` pins the same version for local development. This security release includes the October 2026 Node.js fixes.
 
 ```sh
 # Install the matching mechanism and optional extension versions
