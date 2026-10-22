@@ -164,7 +164,7 @@ x402 currently supports TRC-20 tokens on the TRON network and BEP-20 tokens on t
 ## Development
 
 ### Prerequisites
-- Node.js 22+
+- Node.js 24.22.1+ (use the pinned version in `.nvmrc`)
 - `pnpm` >= 11
 - A TRON wallet with TRX for gas/energy, and/or a BSC wallet with BNB for gas.
 

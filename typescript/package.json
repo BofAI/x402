@@ -1,7 +1,7 @@
 {
   "name": "x402_monorepo",
   "engines": {
-    "node": ">=22.0.0",
+    "node": ">=24.22.1",
     "pnpm": ">=11.1.1"
   },
   "packageManager": "pnpm@11.1.1",

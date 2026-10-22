@@ -46,7 +46,7 @@ workflow.
 
 ### Prerequisites
 
-- **Node.js**: 22+
+- **Node.js**: 24.22.1+ (run `nvm use` from the repository root)
 - **pnpm**: >= 11 (workspace package manager)
 - **A wallet**: a TRON wallet with test TRX and tokens for Nile/Shasta integration tests.
 

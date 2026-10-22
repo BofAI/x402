@@ -26,6 +26,6 @@
     "test": "pnpm --filter @bankofai/x402-example-server-express test"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24.22.1"
   }
 }

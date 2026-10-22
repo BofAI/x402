@@ -4,6 +4,8 @@ Use this guide to migrate application imports, wallet integrations, and resource
 
 ## Installation and compatibility
 
+Use Node.js 24.22.1 or newer. Development and CI pin Node.js 24.22.1 in the repository's `.nvmrc`; this security release includes the October 2026 Node.js fixes.
+
 ```sh
 # Install the matching mechanism and optional extension versions
 npm install @x402/core@2.28.0 @bankofai/x402-tron@2.1.0-beta.3
