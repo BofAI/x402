@@ -112,7 +112,7 @@ function createX402RetryConfig(config: InternalAxiosRequestConfig): X402RetryCon
  * ```typescript
  * import axios from 'axios';
  * import { wrapAxiosWithPayment, x402Client } from '@bankofai/x402-axios';
- * import { ExactEvmScheme } from '@bankofai/x402-evm';
+ * import { ExactEvmScheme } from '@x402/evm';
  * import { privateKeyToAccount } from 'viem/accounts';
  *
  * const account = privateKeyToAccount('0x...');
@@ -280,7 +280,7 @@ export function wrapAxiosWithPayment(
  * ```typescript
  * import axios from 'axios';
  * import { wrapAxiosWithPaymentFromConfig } from '@bankofai/x402-axios';
- * import { ExactEvmScheme } from '@bankofai/x402-evm';
+ * import { ExactEvmScheme } from '@x402/evm';
  * import { privateKeyToAccount } from 'viem/accounts';
  *
  * const account = privateKeyToAccount('0x...');

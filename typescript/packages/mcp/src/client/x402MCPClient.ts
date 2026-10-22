@@ -143,7 +143,7 @@ export interface x402MCPToolCallResult {
  * import { Client } from "@modelcontextprotocol/sdk/client/index.js";
  * import { x402MCPClient } from "@bankofai/x402-mcp";
  * import { x402Client } from "@bankofai/x402-core/client";
- * import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
+ * import { ExactEvmScheme } from "@x402/evm/exact/client";
  *
  * const paymentClient = new x402Client()
  *   .register("eip155:84532", new ExactEvmScheme(account));
@@ -954,7 +954,7 @@ export interface x402MCPClientConfig {
  * import { Client } from "@modelcontextprotocol/sdk/client/index.js";
  * import { wrapMCPClientWithPayment } from "@bankofai/x402-mcp";
  * import { x402Client } from "@bankofai/x402-core/client";
- * import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
+ * import { ExactEvmScheme } from "@x402/evm/exact/client";
  *
  * const mcpClient = new Client({ name: "my-agent", version: "1.0.0" });
  * const paymentClient = new x402Client()
@@ -991,7 +991,7 @@ export function wrapMCPClientWithPayment(
  * ```typescript
  * import { Client } from "@modelcontextprotocol/sdk/client/index.js";
  * import { wrapMCPClientWithPaymentFromConfig } from "@bankofai/x402-mcp";
- * import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
+ * import { ExactEvmScheme } from "@x402/evm/exact/client";
  *
  * const mcpClient = new Client({ name: "my-agent", version: "1.0.0" });
  *
@@ -1026,7 +1026,7 @@ export function wrapMCPClientWithPaymentFromConfig(
  * @example
  * ```typescript
  * import { createx402MCPClient } from "@bankofai/x402-mcp";
- * import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
+ * import { ExactEvmScheme } from "@x402/evm/exact/client";
  * import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
  *
  * const client = createx402MCPClient({

@@ -18,14 +18,14 @@
  * it (e.g. local server pointed at a WAF-fronted facilitator). It is a no-op for
  * correctness — keep it off when you want the wire payload untouched.
  */
-import type { FacilitatorClient } from "@bankofai/x402-core/server";
+import type { FacilitatorClient } from "@x402/core/server";
 import type {
   PaymentPayload,
   PaymentRequirements,
   VerifyResponse,
   SettleResponse,
   SupportedResponse,
-} from "@bankofai/x402-core/types";
+} from "@x402/core/types";
 
 /** Return a shallow copy of the payload with the optional `resource` removed. */
 function stripResource(paymentPayload: PaymentPayload): PaymentPayload {

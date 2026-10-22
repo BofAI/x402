@@ -1,10 +1,11 @@
+import type { TronPendingSettlementContext } from "../../shared/pendingSettlement";
 import {
   FacilitatorContext,
   PaymentPayload,
   PaymentRequirements,
   SettleResponse,
   VerifyResponse,
-} from "@bankofai/x402-core/types";
+} from "@x402/core/types";
 import { X402_PERMIT2_PROXY_ADDRESSES, x402ExactPermit2ProxyABI } from "../../constants";
 import { FacilitatorTronSigner } from "../../signer";
 import { ExactPermit2Payload } from "../../types";
@@ -53,6 +54,7 @@ export async function verifyPermit2(
  * @param payload - Verified x402 payment payload.
  * @param requirements - Trusted payment requirements.
  * @param permit2Payload - Verified Permit2 authorization.
+ * @param pending - Original-transaction tracking for this attempt.
  * @returns Core settlement response.
  */
 async function submitPermit2Settlement(
@@ -60,6 +62,7 @@ async function submitPermit2Settlement(
   payload: PaymentPayload,
   requirements: PaymentRequirements,
   permit2Payload: ExactPermit2Payload,
+  pending?: TronPendingSettlementContext,
 ): Promise<SettleResponse> {
   const payer = permit2Payload.permit2Authorization.from;
   const authorization = permit2Payload.permit2Authorization;
@@ -80,6 +83,7 @@ async function submitPermit2Settlement(
       args: [permitTuple, payer, witnessTuple, permit2Payload.signature],
     });
     return waitAndReturnSettleResponse(signer, transaction, payload.accepted.network, payer, {
+      pending,
       failedStatusReason: errors.INVALID_TRANSACTION_STATE,
     });
   } catch (error: unknown) {
@@ -102,6 +106,7 @@ async function submitPermit2Settlement(
  * @param requirements - The payment requirements.
  * @param permit2Payload - The Permit2 specific payload.
  * @param context - Registered Facilitator extension capabilities.
+ * @param pending - Original-transaction tracking for this attempt.
  * @returns The settlement response.
  */
 export async function settlePermit2(
@@ -110,8 +115,21 @@ export async function settlePermit2(
   requirements: PaymentRequirements,
   permit2Payload: ExactPermit2Payload,
   context?: FacilitatorContext,
+  pending?: TronPendingSettlementContext,
 ): Promise<SettleResponse> {
   const payer = permit2Payload.permit2Authorization.from;
+  if (pending?.record) {
+    return waitAndReturnSettleResponse(
+      signer,
+      pending.record.transaction,
+      payload.accepted.network,
+      payer,
+      {
+        failedStatusReason: errors.INVALID_TRANSACTION_STATE,
+        pending,
+      },
+    );
+  }
 
   const valid = await verifyPermit2(signer, payload, requirements, permit2Payload, context);
   if (!valid.isValid) {
@@ -143,5 +161,5 @@ export async function settlePermit2(
     },
   );
   if (sponsorshipFailure) return sponsorshipFailure;
-  return submitPermit2Settlement(signer, payload, requirements, permit2Payload);
+  return submitPermit2Settlement(signer, payload, requirements, permit2Payload, pending);
 }

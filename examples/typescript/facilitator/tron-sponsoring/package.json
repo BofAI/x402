@@ -9,11 +9,11 @@
   },
   "dependencies": {
     "@bankofai/agent-wallet": "^3.0.0",
-    "@bankofai/x402-core": "workspace:*",
-    "@bankofai/x402-extensions": "workspace:*",
     "@bankofai/x402-tron": "workspace:*",
     "express": "^4.21.2",
-    "tronweb": "^6.0.0"
+    "tronweb": "^6.0.0",
+    "@x402/core": "2.28.0",
+    "@bankofai/x402-tron-extensions": "workspace:*"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",

@@ -2,23 +2,16 @@
  * Wallet resolution via `@bankofai/agent-wallet` — the example never touches a
  * private key. A chain registers only when a wallet for it resolves.
  */
-import {
-  resolveWallet,
-  WalletNotFoundError,
-  type Wallet,
-} from "@bankofai/agent-wallet";
+import { resolveWallet, WalletNotFoundError, type Wallet } from "@bankofai/agent-wallet";
 
 /**
  * A resolved agent-wallet that also signs typed data. `resolveWallet` is typed
- * as the base `Wallet` (no `signTypedData`), but for `evm`/`tron` it returns an
- * `EvmSigner`/`TronSigner` (both `Eip712Capable`), so we surface that here. The
+ * as the base `Wallet` (no `signTypedData`), but for `tron` it returns an
+ * `TronSigner` (`Eip712Capable`), so we surface that here. The
  * upto scheme signs a Permit2 `PermitWitnessTransferFrom` digest.
  */
 export type SignerWallet = Wallet & {
-  signTypedData(
-    data: Record<string, unknown>,
-    options?: unknown,
-  ): Promise<string>;
+  signTypedData(data: Record<string, unknown>, options?: unknown): Promise<string>;
 };
 
 /**
@@ -29,9 +22,7 @@ export type SignerWallet = Wallet & {
  * @param network - Exact canonical CAIP-2 network.
  * @returns The wallet, or `null` to skip that chain.
  */
-export async function tryResolveWallet(
-  network: string,
-): Promise<SignerWallet | null> {
+export async function tryResolveWallet(network: string): Promise<SignerWallet | null> {
   try {
     const wallet = (await resolveWallet({ network })) as SignerWallet;
     await wallet.getAddress();
@@ -40,8 +31,7 @@ export async function tryResolveWallet(
     if (
       error instanceof WalletNotFoundError ||
       (error instanceof Error &&
-        error.message ===
-          "resolve_wallet could not find a wallet source in config or env")
+        error.message === "resolve_wallet could not find a wallet source in config or env")
     ) {
       return null;
     }

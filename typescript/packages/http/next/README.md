@@ -17,7 +17,7 @@ Page routes are protected using the `paymentProxy`. Create a proxy (middleware) 
 ```typescript
 import { paymentProxy, x402ResourceServer } from "@bankofai/x402-next";
 import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
-import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
+import { ExactEvmScheme } from "@x402/evm/exact/server";
 
 const facilitatorClient = new HTTPFacilitatorClient({ url: "https://x402.org/facilitator" });
 const resourceServer = new x402ResourceServer(facilitatorClient)
@@ -161,7 +161,7 @@ const routes: RoutesConfig = {
 ```typescript
 import { paymentProxy, x402ResourceServer } from "@bankofai/x402-next";
 import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
-import { registerExactEvmScheme } from "@bankofai/x402-evm/exact/server";
+import { registerExactEvmScheme } from "@x402/evm/exact/server";
 import { registerExactSvmScheme } from "@bankofai/x402-svm/exact/server";
 
 const facilitatorClient = new HTTPFacilitatorClient({ url: facilitatorUrl });
@@ -252,7 +252,7 @@ export const middleware = paymentMiddleware(
 ```typescript
 import { paymentProxy, x402ResourceServer } from "@bankofai/x402-next";
 import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
-import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
+import { ExactEvmScheme } from "@x402/evm/exact/server";
 
 const facilitator = new HTTPFacilitatorClient({ url: facilitatorUrl });
 const resourceServer = new x402ResourceServer(facilitator)

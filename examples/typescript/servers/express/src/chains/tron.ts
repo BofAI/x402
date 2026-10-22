@@ -1,5 +1,5 @@
 /**
- * TRON setup for the resource server — mirrors the EVM module. Keyless: just the
+ * TRON setup for the resource server — Keyless: just the
  * `exact` server scheme and `accepts` entries with the TRON payout address.
  *
  * Offers both USDT and USDD on `TRON_NILE`. Both are permit2 tokens (no ERC-3009);
@@ -10,7 +10,7 @@
 import { TRON_NILE, TRON_MAINNET, TRON_SHASTA } from "@bankofai/x402-tron";
 import { ExactTronScheme } from "@bankofai/x402-tron/exact/server";
 import { getNetworkTokens } from "@bankofai/x402-tron";
-import type { x402ResourceServer } from "@bankofai/x402-express";
+import type { x402ResourceServer } from "@x402/core/server";
 import { selectPayTargetNetworks } from "../payTargets.js";
 
 // Switch to TRON_MAINNET for production (REAL FUNDS). USDT/USDD are registered
@@ -45,8 +45,8 @@ export function registerTron(resourceServer: x402ResourceServer): void {
  */
 export function tronAccepts() {
   const payTo = process.env.TRON_ADDRESS as string;
-  return tronNetworks().flatMap((network) =>
-    Object.keys(getNetworkTokens(network)).map((symbol) => ({
+  return tronNetworks().flatMap(network =>
+    Object.keys(getNetworkTokens(network)).map(symbol => ({
       scheme: "exact",
       network,
       payTo,

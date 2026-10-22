@@ -1,5 +1,31 @@
 # @bankofai/x402-tron
 
+## 2.1.0-beta.3
+
+- Recover pending exact, upto, batch, and GasFree settlements using the original transaction or relayer trace, without repeating authorization, resource sponsorship, or broadcast. Preserve batch snapshots and redact storage failures.
+- Expose an injectable pending settlement store; production recovery requires persistent shared storage with exclusive locking.
+- Align all TRON examples with official Core and HTTP/MCP integrations. Move the Nile resource-sponsoring integration entrypoint and environment template to the independent extension package.
+
+## 2.1.0-beta.2
+
+- Reject upto allowance/balance RPC failures and malformed uint256 reads with `chain_read_failed`. Settlement and resource revalidation stop before payment broadcast. Preserve explicit insufficient allowance/funds errors and sponsored Approval allowance deferral.
+
+## 2.1.0-beta.1
+
+- Correct the legacy `module` field to the built `.mjs` entry and verify all package entry fields.
+- Continue the release line as 2.1.0-beta.1; keep the earlier 3.0.0 beta as historical experimental publication.
+- Enforce official Core atomic spend caps against batch deposits and GasFree value plus fee before signing.
+- Migration beta: use official Core 2.28.0 and move resource-runtime imports to the independent extension package; this is not a drop-in source upgrade from SDK2.
+
+
+## 3.0.0-beta.1
+
+- Use official `@x402/core@2.28.0` for all four TRON mechanisms; old Core is no longer a runtime dependency.
+- Separate signing, wallet adaptation, RPC configuration and transaction utilities; preserve compatible wallet factories.
+- Move resource sponsorship into `@bankofai/x402-tron-extensions@3.0.0-beta.1`; explicitly register client and facilitator extensions.
+- Support strict ESM/CJS consumers and publish the two TRON packages on a shared version line.
+- Beta limitation: live-chain service integration and production durable-coordinator recovery remain pending. Upto allowance/balance RPC errors currently retain the previous optimistic verification behavior; the fail-closed change is required before a stable release.
+
 ## 2.0.0
 
 ### Major Changes

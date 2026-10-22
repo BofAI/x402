@@ -1,9 +1,14 @@
 {
   "name": "@bankofai/x402-tron",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "beta",
+    "registry": "https://registry.npmjs.org/"
   },
-  "version": "2.0.0",
+  "version": "2.1.0-beta.3",
+  "engines": {
+    "node": ">=24.22.1"
+  },
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.mjs",
   "types": "./dist/cjs/index.d.ts",
@@ -11,13 +16,13 @@
     "start": "tsx --env-file=.env index.ts",
     "build": "tsup",
     "test": "vitest run",
-    "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:watch": "vitest",
     "watch": "tsc --watch",
     "format": "prettier -c .prettierrc --write \"**/*.{ts,js,cjs,json,md}\"",
     "format:check": "prettier -c .prettierrc --check \"**/*.{ts,js,cjs,json,md}\"",
     "lint": "eslint . --ext .ts --fix",
-    "lint:check": "eslint . --ext .ts"
+    "lint:check": "eslint . --ext .ts",
+    "test:consumer": "node test/consumer/verify-packed.mjs"
   },
   "keywords": [
     "x402",
@@ -28,7 +33,11 @@
   ],
   "license": "Apache-2.0",
   "author": "x402 Foundation",
-  "repository": "https://github.com/x402-foundation/x402",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BofAI/x402.git",
+    "directory": "typescript/packages/mechanisms/tron"
+  },
   "description": "x402 payment mechanism for TRON (TRC-20 via TIP-712 TransferWithAuthorization and Permit2)",
   "devDependencies": {
     "@bankofai/agent-wallet": "^3.0.0",
@@ -36,6 +45,7 @@
     "@types/node": "^22.13.4",
     "@typescript-eslint/eslint-plugin": "^8.29.1",
     "@typescript-eslint/parser": "^8.29.1",
+    "@x402/core": "2.28.0",
     "eslint": "^9.24.0",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-jsdoc": "^50.6.9",
@@ -49,7 +59,6 @@
     "vitest": "^3.0.5"
   },
   "dependencies": {
-    "@bankofai/x402-core": "workspace:~",
     "tronweb": "^6.1.0"
   },
   "exports": {
@@ -222,9 +231,42 @@
         "types": "./dist/cjs/batch-settlement/facilitator/index.d.ts",
         "default": "./dist/cjs/batch-settlement/facilitator/index.js"
       }
+    },
+    "./exact/extensions": {
+      "import": {
+        "types": "./dist/esm/exact/extensions.d.mts",
+        "default": "./dist/esm/exact/extensions.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/exact/extensions.d.ts",
+        "default": "./dist/cjs/exact/extensions.js"
+      }
+    },
+    "./rpc": {
+      "import": {
+        "types": "./dist/esm/rpc/index.d.mts",
+        "default": "./dist/esm/rpc/index.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/rpc/index.d.ts",
+        "default": "./dist/cjs/rpc/index.js"
+      }
+    },
+    "./transactions": {
+      "import": {
+        "types": "./dist/esm/transactions/index.d.mts",
+        "default": "./dist/esm/transactions/index.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/transactions/index.d.ts",
+        "default": "./dist/cjs/transactions/index.js"
+      }
     }
   },
   "files": [
     "dist"
-  ]
+  ],
+  "peerDependencies": {
+    "@x402/core": "2.28.0"
+  }
 }

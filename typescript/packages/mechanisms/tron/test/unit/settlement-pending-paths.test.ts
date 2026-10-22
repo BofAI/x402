@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
+import type { PaymentPayload, PaymentRequirements } from "@x402/core/types";
 import type { FacilitatorTronSigner } from "../../src/signer";
 import { settleEIP3009 } from "../../src/exact/facilitator/eip3009";
 import { settlePermit2 } from "../../src/exact/facilitator/permit2";

@@ -1,3 +1,4 @@
+import { assertTrc20ApprovalClientPrepared } from "../../exact/extensions";
 import {
   SchemeNetworkClient,
   SchemeClientHooks,
@@ -6,7 +7,7 @@ import {
   PaymentPayloadResult,
   PaymentPayloadContext,
   SettleResponse,
-} from "@bankofai/x402-core/types";
+} from "@x402/core/types";
 import { ClientTronSigner } from "../../signer";
 import { normalizeAddressForSigning } from "../../utils";
 import { BATCH_SETTLEMENT_SCHEME } from "../../shared/batch-settlement/constants";
@@ -39,6 +40,7 @@ import { processCorrectivePaymentRequired } from "./recovery";
 import type { ClientChannelStorage } from "./storage";
 import { signVoucher } from "./voucher";
 import { findDefaultAsset } from "../../shared/defaultAssets";
+import { assertTronSpendCap } from "../../shared/spendControls";
 
 export type { BatchSettlementClientContext } from "./storage";
 export type {
@@ -99,7 +101,10 @@ export class BatchSettlementTronScheme implements SchemeNetworkClient {
     }
 
     validateDepositPolicy(depositPolicy);
-    this.schemeHooks = createBatchSettlementClientHooks(this.deps());
+    this.schemeHooks = {
+      ...createBatchSettlementClientHooks(this.deps()),
+      onAfterPaymentCreation: assertTrc20ApprovalClientPrepared,
+    };
   }
 
   /**
@@ -107,7 +112,7 @@ export class BatchSettlementTronScheme implements SchemeNetworkClient {
    *
    * @param x402Version - Protocol version for the payload envelope.
    * @param paymentRequirements - Server payment requirements.
-   * @param context - Optional payment payload context (unused).
+   * @param context - Optional extension context and resolved atomic spend cap.
    * @returns A {@link PaymentPayloadResult} ready to be sent as the `X-PAYMENT` header.
    */
   async createPaymentPayload(
@@ -115,6 +120,7 @@ export class BatchSettlementTronScheme implements SchemeNetworkClient {
     paymentRequirements: PaymentRequirements,
     context?: PaymentPayloadContext,
   ): Promise<PaymentPayloadResult> {
+    assertTronSpendCap(BigInt(paymentRequirements.amount), context?.maxAmountPerPayment);
     const deps = this.deps();
     const config = buildChannelConfig(deps, paymentRequirements);
     const channelId = computeChannelId(config, paymentRequirements.network);
@@ -157,6 +163,8 @@ export class BatchSettlementTronScheme implements SchemeNetworkClient {
           config,
         );
       }
+
+      assertTronSpendCap(BigInt(depositAmount), context?.maxAmountPerPayment);
 
       const assetTransferMethod =
         (paymentRequirements.extra?.assetTransferMethod as BatchSettlementAssetTransferMethod) ??

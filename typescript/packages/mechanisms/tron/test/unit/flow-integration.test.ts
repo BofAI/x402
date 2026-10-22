@@ -16,7 +16,7 @@ import {
 import { buildTronWeb } from "../../src/rpc";
 import { privateKeyTronWallet } from "./helpers";
 import type { ExactGasFreePayload, ExactPermit2Payload } from "../../src/types";
-import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
+import type { PaymentPayload, PaymentRequirements } from "@x402/core/types";
 
 // The signer factories build TronWeb internally from the network; mock that
 // builder so each signer gets a TronWeb seeded with its own key (set right

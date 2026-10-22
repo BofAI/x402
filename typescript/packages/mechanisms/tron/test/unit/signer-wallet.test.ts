@@ -143,6 +143,32 @@ describe("createClientTronSigner (wallet-only)", () => {
 });
 
 describe("normalizeSignedTronTransaction", () => {
+  it("unwraps a TRON artifact before normalizing signature recovery bytes", () => {
+    const unsigned = { txID: "abc", raw_data: {} };
+    const signature = `${"11".repeat(64)}1b`;
+    expect(
+      normalizeSignedTronTransaction(
+        { family: "tron", transaction: { ...unsigned, signature: [signature] } },
+        unsigned,
+      ),
+    ).toEqual({ ...unsigned, signature: [`${"11".repeat(64)}00`] });
+  });
+
+  it("rejects an EVM artifact rather than forwarding it to TRON broadcast", () => {
+    expect(() =>
+      normalizeSignedTronTransaction({ family: "evm", rawTransaction: "0x1234" }, {}),
+    ).toThrow(/EVM/);
+  });
+
+  it.each([undefined, null, [], "not-a-transaction"])(
+    "rejects a malformed TRON artifact transaction %s",
+    transaction => {
+      expect(() => normalizeSignedTronTransaction({ family: "tron", transaction }, {})).toThrow(
+        /malformed/,
+      );
+    },
+  );
+
   it("normalizes Ethereum-style recovery bytes for TRON transaction signatures", () => {
     const r = "11".repeat(64);
     const unsigned = { txID: "abc" };

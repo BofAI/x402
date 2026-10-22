@@ -1,22 +1,16 @@
 /**
- * x402 upto facilitator — chain-agnostic, EVM + TRON.
- *
- * Exposes /verify, /settle, /supported over HTTP. For the `upto` scheme it
- * verifies the client's Permit2 authorization (capped at the advertised maximum)
- * and on settle submits the on-chain Permit2 `settle` tx for the amount the
- * server requested (<= max). Per-chain setup lives in `src/chains/`; each
- * registers only when its wallet resolves.
+ * TRON upto facilitator example using official x402 integrations.
+ * TRON registration lives in src/chains/tron.ts; wallet keys remain in agent-wallet.
  */
 import express from "express";
-import { x402Facilitator } from "@bankofai/x402-core/facilitator";
+import { x402Facilitator } from "@x402/core/facilitator";
 import type {
   PaymentPayload,
   PaymentRequirements,
   SettleResponse,
   VerifyResponse,
-} from "@bankofai/x402-core/types";
+} from "@x402/core/types";
 
-import { registerEvm } from "./chains/evm.js";
 import { registerTron } from "./chains/tron.js";
 
 // Dedicated port so the upto line never clashes with exact (4022), gasfree
@@ -28,10 +22,9 @@ const facilitator = new x402Facilitator()
   .onAfterSettle(async ctx => console.log("[settle] after", ctx.requirements.network))
   .onSettleFailure(async ctx => console.log("[settle] failure", ctx));
 
-const evm = await registerEvm(facilitator);
 const tron = await registerTron(facilitator);
-if (!evm && !tron) {
-  console.error("❌ No wallet configured for EVM or TRON (see agent-wallet setup).");
+if (!tron) {
+  console.error("❌ No wallet configured for TRON (see agent-wallet setup).");
   process.exit(1);
 }
 
@@ -85,5 +78,5 @@ app.get("/supported", (_req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Upto facilitator on http://localhost:${PORT}  (evm=${evm}, tron=${tron})`);
+  console.log(`🚀 Upto facilitator on http://localhost:${PORT}  (tron=${tron})`);
 });

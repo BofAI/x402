@@ -1,5 +1,5 @@
 /**
- * TRON client setup for batch-settlement. Mirrors the EVM module: the
+ * TRON client setup for batch-settlement. the
  * agent-wallet's methods are passed to `createClientTronSigner`, which resolves
  * the address and re-adds the `0x` prefix agent-wallet strips. The TronWeb
  * instance carries no private key.
@@ -17,13 +17,9 @@ import {
   TRON_MAINNET,
 } from "@bankofai/x402-tron";
 import { BatchSettlementTronScheme } from "@bankofai/x402-tron/batch-settlement/client";
-import type { x402Client } from "@bankofai/x402-fetch";
+import type { x402Client } from "@x402/core/client";
 
-import {
-  tryResolveWallet,
-  type BatchClientOptions,
-  type RefundableScheme,
-} from "../env.js";
+import { tryResolveWallet, type BatchClientOptions, type RefundableScheme } from "../env.js";
 
 const TRON_NETWORK = normalizeTronNetwork(
   process.env.TRON_NETWORK ?? TRON_NILE,
@@ -58,8 +54,6 @@ export async function registerTron(
     depositPolicy: { depositMultiplier: opts.depositMultiplier },
   });
   client.register(TRON_NETWORK, scheme);
-  console.info(
-    `[tron] client registered ${TRON_NETWORK} batch-settlement (${signer.address})`,
-  );
+  console.info(`[tron] client registered ${TRON_NETWORK} batch-settlement (${signer.address})`);
   return [{ label: TRON_NETWORK, refund: (url, o) => scheme.refund(url, o) }];
 }

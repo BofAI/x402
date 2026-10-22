@@ -1,31 +1,18 @@
-# Upto client (EVM + TRON)
+# TRON upto client
 
-Registers the **`upto`** client scheme for each configured chain, wraps `fetch`
-so 402 challenges are paid automatically, then fires N usage-billed requests
-against `GET /generate`. Each request signs a Permit2 authorization for up to the
-server's advertised maximum; the server settles only the real usage it reports
-(≤ max), so the same authorization shape can cost a different amount each time.
+Signs a TRON upto Permit2 authorization for each request; NUMBER_OF_REQUESTS controls the run.
 
-The chain is chosen by the payment-selection pipeline from what the server
-advertises and which wallets are configured here — this client imports no chain
-SDK in `index.ts`.
+From `examples/typescript`:
 
-## Prerequisites
-
-- A wallet via `@bankofai/agent-wallet` (`AGENT_WALLET_PRIVATE_KEY`); one key
-  serves both chains.
-- A running upto server (default `RESOURCE_URL=http://localhost:4051/generate`).
-- **One-time `approve(Permit2)`** for the payer on the token being used
-  (BSC USDC / TRON USDT). On TRON the client auto-broadcasts it; on EVM grant it
-  once before the first run.
-- For BSC testnet, set `EVM_RPC_URL` to a reachable RPC endpoint.
-
-## Run
-
-```bash
-pnpm dev          # from this dir, or:
-pnpm --filter @bankofai/x402-example-upto-client dev        # from repo root
+```sh
+cp .env-upto.example .env-upto
+# Fill in the scenario configuration.
+pnpm dev:upto-client
 ```
 
-Set `NUMBER_OF_REQUESTS` (default 3) to control how many requests are sent. Each
-response shows the authorized maximum and the fraction actually charged.
+Configure an agent-wallet source for the selected TRON network. Wallet keys remain in the wallet provider.
+`TRON_NETWORK` selects the network and defaults to Nile. Ordinary Permit2 Approval requires payer TRX.
+
+See the [TRON scenario guide](../../README.md) for the other roles and prerequisites.
+Use the [official examples](https://github.com/x402-foundation/x402/tree/main/examples/typescript)
+for generic framework and upstream-chain setup.

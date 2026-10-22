@@ -46,14 +46,14 @@ workflow.
 
 ### Prerequisites
 
-- **Node.js**: 22+
+- **Node.js**: 24.22.1+ (run `nvm use` from the repository root)
 - **pnpm**: >= 11 (workspace package manager)
-- **A wallet**: a TRON wallet with TRX (Nile/Shasta testnets) and/or a BSC wallet with BNB, for gas.
+- **A wallet**: a TRON wallet with test TRX and tokens for Nile/Shasta integration tests.
 
 ### Repository Structure
 
-- **SDK**: [`typescript/`](typescript/CLAUDE.md) — pnpm/turbo monorepo, packages published as `@bankofai/x402-*` (`core`, `mechanisms/{evm,tron}`, `extensions`, `http/*`, `mcp`).
-- **Examples**: [`examples/typescript/`](examples/typescript/) — runnable client/server/facilitator trios per scheme.
+- **SDK**: [`typescript/`](typescript/README.md) — pnpm/turbo monorepo containing `core`, `mechanisms/tron`, the independent TRON resource extension, `http/*`, and `mcp`. EVM functionality uses official `@x402/evm@2.28.0` directly.
+- **Examples**: [`examples/typescript/`](examples/typescript/) — TRON client/server/facilitator examples using official x402 integrations, complementing the upstream examples.
 - **Agent rules & reviewers**: [`.claude/`](.claude/rules/CLAUDE.md) — conventions and specialized review subagents.
 
 ---
@@ -76,15 +76,15 @@ pnpm test:integration      # real-chain tests; self-skip without .env creds
 pnpm lint:check            # turbo run lint:check
 
 # single package
-pnpm --filter @bankofai/x402-evm build
-pnpm --filter @bankofai/x402-evm test
+pnpm --filter @bankofai/x402-tron build
+pnpm --filter @bankofai/x402-tron test
 ```
 
 After changing SDK source, **rebuild** before the `examples/` workspace (which links the packages) picks it up.
 
-### Upstream fork — read before editing `core` or `mechanisms/evm`
+### Upstream and TRON ownership
 
-`core` and `mechanisms/evm` are **forked from `x402-foundation/x402`** and kept byte-identical to upstream modulo the `@x402/* → @bankofai/x402-*` rename. Put BankofAI additions in **new overlay files** (`core/src/wallets/`, `mechanisms/evm/src/adapters/`, …) — don't edit upstream files. `mechanisms/tron` is in-house; edit it directly. Full rules in [typescript/CLAUDE.md](typescript/CLAUDE.md).
+The local `core` is upstream-derived; keep BankofAI additions in overlay files such as `core/src/wallets/`. The TRON mechanism and resource extension are maintained here and use official `@x402/core@2.28.0`. Local EVM and legacy packages are retired; use official `@x402/evm@2.28.0` and `@x402/extensions@2.28.0` directly. See [the TypeScript contribution guide](typescript/CONTRIBUTING.md) for package development and [the TRON migration guide](docs/migrations/tron-2.1.md) for application imports.
 
 ### Coding Standards
 
@@ -100,6 +100,7 @@ After changing SDK source, **rebuild** before the `examples/` workspace (which l
 ## Testing Guidelines
 
 1. **Vitest**, co-located under `packages/*/test/`. Unit tests (`test/unit/**`, run by `pnpm test`) must pass **offline with no secrets** — mock the chain client builder, never hit a real node. Integration tests (`test/integrations/*.nile.test.ts`) self-skip when `.env` creds are absent.
+   The Nile resource-sponsoring suite and its environment template live in [`typescript/packages/extensions/test/integrations/`](typescript/packages/extensions/test/integrations/README.md). Run it with `pnpm --filter @bankofai/x402-tron-extensions test:integration` from `typescript/`.
 2. **Write a reproduction test first** when fixing a bug.
 3. **Never print or log private keys or secrets** in test output.
 

@@ -1,20 +1,6 @@
 /**
- * x402 batch-settlement client — chain-agnostic, EVM + TRON, env-driven targets.
- *
- * Registers the `batch-settlement` client scheme for each configured chain and
- * wraps `fetch` so 402 challenges are paid automatically. Which chains/tokens to
- * exercise — and in what order — is controlled by `PAY_TARGETS`; for each target
- * it fires a burst of N requests (first opens a payment channel via one on-chain
- * deposit; the rest are off-chain vouchers) and optionally refunds that channel's
- * remaining balance. A mutable selector pins the payment pipeline to the current
- * target. This file imports no chain SDK directly.
- *
- * PAY_TARGETS — comma-separated, one burst (+refund) per entry, in order:
- *   <network>[@<token>]   network: full CAIP-2 ("eip155:97", TRON_NILE) or a
- *   family prefix ("eip155"/"tron") when no token is specified;
- *   token: symbol or asset address (requires a full CAIP-2 network to resolve).
- *   (`@` not `#` — dotenv treats `#` as a comment.)
- *   Unset ⇒ each configured chain once.
+ * TRON batch-settlement client example using official x402 integrations.
+ * TRON registration lives in src/chains/tron.ts; wallet keys remain in agent-wallet.
  */
 import {
   normalizeTronNetwork,
@@ -23,18 +9,13 @@ import {
   TRON_MAINNET,
   TRON_SHASTA,
 } from "@bankofai/x402-tron";
-import {
-  x402Client,
-  wrapFetchWithPayment,
-  decodePaymentResponseHeader,
-} from "@bankofai/x402-fetch";
+import { x402Client } from "@x402/core/client";
+import { wrapFetchWithPayment, decodePaymentResponseHeader } from "@x402/fetch";
 
-import { registerEvm } from "./chains/evm.js";
 import { registerTron } from "./chains/tron.js";
 import type { BatchClientOptions, RefundableScheme } from "./env.js";
 
-const RESOURCE_URL =
-  process.env.RESOURCE_URL || "http://localhost:4041/weather";
+const RESOURCE_URL = process.env.RESOURCE_URL || "http://localhost:4041/weather";
 const NUMBER_OF_REQUESTS = Number(process.env.NUMBER_OF_REQUESTS ?? "3");
 const REFUND_AFTER = process.env.REFUND_AFTER_REQUESTS === "true";
 const REFUND_AMOUNT = process.env.REFUND_AMOUNT?.trim() || undefined;
@@ -47,9 +28,6 @@ const opts: BatchClientOptions = {
 
 // Friendly token symbol → asset address, mirroring what the server advertises.
 const TOKEN_ADDRESSES: Record<string, Record<string, string>> = {
-  "eip155:97": {
-    USDC: "0x64544969ed7EBf5f083679233325356EbE738930", // permit2
-  },
   [TRON_NILE]: {
     USDT: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf", // permit2 (default)
     USDD: "TGjgvdTWWrybVLaVeFqSyVqJQWjxqRYbaK", // permit2
@@ -91,11 +69,7 @@ function resolveToken(prefix: string, token: string): string {
 
 /** Match canonical TRON IDs and their deprecated hexadecimal aliases. */
 function matchesNetwork(network: string, prefix: string): boolean {
-  if (
-    network.startsWith("tron:") &&
-    prefix.startsWith("tron:") &&
-    prefix !== "tron:"
-  ) {
+  if (network.startsWith("tron:") && prefix.startsWith("tron:") && prefix !== "tron:") {
     return tronNetworksEqual(network, prefix);
   }
   return network.startsWith(prefix);
@@ -107,10 +81,13 @@ function parsePayTargets(): PayTarget[] {
   if (!raw) return [];
   return raw
     .split(",")
-    .map((s) => s.trim())
+    .map(s => s.trim())
     .filter(Boolean)
-    .map((entry) => {
+    .map(entry => {
       const [prefix, token] = entry.split("@", 2);
+      if (prefix!.trim() !== "tron" && !prefix!.trim().startsWith("tron:")) {
+        throw new Error(`Only TRON payment targets are supported: ${entry}`);
+      }
       const normalizedPrefix = prefix!.trim().startsWith("tron:")
         ? normalizeTronNetwork(prefix!.trim())
         : prefix!.trim();
@@ -128,7 +105,7 @@ const client = new x402Client((_x402Version, accepts) => {
   const t = target;
   if (!t) return accepts[0]!;
   const match = accepts.find(
-    (a) =>
+    a =>
       matchesNetwork(a.network, t.prefix) &&
       (!t.asset || a.asset.toLowerCase() === t.asset.toLowerCase()),
   );
@@ -138,36 +115,23 @@ const client = new x402Client((_x402Version, accepts) => {
   return match;
 });
 
-const evmSchemes = await registerEvm(client, opts);
 const tronSchemes = await registerTron(client, opts);
-const evm = evmSchemes.length > 0;
 const tron = tronSchemes.length > 0;
 // Refundable channel handles, keyed by their CAIP-2 network label.
-const refundable: RefundableScheme[] = [...evmSchemes, ...tronSchemes];
+const refundable: RefundableScheme[] = tronSchemes;
 
 // Default (PAY_TARGETS unset): each configured chain once.
 let targets = parsePayTargets();
 if (targets.length === 0) {
-  if (evm) targets.push({ raw: "eip155", prefix: "eip155:" });
   if (tron) targets.push({ raw: "tron", prefix: "tron:" });
 }
 if (targets.length === 0) {
-  console.error(
-    "❌ No wallet configured for EVM or TRON (see agent-wallet setup).",
-  );
+  console.error("❌ No wallet configured for TRON (see agent-wallet setup).");
   process.exit(1);
 }
 for (const t of targets) {
-  if (t.prefix.startsWith("eip155") && !evm) {
-    console.error(
-      `❌ target "${t.raw}" needs an EVM wallet, but none is configured.`,
-    );
-    process.exit(1);
-  }
   if (t.prefix.startsWith("tron") && !tron) {
-    console.error(
-      `❌ target "${t.raw}" needs a TRON wallet, but none is configured.`,
-    );
+    console.error(`❌ target "${t.raw}" needs a TRON wallet, but none is configured.`);
     process.exit(1);
   }
 }
@@ -187,9 +151,7 @@ for (const t of targets) {
     usedNetwork ??= networkFromPaymentResponse(res);
     const body = await res.json();
     const secs = ((performance.now() - t0) / 1000).toFixed(3);
-    console.log(
-      `request ${i}/${NUMBER_OF_REQUESTS} — ${res.status} in ${secs}s`,
-    );
+    console.log(`request ${i}/${NUMBER_OF_REQUESTS} — ${res.status} in ${secs}s`);
     console.log(JSON.stringify(body, null, 2));
     if (!res.ok) {
       throw new Error(
@@ -199,7 +161,7 @@ for (const t of targets) {
   }
 
   if (REFUND_AFTER) {
-    const scheme = refundable.find((s) =>
+    const scheme = refundable.find(s =>
       usedNetwork ? matchesNetwork(s.label, usedNetwork) : false,
     );
     if (!scheme) {
@@ -230,9 +192,7 @@ for (const t of targets) {
  * @returns The CAIP-2 network string, or `undefined`.
  */
 function networkFromPaymentResponse(res: Response): string | undefined {
-  const header =
-    res.headers.get("payment-response") ??
-    res.headers.get("x-payment-response");
+  const header = res.headers.get("payment-response") ?? res.headers.get("x-payment-response");
   if (!header) return undefined;
   try {
     return decodePaymentResponseHeader(header).network;

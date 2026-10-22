@@ -1,38 +1,17 @@
-# MCP server — dual-chain (BSC testnet + TRON Nile)
+# TRON mcp server
 
-An MCP server whose `get_weather` tool is gated behind x402 payment, accepting
-**both** BSC testnet (`eip155:97`) and TRON Nile (`tron:3448148188`) at once. A 402
-challenge offers every enabled chain; the client pays on whichever it supports.
-`ping` is free.
+Registers the TRON exact server with official @x402/mcp. Exposes free ping and paid get_weather tools over SSE on port 4023.
 
-Keyless: the server advertises `accepts` and delegates verify/settle to a
-facilitator over HTTP. Per-chain setup is in `src/chains/`, each gated on its
-payout address — run EVM-only, TRON-only, or both.
+From `examples/typescript`:
 
-## Run
-
-Shares `.env-exact` with the `exact` trio (`cp .env-exact.example .env-exact`):
-
-```bash
-# 1. Start the dual-chain facilitator (separate terminal)
-pnpm dev:facilitator                 # facilitator/basic on :4022
-
-# 2. Start this MCP server
-pnpm dev:mcp-server                  # SSE on :4023
-
-# 3. Call it
-pnpm dev:mcp-client
+```sh
+cp .env-exact.example .env-exact
+# Fill in the scenario configuration.
+pnpm dev:mcp-server
 ```
 
-Env (from `.env-exact`): `EVM_ADDRESS` (BSC payout), `TRON_ADDRESS` (TRON payout),
-`FACILITATOR_URL` (default `http://localhost:4022`). MCP-specific:
-`MCP_SERVER_PORT` (default `4023`).
+Start `pnpm dev:facilitator` first; both MCP examples share `.env-exact`.
 
-## Tokens
-
-- **BSC testnet**: DHLU (ERC-3009) — gasless, no approve, no extension.
-- **TRON Nile**: USDT + USDD (permit2) — the TRON client auto-broadcasts the
-  one-time `approve(Permit2)`.
-
-To also accept a permit2 EVM token (e.g. BSC USDC), add the ERC-20 approval
-gas-sponsoring extension — see `servers/express`.
+See the [TRON scenario guide](../../README.md) for the other roles and prerequisites.
+Use the [official examples](https://github.com/x402-foundation/x402/tree/main/examples/typescript)
+for generic framework and upstream-chain setup.

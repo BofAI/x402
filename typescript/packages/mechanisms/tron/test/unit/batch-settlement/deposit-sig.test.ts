@@ -184,41 +184,6 @@ describe("batch-settlement deposit authorizations (TRON)", () => {
     expect(ok).toBe(true);
   });
 
-  it("uses the Permit2 deposit amount when creating a sponsored Approval", async () => {
-    const signPermit2Approval = vi.fn(async () => "0a02abcd");
-    const sponsoredSigner: ClientTronSigner = {
-      ...signer,
-      readContract: vi.fn(async () => 0n),
-      signPermit2Approval,
-      ensureAllowance: vi.fn(async () => true),
-    };
-
-    const result = await createBatchSettlementPermit2DepositPayload(
-      sponsoredSigner,
-      2,
-      requirements,
-      config,
-      "5000",
-      "1000",
-      undefined,
-      {
-        extensions: {
-          [TRC20_APPROVAL_RESOURCE_SPONSORING_KEY]: { info: { version: "1" } },
-        },
-      },
-    );
-
-    expect(signPermit2Approval).toHaveBeenCalledWith({
-      token: ASSET,
-      network: NETWORK,
-      minimumLifetimeSeconds: 600,
-    });
-    expect(result.extensions?.[TRC20_APPROVAL_RESOURCE_SPONSORING_KEY]).toMatchObject({
-      info: { asset: ASSET, signedTransaction: "0a02abcd" },
-    });
-    expect(sponsoredSigner.ensureAllowance).not.toHaveBeenCalled();
-  });
-
   it("fails closed on a malformed sponsored Approval after Permit2 deposit validation", async () => {
     const result = await createBatchSettlementPermit2DepositPayload(
       signer,

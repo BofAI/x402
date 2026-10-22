@@ -1,5 +1,5 @@
-import type { PaymentRequirements } from "@bankofai/x402-core/types";
-import type { SelectPaymentRequirements } from "@bankofai/x402-core/client";
+import type { PaymentRequirements } from "@x402/core/types";
+import type { SelectPaymentRequirements } from "@x402/core/client";
 import { getDecimals } from "./tokens";
 
 /**

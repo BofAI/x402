@@ -1,9 +1,11 @@
+import { assertTrc20ApprovalClientPrepared } from "../../exact/extensions";
+import { readTronContract } from "../../signer";
 import {
   PaymentRequirements,
   SchemeNetworkClient,
   PaymentPayloadResult,
   PaymentPayloadContext,
-} from "@bankofai/x402-core/types";
+} from "@x402/core/types";
 import { ClientTronSigner } from "../../signer";
 import { AssetTransferMethod } from "../../types";
 import { transferWithAuthorizationABI } from "../../constants";
@@ -21,6 +23,7 @@ import { findDefaultAsset } from "../../shared/defaultAssets";
 export class ExactTronScheme implements SchemeNetworkClient {
   readonly scheme = "exact";
   readonly findDefaultAsset = findDefaultAsset;
+  readonly schemeHooks = { onAfterPaymentCreation: assertTrc20ApprovalClientPrepared };
 
   /**
    * Creates a new ExactTronScheme instance.
@@ -63,7 +66,7 @@ export class ExactTronScheme implements SchemeNetworkClient {
    */
   async checkBalance(asset: string, network: string): Promise<bigint> {
     void network;
-    const balance = (await this.signer.readContract({
+    const balance = (await readTronContract(this.signer, {
       address: asset,
       abi: transferWithAuthorizationABI as unknown as readonly Record<string, unknown>[],
       functionName: "balanceOf",

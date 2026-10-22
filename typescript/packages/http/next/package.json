@@ -42,7 +42,7 @@
   },
   "dependencies": {
     "@bankofai/x402-core": "workspace:~",
-    "@bankofai/x402-extensions": "workspace:~"
+    "@x402/extensions": "2.28.0"
   },
   "peerDependencies": {
     "next": ">=16.2.6"

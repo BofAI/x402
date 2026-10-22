@@ -31,7 +31,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: "24.22.1"
           cache: pnpm
           cache-dependency-path: |
             typescript/pnpm-lock.yaml
@@ -51,6 +51,15 @@ jobs:
 
       - name: Run unit tests
         run: pnpm test
+
+      - name: Run integration suites (Nile skips without credentials)
+        run: pnpm test:integration
+
+      - name: Verify independent TRON package consumers
+        run: pnpm --filter @bankofai/x402-tron test:consumer
+
+      - name: Verify independent TRON resource extension consumers
+        run: pnpm --filter @bankofai/x402-tron-extensions test:consumer
 
       - name: Install example dependencies
         working-directory: examples/typescript

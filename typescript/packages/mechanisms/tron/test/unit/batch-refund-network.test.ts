@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { BatchSettlementTronScheme } from "../../src/batch-settlement/client/scheme";
 import type { ClientTronSigner } from "../../src/signer";
-import { encodePaymentRequiredHeader } from "@bankofai/x402-core/http";
-import type { PaymentRequired, PaymentRequirements } from "@bankofai/x402-core/types";
+import { encodePaymentRequiredHeader } from "@x402/core/http";
+import type { PaymentRequired, PaymentRequirements } from "@x402/core/types";
 
 /**
  * Regression: on a route that advertises batch-settlement on several networks

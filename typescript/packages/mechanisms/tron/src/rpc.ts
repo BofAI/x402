@@ -7,7 +7,7 @@
  * it and inject a fake TronWeb without touching the network.
  */
 import { TronWeb } from "tronweb";
-import { log } from "@bankofai/x402-core";
+import { log } from "./logger";
 import {
   getTronNetworkValue,
   normalizeTronNetwork,
@@ -93,9 +93,22 @@ export function resolveTronRpcUrl(network: string, opts: BuildTronWebOptions = {
  * @returns A TronWeb instance.
  */
 export function buildTronWeb(network: string, opts: BuildTronWebOptions = {}): TronWeb {
-  const fullHost = resolveTronRpcUrl(network, opts);
-  return new TronWeb({
-    fullHost,
+  return new TronWeb(resolveTronRpcConfig(network, opts));
+}
+
+/**
+ * Resolve RPC connection options without exposing a concrete provider's types.
+ *
+ * @param network - Target TRON network.
+ * @param opts - RPC URL and optional API credential.
+ * @returns Connection options accepted by TronWeb and application RPC adapters.
+ */
+export function resolveTronRpcConfig(
+  network: string,
+  opts: BuildTronWebOptions = {},
+): { fullHost: string; headers?: Record<string, string> } {
+  return {
+    fullHost: resolveTronRpcUrl(network, opts),
     ...(opts.apiKey ? { headers: { "TRON-PRO-API-KEY": opts.apiKey } } : {}),
-  });
+  };
 }

@@ -1,5 +1,5 @@
-import type { AssetAmount, Network } from "@bankofai/x402-core/types";
-import { convertToTokenAmount as convertCoreTokenAmount } from "@bankofai/x402-core/utils";
+import type { AssetAmount, Network } from "@x402/core/types";
+import { convertToTokenAmount as convertCoreTokenAmount } from "@x402/core/utils";
 import { normalizeTronNetwork, TRON_MAINNET, TRON_NILE, TRON_SHASTA } from "../network";
 
 /**

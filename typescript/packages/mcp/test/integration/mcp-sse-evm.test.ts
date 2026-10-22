@@ -23,7 +23,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { createWalletClient, createPublicClient, http } from "viem";
 import { baseSepolia } from "viem/chains";
 
-import { x402MCPClient, x402MCPServer } from "../../src";
+import { x402MCPClient, createPaymentWrapper } from "../../src";
 import { x402Client } from "@bankofai/x402-core/client";
 import { x402ResourceServer, FacilitatorClient } from "@bankofai/x402-core/server";
 import { x402Facilitator } from "@bankofai/x402-core/facilitator";
@@ -34,10 +34,10 @@ import type {
   SettleResponse,
   SupportedResponse,
 } from "@bankofai/x402-core/types";
-import { toFacilitatorEvmSigner } from "@bankofai/x402-evm";
-import { ExactEvmScheme as ExactEvmClientScheme } from "@bankofai/x402-evm/exact/client";
-import { ExactEvmScheme as ExactEvmServerScheme } from "@bankofai/x402-evm/exact/server";
-import { ExactEvmScheme as ExactEvmFacilitatorScheme } from "@bankofai/x402-evm/exact/facilitator";
+import { toFacilitatorEvmSigner } from "@x402/evm";
+import { ExactEvmScheme as ExactEvmClientScheme } from "@x402/evm/exact/client";
+import { ExactEvmScheme as ExactEvmServerScheme } from "@x402/evm/exact/server";
+import { ExactEvmScheme as ExactEvmFacilitatorScheme } from "@x402/evm/exact/facilitator";
 
 // ============================================================================
 // Environment Setup
@@ -112,7 +112,16 @@ class EvmFacilitatorClient implements FacilitatorClient {
    * @returns Promise resolving to supported response
    */
   getSupported(): Promise<SupportedResponse> {
-    return Promise.resolve(this.facilitator.getSupported());
+    const supported = this.facilitator.getSupported();
+    return Promise.resolve({
+      ...supported,
+      kinds: supported.kinds.map(kind => {
+        if (kind.network !== TEST_NETWORK) {
+          throw new Error(`Unexpected test network: ${kind.network}`);
+        }
+        return { ...kind, network: TEST_NETWORK };
+      }),
+    });
   }
 }
 
@@ -122,7 +131,6 @@ class EvmFacilitatorClient implements FacilitatorClient {
 
 describe.skipIf(SKIP_TESTS)("Real SSE MCP Integration Tests", () => {
   let httpServer: Server;
-  let x402Server: x402MCPServer;
   let x402ClientInstance: x402MCPClient;
   let clientAddress: `0x${string}`;
   let recipientAddress: `0x${string}`;
@@ -192,40 +200,32 @@ describe.skipIf(SKIP_TESTS)("Real SSE MCP Integration Tests", () => {
     resourceServer.register(TEST_NETWORK, new ExactEvmServerScheme());
     await resourceServer.initialize();
 
-    x402Server = new x402MCPServer(mcpServer, resourceServer);
-
-    // Register a FREE tool
-    x402Server.tool("ping", "A free health check tool", {}, async () => ({
+    // Register free and paid tools through the current MCP SDK API.
+    mcpServer.tool("ping", "A free health check tool", {}, async () => ({
       content: [{ type: "text" as const, text: "pong" }],
     }));
 
-    // Register a PAID tool
-    x402Server.paidTool(
+    const accepts = await resourceServer.buildPaymentRequirements({
+      scheme: "exact",
+      network: TEST_NETWORK,
+      price: "$0.001",
+      payTo: recipientAddress,
+      extra: { name: "USDC", version: "2" },
+    });
+    const paid = createPaymentWrapper(resourceServer, { accepts });
+    mcpServer.tool(
       "get_weather",
-      {
-        description: "Get weather for a city. Requires payment.",
-        inputSchema: {
-          city: z.string().describe("The city name"),
-        },
-      },
-      {
-        scheme: "exact",
-        network: TEST_NETWORK,
-        price: "$0.001", // 0.001 USDC = 1000 atomic units
-        payTo: recipientAddress,
-        extra: { name: "USDC", version: "2" },
-      },
-      async ({ city }) => ({
+      "Get weather for a city. Requires payment.",
+      { city: z.string().describe("The city name") },
+      paid(async ({ city }: { city: string }) => ({
         content: [
           {
             type: "text" as const,
             text: JSON.stringify({ city, weather: "sunny", temperature: 72 }),
           },
         ],
-      }),
+      })),
     );
-
-    await x402Server.initialize();
 
     // ========================================================================
     // Start Express Server for SSE

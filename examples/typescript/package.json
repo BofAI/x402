@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Runnable TypeScript examples for @bankofai/x402-* — EVM + TRON only.",
+  "description": "TRON SDK examples complementing the official x402 examples.",
   "scripts": {
     "dev:facilitator": "pnpm --filter @bankofai/x402-example-facilitator-basic dev",
     "dev:server": "pnpm --filter @bankofai/x402-example-server-express dev",
@@ -23,10 +23,9 @@
     "dev:mcp-server": "pnpm --filter @bankofai/x402-example-mcp-server dev",
     "dev:mcp-client": "pnpm --filter @bankofai/x402-example-mcp-client dev",
     "dev:logging": "pnpm --filter @bankofai/x402-example-logging dev",
-    "dev:multi-scheme-server": "pnpm --filter @bankofai/x402-example-server-multi-scheme dev",
     "test": "pnpm --filter @bankofai/x402-example-server-express test"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24.22.1"
   }
 }

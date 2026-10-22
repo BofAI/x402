@@ -1,5 +1,5 @@
 /**
- * TRON setup for the upto resource server — mirrors the EVM module.
+ * TRON setup for the upto resource server —
  *
  * Key-less: registers the `upto` server scheme and advertises `accepts`. The
  * actual charge is decided per request in `index.ts` via a `Settlement-Overrides`
@@ -9,14 +9,9 @@
  * `"$"` form (the scheme maps it to USDT). USDT is a **Permit2** token, so the
  * client authorizes via Permit2 — the payer needs a one-time `approve(Permit2)`.
  */
-import {
-  TRON_NILE,
-  TRON_MAINNET,
-  TRON_SHASTA,
-  normalizeTronNetwork,
-} from "@bankofai/x402-tron";
+import { TRON_NILE, TRON_MAINNET, TRON_SHASTA, normalizeTronNetwork } from "@bankofai/x402-tron";
 import { UptoTronScheme } from "@bankofai/x402-tron/upto/server";
-import type { x402ResourceServer } from "@bankofai/x402-express";
+import type { x402ResourceServer } from "@x402/core/server";
 
 // Switch to TRON_MAINNET for production (REAL FUNDS): USDT is registered there
 // too — only the facilitator/client TronWeb `fullHost` must point at mainnet.
@@ -37,9 +32,7 @@ export function hasTron(): boolean {
 export function registerTron(resourceServer: x402ResourceServer): void {
   const payTo = process.env.TRON_ADDRESS as string;
   resourceServer.register(TRON_NETWORK, new UptoTronScheme());
-  console.info(
-    `[tron] server registered ${TRON_NETWORK} upto (payTo ${payTo})`,
-  );
+  console.info(`[tron] server registered ${TRON_NETWORK} upto (payTo ${payTo})`);
 }
 
 /**

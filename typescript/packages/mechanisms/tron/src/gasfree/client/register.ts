@@ -1,5 +1,5 @@
-import { x402Client, PaymentPolicy } from "@bankofai/x402-core/client";
-import { Network } from "@bankofai/x402-core/types";
+import { x402Client, PaymentPolicy } from "@x402/core/client";
+import { Network } from "@x402/core/types";
 import { normalizeTronNetwork } from "../../network";
 import { ClientTronSigner } from "../../signer";
 import { GasFreeAPIClient, createGasFreeApiClients } from "../../shared/gasfree/api";

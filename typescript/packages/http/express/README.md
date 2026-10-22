@@ -13,7 +13,7 @@ pnpm install @bankofai/x402-express
 ```typescript
 import express from "express";
 import { paymentMiddleware, x402ResourceServer } from "@bankofai/x402-express";
-import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
+import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
 
 const app = express();
@@ -219,7 +219,7 @@ If you need to use a custom facilitator server, configure it when creating the x
 ```typescript
 import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
 import { x402ResourceServer } from "@bankofai/x402-express";
-import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
+import { ExactEvmScheme } from "@x402/evm/exact/server";
 
 const customFacilitator = new HTTPFacilitatorClient({
   url: "https://your-facilitator.com",
@@ -263,7 +263,7 @@ app.use(
 ```typescript
 import { paymentMiddleware, x402ResourceServer } from "@bankofai/x402-express";
 import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
-import { ExactEvmScheme } from "@bankofai/x402-evm/exact/server";
+import { ExactEvmScheme } from "@x402/evm/exact/server";
 
 const facilitator = new HTTPFacilitatorClient({ url: facilitatorUrl });
 const resourceServer = new x402ResourceServer(facilitator)

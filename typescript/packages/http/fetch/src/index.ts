@@ -19,7 +19,7 @@ import { log } from "@bankofai/x402-core";
  * @example
  * ```typescript
  * import { wrapFetchWithPayment, x402Client } from '@bankofai/x402-fetch';
- * import { ExactEvmScheme } from '@bankofai/x402-evm';
+ * import { ExactEvmScheme } from '@x402/evm';
  * import { ExactTronScheme } from '@bankofai/x402-tron';
  *
  * const client = new x402Client()
