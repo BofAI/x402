@@ -1,8 +1,6 @@
 # TRC-20 Approval Resource Sponsoring
 
-Part of [`@bankofai/x402-extensions`](../README.md). **Import from the package root:**
-`import { ... } from "@bankofai/x402-extensions"` (this module is not a separate npm export
-subpath).
+Part of [`@bankofai/x402-tron-extensions`](../../README.md), available from the root or the `trc20-approval-resource-sponsoring` subpath.
 
 This Extension enables the first supported TRON Permit2 operation without requiring the payer to
 hold TRX. Version 1 supports `exact`, `upto`, and the Permit2 deposit/top-up path of
@@ -33,7 +31,7 @@ There is no additional Server-to-Facilitator endpoint. The public x402 interacti
 ## Resource server
 
 ```typescript
-import { declareTrc20ApprovalResourceSponsoringExtension } from "@bankofai/x402-extensions";
+import { declareTrc20ApprovalResourceSponsoringExtension } from "@bankofai/x402-tron-extensions";
 
 const route = {
   price: {
@@ -55,11 +53,11 @@ Extension. Declaring the Extension is the only additional Resource Server integr
 
 ## Client
 
-**You do not manually add this Extension** when using the supported TRON Client schemes.
-`@bankofai/x402-tron` handles it automatically. When the Server advertises version `1`, the selected
-path uses Permit2, and allowance is zero, the Client constructs and signs
-`approve(canonicalPermit2, MaxUint256)`, serializes the complete signed TRON Transaction protobuf,
-and attaches it to the payment payload. The Client does not broadcast the Approval.
+Register `createTrc20ApprovalResourceSponsoringClientExtension(signer)` with official
+`x402Client.registerExtension()`. The mechanism creates the authorization, then the
+extension prepares Approval using the final permitted amount. It does not broadcast
+Approval on the sponsored path. Already-approved payments remove the unused extension
+from the final payload after Core has merged the server declaration.
 
 Use `createClientTronSigner(...)` for the standard signer setup. Custom signers must expose
 `readContract`, `signPermit2Approval`, an exact `network` binding, and a compatible Approval policy.
@@ -71,18 +69,18 @@ When the Extension is absent, the existing self-funded Approval behavior remains
 
 ## Facilitator
 
-### Typical stack (`@bankofai/x402-core` + `@bankofai/x402-tron`)
+### Typical stack (`@x402/core` + `@bankofai/x402-tron`)
 
 Register the normal TRON scheme and a runtime that implements the resource lifecycle:
 
 ```typescript
-import { x402Facilitator } from "@bankofai/x402-core/facilitator";
+import { x402Facilitator } from "@x402/core/facilitator";
 import {
   createTrc20ApprovalResourceSponsoringExtension,
-} from "@bankofai/x402-extensions";
+} from "@bankofai/x402-tron-extensions";
 import {
   createTrc20ResourceSponsoringRuntime,
-} from "@bankofai/x402-tron";
+} from "@bankofai/x402-tron-extensions";
 import { ExactTronScheme } from "@bankofai/x402-tron/exact/facilitator";
 
 const resourceSponsoringRuntime = await createTrc20ResourceSponsoringRuntime({

@@ -4,7 +4,7 @@ import { afterEach, test } from "node:test";
 import { selectPayTargetNetworks } from "./payTargets.js";
 
 const originalPayTargets = process.env.PAY_TARGETS;
-const networks = ["eip155:8453", "tron:3448148188"] as const;
+const networks = ["tron:3448148188", "tron:2494104990", "tron:728126428"] as const;
 
 afterEach(() => {
   if (originalPayTargets === undefined) {
@@ -26,13 +26,23 @@ test("matches a deprecated hexadecimal TRON alias with a token suffix", () => {
 
 test("matches both namespace spellings", () => {
   process.env.PAY_TARGETS = "tron";
-  assert.deepEqual(selectPayTargetNetworks(networks), ["tron:3448148188"]);
+  assert.deepEqual(selectPayTargetNetworks(networks), networks);
 
   process.env.PAY_TARGETS = "tron:";
-  assert.deepEqual(selectPayTargetNetworks(networks), ["tron:3448148188"]);
+  assert.deepEqual(selectPayTargetNetworks(networks), networks);
 });
 
-test("keeps exact non-TRON and canonical TRON matching", () => {
-  process.env.PAY_TARGETS = "eip155:8453,tron:3448148188";
-  assert.deepEqual(selectPayTargetNetworks(networks), networks);
+test("selects only the requested TRON network", () => {
+  process.env.PAY_TARGETS = "tron:2494104990@USDT";
+  assert.deepEqual(selectPayTargetNetworks(networks), ["tron:2494104990"]);
+});
+
+test("rejects a target outside the TRON family", () => {
+  process.env.PAY_TARGETS = "eip155:8453";
+  assert.throws(() => selectPayTargetNetworks(networks), /TRON/);
+});
+
+test("rejects a mixed selection instead of silently skipping unsupported targets", () => {
+  process.env.PAY_TARGETS = "tron:3448148188@USDT,eip155:8453";
+  assert.throws(() => selectPayTargetNetworks(networks), /TRON/);
 });

@@ -1,5 +1,5 @@
 import { TronWeb } from "tronweb";
-import type { Network } from "@bankofai/x402-core/types";
+import type { Network } from "@x402/core/types";
 import { normalizeTronNetwork } from "./network";
 import { findByAddress } from "./shared/tokens";
 

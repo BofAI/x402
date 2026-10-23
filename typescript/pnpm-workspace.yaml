@@ -3,8 +3,7 @@ packages:
   - packages/extensions
   - packages/mcp
   - packages/http/*
-  - packages/mechanisms/*
-  - packages/legacy/*
+  - packages/mechanisms/tron
   - examples/**/*
 overrides:
   cssstyle: 5.3.6

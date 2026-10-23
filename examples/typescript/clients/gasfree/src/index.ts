@@ -6,7 +6,8 @@
  * protected resource. The payer signs a TIP-712 GasFree permit; a relayer pays
  * the on-chain energy — the payer needs no TRX.
  */
-import { x402Client, wrapFetchWithPayment } from "@bankofai/x402-fetch";
+import { x402Client } from "@x402/core/client";
+import { wrapFetchWithPayment } from "@x402/fetch";
 
 import { registerTronGasFree } from "./chains/tron.js";
 

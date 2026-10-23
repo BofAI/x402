@@ -87,13 +87,12 @@ Use these templates:
 The public behavior is implemented under:
 
 - `typescript/packages/core/src/`
-- `typescript/packages/mechanisms/evm/src/`
 - `typescript/packages/mechanisms/tron/src/`
 - `typescript/packages/extensions/src/`
 - `typescript/packages/http/`
 - `typescript/packages/mcp/src/`
 
-EVM and core are upstream-derived; TRON is maintained in this repository. Specifications should
+The local core is upstream-derived; EVM uses official `@x402/evm` directly, and TRON is maintained in this repository. Specifications should
 describe observable behavior and wire contracts without exposing private keys, RPC credentials, or
 deployment secrets.
 

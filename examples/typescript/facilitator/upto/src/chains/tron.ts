@@ -1,5 +1,5 @@
 /**
- * TRON chain setup for the upto facilitator — mirrors the EVM module.
+ * TRON chain setup for the upto facilitator —
  *
  * `createFacilitatorTronSigner` sets the issuer address from the wallet and
  * builds/signs/broadcasts the on-chain Permit2 `settle` tx for the upto proxy
@@ -14,7 +14,7 @@ import {
   TRON_MAINNET,
 } from "@bankofai/x402-tron";
 import { UptoTronScheme } from "@bankofai/x402-tron/upto/facilitator";
-import type { x402Facilitator } from "@bankofai/x402-core/facilitator";
+import type { x402Facilitator } from "@x402/core/facilitator";
 
 import { tryResolveWallet } from "../env.js";
 
@@ -30,9 +30,7 @@ export const TRON_NETWORK = normalizeTronNetwork(
  * @param facilitator - The facilitator to register the scheme on.
  * @returns `true` if registered, `false` if no TRON wallet was configured.
  */
-export async function registerTron(
-  facilitator: x402Facilitator,
-): Promise<boolean> {
+export async function registerTron(facilitator: x402Facilitator): Promise<boolean> {
   const wallet = await tryResolveWallet(TRON_NETWORK);
   if (!wallet) {
     return false;
@@ -47,8 +45,6 @@ export async function registerTron(
   });
 
   facilitator.register(TRON_NETWORK, new UptoTronScheme(signer));
-  console.info(
-    `[tron] facilitator registered ${TRON_NETWORK} upto (${address})`,
-  );
+  console.info(`[tron] facilitator registered ${TRON_NETWORK} upto (${address})`);
   return true;
 }

@@ -82,7 +82,7 @@ export interface PaymentWrapperConfig {
    *
    * @example
    * ```typescript
-   * import { declareDiscoveryExtension } from "@bankofai/x402-extensions/bazaar";
+   * import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
    *
    * resource: { url: "mcp://tool/get_weather" },
    * extensions: declareDiscoveryExtension({

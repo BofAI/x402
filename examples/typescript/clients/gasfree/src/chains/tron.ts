@@ -8,15 +8,11 @@
  * wallet) and never needs TRX. Unlike the `exact` permit2 flow there is no
  * one-time `approve`, so the signer only needs `getAddress` + `signTypedData`.
  *
- * GasFree is TRON-only — there is no EVM counterpart.
+ * GasFree is specific to TRON.
  */
-import {
-  createClientTronSigner,
-  normalizeTronNetwork,
-  TRON_NILE,
-} from "@bankofai/x402-tron";
+import { createClientTronSigner, normalizeTronNetwork, TRON_NILE } from "@bankofai/x402-tron";
 import { registerExactGasFreeTronScheme } from "@bankofai/x402-tron/gasfree/client";
-import type { x402Client } from "@bankofai/x402-fetch";
+import type { x402Client } from "@x402/core/client";
 
 import { tryResolveTronWallet } from "../env.js";
 
@@ -30,9 +26,7 @@ const TRON_NETWORK = normalizeTronNetwork(
  * @param client - The x402 client to register the scheme on.
  * @returns `true` if registered, `false` when no TRON wallet was configured.
  */
-export async function registerTronGasFree(
-  client: x402Client,
-): Promise<boolean> {
+export async function registerTronGasFree(client: x402Client): Promise<boolean> {
   const wallet = await tryResolveTronWallet(TRON_NETWORK);
   if (!wallet) {
     return false;
@@ -58,8 +52,6 @@ export async function registerTronGasFree(
         }
       : {}),
   });
-  console.info(
-    `[tron] client registered tron:* exact_gasfree (${signer.address})`,
-  );
+  console.info(`[tron] client registered tron:* exact_gasfree (${signer.address})`);
   return true;
 }

@@ -6,12 +6,10 @@
  * verify/settle to a facilitator over HTTP.
  */
 import express from "express";
-import { HTTPFacilitatorClient } from "@bankofai/x402-core/server";
-import { createResourceServer } from "@bankofai/x402-core";
-import {
-  x402HTTPResourceServer,
-  paymentMiddlewareFromHTTPServer,
-} from "@bankofai/x402-express";
+import { HTTPFacilitatorClient } from "@x402/core/server";
+import { x402ResourceServer } from "@x402/core/server";
+import { x402HTTPResourceServer } from "@x402/core/http";
+import { paymentMiddlewareFromHTTPServer } from "@x402/express";
 
 import { hasTron, registerTron, tronAccepts } from "./chains/tron.js";
 import { ResourceStrippingFacilitatorClient } from "./resourceStrippingFacilitator.js";
@@ -31,6 +29,7 @@ const FACILITATOR_API_KEY = process.env.FACILITATOR_API_KEY;
 
 const apiKeyHeaders: Record<string, string> = FACILITATOR_API_KEY ? { "X-API-KEY": FACILITATOR_API_KEY } : {};
 const httpFacilitator = new HTTPFacilitatorClient({
+  timeoutMs: 120_000,
   url: FACILITATOR_URL,
   ...(FACILITATOR_API_KEY
     ? {
@@ -45,8 +44,8 @@ const httpFacilitator = new HTTPFacilitatorClient({
 const facilitatorClient = STRIP_RESOURCE_URL
   ? new ResourceStrippingFacilitatorClient(httpFacilitator)
   : httpFacilitator;
-// createResourceServer pre-attaches verify/settle logging (see express example).
-const resourceServer = createResourceServer(facilitatorClient);
+// Add lifecycle hooks here if the application needs verify/settle logging.
+const resourceServer = new x402ResourceServer(facilitatorClient);
 
 if (!hasTron()) {
   console.error("❌ No payout address configured (set TRON_ADDRESS).");

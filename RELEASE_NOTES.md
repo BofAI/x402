@@ -1,3 +1,24 @@
+# v2.1.0 — TRON Official Core and Independent Resource Extension
+
+- Migrate the payment call chain to official `@x402/core@2.28.0` and matching HTTP/MCP integrations.
+- Install resource sponsorship separately and explicitly register both client and facilitator extensions.
+- Remove local EVM and legacy packages; use official `@x402/evm@2.28.0` and `@x402/extensions@2.28.0` directly.
+- Preserve the 2.0 Agent Wallet 3 transaction artifacts, canonical TRON networks and pending transaction IDs.
+- Reject failed/malformed upto allowance and balance reads with `chain_read_failed` before settlement broadcast.
+- Apply resolved spend caps to actual batch deposits and GasFree value plus maximum provider fee.
+- Reconcile pending payments against the original transaction or GasFree trace, preserving batch snapshots and preventing duplicate broadcasts. Production recovery uses an injected durable pending store with shared locking.
+- Synchronize pending records across workers and preserve batch claims added while settlement is in flight.
+- Report callback execution failures separately from pending-store failures.
+- Require Node.js 24.22.1 or newer; local development and CI pin 24.22.1.
+
+Release packages: `@bankofai/x402-tron@2.1.0`, `@bankofai/x402-tron-extensions@2.1.0`,
+and the Express, Fastify, Hono, and Next.js adapters at `1.1.2`. The two TRON packages
+must be upgraded together; the resource extension pins the exact mechanism version.
+
+This is a source migration from 2.0. See the [migration guide](docs/migrations/tron-2.1.md) for imports, wallet capabilities, resource runtime registration, limits and pending recovery. Persistent resource coordination and application HTTP delivery/recovery remain deployment responsibilities.
+
+---
+
 # v2.0.0 — Canonical TRON Networks and Pending Settlement
 
 Release date: September 18, 2026

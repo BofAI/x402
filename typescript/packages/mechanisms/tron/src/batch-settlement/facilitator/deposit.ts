@@ -1,10 +1,11 @@
+import type { TronPendingSettlementContext } from "../../shared/pendingSettlement";
 import {
   FacilitatorContext,
   PaymentPayload,
   PaymentRequirements,
   VerifyResponse,
   SettleResponse,
-} from "@bankofai/x402-core/types";
+} from "@x402/core/types";
 import { FacilitatorTronSigner } from "../../signer";
 import { normalizeAddressForSigning } from "../../utils";
 import { batchSettlementABI, erc20BalanceOfABI } from "../../shared/batch-settlement/abi";
@@ -207,6 +208,7 @@ export async function verifyDeposit(
  * @param payload - The deposit payload.
  * @param requirements - Server payment requirements.
  * @param context - Registered Facilitator extension capabilities.
+ * @param pending - Original-transaction tracking for this attempt.
  * @returns A {@link SettleResponse} with the transaction hash and updated channel state.
  */
 export async function settleDeposit(
@@ -215,11 +217,24 @@ export async function settleDeposit(
   payload: BatchSettlementDepositPayload,
   requirements: PaymentRequirements,
   context?: FacilitatorContext,
+  pending?: TronPendingSettlementContext,
 ): Promise<SettleResponse> {
   const network = requirements.network;
-  const { deposit, voucher } = payload;
+  const { deposit } = payload;
   const config = payload.channelConfig;
   const payer = config.payer;
+
+  if (pending?.record) {
+    return waitForDeposit(
+      signer,
+      pending.record.transaction,
+      payload,
+      network,
+      payer,
+      BigInt(pending.record.data!.expectedMinBalance),
+      pending,
+    );
+  }
 
   const verified = await verifyDeposit(signer, payment, payload, requirements, context);
   if (!verified.isValid) {
@@ -262,36 +277,15 @@ export async function settleDeposit(
       ],
     });
 
-    return waitAndReturnSettleResponse(signer, tx, network, payer, {
-      failedStatusReason: Errors.ErrDepositTransactionFailed,
-      onSuccess: async () => {
-        const expectedMinBalance =
-          BigInt(String(verified.extra?.balance ?? "0")) + BigInt(deposit.amount);
-        const rpcDeadline = Date.now() + 4_000;
-        let postState = await readChannelState(signer, voucher.channelId, network);
-        while (postState.balance < expectedMinBalance && Date.now() < rpcDeadline) {
-          await new Promise(resolve => setTimeout(resolve, 200));
-          postState = await readChannelState(signer, voucher.channelId, network);
-        }
-
-        return {
-          success: true,
-          transaction: tx,
-          network,
-          payer,
-          amount: deposit.amount,
-          extra: {
-            channelState: {
-              channelId: voucher.channelId,
-              balance: postState.balance.toString(),
-              totalClaimed: postState.totalClaimed.toString(),
-              withdrawRequestedAt: postState.withdrawRequestedAt,
-              refundNonce: postState.refundNonce.toString(),
-            },
-          },
-        };
-      },
-    });
+    return waitForDeposit(
+      signer,
+      tx,
+      payload,
+      network,
+      payer,
+      BigInt(String(verified.extra?.balance ?? "0")) + BigInt(deposit.amount),
+      pending,
+    );
   } catch (e) {
     return {
       success: false,
@@ -302,4 +296,58 @@ export async function settleDeposit(
       payer,
     };
   }
+}
+
+/**
+ * Wait for the original deposit and restore its confirmed channel snapshot.
+ *
+ * @param signer - TRON signer used to read confirmed chain state.
+ * @param tx - Original broadcast transaction ID.
+ * @param payload - Payment payload for this settlement.
+ * @param network - Network on which the transaction was broadcast.
+ * @param payer - Payer address associated with the transaction.
+ * @param expectedMinBalance - Expected channel balance after the original deposit.
+ * @param pending - Original-transaction tracking for this attempt.
+ * @returns Settlement result preserving the original transaction identity.
+ */
+async function waitForDeposit(
+  signer: FacilitatorTronSigner,
+  tx: string,
+  payload: BatchSettlementDepositPayload,
+  network: PaymentRequirements["network"],
+  payer: string,
+  expectedMinBalance: bigint,
+  pending?: TronPendingSettlementContext,
+): Promise<SettleResponse> {
+  const { deposit, voucher } = payload;
+  return waitAndReturnSettleResponse(signer, tx, network, payer, {
+    pending,
+    pendingData: { expectedMinBalance: expectedMinBalance.toString() },
+    failedStatusReason: Errors.ErrDepositTransactionFailed,
+    onSuccess: async () => {
+      const rpcDeadline = Date.now() + 4_000;
+      let postState = await readChannelState(signer, voucher.channelId, network);
+      while (postState.balance < expectedMinBalance && Date.now() < rpcDeadline) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        postState = await readChannelState(signer, voucher.channelId, network);
+      }
+
+      return {
+        success: true,
+        transaction: tx,
+        network,
+        payer,
+        amount: deposit.amount,
+        extra: {
+          channelState: {
+            channelId: voucher.channelId,
+            balance: postState.balance.toString(),
+            totalClaimed: postState.totalClaimed.toString(),
+            withdrawRequestedAt: postState.withdrawRequestedAt,
+            refundNonce: postState.refundNonce.toString(),
+          },
+        },
+      };
+    },
+  });
 }

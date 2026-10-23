@@ -1,5 +1,5 @@
 /**
- * TRON client setup. Mirrors the EVM module: the agent-wallet's methods are
+ * TRON client setup. the agent-wallet's methods are
  * passed straight to `createClientTronSigner`, which resolves the address and
  * normalizes the `0x` prefix agent-wallet strips. The TronWeb instance carries
  * no private key — it supplies contract reads and broadcasts the one-time
@@ -9,14 +9,9 @@
  * that USDT/USDD (no ERC-3009) need before their first payment — parity with the
  * Python client.
  */
-import {
-  createClientTronSigner,
-  TRON_NILE,
-  TRON_MAINNET,
-  TRON_SHASTA,
-} from "@bankofai/x402-tron";
+import { createClientTronSigner, TRON_NILE, TRON_MAINNET, TRON_SHASTA } from "@bankofai/x402-tron";
 import { ExactTronScheme } from "@bankofai/x402-tron/exact/client";
-import type { x402Client } from "@bankofai/x402-fetch";
+import type { x402Client } from "@x402/core/client";
 
 import { tryResolveWallet } from "../env.js";
 

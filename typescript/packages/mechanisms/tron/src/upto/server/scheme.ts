@@ -6,8 +6,8 @@ import {
   Price,
   SchemeNetworkServer,
   MoneyParser,
-} from "@bankofai/x402-core/types";
-import { parseMoney } from "@bankofai/x402-core/utils";
+} from "@x402/core/types";
+import { parseMoney } from "@x402/core/utils";
 import { ExactDefaultAssetInfo, getDefaultAsset } from "../../shared/defaultAssets";
 import {
   convertToTokenAmount,

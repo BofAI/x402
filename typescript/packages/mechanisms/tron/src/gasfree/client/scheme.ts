@@ -1,13 +1,15 @@
+import { readTronContract } from "../../signer";
 import {
   PaymentRequirements,
   PaymentPayloadResult,
   PaymentPayloadContext,
   SchemeNetworkClient,
-} from "@bankofai/x402-core/types";
+} from "@x402/core/types";
 import { ClientTronSigner } from "../../signer";
 import { ExactGasFreePayload, GasFreeMessage } from "../../types";
 import { getDecimals } from "../../shared/tokens";
-import { log } from "@bankofai/x402-core";
+import { log } from "../../logger";
+import { assertTronSpendCap } from "../../shared/spendControls";
 import { transferWithAuthorizationABI } from "../../constants";
 import {
   GasFreeAPIClient,
@@ -149,6 +151,7 @@ export class ExactGasFreeTronScheme implements SchemeNetworkClient {
     const maxFee = this.computeMaxFee(requirements, accountInfo, asset);
 
     const skipBalanceCheck = (context?.extensions?.skipBalanceCheck as boolean) ?? false;
+    assertTronSpendCap(BigInt(requirements.amount) + maxFee, context?.maxAmountPerPayment);
     if (!skipBalanceCheck) {
       if (!asset) {
         throw new Error(
@@ -215,7 +218,7 @@ export class ExactGasFreeTronScheme implements SchemeNetworkClient {
    * @returns The balance in smallest units.
    */
   private async readGasFreeBalance(asset: string, gasfreeAddress: string): Promise<bigint> {
-    const balance = (await this.signer.readContract({
+    const balance = (await readTronContract(this.signer, {
       address: asset,
       abi: transferWithAuthorizationABI as unknown as readonly Record<string, unknown>[],
       functionName: "balanceOf",

@@ -1,8 +1,4 @@
-import type {
-  PaymentPayload,
-  PaymentRequirements,
-  VerifyResponse,
-} from "@bankofai/x402-core/types";
+import type { PaymentPayload, PaymentRequirements, VerifyResponse } from "@x402/core/types";
 import {
   erc20AllowanceAbi,
   permit2WitnessTypes,

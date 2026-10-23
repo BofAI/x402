@@ -1,11 +1,16 @@
 import {
+  TronSettlementTracker,
+  type TronSettlementOptions,
+  type TronPendingSettlementContext,
+} from "../../shared/pendingSettlement";
+import {
   PaymentPayload,
   PaymentRequirements,
   SchemeNetworkFacilitator,
   FacilitatorContext,
   SettleResponse,
   VerifyResponse,
-} from "@bankofai/x402-core/types";
+} from "@x402/core/types";
 import { FacilitatorTronSigner } from "../../signer";
 import { ExactEIP3009Payload, ExactTronPayload, isPermit2Payload } from "../../types";
 import { X402_PERMIT2_PROXY_ADDRESSES } from "../../constants";
@@ -21,13 +26,20 @@ import * as errors from "./errors";
 export class ExactTronScheme implements SchemeNetworkFacilitator {
   readonly scheme = "exact";
   readonly caipFamily = "tron:*";
+  private readonly settlement: TronSettlementTracker;
 
   /**
    * Creates a new ExactTronScheme facilitator instance.
    *
    * @param signer - The TRON signer for facilitator operations
+   * @param options - Pending settlement storage configuration.
    */
-  constructor(private readonly signer: FacilitatorTronSigner) {}
+  constructor(
+    private readonly signer: FacilitatorTronSigner,
+    options: TronSettlementOptions = {},
+  ) {
+    this.settlement = new TronSettlementTracker(options.pendingSettlementStore);
+  }
 
   /**
    * Gets extra configuration for the facilitator.
@@ -106,10 +118,30 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
     requirements: PaymentRequirements,
     context?: FacilitatorContext,
   ): Promise<SettleResponse> {
+    return this.settlement.run(payload, requirements, pending =>
+      this.settleOnce(payload, requirements, context, pending),
+    );
+  }
+
+  /**
+   * Dispatch a settlement using the original transaction when one exists.
+   *
+   * @param payload - Payment payload for this settlement.
+   * @param requirements - Effective payment requirements, including the actual settlement amount.
+   * @param context - Registered facilitator extension capabilities.
+   * @param pending - Original-transaction tracking for this attempt.
+   * @returns Settlement result preserving the original transaction identity.
+   */
+  private async settleOnce(
+    payload: PaymentPayload,
+    requirements: PaymentRequirements,
+    context: FacilitatorContext | undefined,
+    pending: TronPendingSettlementContext,
+  ): Promise<SettleResponse> {
     const rawPayload = payload.payload as ExactTronPayload;
 
     if (isPermit2Payload(rawPayload)) {
-      return settlePermit2(this.signer, payload, requirements, rawPayload, context);
+      return settlePermit2(this.signer, payload, requirements, rawPayload, context, pending);
     }
 
     if (
@@ -126,6 +158,12 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
       };
     }
 
-    return settleEIP3009(this.signer, payload, requirements, rawPayload as ExactEIP3009Payload);
+    return settleEIP3009(
+      this.signer,
+      payload,
+      requirements,
+      rawPayload as ExactEIP3009Payload,
+      pending,
+    );
   }
 }

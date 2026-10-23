@@ -1,28 +1,48 @@
-# `@bankofai/x402-extensions` • [![npm version](https://img.shields.io/npm/v/%40bankofai%2Fx402-extensions.svg)](https://www.npmjs.com/package/@bankofai/x402-extensions)
+# `@bankofai/x402-tron-extensions`
 
-Optional add-ons for the [x402](https://github.com/x402-foundation/x402) payment protocol. This package implements extensions as typed `{ info, schema }` payloads attached to `PaymentRequired.extensions` and `PaymentPayload.extensions` (see the core types package for protocol fields).
+Independent TRON resource sponsorship extension for official `@x402/core@2.28.0`. Install the same version as `@bankofai/x402-tron`. For upgrading from 2.0, see the [migration guide](../../../docs/migrations/tron-2.1.md).
 
-## Installation
-
-```bash
-pnpm install @bankofai/x402-extensions
+```sh
+npm install @x402/core@2.28.0 @bankofai/x402-tron@2.1.0 @bankofai/x402-tron-extensions@2.1.0
 ```
 
-## Overview
+The mechanism maintains payment schemes, public contracts, and transaction utilities. The extension maintains declarations/schemas, client pre-signing, Approval transaction validation, resource budgets, energy/bandwidth delegation, reclamation, and the coordinator runtime. Basic payments require neither this package nor an Agent Wallet installation.
 
-Use extensions when you want discovery metadata, wallet re-auth, signed offers/receipts, idempotency keys, or facilitator-assisted gas for Permit2 flows. Most extension entrypoints are published as **npm subpath imports** (for example `@bankofai/x402-extensions/bazaar`). A few helpers are exported only from the **package root** `@bankofai/x402-extensions` alongside the aggregate barrel.
+## Client registration
 
-Per-extension guides live next to the TypeScript sources in this repository:
+```ts
+import { x402Client } from "@x402/core/client";
+import { ExactTronScheme } from "@bankofai/x402-tron/exact/client";
+import { createClientTronSigner } from "@bankofai/x402-tron";
+import { createTrc20ApprovalResourceSponsoringClientExtension } from "@bankofai/x402-tron-extensions";
 
-| Extension | Summary | Typical import | Documentation |
-|-----------|---------|----------------|-----------------|
-| Bazaar discovery | Facilitators catalog paid HTTP or MCP tools from server-declared input/output hints | `@bankofai/x402-extensions/bazaar` | [src/bazaar/README.md](src/bazaar/README.md) |
-| Sign-In-With-X (SIWx) | CAIP-122 wallet auth for repeat access without repaying | `@bankofai/x402-extensions/sign-in-with-x` | [src/sign-in-with-x/README.md](src/sign-in-with-x/README.md) |
-| Offer / receipt | Signed offers in 402 responses and signed receipts after settlement | `@bankofai/x402-extensions/offer-receipt` | [src/offer-receipt/README.md](src/offer-receipt/README.md) |
-| Payment identifier | Client-supplied idempotency `id` for deduplication | `@bankofai/x402-extensions/payment-identifier` | [src/payment-identifier/README.md](src/payment-identifier/README.md) |
-| EIP-2612 gas sponsoring | Gasless Permit2 via EIP-2612 permit + facilitator `settleWithPermit` | `@bankofai/x402-extensions` | [src/eip2612-gas-sponsoring/README.md](src/eip2612-gas-sponsoring/README.md) |
-| ERC-20 approval gas sponsoring | Gasless Permit2 for tokens without EIP-2612 (pre-signed `approve`) | `@bankofai/x402-extensions` | [src/erc20-approval-gas-sponsoring/README.md](src/erc20-approval-gas-sponsoring/README.md) |
+const signer = await createClientTronSigner(wallet, { network: "tron:3448148188", rpcUrl });
+const client = new x402Client()
+  .register("tron:3448148188", new ExactTronScheme(signer))
+  .registerExtension(createTrc20ApprovalResourceSponsoringClientExtension(signer));
+```
 
-## Related resources
+The resource server declares the extension with `declareTrc20ApprovalResourceSponsoringExtension()`. The facilitator registers full capability with `createTrc20ApprovalResourceSponsoringExtension(runtime)`; manually registering only `{ key, runtime }` is insufficient. Create the runtime through `createTrc20ResourceSponsoringRuntime({ network, resourceOwnerSigner, coordinator, allowedAssets, permissionId, ... })` or inject an implementation satisfying the interface. Applications supply Resource Owner signer bridging, providers, and persistent storage.
 
-- [x402 Core package](../core/README.md) — protocol types, resource server, and facilitator client primitives
+The client before hook validates declaration version and network. The mechanism creates the final authorization, and the extension uses its actual amount (the actual deposit for batch) to decide whether to pre-sign. When existing allowance or self-funded fallback succeeds, the final hook removes unused resource declarations. Declaration objects are not mutated; reused and concurrent calls remain isolated. Without client extension registration, official Core composition returns `trc20_approval_client_extension_not_registered`. Missing facilitator execution capability returns `sponsor_runtime_unavailable`.
+
+## Public entrypoints
+
+This package exposes its root and `trc20-approval-resource-sponsoring`, plus `client`, `facilitator`, and `resourceService` beneath that subpath. All entrypoints support ESM/CJS.
+
+Use official `@x402/extensions@2.28.0` for Bazaar, Sign-in-with-x, EVM gas sponsorship, and other upstream extensions.
+
+## Testing
+
+```sh
+pnpm --filter @bankofai/x402-tron build
+pnpm --filter @bankofai/x402-tron-extensions build
+pnpm --filter @bankofai/x402-tron-extensions test
+pnpm --filter @bankofai/x402-tron-extensions test:consumer
+```
+
+Independent consumer validation uses both tarballs, official Core, and strict NodeNext (`skipLibCheck: false`) to test real Approval signatures, extension registration, and ordinary payments in ESM/CJS. Isolated tests also cover permissions, budgets, failure reclamation, pending retention, and real Agent Wallet signing.
+
+## Runtime recovery
+
+Production must supply a persistent coordinator and continuously call `runtime.reconcile()` for reconciliation/recovery. The example `InMemoryTrc20SponsoringCoordinator` is for single-process validation only. When resource operations, Approval, or payment outcomes are unknown, reconcile the original txID and retain the corresponding records and resources to avoid duplicate broadcast or sponsorship.

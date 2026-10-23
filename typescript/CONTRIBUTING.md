@@ -20,17 +20,15 @@ typescript/
 ├── packages/
 │   ├── core/              # @bankofai/x402-core - Protocol implementation
 │   ├── mechanisms/
-│   │   ├── evm/           # @bankofai/x402-evm - Ethereum/EVM chains
-│   │   └── svm/           # @bankofai/x402-svm - Solana
+│   │   └── tron/          # @bankofai/x402-tron - TRON
 │   ├── http/
 │   │   ├── axios/         # @bankofai/x402-axios - Axios interceptor
 │   │   ├── express/       # @bankofai/x402-express - Express middleware
 │   │   ├── fetch/         # @bankofai/x402-fetch - Fetch wrapper
+│   │   ├── fastify/       # @bankofai/x402-fastify - Fastify middleware
 │   │   ├── hono/          # @bankofai/x402-hono - Hono middleware
-│   │   ├── next/          # @bankofai/x402-next - Next.js integration
-│   │   └── paywall/       # @bankofai/x402-paywall - Browser paywall UI
-│   ├── extensions/        # @bankofai/x402-extensions - Bazaar, Sign-in-with-x
-│   └── legacy/            # Legacy v1 packages (deprecated)
+│   │   └── next/          # @bankofai/x402-next - Next.js integration
+│   └── extensions/        # @bankofai/x402-tron-extensions - TRON resource sponsorship
 ├── site/                  # x402.org marketing site
 ├── turbo.json
 └── pnpm-workspace.yaml
@@ -39,21 +37,26 @@ typescript/
 ### Package Dependencies
 
 ```
-@bankofai/x402-core
+@x402/core@2.28.0
     ↑
-@bankofai/x402-evm, @bankofai/x402-svm
+@bankofai/x402-tron
     ↑
-@bankofai/x402-express, @bankofai/x402-hono, @bankofai/x402-next, @bankofai/x402-axios, @bankofai/x402-fetch
+@bankofai/x402-tron-extensions
 ```
 
-The core package provides transport-agnostic primitives. Mechanism packages (`evm`, `svm`) implement chain-specific logic. HTTP packages provide framework integrations.
+TRON uses official `@x402/core@2.28.0`; its resource sponsorship extension depends on the
+TRON mechanism through public entrypoints. Use official `@x402/extensions@2.28.0` directly
+for upstream extensions and `@x402/evm@2.28.0` for EVM mechanisms. Local EVM and legacy
+v1 packages are not maintained in this repository.
+
+The core package provides transport-agnostic primitives. The local TRON mechanism implements chain-specific logic; EVM comes from upstream. HTTP packages provide framework integrations.
 
 ## Development Setup
 
 ### Prerequisites
 
-- Node.js >= 18.0.0
-- pnpm >= 10.7.0
+- Node.js >= 22.0.0
+- pnpm >= 11.1.1
 
 ### Installation
 
@@ -100,7 +103,7 @@ From the `typescript/` directory:
 ### Working on a Single Package
 
 ```bash
-cd packages/mechanisms/evm
+cd packages/mechanisms/tron
 pnpm build
 pnpm test
 pnpm test:watch  # Watch mode
@@ -178,7 +181,7 @@ export function registerExactYourChainScheme(
 }
 ```
 
-4. Follow the existing `@bankofai/x402-evm` or `@bankofai/x402-svm` package structure.
+4. Follow the local `@bankofai/x402-tron` package structure; use official packages for upstream chains.
 
 ### Adding Extensions
 
@@ -197,10 +200,10 @@ Extensions go in `packages/extensions/`. Each extension should:
 pnpm test
 
 # Single package
-pnpm --filter @bankofai/x402-evm test
+pnpm --filter @bankofai/x402-tron test
 
 # Watch mode
-cd packages/mechanisms/evm
+cd packages/mechanisms/tron
 pnpm test:watch
 ```
 
@@ -211,40 +214,13 @@ require test credentials — most suites will skip themselves cleanly when the
 required environment variables are not set, so you only need to populate the
 subsets you want to exercise.
 
-Create a `.env` at the repository root (or in the specific package you're
-testing) with the variables the target suites read. A starting template:
+For TRON Nile setup, follow
+[`packages/extensions/test/integrations/README.md`](packages/extensions/test/integrations/README.md).
+Each suite documents its required wallet and RPC configuration. Keep actual credentials outside Git.
+The MCP EVM interoperability suite uses official `@x402/evm` and is separate from local mechanism tests.
 
 ```bash
-# --- EVM mechanism (@bankofai/x402-evm) ---
-EVM_CLIENT_PRIVATE_KEY=
-EVM_FACILITATOR_PRIVATE_KEY=
-EVM_RESOURCE_SERVER_ADDRESS=
-# Optional: override the RPC endpoint (defaults to Base Sepolia)
-# EVM_RPC_URL=https://sepolia.base.org
-
-# --- SVM mechanism (@bankofai/x402-svm) + Stellar ---
-CLIENT_PRIVATE_KEY=
-FACILITATOR_PRIVATE_KEY=
-FACILITATOR_ADDRESS=
-RESOURCE_SERVER_ADDRESS=
-
-# --- Aptos mechanism (@bankofai/x402-aptos) ---
-APTOS_CLIENT_PRIVATE_KEY=
-APTOS_FACILITATOR_PRIVATE_KEY=
-```
-
-Each mechanism's `test/integrations/*.test.ts` file is the authoritative
-source for the exact variables it consumes — read the one for your target
-package to see the complete list.
-
-Run everything or scope to a single package:
-
-```bash
-# All packages
-pnpm test:integration
-
-# Single package
-pnpm --filter @bankofai/x402-evm test:integration
+pnpm --filter @bankofai/x402-tron-extensions test:integration
 ```
 
 ### Test File Organization

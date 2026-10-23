@@ -1,9 +1,10 @@
+import type { TronPendingSettlementContext } from "../../shared/pendingSettlement";
 import {
   PaymentPayload,
   PaymentRequirements,
   SettleResponse,
   VerifyResponse,
-} from "@bankofai/x402-core/types";
+} from "@x402/core/types";
 import { authorizationTypes, transferWithAuthorizationABI } from "../../constants";
 import { FacilitatorTronSigner } from "../../signer";
 import { ExactEIP3009Payload } from "../../types";
@@ -119,6 +120,7 @@ export async function verifyEIP3009(
  * @param payload - The payment payload.
  * @param requirements - The payment requirements.
  * @param tronPayload - The TIP-712 specific payload.
+ * @param pending - Original-transaction tracking for this attempt.
  * @returns The settlement response.
  */
 export async function settleEIP3009(
@@ -126,8 +128,21 @@ export async function settleEIP3009(
   payload: PaymentPayload,
   requirements: PaymentRequirements,
   tronPayload: ExactEIP3009Payload,
+  pending?: TronPendingSettlementContext,
 ): Promise<SettleResponse> {
   const payer = tronPayload.authorization.from;
+  if (pending?.record) {
+    return waitAndReturnSettleResponse(
+      signer,
+      pending.record.transaction,
+      payload.accepted.network,
+      payer,
+      {
+        failedStatusReason: errors.INVALID_TRANSACTION_STATE,
+        pending,
+      },
+    );
+  }
 
   const valid = await verifyEIP3009(signer, payload, requirements, tronPayload);
   if (!valid.isValid) {
@@ -165,6 +180,7 @@ export async function settleEIP3009(
     });
 
     return waitAndReturnSettleResponse(signer, tx, payload.accepted.network, payer, {
+      pending,
       failedStatusReason: errors.INVALID_TRANSACTION_STATE,
     });
   } catch (err) {

@@ -13,7 +13,7 @@ pnpm install @bankofai/x402-axios
 ```typescript
 import axios from "axios";
 import { wrapAxiosWithPaymentFromConfig } from "@bankofai/x402-axios";
-import { ExactEvmScheme } from "@bankofai/x402-evm";
+import { ExactEvmScheme } from "@x402/evm";
 import { privateKeyToAccount } from "viem/accounts";
 
 // Create an account
@@ -77,7 +77,7 @@ import { config } from "dotenv";
 import axios from "axios";
 import { wrapAxiosWithPaymentFromConfig, decodePaymentResponseHeader } from "@bankofai/x402-axios";
 import { privateKeyToAccount } from "viem/accounts";
-import { ExactEvmScheme } from "@bankofai/x402-evm";
+import { ExactEvmScheme } from "@x402/evm";
 
 config();
 
@@ -120,7 +120,7 @@ For more control, you can use the builder pattern to register multiple schemes:
 ```typescript
 import axios from "axios";
 import { wrapAxiosWithPayment, x402Client } from "@bankofai/x402-axios";
-import { ExactEvmScheme } from "@bankofai/x402-evm/exact/client";
+import { ExactEvmScheme } from "@x402/evm/exact/client";
 import { ExactSvmScheme } from "@bankofai/x402-svm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 import { createKeyPairSignerFromBytes } from "@solana/kit";
@@ -144,7 +144,7 @@ const api = wrapAxiosWithPayment(axios.create(), client);
 ```typescript
 import axios from "axios";
 import { wrapAxiosWithPaymentFromConfig } from "@bankofai/x402-axios";
-import { ExactEvmScheme } from "@bankofai/x402-evm";
+import { ExactEvmScheme } from "@x402/evm";
 import { ExactSvmScheme } from "@bankofai/x402-svm";
 
 const api = wrapAxiosWithPaymentFromConfig(axios.create(), {
@@ -168,7 +168,7 @@ const api = wrapAxiosWithPaymentFromConfig(axios.create(), {
 ```typescript
 import axios from "axios";
 import { wrapAxiosWithPaymentFromConfig, type SelectPaymentRequirements } from "@bankofai/x402-axios";
-import { ExactEvmScheme } from "@bankofai/x402-evm";
+import { ExactEvmScheme } from "@x402/evm";
 
 // Custom selector that prefers the cheapest option
 const selectCheapestOption: SelectPaymentRequirements = (version, accepts) => {

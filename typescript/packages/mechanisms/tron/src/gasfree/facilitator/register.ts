@@ -1,5 +1,6 @@
-import { x402Facilitator } from "@bankofai/x402-core/facilitator";
-import { Network } from "@bankofai/x402-core/types";
+import type { TronSettlementOptions } from "../../shared/pendingSettlement";
+import { x402Facilitator } from "@x402/core/facilitator";
+import { Network } from "@x402/core/types";
 import { normalizeTronNetwork } from "../../network";
 import { FacilitatorTronSigner } from "../../signer";
 import { GasFreeAPIClient, createGasFreeApiClients } from "../../shared/gasfree/api";
@@ -9,7 +10,7 @@ import { ExactGasFreeTronScheme } from "./scheme";
 /**
  * Configuration for registering the GasFree facilitator scheme.
  */
-export interface TronGasFreeFacilitatorConfig {
+export interface TronGasFreeFacilitatorConfig extends TronSettlementOptions {
   signer: FacilitatorTronSigner;
   networks: Network | Network[];
   /** GasFree relayer clients keyed by network. */
@@ -36,7 +37,7 @@ export function registerExactGasFreeTronScheme(
   );
   facilitator.register(
     [...new Set(networks)],
-    new ExactGasFreeTronScheme(config.signer, apiClients),
+    new ExactGasFreeTronScheme(config.signer, apiClients, config),
   );
   return facilitator;
 }

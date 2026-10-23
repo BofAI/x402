@@ -1,9 +1,14 @@
 {
-  "name": "@bankofai/x402-extensions",
+  "name": "@bankofai/x402-tron-extensions",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "latest",
+    "registry": "https://registry.npmjs.org/"
   },
-  "version": "1.2.0",
+  "version": "2.1.0",
+  "engines": {
+    "node": ">=24.22.1"
+  },
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.mjs",
   "types": "./dist/cjs/index.d.ts",
@@ -16,7 +21,9 @@
     "format": "prettier -c .prettierrc --write \"**/*.{ts,js,cjs,json,md}\"",
     "format:check": "prettier -c .prettierrc --check \"**/*.{ts,js,cjs,json,md}\"",
     "lint": "eslint . --ext .ts --fix",
-    "lint:check": "eslint . --ext .ts"
+    "lint:check": "eslint . --ext .ts",
+    "test:consumer": "node test/consumer/verify-packed.mjs",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "keywords": [
     "x402",
@@ -26,8 +33,12 @@
   ],
   "license": "Apache-2.0",
   "author": "x402 Foundation",
-  "repository": "https://github.com/x402-foundation/x402",
-  "description": "x402 Payment Protocol Extensions",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BofAI/x402.git",
+    "directory": "typescript/packages/extensions"
+  },
+  "description": "TRON resource-sponsoring extensions for official x402 Core",
   "devDependencies": {
     "@eslint/js": "^9.24.0",
     "@types/node": "^22.13.4",
@@ -43,18 +54,14 @@
     "typescript": "^5.7.3",
     "vite": "^6.2.6",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.0.5"
+    "vitest": "^3.0.5",
+    "@x402/core": "2.28.0",
+    "@bankofai/agent-wallet": "2.4.0"
   },
   "dependencies": {
-    "@noble/curves": "^1.9.0",
-    "@scure/base": "^1.2.6",
-    "@bankofai/x402-core": "workspace:~",
+    "@bankofai/x402-tron": "workspace:2.1.0",
     "ajv": "^8.17.1",
-    "jose": "^5.9.6",
-    "@signinwithethereum/siwe": "^4.1.0",
-    "tweetnacl": "^1.0.3",
-    "viem": "^2.48.11",
-    "zod": "^3.24.2"
+    "tronweb": "6.3.0"
   },
   "exports": {
     ".": {
@@ -67,58 +74,51 @@
         "default": "./dist/cjs/index.js"
       }
     },
-    "./bazaar": {
+    "./trc20-approval-resource-sponsoring": {
       "import": {
-        "types": "./dist/esm/bazaar/index.d.mts",
-        "default": "./dist/esm/bazaar/index.mjs"
+        "types": "./dist/esm/trc20-approval-resource-sponsoring/index.d.mts",
+        "default": "./dist/esm/trc20-approval-resource-sponsoring/index.mjs"
       },
       "require": {
-        "types": "./dist/cjs/bazaar/index.d.ts",
-        "default": "./dist/cjs/bazaar/index.js"
+        "types": "./dist/cjs/trc20-approval-resource-sponsoring/index.d.ts",
+        "default": "./dist/cjs/trc20-approval-resource-sponsoring/index.js"
       }
     },
-    "./sign-in-with-x": {
+    "./trc20-approval-resource-sponsoring/client": {
       "import": {
-        "types": "./dist/esm/sign-in-with-x/index.d.mts",
-        "default": "./dist/esm/sign-in-with-x/index.mjs"
+        "types": "./dist/esm/trc20-approval-resource-sponsoring/client.d.mts",
+        "default": "./dist/esm/trc20-approval-resource-sponsoring/client.mjs"
       },
       "require": {
-        "types": "./dist/cjs/sign-in-with-x/index.d.ts",
-        "default": "./dist/cjs/sign-in-with-x/index.js"
+        "types": "./dist/cjs/trc20-approval-resource-sponsoring/client.d.ts",
+        "default": "./dist/cjs/trc20-approval-resource-sponsoring/client.js"
       }
     },
-    "./offer-receipt": {
+    "./trc20-approval-resource-sponsoring/facilitator": {
       "import": {
-        "types": "./dist/esm/offer-receipt/index.d.mts",
-        "default": "./dist/esm/offer-receipt/index.mjs"
+        "types": "./dist/esm/trc20-approval-resource-sponsoring/facilitator.d.mts",
+        "default": "./dist/esm/trc20-approval-resource-sponsoring/facilitator.mjs"
       },
       "require": {
-        "types": "./dist/cjs/offer-receipt/index.d.ts",
-        "default": "./dist/cjs/offer-receipt/index.js"
+        "types": "./dist/cjs/trc20-approval-resource-sponsoring/facilitator.d.ts",
+        "default": "./dist/cjs/trc20-approval-resource-sponsoring/facilitator.js"
       }
     },
-    "./payment-identifier": {
+    "./trc20-approval-resource-sponsoring/resourceService": {
       "import": {
-        "types": "./dist/esm/payment-identifier/index.d.mts",
-        "default": "./dist/esm/payment-identifier/index.mjs"
+        "types": "./dist/esm/trc20-approval-resource-sponsoring/resourceService.d.mts",
+        "default": "./dist/esm/trc20-approval-resource-sponsoring/resourceService.mjs"
       },
       "require": {
-        "types": "./dist/cjs/payment-identifier/index.d.ts",
-        "default": "./dist/cjs/payment-identifier/index.js"
-      }
-    },
-    "./builder-code": {
-      "import": {
-        "types": "./dist/esm/builder-code/index.d.mts",
-        "default": "./dist/esm/builder-code/index.mjs"
-      },
-      "require": {
-        "types": "./dist/cjs/builder-code/index.d.ts",
-        "default": "./dist/cjs/builder-code/index.js"
+        "types": "./dist/cjs/trc20-approval-resource-sponsoring/resourceService.d.ts",
+        "default": "./dist/cjs/trc20-approval-resource-sponsoring/resourceService.js"
       }
     }
   },
   "files": [
     "dist"
-  ]
+  ],
+  "peerDependencies": {
+    "@x402/core": "2.28.0"
+  }
 }

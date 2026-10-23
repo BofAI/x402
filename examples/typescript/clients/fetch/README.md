@@ -1,31 +1,17 @@
-# Fetch client (EVM + TRON)
+# TRON fetch client
 
-Wraps `fetch` so HTTP `402 Payment Required` challenges are paid automatically.
-`src/index.ts` is **chain-agnostic**; each chain's signer setup lives in
-`src/chains/`.
+Pays GET /weather through official @x402/fetch using TRON exact Permit2.
 
-## Wallet model — agent-wallet, never a raw key
+From `examples/typescript`:
 
-Both chains sign via `@bankofai/agent-wallet` (`resolveWallet({ network })`):
-
-- EVM: `createClientEvmSigner(wallet, { network, rpcUrl })` — adapts the wallet
-  (async address + `0x`-normalized signatures); the factory builds the viem
-  `publicClient` internally and wires `readContract` for permit2 enrichment.
-- TRON: `createClientTronSigner(wallet, { network, apiKey })` — the factory
-  builds TronWeb internally from the network and auto-broadcasts the one-time
-  Permit2 approve for USDT/USDD.
-
-A chain registers only if its wallet resolves, so you can pay from EVM-only,
-TRON-only, or both.
-
-## Run
-
-```bash
-# Start a resource server + facilitator first (see ../../servers/express,
-# ../../facilitator/basic), then:
-pnpm install            # from examples/typescript
-pnpm dev                # or: pnpm --filter @bankofai/x402-example-client-fetch dev
+```sh
+cp .env-exact.example .env-exact
+# Fill in the scenario configuration.
+pnpm dev:client
 ```
 
-Set `RESOURCE_URL` to the protected endpoint. Configure the wallet via
-agent-wallet — a single `AGENT_WALLET_PRIVATE_KEY` serves both chains.
+Configure an agent-wallet source for the selected TRON network. Wallet keys remain in the wallet provider.
+
+See the [TRON scenario guide](../../README.md) for the other roles and prerequisites.
+Use the [official examples](https://github.com/x402-foundation/x402/tree/main/examples/typescript)
+for generic framework and upstream-chain setup.

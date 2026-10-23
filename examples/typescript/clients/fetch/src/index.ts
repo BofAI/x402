@@ -1,22 +1,6 @@
 /**
- * x402 fetch client — chain-agnostic, EVM + TRON, env-driven targets.
- *
- * Registers EVM and TRON `exact` schemes (each gated on a configured wallet) and
- * wraps `fetch` so 402 challenges are paid automatically. Which chains/tokens to
- * pay — and in what order — is controlled by the `PAY_TARGETS` env var; each
- * target is paid exactly once. A mutable selector pins the payment-selection
- * pipeline to the current target's network + asset. This file imports no chain
- * SDK directly.
- *
- * PAY_TARGETS — comma-separated, one payment per entry, in order:
- *   <network>[@<token>]
- *     <network>  matched by prefix: "eip155:97" / TRON_NILE (or "eip155" / "tron"
- *                when no token is specified)
- *     <token>    symbol (DHLU/USDC/USDT/USDD) or an asset address; omit ⇒ that
- *                network's first advertised token
- *   e.g. PAY_TARGETS=eip155:97@DHLU,TRON_NILE@USDT,TRON_NILE@USDD
- *   (`@` not `#` — dotenv treats `#` as a comment.)
- *   Unset ⇒ each configured chain once, with its first advertised token.
+ * TRON fetch client example using official x402 integrations.
+ * TRON registration lives in src/chains/tron.ts; wallet keys remain in agent-wallet.
  */
 import {
   normalizeTronNetwork,
@@ -25,32 +9,18 @@ import {
   TRON_MAINNET,
   TRON_SHASTA,
 } from "@bankofai/x402-tron";
-import {
-  type Network,
-  x402Client,
-  wrapFetchWithPayment,
-} from "@bankofai/x402-fetch";
+import { type Network } from "@x402/core/types";
+import { x402Client } from "@x402/core/client";
+import { wrapFetchWithPayment } from "@x402/fetch";
 
-import { registerEvm } from "./chains/evm.js";
 import { registerTron } from "./chains/tron.js";
 
-const RESOURCE_URL =
-  process.env.RESOURCE_URL || "http://localhost:4021/weather";
+const RESOURCE_URL = process.env.RESOURCE_URL || "http://localhost:4021/weather";
 
 // Friendly token symbol → asset address, mirroring what `servers/express`
 // advertises. Lets PAY_TARGETS name tokens by symbol instead of address.
-// Indexed by chain family so the same symbol can resolve differently per
-// network (e.g. USDT on eip155:97 vs TRON_NILE are different contracts).
+// Addresses are indexed by TRON network.
 const TOKEN_ADDRESSES: Record<string, Record<string, string>> = {
-  "eip155:97": {
-    DHLU: "0x375cADdd2cB68cE82e3D9B075D551067a7b4B816", // eip155:97, ERC-3009
-    USDC: "0x64544969ed7EBf5f083679233325356EbE738930", // eip155:97, permit2
-    USDT: "0x337610d27c682E347C9cD60BD4b3b107C9d34dDd", // eip155:97, permit2
-  },
-  "eip155:56": {
-    USDC: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
-    USDT: "0x55d398326f99059fF775485246999027B3197955",
-  },
   [TRON_NILE]: {
     USDT: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf", // TRON_NILE, permit2
     USDD: "TGjgvdTWWrybVLaVeFqSyVqJQWjxqRYbaK", // TRON_NILE, permit2
@@ -72,21 +42,6 @@ const EXAMPLE_SPEND_CONTROL_ASSETS: Array<{
   asset: string;
   maxAmountPerPayment: string;
 }> = [
-  {
-    network: "eip155:97" as const,
-    asset: TOKEN_ADDRESSES["eip155:97"]!.DHLU!,
-    maxAmountPerPayment: "1000",
-  },
-  {
-    network: "eip155:97" as const,
-    asset: TOKEN_ADDRESSES["eip155:97"]!.USDT!,
-    maxAmountPerPayment: "1000000000000000",
-  },
-  {
-    network: "eip155:56" as const,
-    asset: TOKEN_ADDRESSES["eip155:56"]!.USDC!,
-    maxAmountPerPayment: "1000000000000000",
-  },
   {
     network: TRON_NILE,
     asset: TOKEN_ADDRESSES[TRON_NILE]!.USDD!,
@@ -127,11 +82,7 @@ function resolveToken(prefix: string, token: string): string {
 
 /** Match canonical TRON IDs and their deprecated hexadecimal aliases. */
 function matchesNetwork(network: string, prefix: string): boolean {
-  if (
-    network.startsWith("tron:") &&
-    prefix.startsWith("tron:") &&
-    prefix !== "tron:"
-  ) {
+  if (network.startsWith("tron:") && prefix.startsWith("tron:") && prefix !== "tron:") {
     return tronNetworksEqual(network, prefix);
   }
   return network.startsWith(prefix);
@@ -143,10 +94,13 @@ function parsePayTargets(): PayTarget[] {
   if (!raw) return [];
   return raw
     .split(",")
-    .map((s) => s.trim())
+    .map(s => s.trim())
     .filter(Boolean)
-    .map((entry) => {
+    .map(entry => {
       const [prefix, token] = entry.split("@", 2);
+      if (prefix!.trim() !== "tron" && !prefix!.trim().startsWith("tron:")) {
+        throw new Error(`Only TRON payment targets are supported: ${entry}`);
+      }
       const normalizedPrefix = prefix!.trim().startsWith("tron:")
         ? normalizeTronNetwork(prefix!.trim())
         : prefix!.trim();
@@ -165,7 +119,7 @@ const client = new x402Client((_x402Version, accepts) => {
   const t = target;
   if (!t) return accepts[0]!;
   const match = accepts.find(
-    (a) =>
+    a =>
       matchesNetwork(a.network, t.prefix) &&
       (!t.asset || a.asset.toLowerCase() === t.asset.toLowerCase()),
   );
@@ -175,36 +129,23 @@ const client = new x402Client((_x402Version, accepts) => {
   return match;
 }).setSpendControls({ allowedAssets: EXAMPLE_SPEND_CONTROL_ASSETS });
 
-const evm = await registerEvm(client);
 const tron = await registerTron(client);
 
 // Default (PAY_TARGETS unset): each configured chain once, first token.
 let targets = parsePayTargets();
 if (targets.length === 0) {
-  if (evm) targets.push({ raw: "eip155", prefix: "eip155:" });
   if (tron) targets.push({ raw: "tron", prefix: "tron:" });
 }
 if (targets.length === 0) {
-  console.error(
-    "❌ No wallet configured for EVM or TRON (see agent-wallet setup).",
-  );
+  console.error("❌ No wallet configured for TRON (see agent-wallet setup).");
   process.exit(1);
 }
 
 // A target's chain must have a configured wallet, or selection can't satisfy it.
 for (const t of targets) {
-  const needsEvm = t.prefix.startsWith("eip155");
   const needsTron = t.prefix.startsWith("tron");
-  if (needsEvm && !evm) {
-    console.error(
-      `❌ target "${t.raw}" needs an EVM wallet, but none is configured.`,
-    );
-    process.exit(1);
-  }
   if (needsTron && !tron) {
-    console.error(
-      `❌ target "${t.raw}" needs a TRON wallet, but none is configured.`,
-    );
+    console.error(`❌ target "${t.raw}" needs a TRON wallet, but none is configured.`);
     process.exit(1);
   }
 }
@@ -220,8 +161,6 @@ for (const t of targets) {
   console.log(`← ${res.status} ${res.statusText}`);
   console.log(JSON.stringify(body, null, 2));
   if (!res.ok) {
-    throw new Error(
-      `request for target "${t.raw}" failed with HTTP ${res.status}`,
-    );
+    throw new Error(`request for target "${t.raw}" failed with HTTP ${res.status}`);
   }
 }

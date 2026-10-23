@@ -1,9 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "lib": ["ES2020", "DOM"],
-    "allowJs": false,
-    "checkJs": false
+    "lib": ["ES2020", "DOM"]
   },
-  "include": ["src", "test/bazaar.test.ts"]
+  "include": ["src"]
 }

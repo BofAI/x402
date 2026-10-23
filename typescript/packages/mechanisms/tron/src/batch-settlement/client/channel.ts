@@ -1,5 +1,6 @@
-import { decodePaymentResponseHeader } from "@bankofai/x402-core/http";
-import type { PaymentRequirements, SettleResponse } from "@bankofai/x402-core/types";
+import { readTronContract } from "../../signer";
+import { decodePaymentResponseHeader } from "@x402/core/http";
+import type { PaymentRequirements, SettleResponse } from "@x402/core/types";
 import type { ClientTronSigner } from "../../signer";
 import { normalizeAddressForSigning } from "../../utils";
 import { batchSettlementABI } from "../../shared/batch-settlement/abi";
@@ -202,7 +203,7 @@ export async function readChannelBalanceAndTotalClaimed(
   channelId: `0x${string}`,
   network: string,
 ): Promise<[bigint, bigint]> {
-  const result = await signer.readContract({
+  const result = await readTronContract(signer, {
     address: getBatchSettlementAddress(network),
     abi,
     functionName: "channels",

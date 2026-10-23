@@ -1,10 +1,11 @@
+import type { TronPendingSettlementContext } from "../../shared/pendingSettlement";
 import {
   FacilitatorContext,
   PaymentPayload,
   PaymentRequirements,
   SettleResponse,
   VerifyResponse,
-} from "@bankofai/x402-core/types";
+} from "@x402/core/types";
 import {
   uptoPermit2WitnessTypes,
   PERMIT2_ADDRESSES,
@@ -27,6 +28,28 @@ import { waitAndReturnSettleResponse } from "../../shared/settleReceipt";
 interface UptoVerificationOptions {
   readonly verifySponsorship?: boolean;
   readonly requireAllowance?: boolean;
+}
+
+/**
+ * Decode an account read without accepting coercible or truncated RPC results.
+ *
+ * @param value - Decoded allowance or balance RPC result.
+ * @returns Valid unsigned 256-bit atomic amount.
+ */
+function accountUint256(value: unknown): bigint {
+  if (typeof value === "number" && !Number.isSafeInteger(value)) {
+    throw new Error("Invalid account uint256");
+  }
+  if (
+    typeof value !== "bigint" &&
+    typeof value !== "number" &&
+    !(typeof value === "string" && /^(?:[0-9]+|0x[0-9a-f]+)$/i.test(value))
+  ) {
+    throw new Error("Invalid account uint256");
+  }
+  const amount = BigInt(value);
+  if (amount < 0n || amount >= 1n << 256n) throw new Error("Invalid account uint256");
+  return amount;
 }
 
 /**
@@ -165,29 +188,38 @@ export async function verifyUptoPermit2(
   // not supplied through the resource-sponsoring extension.
   try {
     if (options.requireAllowance ?? sponsorship === null) {
-      const allowance = (await signer.readContract({
-        address: requirements.asset,
-        abi: erc20AllowanceAbi as unknown as readonly Record<string, unknown>[],
-        functionName: "allowance",
-        args: [payer, permit2Address],
-      })) as bigint;
+      const allowance = accountUint256(
+        await signer.readContract({
+          address: requirements.asset,
+          abi: erc20AllowanceAbi as unknown as readonly Record<string, unknown>[],
+          functionName: "allowance",
+          args: [payer, permit2Address],
+        }),
+      );
 
       if (allowance < BigInt(requirements.amount)) {
         return { isValid: false, invalidReason: errors.PERMIT2_ALLOWANCE_REQUIRED, payer };
       }
     }
   } catch {
-    // If allowance check fails, proceed optimistically
+    return {
+      isValid: false,
+      invalidReason: errors.CHAIN_READ_FAILED,
+      invalidMessage: "TRON contract read failed",
+      payer,
+    };
   }
 
   // Check balance covers the authorized maximum
   try {
-    const balance = (await signer.readContract({
-      address: requirements.asset,
-      abi: transferWithAuthorizationABI as unknown as readonly Record<string, unknown>[],
-      functionName: "balanceOf",
-      args: [payer],
-    })) as bigint;
+    const balance = accountUint256(
+      await signer.readContract({
+        address: requirements.asset,
+        abi: transferWithAuthorizationABI as unknown as readonly Record<string, unknown>[],
+        functionName: "balanceOf",
+        args: [payer],
+      }),
+    );
 
     if (balance < BigInt(requirements.amount)) {
       return {
@@ -198,7 +230,12 @@ export async function verifyUptoPermit2(
       };
     }
   } catch {
-    // If balance check fails, continue
+    return {
+      isValid: false,
+      invalidReason: errors.CHAIN_READ_FAILED,
+      invalidMessage: "TRON contract read failed",
+      payer,
+    };
   }
 
   return { isValid: true, invalidReason: undefined, payer };
@@ -216,6 +253,7 @@ export async function verifyUptoPermit2(
  * @param requirements - The payment requirements (amount = actual settlement amount).
  * @param permit2Payload - The Upto Permit2 specific payload.
  * @param context - Registered Facilitator extension capabilities.
+ * @param pending - Original-transaction tracking for this attempt.
  * @returns The settlement response.
  */
 export async function settleUptoPermit2(
@@ -224,8 +262,23 @@ export async function settleUptoPermit2(
   requirements: PaymentRequirements,
   permit2Payload: UptoPermit2Payload,
   context?: FacilitatorContext,
+  pending?: TronPendingSettlementContext,
 ): Promise<SettleResponse> {
   const payer = permit2Payload.permit2Authorization.from;
+  if (pending?.record) {
+    return waitAndReturnSettleResponse(
+      signer,
+      pending.record.transaction,
+      payload.accepted.network,
+      payer,
+      {
+        failedStatusReason: errors.INVALID_TRANSACTION_STATE,
+        amount: requirements.amount,
+        pending,
+      },
+    );
+  }
+
   const settlementAmount = BigInt(requirements.amount);
   const maxAmount = BigInt(permit2Payload.permit2Authorization.permitted.amount);
 
@@ -316,6 +369,7 @@ export async function settleUptoPermit2(
     });
 
     return waitAndReturnSettleResponse(signer, tx, payload.accepted.network, payer, {
+      pending,
       failedStatusReason: errors.INVALID_TRANSACTION_STATE,
       amount: settlementAmount.toString(),
     });

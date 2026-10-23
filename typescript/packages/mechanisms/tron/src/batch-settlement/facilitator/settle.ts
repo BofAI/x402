@@ -1,4 +1,5 @@
-import { SettleResponse, PaymentRequirements } from "@bankofai/x402-core/types";
+import type { TronPendingSettlementContext } from "../../shared/pendingSettlement";
+import { SettleResponse, PaymentRequirements } from "@x402/core/types";
 import { FacilitatorTronSigner } from "../../signer";
 import { normalizeAddressForSigning } from "../../utils";
 import { BatchSettlementSettlePayload } from "../types";
@@ -48,17 +49,31 @@ async function readReceiver(
  * @param signer - Facilitator signer used to submit the settlement transaction.
  * @param payload - Settle payload containing the receiver and token addresses.
  * @param requirements - Payment requirements for network identification.
+ * @param pending - Original-transaction tracking for this attempt.
  * @returns A {@link SettleResponse} with the transaction hash on success.
  */
 export async function executeSettle(
   signer: FacilitatorTronSigner,
   payload: BatchSettlementSettlePayload,
   requirements: PaymentRequirements,
+  pending?: TronPendingSettlementContext,
 ): Promise<SettleResponse> {
   const network = requirements.network;
   const address = getBatchSettlementAddress(network);
   const receiver = normalizeAddressForSigning(payload.receiver);
   const token = normalizeAddressForSigning(payload.token);
+
+  if (pending?.record)
+    return waitForSettle(
+      signer,
+      pending.record.transaction,
+      network,
+      address,
+      receiver,
+      token,
+      BigInt(pending.record.data!.preSettled),
+      pending,
+    );
 
   let preSettled: bigint;
   try {
@@ -91,14 +106,7 @@ export async function executeSettle(
       args: [receiver, token],
     });
 
-    return waitAndReturnSettleResponse(signer, tx, network, undefined, {
-      failedStatusReason: Errors.ErrSettleTransactionFailed,
-      onSuccess: async () => {
-        const [, postSettled] = await readReceiver(signer, address, receiver, token);
-        const amount = postSettled > preSettled ? (postSettled - preSettled).toString() : "0";
-        return { success: true, transaction: tx, network, amount };
-      },
-    });
+    return waitForSettle(signer, tx, network, address, receiver, token, preSettled, pending);
   } catch (e) {
     return {
       success: false,
@@ -108,4 +116,45 @@ export async function executeSettle(
       network,
     };
   }
+}
+
+/**
+ * Recover the settled delta against the original pre-broadcast snapshot.
+ *
+ * @param signer - TRON signer used to read confirmed chain state.
+ * @param tx - Original broadcast transaction ID.
+ * @param network - Network on which the transaction was broadcast.
+ * @param address - Batch settlement contract address.
+ * @param receiver - Receiver whose settlement balance is queried.
+ * @param token - Token being settled.
+ * @param preSettled - Total settled before the original transaction.
+ * @param pending - Original-transaction tracking for this attempt.
+ * @returns Settlement result preserving the original transaction identity.
+ */
+async function waitForSettle(
+  signer: FacilitatorTronSigner,
+  tx: string,
+  network: PaymentRequirements["network"],
+  address: string,
+  receiver: string,
+  token: string,
+  preSettled: bigint,
+  pending?: TronPendingSettlementContext,
+): Promise<SettleResponse> {
+  return waitAndReturnSettleResponse(signer, tx, network, undefined, {
+    pending,
+    pendingData: { preSettled: preSettled.toString() },
+    failedStatusReason: Errors.ErrSettleTransactionFailed,
+    onSuccess: async () => {
+      const [totalClaimed, postSettled] = await readReceiver(signer, address, receiver, token);
+      const amount = postSettled > preSettled ? (postSettled - preSettled).toString() : "0";
+      return {
+        success: true,
+        transaction: tx,
+        network,
+        amount,
+        extra: { pendingSettle: totalClaimed > postSettled },
+      };
+    },
+  });
 }
