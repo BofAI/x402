@@ -1,5 +1,17 @@
 # @bankofai/x402-tron
 
+## 2.1.0
+
+### Minor Changes
+
+- [#107](https://github.com/BofAI/x402/pull/107) [`319a052`](https://github.com/BofAI/x402/commit/319a052d56ba325ff8b82fce137799ef5587a2f3) Thanks [@boboliu-1010](https://github.com/boboliu-1010)! - Use official Core 2.28.0 for TRON payments and move resource sponsorship into `@bankofai/x402-tron-extensions`, requiring explicit extension registration.
+
+  Reject failed upto RPC reads, enforce batch/GasFree spend caps, and recover pending settlements using their original transaction or relayer trace without rebroadcasting. Production recovery requires persistent storage with shared locking.
+
+  Remove legacy and local EVM packages. Use official `@x402/evm@2.28.0` and `@x402/extensions@2.28.0` directly for upstream functionality.
+
+  Synchronize shared pending-settlement records across workers, retain batch claims added during settlement, and distinguish execution failures from storage failures. Require Node.js 24.22.1 or newer.
+
 ## 2.1.0-beta.3
 
 - Recover pending exact, upto, batch, and GasFree settlements using the original transaction or relayer trace, without repeating authorization, resource sponsorship, or broadcast. Preserve batch snapshots and redact storage failures.
@@ -16,7 +28,6 @@
 - Continue the release line as 2.1.0-beta.1; keep the earlier 3.0.0 beta as historical experimental publication.
 - Enforce official Core atomic spend caps against batch deposits and GasFree value plus fee before signing.
 - Migration beta: use official Core 2.28.0 and move resource-runtime imports to the independent extension package; this is not a drop-in source upgrade from SDK2.
-
 
 ## 3.0.0-beta.1
 

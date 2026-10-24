@@ -8,9 +8,9 @@ Use Node.js 24.22.1 or newer. CI workflows explicitly specify Node.js 24.22.1; `
 
 ```sh
 # Install the matching mechanism and optional extension versions
-npm install @x402/core@2.28.0 @bankofai/x402-tron@2.1.0-beta.3
+npm install @x402/core@2.28.0 @bankofai/x402-tron@2.1.0
 # Required only for resource sponsorship
-npm install @bankofai/x402-tron-extensions@2.1.0-beta.3
+npm install @bankofai/x402-tron-extensions@2.1.0
 # Select official HTTP / MCP integrations for the application role
 npm install @x402/fetch@2.28.0 @x402/express@2.28.0
 ```

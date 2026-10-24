@@ -5,9 +5,9 @@ TRON payment schemes for official `@x402/core`: `exact`, `upto`, `batch-settleme
 ## Installation
 
 ```sh
-npm install @x402/core@2.28.0 @bankofai/x402-tron@2.1.0-beta.3
+npm install @x402/core@2.28.0 @bankofai/x402-tron@2.1.0
 # Optional resource sponsorship; use the matching mechanism version
-npm install @bankofai/x402-tron-extensions@2.1.0-beta.3
+npm install @bankofai/x402-tron-extensions@2.1.0
 ```
 
 Use official HTTP/MCP integration packages with the same Core version.
