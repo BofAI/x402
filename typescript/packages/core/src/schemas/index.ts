@@ -15,7 +15,7 @@ export type NonEmptyString = z.infer<typeof NonEmptyString>;
  * Any record schema - an object with unknown keys and values.
  * Used for scheme-specific payloads and other extensible objects.
  */
-export const Any = z.record(z.unknown());
+export const Any = z.record(z.string(), z.unknown());
 export type Any = z.infer<typeof Any>;
 
 /**
@@ -34,7 +34,7 @@ function nullishToUndefined<T extends z.ZodType>(schema: T) {
  * Optional any record schema - an optional object with unknown keys and values.
  * Used for optional extension fields like `extra` and `extensions`.
  */
-export const OptionalAny = z.record(z.unknown()).optional().nullable();
+export const OptionalAny = z.record(z.string(), z.unknown()).optional().nullable();
 export type OptionalAny = z.infer<typeof OptionalAny>;
 
 // ============================================================================
@@ -224,9 +224,7 @@ export type PaymentPayload = z.infer<typeof PaymentPayloadSchema>;
  * @param value - The value to validate
  * @returns A result object with success status and data or error
  */
-export function parsePaymentRequired(
-  value: unknown,
-): z.SafeParseReturnType<unknown, PaymentRequired> {
+export function parsePaymentRequired(value: unknown): z.ZodSafeParseResult<PaymentRequired> {
   return PaymentRequiredSchema.safeParse(value);
 }
 
@@ -259,7 +257,7 @@ export function isPaymentRequired(value: unknown): value is PaymentRequired {
  */
 export function parsePaymentRequirements(
   value: unknown,
-): z.SafeParseReturnType<unknown, PaymentRequirements> {
+): z.ZodSafeParseResult<PaymentRequirements> {
   return PaymentRequirementsSchema.safeParse(value);
 }
 
@@ -290,9 +288,7 @@ export function isPaymentRequirements(value: unknown): value is PaymentRequireme
  * @param value - The value to validate
  * @returns A result object with success status and data or error
  */
-export function parsePaymentPayload(
-  value: unknown,
-): z.SafeParseReturnType<unknown, PaymentPayload> {
+export function parsePaymentPayload(value: unknown): z.ZodSafeParseResult<PaymentPayload> {
   return PaymentPayloadSchema.safeParse(value);
 }
 
