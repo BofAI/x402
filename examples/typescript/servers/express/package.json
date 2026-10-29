@@ -10,9 +10,9 @@
   },
   "dependencies": {
     "@bankofai/x402-tron": "workspace:*",
-    "express": "^4.21.2",
-    "@x402/core": "2.28.0",
-    "@x402/express": "2.28.0"
+    "@x402/core": "2.29.0",
+    "@x402/express": "2.29.0",
+    "express": "^4.22.3"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",

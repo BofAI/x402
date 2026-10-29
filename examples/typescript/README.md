@@ -6,7 +6,7 @@ These examples demonstrate TRON support added by `@bankofai/x402-tron` and
 which cover general Core, HTTP/MCP, framework, and upstream-chain integrations.
 
 Only the two TRON packages are linked locally. Core, fetch, Express, and MCP integrations
-come directly from official `@x402/*@2.28.0` packages. See the
+come directly from official `@x402/*@2.29.0` packages. See the
 [2.1 migration guide](../../docs/migrations/tron-2.1.md) for SDK migration requirements.
 
 ## Scenarios

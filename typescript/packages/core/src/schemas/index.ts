@@ -15,7 +15,7 @@ export type NonEmptyString = z.infer<typeof NonEmptyString>;
  * Any record schema - an object with unknown keys and values.
  * Used for scheme-specific payloads and other extensible objects.
  */
-export const Any = z.record(z.unknown());
+export const Any = z.record(z.string(), z.unknown());
 export type Any = z.infer<typeof Any>;
 
 /**
@@ -34,7 +34,7 @@ function nullishToUndefined<T extends z.ZodType>(schema: T) {
  * Optional any record schema - an optional object with unknown keys and values.
  * Used for optional extension fields like `extra` and `extensions`.
  */
-export const OptionalAny = z.record(z.unknown()).optional().nullable();
+export const OptionalAny = z.record(z.string(), z.unknown()).optional().nullable();
 export type OptionalAny = z.infer<typeof OptionalAny>;
 
 // ============================================================================
@@ -119,7 +119,7 @@ export type PaymentRequirementsV1 = z.infer<typeof PaymentRequirementsV1Schema>;
 export const PaymentRequiredV1Schema = z.object({
   x402Version: z.literal(1),
   error: z.string().optional(),
-  accepts: z.array(PaymentRequirementsV1Schema).min(1),
+  accepts: z.array(PaymentRequirementsV1Schema).min(1).max(1024),
 });
 export type PaymentRequiredV1 = z.infer<typeof PaymentRequiredV1Schema>;
 
@@ -162,7 +162,7 @@ export const PaymentRequiredV2Schema = z.object({
   x402Version: z.literal(2),
   error: nullishToUndefined(z.string()),
   resource: ResourceInfoSchema,
-  accepts: z.array(PaymentRequirementsV2Schema).min(1),
+  accepts: z.array(PaymentRequirementsV2Schema).min(1).max(1024),
   extensions: OptionalAny,
 });
 export type PaymentRequiredV2 = z.infer<typeof PaymentRequiredV2Schema>;
@@ -224,9 +224,7 @@ export type PaymentPayload = z.infer<typeof PaymentPayloadSchema>;
  * @param value - The value to validate
  * @returns A result object with success status and data or error
  */
-export function parsePaymentRequired(
-  value: unknown,
-): z.SafeParseReturnType<unknown, PaymentRequired> {
+export function parsePaymentRequired(value: unknown): z.ZodSafeParseResult<PaymentRequired> {
   return PaymentRequiredSchema.safeParse(value);
 }
 
@@ -259,7 +257,7 @@ export function isPaymentRequired(value: unknown): value is PaymentRequired {
  */
 export function parsePaymentRequirements(
   value: unknown,
-): z.SafeParseReturnType<unknown, PaymentRequirements> {
+): z.ZodSafeParseResult<PaymentRequirements> {
   return PaymentRequirementsSchema.safeParse(value);
 }
 
@@ -290,9 +288,7 @@ export function isPaymentRequirements(value: unknown): value is PaymentRequireme
  * @param value - The value to validate
  * @returns A result object with success status and data or error
  */
-export function parsePaymentPayload(
-  value: unknown,
-): z.SafeParseReturnType<unknown, PaymentPayload> {
+export function parsePaymentPayload(value: unknown): z.ZodSafeParseResult<PaymentPayload> {
   return PaymentPayloadSchema.safeParse(value);
 }
 

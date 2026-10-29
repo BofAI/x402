@@ -1,10 +1,10 @@
 # `@bankofai/x402-tron-extensions`
 
-Independent TRON resource sponsorship extension for official `@x402/core@2.28.0`. Install the same version as `@bankofai/x402-tron`. For upgrading from 2.0, see the [migration guide](../../../docs/migrations/tron-2.1.md).
+Independent TRON resource sponsorship extension for official `@x402/core@2.29.0`. Install the same version as `@bankofai/x402-tron`. For upgrading from 2.0, see the [migration guide](../../../docs/migrations/tron-2.1.md).
 
-```sh
-npm install @x402/core@2.28.0 @bankofai/x402-tron@2.1.0 @bankofai/x402-tron-extensions@2.1.0
-```
+The Core 2.29.0 peer update on this branch is unreleased. Build this package and
+the matching mechanism in the repository workspace until the next BOA release.
+Published TRON extensions 2.1.0 still require Core 2.28.0.
 
 The mechanism maintains payment schemes, public contracts, and transaction utilities. The extension maintains declarations/schemas, client pre-signing, Approval transaction validation, resource budgets, energy/bandwidth delegation, reclamation, and the coordinator runtime. Basic payments require neither this package nor an Agent Wallet installation.
 
@@ -30,7 +30,7 @@ The client before hook validates declaration version and network. The mechanism 
 
 This package exposes its root and `trc20-approval-resource-sponsoring`, plus `client`, `facilitator`, and `resourceService` beneath that subpath. All entrypoints support ESM/CJS.
 
-Use official `@x402/extensions@2.28.0` for Bazaar, Sign-in-with-x, EVM gas sponsorship, and other upstream extensions.
+Use official `@x402/extensions@2.29.0` for Bazaar, Sign-in-with-x, EVM gas sponsorship, and other upstream extensions.
 
 ## Testing
 
