@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   Any,
   OptionalAny,
+  PaymentRequiredV1Schema,
+  PaymentRequiredV2Schema,
   ResourceInfoSchema,
   parsePaymentPayload,
   parsePaymentRequired,
@@ -9,6 +11,33 @@ import {
 } from "../../../src/schemas";
 
 describe("native Zod collection limits", () => {
+  it.each([
+    [PaymentRequiredV1Schema, { x402Version: 1 }],
+    [PaymentRequiredV2Schema, { x402Version: 2, resource: { url: "https://test.invalid" } }],
+  ] as const)("bounds errors from oversized payment options", (schema, envelope) => {
+    const requirement = {
+      scheme: "exact",
+      network: "tron:3448148188",
+      amount: "1",
+      maxAmountRequired: "1",
+      resource: "https://test.invalid",
+      description: "payments",
+      asset: "token",
+      payTo: "recipient",
+      maxTimeoutSeconds: 60,
+    };
+    expect(schema.safeParse({ ...envelope, accepts: [requirement] }).success).toBe(true);
+    expect(schema.safeParse({ ...envelope, accepts: Array(1_024).fill(requirement) }).success).toBe(
+      true,
+    );
+    expect(schema.safeParse({ ...envelope, accepts: [] }).success).toBe(false);
+    const result = schema.safeParse({ ...envelope, accepts: Array(1_025).fill(null) });
+    expect(result.success).toBe(false);
+    if (result.success) throw new Error("Oversized payment options accepted");
+    expect(result.error.issues).toHaveLength(1);
+    expect(result.error.issues[0]).toMatchObject({ code: "too_big", path: ["accepts"] });
+  });
+
   for (const bound of ["max", "length"] as const) {
     for (const asyncParse of [false, true]) {
       it(`rejects oversized ${bound} input before element parsing (async=${asyncParse})`, async () => {

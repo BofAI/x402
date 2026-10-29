@@ -6,6 +6,8 @@
 Use native Zod 4.6.6 or newer to fix GHSA-mrhx-c7xc-m3w5. Oversized resource
 tag arrays now stop before element validation instead of accumulating per-element
 errors. Update the MCP transport's direct Zod dependency to the same safe range.
+Align V1 and V2 payment-option arrays with official Core's 1,024-entry maximum,
+so oversized `accepts` arrays also stop before validating individual entries.
 
 The core `/schemas` export now exposes native Zod 4 schemas, `z`, and safe-parse
 result types. Consumers that compose schemas must use Zod 4 and use

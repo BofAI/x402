@@ -119,7 +119,7 @@ export type PaymentRequirementsV1 = z.infer<typeof PaymentRequirementsV1Schema>;
 export const PaymentRequiredV1Schema = z.object({
   x402Version: z.literal(1),
   error: z.string().optional(),
-  accepts: z.array(PaymentRequirementsV1Schema).min(1),
+  accepts: z.array(PaymentRequirementsV1Schema).min(1).max(1024),
 });
 export type PaymentRequiredV1 = z.infer<typeof PaymentRequiredV1Schema>;
 
@@ -162,7 +162,7 @@ export const PaymentRequiredV2Schema = z.object({
   x402Version: z.literal(2),
   error: nullishToUndefined(z.string()),
   resource: ResourceInfoSchema,
-  accepts: z.array(PaymentRequirementsV2Schema).min(1),
+  accepts: z.array(PaymentRequirementsV2Schema).min(1).max(1024),
   extensions: OptionalAny,
 });
 export type PaymentRequiredV2 = z.infer<typeof PaymentRequiredV2Schema>;

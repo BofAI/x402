@@ -110,8 +110,8 @@ importers:
         specifier: ^8.29.1
         version: 8.42.0(eslint@9.34.0)(typescript@5.9.2)
       '@x402/core':
-        specifier: 2.28.0
-        version: 2.28.0
+        specifier: 2.29.0
+        version: 2.29.0
       eslint:
         specifier: ^9.24.0
         version: 9.34.0
@@ -207,8 +207,8 @@ importers:
         specifier: workspace:~
         version: link:../../core
       '@x402/extensions':
-        specifier: 2.28.0
-        version: 2.28.0(ethers@6.13.5)(typescript@5.9.2)
+        specifier: 2.29.0
+        version: 2.29.0(ethers@6.13.5)(typescript@5.9.2)
     devDependencies:
       '@eslint/js':
         specifier: ^9.24.0
@@ -268,8 +268,8 @@ importers:
         specifier: workspace:~
         version: link:../../core
       '@x402/extensions':
-        specifier: 2.28.0
-        version: 2.28.0(ethers@6.13.5)(typescript@5.9.2)
+        specifier: 2.29.0
+        version: 2.29.0(ethers@6.13.5)(typescript@5.9.2)
     devDependencies:
       '@eslint/js':
         specifier: ^9.24.0
@@ -378,8 +378,8 @@ importers:
         specifier: workspace:~
         version: link:../../core
       '@x402/extensions':
-        specifier: 2.28.0
-        version: 2.28.0(ethers@6.13.5)(typescript@5.9.2)
+        specifier: 2.29.0
+        version: 2.29.0(ethers@6.13.5)(typescript@5.9.2)
     devDependencies:
       '@eslint/js':
         specifier: ^9.24.0
@@ -436,8 +436,8 @@ importers:
         specifier: workspace:~
         version: link:../../core
       '@x402/extensions':
-        specifier: 2.28.0
-        version: 2.28.0(ethers@6.13.5)(typescript@5.9.2)
+        specifier: 2.29.0
+        version: 2.29.0(ethers@6.13.5)(typescript@5.9.2)
       next:
         specifier: '>=16.2.6'
         version: 16.2.6(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -494,8 +494,8 @@ importers:
         specifier: workspace:~
         version: link:../core
       '@modelcontextprotocol/sdk':
-        specifier: ^1.12.1
-        version: 1.26.0(zod@4.6.7)
+        specifier: ^1.32.0
+        version: 1.32.2(zod@4.6.7)
       zod:
         specifier: ^4.6.6
         version: 4.6.7
@@ -516,8 +516,8 @@ importers:
         specifier: ^8.29.1
         version: 8.49.0(eslint@9.34.0)(typescript@5.9.2)
       '@x402/evm':
-        specifier: 2.28.0
-        version: 2.28.0(typescript@5.9.2)
+        specifier: 2.29.0
+        version: 2.29.0(typescript@5.9.2)
       eslint:
         specifier: ^9.24.0
         version: 9.34.0
@@ -580,8 +580,8 @@ importers:
         specifier: ^8.29.1
         version: 8.49.0(eslint@9.34.0)(typescript@5.9.2)
       '@x402/core':
-        specifier: 2.28.0
-        version: 2.28.0
+        specifier: 2.29.0
+        version: 2.29.0
       eslint:
         specifier: ^9.24.0
         version: 9.34.0
@@ -1549,8 +1549,8 @@ packages:
   '@manypkg/get-packages@1.1.3':
     resolution: {integrity: sha512-fo+QhuU3qE/2TQMQmbVMqaQ6EWbMhi4ABWP+O4AM1NqPBuy0OrApV5LO6BrrgnhtAHS2NH6RrVk9OL181tTi8A==}
 
-  '@modelcontextprotocol/sdk@1.26.0':
-    resolution: {integrity: sha512-Y5RmPncpiDtTXDbLKswIJzTqu2hyBKxTNsgKqKclDbhIgg1wgtf1fRuvxgTnRfcnxtvvgbIEcqUOzZrJ6iSReg==}
+  '@modelcontextprotocol/sdk@1.32.2':
+    resolution: {integrity: sha512-SWsVtH/0vULSQStoZ6xxH2K09Li8fXYTMC64ZeogCdpZ3XSi1eCPOByV1OpuJxuI3OcmHhosDWYyii07tpPsLw==}
     engines: {node: '>=18'}
     peerDependencies:
       '@cfworker/json-schema': ^4.1.1
@@ -2031,14 +2031,14 @@ packages:
   '@vitest/utils@3.2.4':
     resolution: {integrity: sha512-fB2V0JFrQSMsCo9HiSq3Ezpdv4iYaXRG1Sx8edX3MwxfyNn83mKiGzOcH+Fkxt4MHxr3y42fQi1oeAInqgX2QA==}
 
-  '@x402/core@2.28.0':
-    resolution: {integrity: sha512-Da/7zKxCKqpBoB4Msc9tFgkAv7tJTD8nG+DSSm+QdXAyJS4PQsmgVSKe17rDJTtlu0pwNbLcOje6MyQ6kaDkig==}
+  '@x402/core@2.29.0':
+    resolution: {integrity: sha512-fkS0JqVwHgczteDlwItLRipOlIzm28U9HWLvYnYpnNbfmepoBT/4ux7LjrR0xGD51JHoC8/r+Qo7uCfoAQYeuw==}
 
-  '@x402/evm@2.28.0':
-    resolution: {integrity: sha512-BZuoaCKMoPQQuMTa4oibvoyI06WdCpgrzgdicUu8d+5NBMAfWb6LAmSQf1KkeiS8C+25/+2JGB4cHSL0VLGnSA==}
+  '@x402/evm@2.29.0':
+    resolution: {integrity: sha512-Gk4bJ6WoRR3jeT2+vERSPMSkSr1nRL5kjtVh14uoynRm8y+fGFH8xmvlGzuwKT0liA6OLjdr9xjZtN8i0WYk9g==}
 
-  '@x402/extensions@2.28.0':
-    resolution: {integrity: sha512-M3SVxO8DJnx7gpok/ODQp803jr21s1XrCMholNw0hSgOVvSPRksfTZ+CUNfJwteNaHmaAxGjPelXWBhTCMD9oQ==}
+  '@x402/extensions@2.29.0':
+    resolution: {integrity: sha512-FCpjZ6QR6ZtHTRZBV7VHMt7tc66LnTrpKDERiL3atXlLu4PlmgiulHt9PWE+Ktm5iUbXr3dAYZu2e7XrVd/XgA==}
 
   abitype@1.2.3:
     resolution: {integrity: sha512-Ofer5QUnuUdTFsBRwARMoWKOH1ND5ehwYhJ3OJ/BQO+StkwQjHw0XyVh4vDttzHB7QOFhPHa/o413PJ82gU/Tg==}
@@ -2088,6 +2088,9 @@ packages:
 
   ajv@8.17.1:
     resolution: {integrity: sha512-B/gBuNg5SiMTrPkC+A2+cW0RszwxYmn6VYxB/inlBStS5nx6xHIt/ehKRhIMhqusl7a8LjQoZnjCs5vhwxOQ1g==}
+
+  ajv@8.20.0:
+    resolution: {integrity: sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA==}
 
   ansi-colors@4.1.3:
     resolution: {integrity: sha512-/6w/C21Pm1A7aZitlI5Ni/2J6FFQN8i1Cvz3kHABAAbw93v/NlvKdVOqz7CCWz/3iv/JplRSEEZ83XION15ovw==}
@@ -5169,7 +5172,7 @@ snapshots:
       globby: 11.1.0
       read-yaml-file: 1.1.0
 
-  '@modelcontextprotocol/sdk@1.26.0(zod@4.6.7)':
+  '@modelcontextprotocol/sdk@1.32.2(zod@4.6.7)':
     dependencies:
       '@hono/node-server': 1.19.9(hono@4.11.7)
       ajv: 8.17.1
@@ -5356,12 +5359,12 @@ snapshots:
       '@noble/hashes': 1.8.0
       apg-js: 4.4.0
 
-  '@signinwithethereum/siwe@4.1.0(ethers@6.13.5)(viem@2.48.11(typescript@5.9.2)(zod@3.25.76))':
+  '@signinwithethereum/siwe@4.1.0(ethers@6.13.5)(viem@2.48.11(typescript@5.9.2)(zod@4.6.7))':
     dependencies:
       '@signinwithethereum/siwe-parser': 4.1.0
     optionalDependencies:
       ethers: 6.13.5
-      viem: 2.48.11(typescript@5.9.2)(zod@3.25.76)
+      viem: 2.48.11(typescript@5.9.2)(zod@4.6.7)
 
   '@swc/helpers@0.5.15':
     dependencies:
@@ -5682,31 +5685,31 @@ snapshots:
       loupe: 3.2.1
       tinyrainbow: 2.0.0
 
-  '@x402/core@2.28.0':
+  '@x402/core@2.29.0':
     dependencies:
-      zod: 3.25.76
+      zod: 4.6.7
 
-  '@x402/evm@2.28.0(typescript@5.9.2)':
+  '@x402/evm@2.29.0(typescript@5.9.2)':
     dependencies:
-      '@x402/core': 2.28.0
-      viem: 2.48.11(typescript@5.9.2)(zod@3.25.76)
-      zod: 3.25.76
+      '@x402/core': 2.29.0
+      viem: 2.48.11(typescript@5.9.2)(zod@4.6.7)
+      zod: 4.6.7
     transitivePeerDependencies:
       - bufferutil
       - typescript
       - utf-8-validate
 
-  '@x402/extensions@2.28.0(ethers@6.13.5)(typescript@5.9.2)':
+  '@x402/extensions@2.29.0(ethers@6.13.5)(typescript@5.9.2)':
     dependencies:
       '@noble/curves': 1.9.7
       '@scure/base': 1.2.6
-      '@signinwithethereum/siwe': 4.1.0(ethers@6.13.5)(viem@2.48.11(typescript@5.9.2)(zod@3.25.76))
-      '@x402/core': 2.28.0
-      ajv: 8.17.1
+      '@signinwithethereum/siwe': 4.1.0(ethers@6.13.5)(viem@2.48.11(typescript@5.9.2)(zod@4.6.7))
+      '@x402/core': 2.29.0
+      ajv: 8.20.0
       jose: 5.10.0
       tweetnacl: 1.0.3
-      viem: 2.48.11(typescript@5.9.2)(zod@3.25.76)
-      zod: 3.25.76
+      viem: 2.48.11(typescript@5.9.2)(zod@4.6.7)
+      zod: 4.6.7
     transitivePeerDependencies:
       - bufferutil
       - ethers
@@ -5755,6 +5758,13 @@ snapshots:
       uri-js: 4.4.1
 
   ajv@8.17.1:
+    dependencies:
+      fast-deep-equal: 3.1.3
+      fast-uri: 3.1.0
+      json-schema-traverse: 1.0.0
+      require-from-string: 2.0.2
+
+  ajv@8.20.0:
     dependencies:
       fast-deep-equal: 3.1.3
       fast-uri: 3.1.0
@@ -5906,7 +5916,7 @@ snapshots:
       bytes: 3.1.2
       content-type: 1.0.5
       debug: 4.4.3
-      http-errors: 2.0.0
+      http-errors: 2.0.1
       iconv-lite: 0.7.2
       on-finished: 2.4.1
       qs: 6.14.1
@@ -6555,7 +6565,7 @@ snapshots:
       etag: 1.8.1
       finalhandler: 2.1.1
       fresh: 2.0.0
-      http-errors: 2.0.0
+      http-errors: 2.0.1
       merge-descriptors: 2.0.0
       mime-types: 3.0.2
       on-finished: 2.4.1
@@ -6567,7 +6577,7 @@ snapshots:
       router: 2.2.0
       send: 1.2.1
       serve-static: 2.2.1
-      statuses: 2.0.1
+      statuses: 2.0.2
       type-is: 2.0.1
       vary: 1.1.2
     transitivePeerDependencies:
@@ -6671,7 +6681,7 @@ snapshots:
       escape-html: 1.0.3
       on-finished: 2.4.1
       parseurl: 1.3.3
-      statuses: 2.0.1
+      statuses: 2.0.2
     transitivePeerDependencies:
       - supports-color
 

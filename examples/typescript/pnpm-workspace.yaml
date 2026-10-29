@@ -8,6 +8,14 @@ packages:
   - "../../typescript/packages/mechanisms/tron"
 minimumReleaseAge: 4320 # Only install package versions that have been published for at least 3 days.
 minimumReleaseAgeStrict: true
+# Allow the verified official Zod security release before the normal 3-day delay.
+minimumReleaseAgeExclude:
+  - "@x402/core@2.29.0"
+  - "@x402/evm@2.29.0"
+  - "@x402/extensions@2.29.0"
+  - "@x402/express@2.29.0"
+  - "@x402/fetch@2.29.0"
+  - "@x402/mcp@2.29.0"
 allowBuilds:
   bigint-buffer: true
   bufferutil: true

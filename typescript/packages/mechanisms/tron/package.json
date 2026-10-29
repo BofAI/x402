@@ -45,7 +45,7 @@
     "@types/node": "^22.13.4",
     "@typescript-eslint/eslint-plugin": "^8.29.1",
     "@typescript-eslint/parser": "^8.29.1",
-    "@x402/core": "2.28.0",
+    "@x402/core": "2.29.0",
     "eslint": "^9.24.0",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-jsdoc": "^50.6.9",
@@ -267,6 +267,6 @@
     "dist"
   ],
   "peerDependencies": {
-    "@x402/core": "2.28.0"
+    "@x402/core": "2.29.0"
   }
 }

@@ -18,7 +18,7 @@ Version `2.1.0`. The SDK is a **TypeScript-only** pnpm/turbo monorepo published 
 
 TRON 2.1 moves to official Core 2.28.0 and publishes resource sponsorship as a separate package.
 This requires source migration from 2.0. Read the [TRON 2.1 migration guide](docs/migrations/tron-2.1.md)
-before upgrading. The examples below use 2.1.0 and matching official packages.
+before upgrading. This branch upgrades the workspace examples to official Core 2.29.0.
 Historical 2.0 installation details remain in the release notes.
 
 ## Features
@@ -31,17 +31,17 @@ Historical 2.0 installation details remain in the release notes.
 
 ## Installation
 
-Install TRON 2.1.0 with matching official integrations:
+The Zod security upgrade on this branch requires official Core 2.29.0. It is not
+yet published as a BOA release; published TRON 2.1.0 still requires Core 2.28.0.
+Build and use the workspace packages until the next BOA release:
 
 ```bash
-npm install @x402/core@2.28.0 @x402/fetch@2.28.0 @bankofai/x402-tron@2.1.0
-# Express resource server
-npm install @x402/express@2.28.0
-# Optional TRON resource sponsorship
-npm install @bankofai/x402-tron-extensions@2.1.0
+cd typescript
+pnpm install
+pnpm build
 ```
 
-For EVM, install official `@x402/evm@2.28.0` with matching official Core and transports.
+For EVM, install official `@x402/evm@2.29.0` with matching official Core and transports.
 Use the [upstream examples](https://github.com/x402-foundation/x402/tree/main/examples/typescript)
 for EVM signer configuration.
 

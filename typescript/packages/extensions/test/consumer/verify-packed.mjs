@@ -21,7 +21,7 @@ try {
   for (const dir of [tronDir, packageDir])
     run("npx", ["--yes", "pnpm@11.1.1", "pack", "--pack-destination", temp], dir);
   const tarballs = readdirSync(temp).filter(name => name.endsWith(".tgz"));
-  const dependencies = { "@x402/core": "2.28.0", typescript: "5.7.3", "@types/node": "22.19.17" };
+  const dependencies = { "@x402/core": "2.29.0", typescript: "5.7.3", "@types/node": "22.19.17" };
   for (const name of tarballs)
     dependencies[
       name.includes("tron-extensions") ? "@bankofai/x402-tron-extensions" : "@bankofai/x402-tron"
