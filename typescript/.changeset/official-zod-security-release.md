@@ -1,6 +1,6 @@
 ---
-"@bankofai/x402-tron": major
-"@bankofai/x402-tron-extensions": major
+"@bankofai/x402-tron": patch
+"@bankofai/x402-tron-extensions": patch
 "@bankofai/x402-express": patch
 "@bankofai/x402-fastify": patch
 "@bankofai/x402-hono": patch
