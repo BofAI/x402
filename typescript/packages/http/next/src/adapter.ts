@@ -1,5 +1,5 @@
 import { HTTPAdapter } from "@bankofai/x402-core/server";
-import { NextRequest } from "next/server";
+import { NextRequest } from "next/server.js";
 
 /**
  * Next.js adapter implementation
