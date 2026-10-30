@@ -1,5 +1,13 @@
 # @bankofai/x402-core Changelog
 
+## 2.0.0
+
+### Major Changes
+
+- [#112](https://github.com/BofAI/x402/pull/112) [`2d821f0`](https://github.com/BofAI/x402/commit/2d821f01b0e7714cfe14ce109066395b61eb2e99) Thanks [@boboliu-1010](https://github.com/boboliu-1010)! - Use native Zod 4.6.6 or newer to fix GHSA-mrhx-c7xc-m3w5. Oversized resource tag arrays now stop before element validation instead of accumulating per-element errors. Update the MCP transport's direct Zod dependency to the same safe range. Align V1 and V2 payment-option arrays with official Core's 1,024-entry maximum, so oversized `accepts` arrays also stop before validating individual entries.
+
+  The core `/schemas` export now exposes native Zod 4 schemas, `z`, and safe-parse result types. Consumers that compose schemas must use Zod 4 and use `error.issues` instead of the removed Zod 3 `error.errors` alias. Normal JSON payment payloads, extensible records, and nullable optional metadata remain supported. Do not import `zod/v3` as a compatibility workaround: that entry still uses the affected collection parser.
+
 ## 1.1.1
 
 ### Patch Changes

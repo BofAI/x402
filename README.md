@@ -10,15 +10,15 @@ x402 currently supports the **TRON** and **BSC** networks, with plans to expand 
 
 ---
 
-## Current Release
+## Release 2.1.1
 
-Version `2.1.0`. The SDK is a **TypeScript-only** pnpm/turbo monorepo published as granular `@bankofai/x402-*` packages (there is no umbrella package). The TRON mechanism is maintained here; current EVM integrations use the official [`@x402/evm`](https://www.npmjs.com/package/@x402/evm) package rather than a local fork. Supported schemes: `exact` (ERC-3009 / Permit2), `upto`, `batch-settlement`, `auth-capture` (EVM), and `exact_gasfree` (TRON). See [the v2.1.0 release notes](RELEASE_NOTES.md#v210--tron-official-core-and-independent-resource-extension) for upgrade details.
+Release target `2.1.1`. The SDK is a **TypeScript-only** pnpm/turbo monorepo published as granular `@bankofai/x402-*` packages (there is no umbrella package). The TRON mechanism is maintained here; current EVM integrations use the official [`@x402/evm`](https://www.npmjs.com/package/@x402/evm) package rather than a local fork. Supported schemes: `exact` (ERC-3009 / Permit2), `upto`, `batch-settlement`, `auth-capture` (EVM), and `exact_gasfree` (TRON). See [the v2.1.1 release notes](RELEASE_NOTES.md#v211--native-zod-4-security-update) for upgrade details.
 
 ## TRON 2.1 migration
 
-TRON 2.1 moves to official Core 2.28.0 and publishes resource sponsorship as a separate package.
+TRON 2.1.1 uses official Core 2.29.0 and publishes resource sponsorship as a separate package.
 This requires source migration from 2.0. Read the [TRON 2.1 migration guide](docs/migrations/tron-2.1.md)
-before upgrading. This branch upgrades the workspace examples to official Core 2.29.0.
+before upgrading. The workspace examples use the same official Core version.
 Historical 2.0 installation details remain in the release notes.
 
 ## Features
