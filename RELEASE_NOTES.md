@@ -1,3 +1,17 @@
+# v2.1.1 — Native Zod 4 Security Update
+
+- Adopt official x402 Core, EVM, extensions, and transports at `2.29.0` with native Zod 4 to address GHSA-mrhx-c7xc-m3w5.
+- Release `@bankofai/x402-tron` and `@bankofai/x402-tron-extensions` at `2.1.1`. Upgrade both together and install their exact `@x402/core@2.29.0` peer.
+- Release BOA Core at `2.0.0`: its public `/schemas` API uses Zod 4. Schema consumers must use Zod 4 and `error.issues`; the Zod 3 `error.errors` alias is removed.
+- Bound payment-option arrays at 1,024 entries and reject oversized collections before validating individual elements.
+- Fix the Next.js adapter's native Node ESM import using `next/server.js`.
+
+Other package versions: MCP `1.1.1`; Express, Fastify, Hono, and Next.js `1.1.3`; Axios and Fetch `1.1.1`.
+
+See the [migration guide](docs/migrations/tron-2.1.md) for installation and compatibility details.
+
+---
+
 # v2.1.0 — TRON Official Core and Independent Resource Extension
 
 - Migrate the payment call chain to official `@x402/core@2.28.0` and matching HTTP/MCP integrations.

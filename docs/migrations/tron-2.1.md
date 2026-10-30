@@ -4,24 +4,30 @@ Use this guide to migrate application imports, wallet integrations, and resource
 
 ## Installation and compatibility
 
+The commands below target the 2.1.1 release. Until it is published, build the release branch locally.
+
+For 2.1.0 consumers, upgrade both TRON packages together and replace the exact
+`@x402/core@2.28.0` peer with `@x402/core@2.29.0`. Public Core schemas now use Zod 4;
+use `error.issues` instead of the removed Zod 3 `error.errors` alias.
+
 Use Node.js 24.22.1 or newer. CI workflows explicitly specify Node.js 24.22.1; `.nvmrc` pins the same version for local development. This security release includes the October 2026 Node.js fixes.
 
 ```sh
 # Install the matching mechanism and optional extension versions
-npm install @x402/core@2.28.0 @bankofai/x402-tron@2.1.0
+npm install @x402/core@2.29.0 @bankofai/x402-tron@2.1.1
 # Required only for resource sponsorship
-npm install @bankofai/x402-tron-extensions@2.1.0
+npm install @bankofai/x402-tron-extensions@2.1.1
 # Select official HTTP / MCP integrations for the application role
-npm install @x402/fetch@2.28.0 @x402/express@2.28.0
+npm install @x402/fetch@2.29.0 @x402/express@2.29.0
 ```
 
-Upgrading from 2.0 requires source migration. The protocol remains x402 v2, with `exact`, `upto`, `batch-settlement`, `exact_gasfree`, and the existing wallet factories. This does not make legacy Core instances interchangeable with the new mechanisms. Use official Core 2.28.0 throughout the payment call chain and upgrade HTTP/MCP adapters together. `@x402/core` is an exact peer dependency of the mechanism package.
+Upgrading from 2.0 requires source migration. The protocol remains x402 v2, with `exact`, `upto`, `batch-settlement`, `exact_gasfree`, and the existing wallet factories. This does not make legacy Core instances interchangeable with the new mechanisms. Use official Core 2.29.0 throughout the payment call chain and upgrade HTTP/MCP adapters together. `@x402/core` is an exact peer dependency of the mechanism package.
 
 The extension depends on the exact same mechanism version. Upgrade both TRON packages together; avoid mixing beta and stable versions. Ordinary payments require only the mechanism and official Core, without the resource extension or an Agent Wallet runtime dependency.
 
-The local EVM mechanism package is retired. Use official `@x402/evm@2.28.0` for EVM and its public signer adapters; the retired `@bankofai/x402-evm/adapters/agent-wallet` factory path is not available from the official package. Follow the upstream EVM examples.
+The local EVM mechanism package is retired. Use official `@x402/evm@2.29.0` for EVM and its public signer adapters; the retired `@bankofai/x402-evm/adapters/agent-wallet` factory path is not available from the official package. Follow the upstream EVM examples.
 
-Generic extensions such as Bazaar, Sign-in-with-x, and EVM gas sponsorship use official `@x402/extensions@2.28.0` directly. The repository no longer contains legacy v1 packages or `@bankofai/x402-extensions`. Use published upstream packages if legacy APIs are still needed.
+Generic extensions such as Bazaar, Sign-in-with-x, and EVM gas sponsorship use official `@x402/extensions@2.29.0` directly. The repository no longer contains legacy v1 packages or `@bankofai/x402-extensions`. Use published upstream packages if legacy APIs are still needed.
 
 ## Import changes
 

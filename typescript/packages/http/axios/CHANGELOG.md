@@ -1,5 +1,12 @@
 # @bankofai/x402-axios Changelog
 
+## 1.1.1
+
+### Patch Changes
+
+- Updated dependencies [[`2d821f0`](https://github.com/BofAI/x402/commit/2d821f01b0e7714cfe14ce109066395b61eb2e99)]:
+  - @bankofai/x402-core@2.0.0
+
 ## 1.1.0
 
 ### Minor Changes

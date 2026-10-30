@@ -19,7 +19,7 @@ try {
       private: true,
       dependencies: {
         "@bankofai/x402-tron": `file:${join(temp, packed.filename)}`,
-        "@x402/core": "2.28.0",
+        "@x402/core": "2.29.0",
         typescript: "5.7.3",
         "@types/node": "22.19.17",
       },

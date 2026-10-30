@@ -1,5 +1,20 @@
 # @bankofai/x402-mcp Changelog
 
+## 1.1.1
+
+### Patch Changes
+
+- [#112](https://github.com/BofAI/x402/pull/112) [`2d821f0`](https://github.com/BofAI/x402/commit/2d821f01b0e7714cfe14ce109066395b61eb2e99) Thanks [@boboliu-1010](https://github.com/boboliu-1010)! - Use native Zod 4.6.6 or newer to fix GHSA-mrhx-c7xc-m3w5. Oversized resource tag arrays now stop before element validation instead of accumulating per-element errors. Update the MCP transport's direct Zod dependency to the same safe range. Align V1 and V2 payment-option arrays with official Core's 1,024-entry maximum, so oversized `accepts` arrays also stop before validating individual entries.
+
+  The core `/schemas` export now exposes native Zod 4 schemas, `z`, and safe-parse result types. Consumers that compose schemas must use Zod 4 and use `error.issues` instead of the removed Zod 3 `error.errors` alias. Normal JSON payment payloads, extensible records, and nullable optional metadata remain supported. Do not import `zod/v3` as a compatibility workaround: that entry still uses the affected collection parser.
+
+- [#112](https://github.com/BofAI/x402/pull/112) [`79ceff8`](https://github.com/BofAI/x402/commit/79ceff860ebd52ad9f5a0e4a82706863f064f90d) Thanks [@boboliu-1010](https://github.com/boboliu-1010)! - Adopt the official x402 2.29.0 security release using native Zod >=4.6.6. Update official extensions in the HTTP integrations and align the MCP SDK with the official transport's 1.32.0 minimum. Example dependencies and strict packed consumer checks now use the same official versions.
+
+  TRON and TRON resource extensions now require official `@x402/core@2.29.0` as a peer instead of 2.28.0. Upgrade that peer alongside these packages. The official Core `/schemas` export uses Zod 4; applications composing those schemas must also use native Zod 4. Oversized `accepts` arrays are limited to 1,024 entries by the official release.
+
+- Updated dependencies [[`2d821f0`](https://github.com/BofAI/x402/commit/2d821f01b0e7714cfe14ce109066395b61eb2e99)]:
+  - @bankofai/x402-core@2.0.0
+
 ## 1.1.0
 
 ### Minor Changes

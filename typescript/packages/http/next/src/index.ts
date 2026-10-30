@@ -12,7 +12,7 @@ import {
   SettlementOverrides,
 } from "@bankofai/x402-core/server";
 import { SchemeNetworkServer, Network } from "@bankofai/x402-core/types";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server.js";
 import { log } from "@bankofai/x402-core";
 import {
   prepareHttpServer,

@@ -10,15 +10,15 @@ x402 currently supports the **TRON** and **BSC** networks, with plans to expand 
 
 ---
 
-## Current Release
+## Release 2.1.1
 
-Version `2.1.0`. The SDK is a **TypeScript-only** pnpm/turbo monorepo published as granular `@bankofai/x402-*` packages (there is no umbrella package). The TRON mechanism is maintained here; current EVM integrations use the official [`@x402/evm`](https://www.npmjs.com/package/@x402/evm) package rather than a local fork. Supported schemes: `exact` (ERC-3009 / Permit2), `upto`, `batch-settlement`, `auth-capture` (EVM), and `exact_gasfree` (TRON). See [the v2.1.0 release notes](RELEASE_NOTES.md#v210--tron-official-core-and-independent-resource-extension) for upgrade details.
+Release target `2.1.1`. The SDK is a **TypeScript-only** pnpm/turbo monorepo published as granular `@bankofai/x402-*` packages (there is no umbrella package). The TRON mechanism is maintained here; current EVM integrations use the official [`@x402/evm`](https://www.npmjs.com/package/@x402/evm) package rather than a local fork. Supported schemes: `exact` (ERC-3009 / Permit2), `upto`, `batch-settlement`, `auth-capture` (EVM), and `exact_gasfree` (TRON). See [the v2.1.1 release notes](RELEASE_NOTES.md#v211--native-zod-4-security-update) for upgrade details.
 
 ## TRON 2.1 migration
 
-TRON 2.1 moves to official Core 2.28.0 and publishes resource sponsorship as a separate package.
+TRON 2.1.1 uses official Core 2.29.0 and publishes resource sponsorship as a separate package.
 This requires source migration from 2.0. Read the [TRON 2.1 migration guide](docs/migrations/tron-2.1.md)
-before upgrading. The examples below use 2.1.0 and matching official packages.
+before upgrading. The workspace examples use the same official Core version.
 Historical 2.0 installation details remain in the release notes.
 
 ## Features
@@ -31,17 +31,17 @@ Historical 2.0 installation details remain in the release notes.
 
 ## Installation
 
-Install TRON 2.1.0 with matching official integrations:
+The Zod security upgrade on this branch requires official Core 2.29.0. It is not
+yet published as a BOA release; published TRON 2.1.0 still requires Core 2.28.0.
+Build and use the workspace packages until the next BOA release:
 
 ```bash
-npm install @x402/core@2.28.0 @x402/fetch@2.28.0 @bankofai/x402-tron@2.1.0
-# Express resource server
-npm install @x402/express@2.28.0
-# Optional TRON resource sponsorship
-npm install @bankofai/x402-tron-extensions@2.1.0
+cd typescript
+pnpm install
+pnpm build
 ```
 
-For EVM, install official `@x402/evm@2.28.0` with matching official Core and transports.
+For EVM, install official `@x402/evm@2.29.0` with matching official Core and transports.
 Use the [upstream examples](https://github.com/x402-foundation/x402/tree/main/examples/typescript)
 for EVM signer configuration.
 

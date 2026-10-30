@@ -27,4 +27,4 @@ This folder contains Typescript packages to help developers implement the x402 p
 | **TRON** - [`@bankofai/x402-tron`](./packages/mechanisms/tron) | TRON implementation of x402 (exact, permit, GasFree, batch-settlement). | [![npm version](https://img.shields.io/npm/v/%40bankofai%2Fx402-tron.svg)](https://www.npmjs.com/package/@bankofai/x402-tron) |
 
 
-TRON resource sponsorship: [`@bankofai/x402-tron-extensions`](./packages/extensions) uses official Core 2.28.0; generic extensions use official `@x402/extensions@2.28.0` directly.
+TRON resource sponsorship: [`@bankofai/x402-tron-extensions`](./packages/extensions) uses official Core 2.29.0; generic extensions use official `@x402/extensions@2.29.0` directly.
