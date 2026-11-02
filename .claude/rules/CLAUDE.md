@@ -17,6 +17,7 @@ The SDK is a **TypeScript-only** pnpm/turbo monorepo under [typescript/](../../t
 | Scheme `exact_gasfree` (TRON GasFree) | common/ | [schemes/exact-gasfree.md](schemes/exact-gasfree.md) + [networks/tron.md](networks/tron.md) |
 | TRON mechanisms (`mechanisms/tron`) | common/ | [networks/tron.md](networks/tron.md) |
 | EVM mechanisms (`mechanisms/evm`) | common/ | [networks/evm.md](networks/evm.md) |
+| Nano mechanisms (`mechanisms/nano`) | common/ | [networks/nano.md](networks/nano.md) |
 | Tests (`packages/*/test/**`) | common/ | [testing/conventions.md](testing/conventions.md) |
 
 When multiple rule files apply, read all of them before editing. Rules are layered, not exclusive.
@@ -35,6 +36,7 @@ When multiple rule files apply, read all of them before editing. Rules are layer
 │   └── exact-gasfree.md    # TRON GasFree custodial + TIP-712 relayer
 ├── networks/
 │   ├── evm.md              # eip155:<chainId>, contracts, signing
+│   ├── nano.md             # nano:mainnet, raw amounts, block_info verification
 │   └── tron.md             # tron:<decimalChainId>, TIP-712 hex-address rule, GasFree link
 ├── typescript/
 │   └── conventions.md      # pnpm/turbo, ESM, viem/tronweb, fork+overlay, signer factories
