@@ -305,12 +305,12 @@ describe("TRC-20 resource sizing", () => {
     );
 
     expect(plan.legs).toEqual([
-      { resource: "ENERGY", requiredUnits: 100n, delegatedUnits: 100n, stakeSun: 100_000n },
+      { resource: "ENERGY", requiredUnits: 100n, delegatedUnits: 100n, stakeSun: 101_000n },
       {
         resource: "BANDWIDTH",
         requiredUnits: 300n,
         delegatedUnits: 150n,
-        stakeSun: 150_000n,
+        stakeSun: 151_500n,
       },
     ]);
     expect(plan.managementBandwidthRequired).toBe(1_200n);
@@ -593,6 +593,53 @@ describe("TRC-20 Approval resource-sponsoring runtime", () => {
     ]);
     expect(harness.chain.broadcastApproval).not.toHaveBeenCalled();
   });
+
+  it.each(["ENERGY", "BANDWIDTH"] as const)(
+    "retains the latest recovery revision when reclaim preparation waits on %s",
+    async resource => {
+      const harness = createHarness();
+      harness.setAllowanceSufficient(false);
+      vi.mocked(harness.chain.resourcesVisible).mockResolvedValue(false);
+      vi.mocked(harness.chain.prepareUndelegate).mockImplementation(async (_request, leg) => {
+        if (leg.resource === resource) throw new Error("sponsor_approval_pending");
+        return prepared(
+          leg.resource === "ENERGY"
+            ? harness.ids.undelegateEnergy
+            : harness.ids.undelegateBandwidth,
+        );
+      });
+      await expect(harness.runtime.sponsor(request)).resolves.toMatchObject({
+        success: false,
+        errorReason: "delegated_resources_not_visible",
+      });
+      const pending = (await harness.coordinator.listRecoverable(10))[0];
+      expect(pending.status).toBe("failed_recovering");
+      expect(
+        pending.actions
+          .filter(action => action.kind === "delegate")
+          .every(action => action.status === "confirmed"),
+      ).toBe(true);
+      if (resource === "BANDWIDTH")
+        expect(pending.actions).toContainEqual(
+          expect.objectContaining({
+            kind: "undelegate",
+            resource: "ENERGY",
+            status: "confirmed",
+          }),
+        );
+      expect(harness.chain.broadcastApproval).not.toHaveBeenCalled();
+      vi.mocked(harness.chain.prepareUndelegate).mockImplementation(async (_request, leg) =>
+        prepared(
+          leg.resource === "ENERGY"
+            ? harness.ids.undelegateEnergy
+            : harness.ids.undelegateBandwidth,
+        ),
+      );
+      await expect(harness.runtime.reconcile()).resolves.toMatchObject({ recovered: 1 });
+      expect(await harness.coordinator.listRecoverable(10)).toEqual([]);
+      expect(harness.chain.broadcastApproval).not.toHaveBeenCalled();
+    },
+  );
 
   it("re-estimates after delegation and refuses to expose the payer to a larger cost", async () => {
     const harness = createHarness();

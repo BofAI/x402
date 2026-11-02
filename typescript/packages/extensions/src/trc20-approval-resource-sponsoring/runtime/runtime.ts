@@ -547,12 +547,19 @@ export function createTrc20ApprovalResourceSponsoringRuntime(
    */
   async function reclaim(operation: Trc20SponsoringOperation): Promise<Trc20SponsoringOperation> {
     let current = await persist(withStatus(operation, "reclaiming"));
-    for (const leg of current.plan.legs) {
-      const delegated = actionFor(current, "delegate", leg.resource);
-      if (!delegated || delegated.status !== "confirmed") continue;
-      current = await executeAction(current, "undelegate", leg.resource, () =>
-        options.chain.prepareUndelegate(current.request, leg),
-      );
+    try {
+      for (const leg of current.plan.legs) {
+        const delegated = actionFor(current, "delegate", leg.resource);
+        if (!delegated || delegated.status !== "confirmed") continue;
+        current = await executeAction(current, "undelegate", leg.resource, () =>
+          options.chain.prepareUndelegate(current.request, leg),
+        );
+      }
+    } catch (error) {
+      // Preparation can be deferred before an action exists (for example while
+      // Approval may still land). Carry the latest durable revision to callers.
+      const failure = normalizedFailure(error, "reclaim_failed", "resource reclaim deferred");
+      throw new SponsoringFailure(failure.reason, failure.message, failure.operation ?? current);
     }
     return current;
   }

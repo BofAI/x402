@@ -2,6 +2,9 @@ import type { Trc20ResourceLeg, Trc20SponsoringPlan, Trc20SponsoringPreflight } 
 
 const BPS_DENOMINATOR = 10_000n;
 const SUN_PER_TRX = 1_000_000n;
+// Buffer stake, not required units: network weight can rise between planning
+// and confirmation. Capacity admission accounts for the full buffered stake.
+const DELEGATION_STAKE_SAFETY_BPS = 10_100n;
 
 /**
  * Divides non-negative integers and rounds toward positive infinity.
@@ -94,10 +97,13 @@ export function buildTrc20SponsoringPlan(
       resource: "ENERGY",
       requiredUnits: energyRequired,
       delegatedUnits: energyShortfall,
-      stakeSun: resourceUnitsToStakeSun(
-        energyShortfall,
-        preflight.resources.totalEnergyWeight,
-        preflight.resources.totalEnergyLimit,
+      stakeSun: applySafetyMargin(
+        resourceUnitsToStakeSun(
+          energyShortfall,
+          preflight.resources.totalEnergyWeight,
+          preflight.resources.totalEnergyLimit,
+        ),
+        DELEGATION_STAKE_SAFETY_BPS,
       ),
     });
   }
@@ -117,10 +123,13 @@ export function buildTrc20SponsoringPlan(
       resource: "BANDWIDTH",
       requiredUnits: bandwidthRequired,
       delegatedUnits: bandwidthShortfall,
-      stakeSun: resourceUnitsToStakeSun(
-        bandwidthShortfall,
-        preflight.resources.totalBandwidthWeight,
-        preflight.resources.totalBandwidthLimit,
+      stakeSun: applySafetyMargin(
+        resourceUnitsToStakeSun(
+          bandwidthShortfall,
+          preflight.resources.totalBandwidthWeight,
+          preflight.resources.totalBandwidthLimit,
+        ),
+        DELEGATION_STAKE_SAFETY_BPS,
       ),
     });
   }
