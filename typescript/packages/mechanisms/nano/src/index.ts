@@ -3,8 +3,13 @@ export { ExactNanoScheme } from "./exact/client/scheme";
 
 // Facilitator replay guard
 export { InMemoryNanoUsedBlockStore } from "./exact/facilitator/usedBlocks";
+export { SqliteNanoUsedBlockStore } from "./exact/facilitator/sqliteUsedBlocks";
+export type { NanoSqliteDatabase } from "./exact/facilitator/sqliteUsedBlocks";
 export type { NanoUsedBlockStore } from "./exact/facilitator/usedBlocks";
 export type { ExactNanoFacilitatorConfig } from "./exact/facilitator/scheme";
+
+// Payment binding
+export { isNanoPaymentSecret, nanoOrderCommitment } from "./binding";
 
 // RPC
 export { createNanoRpcClient } from "./rpc";

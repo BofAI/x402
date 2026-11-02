@@ -7,6 +7,7 @@ import {
 } from "@bankofai/x402-core/types";
 import { nanoAddressToPublicKey } from "../../address";
 import { parseRaw } from "../../amount";
+import { isNanoPaymentSecret, nanoOrderCommitment } from "../../binding";
 import { NANO_CAIP_FAMILY, NANO_MAINNET, XNO_ASSET } from "../../network";
 import { isNanoBlockHash, NanoBlockInfo, NanoRpcClient } from "../../types";
 import { InMemoryNanoUsedBlockStore, NanoUsedBlockStore } from "./usedBlocks";
@@ -24,11 +25,26 @@ export interface ExactNanoFacilitatorConfig {
    * `maxTimeoutSeconds`.
    */
   maxBlockAgeSeconds?: number;
-  /** Replay guard; defaults to a process-local in-memory store. */
+  /**
+   * Replay guard, required. It must be durable (`persistent: true`, e.g.
+   * {@link SqliteNanoUsedBlockStore}) because a store that forgets on restart
+   * lets every old block be presented again.
+   */
   usedBlocks?: NanoUsedBlockStore;
+  /**
+   * Allow the process-local store when `usedBlocks` is omitted or not
+   * persistent. For tests and demos only.
+   */
+  allowInMemoryUsedBlocks?: boolean;
 }
 
-type VerifiedBlock = { isValid: true; payer: string; hash: string; amount: string };
+type VerifiedBlock = {
+  isValid: true;
+  payer: string;
+  hash: string;
+  commitment: string;
+  amount: string;
+};
 type RejectedBlock = {
   isValid: false;
   invalidReason: string;
@@ -40,10 +56,14 @@ type RejectedBlock = {
  * Nano facilitator implementation for the Exact payment scheme.
  *
  * Nano has no third-party settlement: the payer publishes its own send block
- * and hands over the hash. Verification is one `block_info` call checking the
- * block is a confirmed, recent send to `payTo` of at least the required
- * amount. Settlement broadcasts nothing; it records the hash so the same
- * block cannot pay twice and returns it as the transaction.
+ * and hands over the hash and a payment secret. Verification is one
+ * `block_info` call checking the block is a confirmed, recent send to `payTo`
+ * of at least the required amount whose `representative` is the commitment to
+ * the payer's secret, `payTo` and the amount: a block anyone can read off the
+ * ledger cannot be redeemed without the secret it commits to. Settlement
+ * broadcasts nothing; it records the block hash and its commitment (each
+ * unique) so the same block cannot pay twice and one payment cannot be credited
+ * twice, and returns the hash as the transaction.
  */
 export class ExactNanoScheme implements SchemeNetworkFacilitator {
   readonly scheme = "exact";
@@ -54,9 +74,17 @@ export class ExactNanoScheme implements SchemeNetworkFacilitator {
    * Creates a new ExactNanoScheme facilitator instance.
    *
    * @param config - RPC client, block age limit and replay store.
+   * @throws When no durable `usedBlocks` store is given and `allowInMemoryUsedBlocks` is not set.
    */
   constructor(private readonly config: ExactNanoFacilitatorConfig) {
-    this.usedBlocks = config.usedBlocks ?? new InMemoryNanoUsedBlockStore();
+    const store = config.usedBlocks;
+    if (store?.persistent !== true && config.allowInMemoryUsedBlocks !== true) {
+      throw new Error(
+        "Nano facilitator needs a persistent usedBlocks store (for example SqliteNanoUsedBlockStore): " +
+          "a store that forgets on restart lets old blocks be presented again",
+      );
+    }
+    this.usedBlocks = store ?? new InMemoryNanoUsedBlockStore();
   }
 
   /**
@@ -120,7 +148,7 @@ export class ExactNanoScheme implements SchemeNetworkFacilitator {
         network: requirements.network,
       };
     }
-    if (!(await this.usedBlocks.add(result.hash))) {
+    if (!(await this.usedBlocks.add(result.hash, result.commitment))) {
       return {
         success: false,
         errorReason: errors.BLOCK_ALREADY_USED,
@@ -172,8 +200,8 @@ export class ExactNanoScheme implements SchemeNetworkFacilitator {
       return { isValid: false, invalidReason: errors.INVALID_REQUIRED_AMOUNT };
     }
 
-    const blockHash = (payload.payload as { blockHash?: unknown }).blockHash;
-    if (!isNanoBlockHash(blockHash)) {
+    const { blockHash, secret } = payload.payload as { blockHash?: unknown; secret?: unknown };
+    if (!isNanoBlockHash(blockHash) || !isNanoPaymentSecret(secret)) {
       return { isValid: false, invalidReason: errors.INVALID_PAYLOAD };
     }
     const hash = blockHash.toUpperCase();
@@ -233,6 +261,23 @@ export class ExactNanoScheme implements SchemeNetworkFacilitator {
       };
     }
 
+    // The binding: the paying key signed this block with the commitment to the
+    // payer's secret as its representative. Legacy send blocks have no
+    // representative and so cannot be bound.
+    const commitment = nanoOrderCommitment(secret, requirements.payTo, requirements.amount);
+    let bound = false;
+    try {
+      bound =
+        isStateSend &&
+        typeof contents.representative === "string" &&
+        nanoAddressToPublicKey(contents.representative) === nanoAddressToPublicKey(commitment);
+    } catch {
+      bound = false;
+    }
+    if (!bound) {
+      return { isValid: false, invalidReason: errors.NOT_BOUND_TO_PAYMENT, payer };
+    }
+
     const timestamp = Number(info.local_timestamp ?? "0");
     const now = Math.floor(Date.now() / 1000);
     const maxAge = this.config.maxBlockAgeSeconds ?? requirements.maxTimeoutSeconds;
@@ -245,7 +290,7 @@ export class ExactNanoScheme implements SchemeNetworkFacilitator {
       return { isValid: false, invalidReason: errors.BLOCK_EXPIRED, payer };
     }
 
-    return { isValid: true, payer, hash, amount: paid.toString() };
+    return { isValid: true, payer, hash, commitment, amount: paid.toString() };
   }
 }
 

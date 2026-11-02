@@ -1,10 +1,17 @@
 /**
  * Payload for the Nano `exact` scheme. The payer publishes its own send
- * block, so the only thing to hand over is the block hash.
+ * block and hands over its hash and the secret the block commits to.
  */
 export interface ExactNanoPayload {
   /** 64-character hex hash of the payer's published send block. */
   blockHash: string;
+  /**
+   * The payment secret (hex, at least 128 bits) chosen for this payment. The
+   * send block's `representative` is the commitment to it, `payTo` and the
+   * amount (see `nanoOrderCommitment`); without the secret a block that anyone
+   * can read off the ledger cannot be redeemed.
+   */
+  secret: string;
 }
 
 /**
@@ -23,9 +30,17 @@ export interface ClientNanoWallet {
    * @param params.to - Destination `nano_` address (`payTo`).
    * @param params.amountRaw - Amount in raw.
    * @param params.network - Network identifier, e.g. `nano:mainnet`.
+   * @param params.representative - `nano_` account the send block must carry in
+   *   its `representative` field. It is the order commitment; the facilitator
+   *   refuses a block without it.
    * @returns The hash of the published send block.
    */
-  send(params: { to: string; amountRaw: bigint; network: string }): Promise<string>;
+  send(params: {
+    to: string;
+    amountRaw: bigint;
+    network: string;
+    representative: string;
+  }): Promise<string>;
 }
 
 /** `contents` of a `block_info` response with `json_block: "true"`. */

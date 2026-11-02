@@ -1,6 +1,6 @@
 import { vi } from "vitest";
 import type { PaymentPayload, PaymentRequirements } from "@bankofai/x402-core/types";
-import { createNanoRpcClient } from "../../src";
+import { createNanoRpcClient, nanoOrderCommitment } from "../../src";
 
 /** Payer and recipient from the node RPC documentation's `block_info` example. */
 export const PAYER = "nano_1ipx847tk8o46pwxt5qjdbncjqcbwcc1rrmqnkztrfjy5k7z4imsrata9est";
@@ -11,6 +11,10 @@ export const BLOCK_TIME = 1_760_000_000;
 
 /** 0.03 XNO, the amount in the documentation example. */
 export const AMOUNT = "30000000000000000000000000000";
+
+/** The payer's payment secret and the commitment its send block carries. */
+export const SECRET = "ab".repeat(32);
+export const COMMITMENT = nanoOrderCommitment(SECRET, PAY_TO, AMOUNT);
 
 /**
  * `block_info` response (json_block true) for a confirmed state send block,
@@ -36,7 +40,7 @@ export function stateSendBlockInfo(
       type: "state",
       account: PAYER,
       previous: "CE898C131AAEE25E05362F247760F8A3ACF34A9796A5AE0D9204E86B0637965E",
-      representative: "nano_1stofnrxuz3cai7ze75o174bpm7scwj9jn3nxsn8ntzg784jf1gzn1jjdkou",
+      representative: COMMITMENT,
       balance: "5606157000000000000000000000000000000",
       link: PAY_TO_KEY,
       link_as_account: PAY_TO,
@@ -91,15 +95,17 @@ export function requirements(overrides: Partial<PaymentRequirements> = {}): Paym
 }
 
 /**
- * Payment payload carrying a block hash.
+ * Payment payload carrying a block hash and the payment secret.
  *
  * @param blockHash - The hash to send.
  * @param accepted - Requirements the client accepted.
+ * @param secret - The payment secret.
  * @returns The payload.
  */
 export function paymentPayload(
   blockHash: unknown = BLOCK_HASH,
   accepted: PaymentRequirements = requirements(),
+  secret: unknown = SECRET,
 ): PaymentPayload {
-  return { x402Version: 2, accepted, payload: { blockHash } };
+  return { x402Version: 2, accepted, payload: { blockHash, secret } };
 }

@@ -5,7 +5,7 @@ import type { PaymentRequired } from "@bankofai/x402-core/types";
 import { ExactNanoScheme as NanoClient } from "../../src/exact/client";
 import { ExactNanoScheme as NanoServer } from "../../src/exact/server";
 import { ExactNanoScheme as NanoFacilitator } from "../../src/exact/facilitator";
-import { NANO_MAINNET } from "../../src";
+import { NANO_MAINNET, nanoOrderCommitment } from "../../src";
 import { BLOCK_HASH, BLOCK_TIME, PAYER, PAY_TO, mockRpc, stateSendBlockInfo } from "./helpers";
 
 describe("Nano exact flow through core", () => {
@@ -40,7 +40,7 @@ describe("Nano exact flow through core", () => {
       accepts: [accepted],
     };
 
-    const send = vi.fn(async () => BLOCK_HASH);
+    const send = vi.fn(async (_params: { representative: string }) => BLOCK_HASH);
     // XNO is not a USD default asset, so the payer opts in with an atomic cap (1 XNO).
     const client = new x402Client()
       .register(NANO_MAINNET, new NanoClient({ address: PAYER, send }))
@@ -50,15 +50,29 @@ describe("Nano exact flow through core", () => {
         ],
       });
     const payload = await client.createPaymentPayload(paymentRequired);
-    expect(payload.payload).toEqual({ blockHash: BLOCK_HASH });
+    expect(payload.payload).toEqual({
+      blockHash: BLOCK_HASH,
+      secret: expect.stringMatching(/^[0-9a-f]{64}$/),
+    });
     expect(send).toHaveBeenCalledWith({
       to: PAY_TO,
       amountRaw: 30n * 10n ** 27n,
       network: NANO_MAINNET,
+      representative: nanoOrderCommitment(
+        (payload.payload as { secret: string }).secret,
+        PAY_TO,
+        price.amount,
+      ),
     });
 
-    const { rpc } = mockRpc(stateSendBlockInfo());
-    const facilitator = new x402Facilitator().register(NANO_MAINNET, new NanoFacilitator({ rpc }));
+    // The node reports the block as the wallet published it.
+    const { rpc } = mockRpc(
+      stateSendBlockInfo({}, { representative: send.mock.calls[0][0].representative }),
+    );
+    const facilitator = new x402Facilitator().register(
+      NANO_MAINNET,
+      new NanoFacilitator({ rpc, allowInMemoryUsedBlocks: true }),
+    );
     expect(facilitator.getSupported().kinds).toContainEqual(
       expect.objectContaining({ scheme: "exact", network: NANO_MAINNET }),
     );

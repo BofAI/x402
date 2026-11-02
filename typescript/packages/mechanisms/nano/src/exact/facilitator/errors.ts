@@ -4,6 +4,7 @@ export const INVALID_ASSET = "invalid_exact_nano_asset";
 export const INVALID_PAY_TO = "invalid_exact_nano_pay_to";
 export const INVALID_REQUIRED_AMOUNT = "invalid_exact_nano_required_amount";
 export const INVALID_PAYLOAD = "invalid_exact_nano_payload";
+export const NOT_BOUND_TO_PAYMENT = "invalid_exact_nano_block_not_bound_to_payment";
 export const BLOCK_ALREADY_USED = "invalid_exact_nano_block_already_used";
 export const BLOCK_NOT_CONFIRMED = "invalid_exact_nano_block_not_confirmed";
 export const NOT_A_SEND_BLOCK = "invalid_exact_nano_not_a_send_block";

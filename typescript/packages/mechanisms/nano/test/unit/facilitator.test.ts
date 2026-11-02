@@ -4,6 +4,7 @@ import {
   AMOUNT,
   BLOCK_HASH,
   BLOCK_TIME,
+  COMMITMENT,
   PAYER,
   PAY_TO,
   mockRpc,
@@ -24,7 +25,7 @@ describe("ExactNanoScheme facilitator", () => {
 
   it("verifies a confirmed send block with one block_info call", async () => {
     const { rpc, fetchMock } = mockRpc(stateSendBlockInfo());
-    const scheme = new ExactNanoScheme({ rpc });
+    const scheme = new ExactNanoScheme({ rpc, allowInMemoryUsedBlocks: true });
 
     const result = await scheme.verify(paymentPayload(), requirements());
 
@@ -40,7 +41,7 @@ describe("ExactNanoScheme facilitator", () => {
   });
 
   it("advertises the nano family with no signers or extra", () => {
-    const scheme = new ExactNanoScheme({ rpc: mockRpc({}).rpc });
+    const scheme = new ExactNanoScheme({ rpc: mockRpc({}).rpc, allowInMemoryUsedBlocks: true });
     expect(scheme.scheme).toBe("exact");
     expect(scheme.caipFamily).toBe("nano:*");
     expect(scheme.getSigners("nano:mainnet")).toEqual([]);
@@ -49,13 +50,13 @@ describe("ExactNanoScheme facilitator", () => {
 
   it("accepts an overpayment and a lowercase hash", async () => {
     const { rpc, fetchMock } = mockRpc(stateSendBlockInfo({ amount: AMOUNT + "0" }));
-    const scheme = new ExactNanoScheme({ rpc });
+    const scheme = new ExactNanoScheme({ rpc, allowInMemoryUsedBlocks: true });
     const result = await scheme.verify(paymentPayload(BLOCK_HASH.toLowerCase()), requirements());
     expect(result.isValid).toBe(true);
     expect(JSON.parse(fetchMock.mock.calls[0][1]?.body as string).hash).toBe(BLOCK_HASH);
   });
 
-  it("accepts a legacy send block by its destination", async () => {
+  it("refuses a legacy send block: it has no representative, so it cannot be bound", async () => {
     const { rpc } = mockRpc({
       block_account: PAYER,
       amount: AMOUNT,
@@ -73,8 +74,14 @@ describe("ExactNanoScheme facilitator", () => {
           "82D41BC16F313E4B2243D14DFFA2FB04679C540C2095FEE7EAE0F2F26880AD56DD48D87A7CC5DD760C5B2D76EE2C205506AA557BF00B60D8DEE312EC7343A501",
       },
     });
-    const result = await new ExactNanoScheme({ rpc }).verify(paymentPayload(), requirements());
-    expect(result).toEqual({ isValid: true, payer: PAYER });
+    const result = await new ExactNanoScheme({ rpc, allowInMemoryUsedBlocks: true }).verify(
+      paymentPayload(),
+      requirements(),
+    );
+    expect(result).toMatchObject({
+      isValid: false,
+      invalidReason: ExactNanoErrors.NOT_BOUND_TO_PAYMENT,
+    });
   });
 
   it.each([
@@ -117,7 +124,10 @@ describe("ExactNanoScheme facilitator", () => {
     ["malformed amount", stateSendBlockInfo({ amount: "3e28" }), ExactNanoErrors.INVALID_BLOCK],
   ])("rejects a block that is %s", async (_, body, reason) => {
     const { rpc } = mockRpc(body);
-    const result = await new ExactNanoScheme({ rpc }).verify(paymentPayload(), requirements());
+    const result = await new ExactNanoScheme({ rpc, allowInMemoryUsedBlocks: true }).verify(
+      paymentPayload(),
+      requirements(),
+    );
     expect(result).toMatchObject({ isValid: false, invalidReason: reason, payer: PAYER });
   });
 
@@ -133,7 +143,10 @@ describe("ExactNanoScheme facilitator", () => {
         },
       ),
     );
-    const result = await new ExactNanoScheme({ rpc }).verify(paymentPayload(), requirements());
+    const result = await new ExactNanoScheme({ rpc, allowInMemoryUsedBlocks: true }).verify(
+      paymentPayload(),
+      requirements(),
+    );
     expect(result).toMatchObject({
       isValid: false,
       invalidReason: ExactNanoErrors.RECIPIENT_MISMATCH,
@@ -147,14 +160,21 @@ describe("ExactNanoScheme facilitator", () => {
         { link_as_account: "nano_1111111111111111111111111111111111111111111111111111hifc8npp" },
       ),
     );
-    const result = await new ExactNanoScheme({ rpc }).verify(paymentPayload(), requirements());
+    const result = await new ExactNanoScheme({ rpc, allowInMemoryUsedBlocks: true }).verify(
+      paymentPayload(),
+      requirements(),
+    );
     expect(result).toMatchObject({ isValid: false, invalidReason: ExactNanoErrors.INVALID_BLOCK });
   });
 
   it("honours a configured maximum block age", async () => {
     vi.setSystemTime(new Date((BLOCK_TIME + 40) * 1000));
     const { rpc } = mockRpc(stateSendBlockInfo());
-    const strict = new ExactNanoScheme({ rpc, maxBlockAgeSeconds: 30 });
+    const strict = new ExactNanoScheme({
+      rpc,
+      maxBlockAgeSeconds: 30,
+      allowInMemoryUsedBlocks: true,
+    });
     expect((await strict.verify(paymentPayload(), requirements())).invalidReason).toBe(
       ExactNanoErrors.BLOCK_EXPIRED,
     );
@@ -162,7 +182,10 @@ describe("ExactNanoScheme facilitator", () => {
 
   it("reports node errors as chain read failures", async () => {
     const { rpc } = mockRpc({ error: "Block not found" });
-    const result = await new ExactNanoScheme({ rpc }).verify(paymentPayload(), requirements());
+    const result = await new ExactNanoScheme({ rpc, allowInMemoryUsedBlocks: true }).verify(
+      paymentPayload(),
+      requirements(),
+    );
     expect(result).toMatchObject({
       isValid: false,
       invalidReason: ExactNanoErrors.CHAIN_READ_FAILED,
@@ -172,7 +195,10 @@ describe("ExactNanoScheme facilitator", () => {
 
   it("reports HTTP failures as chain read failures", async () => {
     const { rpc } = mockRpc({}, 503);
-    const result = await new ExactNanoScheme({ rpc }).verify(paymentPayload(), requirements());
+    const result = await new ExactNanoScheme({ rpc, allowInMemoryUsedBlocks: true }).verify(
+      paymentPayload(),
+      requirements(),
+    );
     expect(result.invalidReason).toBe(ExactNanoErrors.CHAIN_READ_FAILED);
   });
 
@@ -211,14 +237,17 @@ describe("ExactNanoScheme facilitator", () => {
     ],
   ])("rejects %s before calling the node", async (_, payload, reqs, reason) => {
     const { rpc, fetchMock } = mockRpc(stateSendBlockInfo());
-    const result = await new ExactNanoScheme({ rpc }).verify(payload, reqs);
+    const result = await new ExactNanoScheme({ rpc, allowInMemoryUsedBlocks: true }).verify(
+      payload,
+      reqs,
+    );
     expect(result).toMatchObject({ isValid: false, invalidReason: reason });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("settles by returning the verified hash, and only once per block", async () => {
     const { rpc, fetchMock } = mockRpc(stateSendBlockInfo());
-    const scheme = new ExactNanoScheme({ rpc });
+    const scheme = new ExactNanoScheme({ rpc, allowInMemoryUsedBlocks: true });
 
     const settled = await scheme.settle(paymentPayload(), requirements());
     expect(settled).toEqual({
@@ -243,7 +272,7 @@ describe("ExactNanoScheme facilitator", () => {
 
   it("does not record a block that fails verification", async () => {
     const { rpc } = mockRpc(stateSendBlockInfo({ confirmed: "false" }));
-    const usedBlocks = { has: vi.fn(() => false), add: vi.fn(() => true) };
+    const usedBlocks = { persistent: true, has: vi.fn(() => false), add: vi.fn(() => true) };
     const settled = await new ExactNanoScheme({ rpc, usedBlocks }).settle(
       paymentPayload(),
       requirements(),
@@ -258,7 +287,11 @@ describe("ExactNanoScheme facilitator", () => {
 
   it("fails settlement when a shared store reports a concurrent redemption", async () => {
     const { rpc } = mockRpc(stateSendBlockInfo());
-    const usedBlocks = { has: vi.fn(async () => false), add: vi.fn(async () => false) };
+    const usedBlocks = {
+      persistent: true,
+      has: vi.fn(async () => false),
+      add: vi.fn(async () => false),
+    };
     const settled = await new ExactNanoScheme({ rpc, usedBlocks }).settle(
       paymentPayload(),
       requirements(),
@@ -267,6 +300,6 @@ describe("ExactNanoScheme facilitator", () => {
       success: false,
       errorReason: ExactNanoErrors.BLOCK_ALREADY_USED,
     });
-    expect(usedBlocks.add).toHaveBeenCalledWith(BLOCK_HASH);
+    expect(usedBlocks.add).toHaveBeenCalledWith(BLOCK_HASH, COMMITMENT);
   });
 });
