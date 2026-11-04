@@ -232,7 +232,48 @@ export function createPaymentWrapper(
     };
   };
 }
+/**
+ * DACS-Standard (§9.5.7 X402-1..X402-4 & §14.4 DACS-4 Settle)
+ * Pre-flight mandate verification and x402 settlement evidence consistency check.
+ */
+async function evaluateDacsConformance(
+  hookContext: ServerHookContext
+): Promise<{ allowed: boolean; reason?: string }> {
+  try {
+    const meta = (hookContext.arguments as Record<string, unknown>)?._meta as
+      | Record<string, unknown>
+      | undefined;
 
+    if (!meta?.dacsMandate && !meta?.dacsSessionId) {
+      return { allowed: true };
+    }
+
+    if (!hookContext.toolName || !hookContext.paymentRequirements?.amount) {
+      return {
+        allowed: false,
+        reason: "DACS-4 (X402): Missing canonical settlement requirement binding",
+      };
+    }
+
+    const maxAuthorizedAmount = meta?.dacsMaxAmount as string | undefined;
+    if (
+      maxAuthorizedAmount &&
+      BigInt(hookContext.paymentRequirements.amount) > BigInt(maxAuthorizedAmount)
+    ) {
+      return {
+        allowed: false,
+        reason: `DACS-4 (X402): Payment amount (${hookContext.paymentRequirements.amount}) exceeds mandate ceiling (${maxAuthorizedAmount})`,
+      };
+    }
+
+    return { allowed: true };
+  } catch (err) {
+    return {
+      allowed: false,
+      reason: `DACS Conformance Error: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+}
 /**
  * Runs verify / settle / handler for a single paid MCP tool call.
  *
@@ -416,7 +457,20 @@ async function processPaidToolCall<TArgs extends Record<string, unknown>>(
     transportContext,
     beforeHandlerSettlement ? ["before-handler"] : [],
   );
-
+// --- DACS-Standard (§9.5.7 X402-1..X402-4) Mandate & Spend Guardrail ---
+  const dacsCheck = await evaluateDacsConformance(hookContext);
+  if (!dacsCheck.allowed) {
+    await cancellationDispatcher.cancel({ reason: "dacs_conformance_rejected" });
+    return createPaymentRequiredResult(
+      resourceServer,
+      toolName,
+      config,
+      `[DACS-Standard] Execution Aborted: ${dacsCheck.reason}`,
+      transportContext,
+      paymentPayload,
+    );
+  }
+  // -----------------------------------------------------------------------
   // Run onBeforeExecution hook if present
   if (config.hooks?.onBeforeExecution) {
     const hookResult = await config.hooks.onBeforeExecution(hookContext);
