@@ -10,7 +10,7 @@
   "dependencies": {
     "@bankofai/agent-wallet": "^3.0.0",
     "@bankofai/x402-tron": "workspace:*",
-    "tronweb": "^6.0.0",
+    "tronweb": "6.5.1",
     "@x402/fetch": "2.29.0",
     "@x402/core": "2.29.0",
     "@bankofai/x402-tron-extensions": "workspace:*"
