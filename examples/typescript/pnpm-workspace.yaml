@@ -28,4 +28,6 @@ allowBuilds:
 
 # Use one Express 4 declaration tree for our Express 4 examples and middleware.
 overrides:
+  "tronweb@6.5.1>axios": "1.21.0"
+  "axios@1.21.0>follow-redirects": "1.16.2"
   "@types/express": "4.17.25"
