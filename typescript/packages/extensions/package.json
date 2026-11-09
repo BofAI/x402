@@ -61,7 +61,7 @@
   "dependencies": {
     "@bankofai/x402-tron": "workspace:2.1.1",
     "ajv": "^8.17.1",
-    "tronweb": "6.3.0"
+    "tronweb": "6.5.1"
   },
   "exports": {
     ".": {
