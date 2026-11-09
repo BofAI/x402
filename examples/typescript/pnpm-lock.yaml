@@ -20,8 +20,8 @@ importers:
         specifier: ^8.17.1
         version: 8.20.0
       tronweb:
-        specifier: 6.3.0
-        version: 6.3.0
+        specifier: 6.5.1
+        version: 6.5.1
     devDependencies:
       '@bankofai/agent-wallet':
         specifier: 2.4.0
@@ -78,8 +78,8 @@ importers:
   ../../typescript/packages/mechanisms/tron:
     dependencies:
       tronweb:
-        specifier: ^6.1.0
-        version: 6.3.0
+        specifier: ^6.5.1
+        version: 6.5.1
     devDependencies:
       '@bankofai/agent-wallet':
         specifier: ^3.0.0
@@ -491,7 +491,7 @@ importers:
         version: 2.29.0
       '@x402/express':
         specifier: 2.29.0
-        version: 2.29.0(ethers@6.13.5)(express@4.22.3)(typescript@5.9.3)
+        version: 2.29.0(ethers@6.17.0)(express@4.22.3)(typescript@5.9.3)
       express:
         specifier: ^4.22.3
         version: 4.22.3
@@ -519,7 +519,7 @@ importers:
         version: 2.29.0
       '@x402/express':
         specifier: 2.29.0
-        version: 2.29.0(ethers@6.13.5)(express@4.22.3)(typescript@5.9.3)
+        version: 2.29.0(ethers@6.17.0)(express@4.22.3)(typescript@5.9.3)
       express:
         specifier: ^4.22.3
         version: 4.22.3
@@ -547,7 +547,7 @@ importers:
         version: 2.29.0
       '@x402/express':
         specifier: 2.29.0
-        version: 2.29.0(ethers@6.13.5)(express@4.22.3)(typescript@5.9.3)
+        version: 2.29.0(ethers@6.17.0)(express@4.22.3)(typescript@5.9.3)
       express:
         specifier: ^4.22.3
         version: 4.22.3
@@ -612,7 +612,7 @@ importers:
         version: 2.29.0
       '@x402/express':
         specifier: 2.29.0
-        version: 2.29.0(ethers@6.13.5)(express@4.22.3)(typescript@5.9.3)
+        version: 2.29.0(ethers@6.17.0)(express@4.22.3)(typescript@5.9.3)
       express:
         specifier: ^4.22.3
         version: 4.22.3
@@ -640,7 +640,7 @@ importers:
         version: 2.29.0
       '@x402/express':
         specifier: 2.29.0
-        version: 2.29.0(ethers@6.13.5)(express@4.22.3)(typescript@5.9.3)
+        version: 2.29.0(ethers@6.17.0)(express@4.22.3)(typescript@5.9.3)
       express:
         specifier: ^4.22.3
         version: 4.22.3
@@ -1914,6 +1914,10 @@ packages:
   aes-js@4.0.0-beta.5:
     resolution: {integrity: sha512-G965FqalsNyrPqgEGON7nIx1e/OVENSgiEIzyC63haUMuvNnwIgIjMs52hlTCKhkBny7A2ORNlfY9Zu+jmGk1Q==}
 
+  agent-base@6.0.2:
+    resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
+    engines: {node: '>= 6.0.0'}
+
   ajv-formats@3.0.1:
     resolution: {integrity: sha512-8iUql50EUR+uUcdRQ3HDqa6EVyo3docL8g5WJ3FNcWmu62IbkGUue/pEyLBW8VGKKucTPgqeks4fIU1DA4yowQ==}
     peerDependencies:
@@ -1993,6 +1997,9 @@ packages:
 
   axios@1.15.0:
     resolution: {integrity: sha512-wWyJDlAatxk30ZJer+GeCWS209sA42X+N5jU2jy6oHTp7ufw8uzUTVFBX9+wTfAlhiJXGS0Bq7X6efruWjuK9Q==}
+
+  axios@1.18.0:
+    resolution: {integrity: sha512-E32NzpYKp++W7XRe52rHiXV2ehxmh3wbdgO7MHeFM+vqxLBYHzt0ElkiImtOBxtOmyp0yoC8C6uESVV84Y2/hw==}
 
   balanced-match@1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
@@ -2398,6 +2405,10 @@ packages:
     resolution: {integrity: sha512-+knKNieu5EKRThQJWwqaJ10a6HE9sSehGeqWN65//wE7j47ZpFhKAnHB/JJFibwwg61I/koxaPsXbXpD/skNOQ==}
     engines: {node: '>=14.0.0'}
 
+  ethers@6.17.0:
+    resolution: {integrity: sha512-BpyrpIPJ3ydEVow8zGaz1DuPS7YU8DcWxuBnY9a0UA/lvAPwrMr+EPXsfrul628SRaekPNeIM4UFh/91GWZang==}
+    engines: {node: '>=14.0.0'}
+
   eventemitter3@5.0.1:
     resolution: {integrity: sha512-GWkBvjiSZK87ELrYOSESUYeVIc9mvLLf/nXalMOS5dYrgZq9o5OVkbZAVM06CVxYsCwH9BDZFPlQTlPA1j4ahA==}
 
@@ -2602,6 +2613,10 @@ packages:
   http-errors@2.0.1:
     resolution: {integrity: sha512-4FbRdAX+bSdmo4AUFuS0WNiPz8NgFt+r8ThgNWmlrjQjt1Q7ZR9+zTlce2859x4KSXrwIsaeTqDoKQmtP8pLmQ==}
     engines: {node: '>= 0.8'}
+
+  https-proxy-agent@5.0.1:
+    resolution: {integrity: sha512-dFcAjpTQFgoLMzC2VwU+C/CbS7uRL0lWmxDITmqm7C+7F0Odmj6s9l6alZc6AELXhrnggM2CeWSXHGOdX2YtwA==}
+    engines: {node: '>= 6'}
 
   iconv-lite@0.4.24:
     resolution: {integrity: sha512-v3MXnZAcvnywkTUEZomIActle7RXXeedOR31wwl7VlyoXO4Qi9arvSenNQWne1TcRwhCL1HwLI21bEqdpj8/rA==}
@@ -3373,6 +3388,9 @@ packages:
   tronweb@6.3.0:
     resolution: {integrity: sha512-5CAjDO4/KfymgjKFgnXgfKKQp0xgOn8otCBYjgYAEIpLZDKNAk14Z0dDeg0UqYuceCiyMHjW7a19Rsz8EmhAOw==}
 
+  tronweb@6.5.1:
+    resolution: {integrity: sha512-mqa3WIBq7sYtkkIywa2Jop3UwJX6EgIrBkFpm3sSjppStTOTtYeMJyeIHJVvFFCaYN4vjU1FDjQPSvHFTcuzEw==}
+
   ts-api-utils@2.5.0:
     resolution: {integrity: sha512-OJ/ibxhPlqrMM0UiNHJ/0CKQkoKF243/AEmplt3qpRgkW8VG7IfOS41h7V8TjITqdByHzrjcS/2si+y4lIh8NA==}
     engines: {node: '>=18.12'}
@@ -3631,6 +3649,18 @@ packages:
 
   ws@8.20.1:
     resolution: {integrity: sha512-It4dO0K5v//JtTXuPkfEOaI3uUN87iYPnqo/ZzqCoG3g8uhA66QUMs/SrM0YK7/NAu+r4LMh/9dq2A7k+rHs+w==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+
+  ws@8.21.0:
+    resolution: {integrity: sha512-Vsp28b7DRcimFQvrqu2Wek3z1iYxDCWqHYB8Qsnk/S4RfaCQzPGPyBNuVjJV3cd6UiKtUtp6sNM77gWvzcCH+g==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -4418,11 +4448,11 @@ snapshots:
       '@noble/hashes': 1.8.0
       apg-js: 4.4.0
 
-  '@signinwithethereum/siwe@4.2.0(ethers@6.13.5)(viem@2.52.2(typescript@5.9.3)(zod@4.6.7))':
+  '@signinwithethereum/siwe@4.2.0(ethers@6.17.0)(viem@2.52.2(typescript@5.9.3)(zod@4.6.7))':
     dependencies:
       '@signinwithethereum/siwe-parser': 4.2.0
     optionalDependencies:
-      ethers: 6.13.5
+      ethers: 6.17.0
       viem: 2.52.2(typescript@5.9.3)(zod@4.6.7)
 
   '@types/body-parser@1.19.6':
@@ -4629,10 +4659,10 @@ snapshots:
     dependencies:
       zod: 4.6.7
 
-  '@x402/express@2.29.0(ethers@6.13.5)(express@4.22.3)(typescript@5.9.3)':
+  '@x402/express@2.29.0(ethers@6.17.0)(express@4.22.3)(typescript@5.9.3)':
     dependencies:
       '@x402/core': 2.29.0
-      '@x402/extensions': 2.29.0(ethers@6.13.5)(typescript@5.9.3)
+      '@x402/extensions': 2.29.0(ethers@6.17.0)(typescript@5.9.3)
       express: 4.22.3
     transitivePeerDependencies:
       - bufferutil
@@ -4640,11 +4670,11 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@x402/extensions@2.29.0(ethers@6.13.5)(typescript@5.9.3)':
+  '@x402/extensions@2.29.0(ethers@6.17.0)(typescript@5.9.3)':
     dependencies:
       '@noble/curves': 1.9.7
       '@scure/base': 1.2.6
-      '@signinwithethereum/siwe': 4.2.0(ethers@6.13.5)(viem@2.52.2(typescript@5.9.3)(zod@4.6.7))
+      '@signinwithethereum/siwe': 4.2.0(ethers@6.17.0)(viem@2.52.2(typescript@5.9.3)(zod@4.6.7))
       '@x402/core': 2.29.0
       ajv: 8.20.0
       jose: 5.10.0
@@ -4697,6 +4727,12 @@ snapshots:
   acorn@8.17.0: {}
 
   aes-js@4.0.0-beta.5: {}
+
+  agent-base@6.0.2:
+    dependencies:
+      debug: 4.4.3
+    transitivePeerDependencies:
+      - supports-color
 
   ajv-formats@3.0.1(ajv@8.20.0):
     optionalDependencies:
@@ -4799,6 +4835,16 @@ snapshots:
       proxy-from-env: 2.1.0
     transitivePeerDependencies:
       - debug
+
+  axios@1.18.0:
+    dependencies:
+      follow-redirects: 1.16.0
+      form-data: 4.0.6
+      https-proxy-agent: 5.0.1
+      proxy-from-env: 2.1.0
+    transitivePeerDependencies:
+      - debug
+      - supports-color
 
   balanced-match@1.0.2: {}
 
@@ -5371,6 +5417,19 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
+  ethers@6.17.0:
+    dependencies:
+      '@adraffy/ens-normalize': 1.11.1
+      '@noble/curves': 1.2.0
+      '@noble/hashes': 1.3.2
+      '@types/node': 22.7.5
+      aes-js: 4.0.0-beta.5
+      tslib: 2.7.0
+      ws: 8.21.0
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
   eventemitter3@5.0.1: {}
 
   eventsource-parser@3.1.0: {}
@@ -5637,6 +5696,13 @@ snapshots:
       setprototypeof: 1.2.0
       statuses: 2.0.2
       toidentifier: 1.0.1
+
+  https-proxy-agent@5.0.1:
+    dependencies:
+      agent-base: 6.0.2
+      debug: 4.4.3
+    transitivePeerDependencies:
+      - supports-color
 
   iconv-lite@0.4.24:
     dependencies:
@@ -6475,6 +6541,23 @@ snapshots:
       - debug
       - utf-8-validate
 
+  tronweb@6.5.1:
+    dependencies:
+      axios: 1.18.0
+      bignumber.js: 9.1.2
+      ethereum-cryptography: 2.2.1
+      ethers: 6.17.0
+      eventemitter3: 5.0.1
+      google-protobuf: 3.21.4
+      semver: 7.7.1
+      tslib: 2.7.0
+      validator: 13.15.23
+    transitivePeerDependencies:
+      - bufferutil
+      - debug
+      - supports-color
+      - utf-8-validate
+
   ts-api-utils@2.5.0(typescript@5.9.3):
     dependencies:
       typescript: 5.9.3
@@ -6788,6 +6871,8 @@ snapshots:
   ws@8.17.1: {}
 
   ws@8.20.1: {}
+
+  ws@8.21.0: {}
 
   yocto-queue@0.1.0: {}
 
