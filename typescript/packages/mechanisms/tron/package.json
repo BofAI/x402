@@ -5,7 +5,7 @@
     "tag": "latest",
     "registry": "https://registry.npmjs.org/"
   },
-  "version": "2.1.1",
+  "version": "2.1.2",
   "engines": {
     "node": ">=24.22.1"
   },
@@ -59,7 +59,7 @@
     "vitest": "^3.0.5"
   },
   "dependencies": {
-    "tronweb": "^6.1.0"
+    "tronweb": "^6.5.1"
   },
   "exports": {
     ".": {

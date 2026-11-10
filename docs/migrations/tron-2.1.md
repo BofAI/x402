@@ -4,7 +4,7 @@ Use this guide to migrate application imports, wallet integrations, and resource
 
 ## Installation and compatibility
 
-The commands below target the 2.1.1 release. Until it is published, build the release branch locally.
+The commands below target the 2.1.2 release. Until it is published, build the release branch locally.
 
 For 2.1.0 consumers, upgrade both TRON packages together and replace the exact
 `@x402/core@2.28.0` peer with `@x402/core@2.29.0`. Public Core schemas now use Zod 4;
@@ -14,9 +14,9 @@ Use Node.js 24.22.1 or newer. CI workflows explicitly specify Node.js 24.22.1; `
 
 ```sh
 # Install the matching mechanism and optional extension versions
-npm install @x402/core@2.29.0 @bankofai/x402-tron@2.1.1
+npm install @x402/core@2.29.0 @bankofai/x402-tron@2.1.2
 # Required only for resource sponsorship
-npm install @bankofai/x402-tron-extensions@2.1.1
+npm install @bankofai/x402-tron-extensions@2.1.2
 # Select official HTTP / MCP integrations for the application role
 npm install @x402/fetch@2.29.0 @x402/express@2.29.0
 ```
