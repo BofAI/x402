@@ -59,7 +59,7 @@
     "vitest": "^3.0.5"
   },
   "dependencies": {
-    "tronweb": "^6.1.0"
+    "tronweb": "^6.5.1"
   },
   "exports": {
     ".": {
