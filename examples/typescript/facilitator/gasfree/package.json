@@ -12,7 +12,7 @@
     "@bankofai/x402-tron": "workspace:*",
     "@x402/core": "2.29.0",
     "express": "^4.22.3",
-    "tronweb": "6.5.1"
+    "tronweb": "6.5.2"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",

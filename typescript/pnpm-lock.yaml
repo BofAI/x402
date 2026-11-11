@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  tronweb@6.5.1>axios: 1.21.0
+  tronweb@6.5.2>axios: 1.21.0
   axios@1.21.0>follow-redirects: 1.16.2
   cssstyle: 5.3.6
 
@@ -93,8 +93,8 @@ importers:
         specifier: ^8.17.1
         version: 8.17.1
       tronweb:
-        specifier: 6.5.1
-        version: 6.5.1
+        specifier: 6.5.2
+        version: 6.5.2
     devDependencies:
       '@bankofai/agent-wallet':
         specifier: 2.4.0
@@ -563,8 +563,8 @@ importers:
   packages/mechanisms/tron:
     dependencies:
       tronweb:
-        specifier: ^6.5.1
-        version: 6.5.1
+        specifier: ^6.5.2
+        version: 6.5.2
     devDependencies:
       '@bankofai/agent-wallet':
         specifier: ^3.0.0
@@ -4002,8 +4002,9 @@ packages:
     resolution: {integrity: sha512-L0Orpi8qGpRG//Nd+H90vFB+3iHnue1zSSGmNOOCh1GLJ7rUKVwV2HvijphGQS2UmhUZewS9VgvxYIdgr+fG1A==}
     hasBin: true
 
-  tronweb@6.5.1:
-    resolution: {integrity: sha512-mqa3WIBq7sYtkkIywa2Jop3UwJX6EgIrBkFpm3sSjppStTOTtYeMJyeIHJVvFFCaYN4vjU1FDjQPSvHFTcuzEw==}
+  tronweb@6.5.2:
+    resolution: {integrity: sha512-vUpR5WrOcFbWKWSN4FJpz0DofoaRybEuPhrzUX285k++dDIlYDvQ0DCzNrhjo+uogsTq2yQr/XPSS8IZX5r47w==}
+    engines: {node: ^22.23.4 || ^24.22.1 || >=26.12.1}
 
   ts-api-utils@2.1.0:
     resolution: {integrity: sha512-CUgTZL1irw8u29bzrOD/nH85jqyc74D6SshFgujOIA7osm2Rz7dYH77agkx7H4FBNxDq7Cjf+IjaX/8zwFW+ZQ==}
@@ -7991,7 +7992,7 @@ snapshots:
 
   tree-kill@1.2.2: {}
 
-  tronweb@6.5.1:
+  tronweb@6.5.2:
     dependencies:
       axios: 1.21.0
       bignumber.js: 9.1.2
