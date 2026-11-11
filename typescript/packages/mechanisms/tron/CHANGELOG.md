@@ -1,5 +1,11 @@
 # @bankofai/x402-tron
 
+## 2.1.3
+
+### Patch Changes
+
+- [#120](https://github.com/BofAI/x402/pull/120) [`957d799`](https://github.com/BofAI/x402/commit/957d7996ccfa9ec5eecef5c401cc30d6829c149a) Thanks [@boboliu-1010](https://github.com/boboliu-1010)! - Upgrade TronWeb to 6.5.2 for stricter validation of node responses and explicit broadcast acknowledgments. Use a Node.js version supported by both packages and TronWeb: Node.js 24.22.1 or later in the 24.x line, or Node.js 26.12.1 or later.
+
 ## 2.1.2
 
 ### Patch Changes
