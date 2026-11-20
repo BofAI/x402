@@ -1,3 +1,11 @@
+# v2.1.2 — TronWeb Update
+
+- Release `@bankofai/x402-tron` and `@bankofai/x402-tron-extensions` at `2.1.2`. Upgrade both together with their existing `@x402/core@2.29.0` peer.
+- Use TronWeb 6.5.1 for the two TRON packages and 11 TypeScript examples. TronWeb 6.5.1 uses the same input snapshot for validation and execution in signing and contract calls.
+- Repository pnpm workspaces resolve TronWeb's Axios to 1.21.0 and follow-redirects to 1.16.2. Consumers installing the SDK packages resolve these dependencies in their own project. Apply equivalent overrides there or use an upstream TronWeb release with the patched dependencies.
+
+---
+
 # v2.1.1 — Native Zod 4 Security Update
 
 - Adopt official x402 Core, EVM, extensions, and transports at `2.29.0` with native Zod 4 to address GHSA-mrhx-c7xc-m3w5.

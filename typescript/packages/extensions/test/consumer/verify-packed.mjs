@@ -8,9 +8,10 @@ import {
   readdirSync,
   rmSync,
 } from "node:fs";
+import { findPackageJSON } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 const source = dirname(fileURLToPath(import.meta.url));
 const packageDir = resolve(source, "../..");
 const tronDir = resolve(packageDir, "../mechanisms/tron");
@@ -28,6 +29,18 @@ try {
     ] = `file:${join(temp, name)}`;
   writeFileSync(join(temp, "package.json"), JSON.stringify({ private: true, dependencies }));
   run("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund"]);
+  for (const name of ["@bankofai/x402-tron", "@bankofai/x402-tron-extensions"]) {
+    let manifestPath = join(temp, "node_modules", name, "package.json");
+    const versions = [];
+    for (const dependency of ["tronweb", "axios", "follow-redirects"]) {
+      const resolved = findPackageJSON(dependency, pathToFileURL(manifestPath));
+      if (!resolved) throw new Error(`${name}: cannot locate ${dependency} from ${manifestPath}`);
+      manifestPath = resolved;
+      const { version } = JSON.parse(readFileSync(manifestPath, "utf8"));
+      versions.push(`${dependency}@${version}`);
+    }
+    console.log(`${name} packed consumer HTTP dependencies: ${versions.join(" → ")}`);
+  }
   const lock = readFileSync(join(temp, "package-lock.json"), "utf8");
   for (const forbidden of [
     "@bankofai/x402-core",
