@@ -245,18 +245,33 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
       writeContract: vi.fn(),
       waitForTransactionReceipt: vi.fn(),
     };
+    const eipRequirements = {
+      ...requirements,
+      asset: "0x3333333333333333333333333333333333333333",
+      extra: { name: "Custom EIP3009 token", version: "1", assetTransferMethod: "eip3009" },
+    };
     const payload = {
       x402Version: 2,
-      accepted: requirements,
-      payload: {},
+      accepted: eipRequirements,
+      payload: {
+        signature: "0x" + "11".repeat(65),
+        authorization: {
+          from: normalizeAddressForSigning(PAYER),
+          to: normalizeAddressForSigning(PAYER),
+          value: eipRequirements.amount,
+          validAfter: "0",
+          validBefore: String(Math.floor(Date.now() / 1000) + 600),
+          nonce: "0x" + "22".repeat(32),
+        },
+      },
       extensions: {
         trc20ApprovalResourceSponsoring: { info: info(buildSignedApproval()) },
       },
     };
 
     const scheme = new ExactTronScheme(signer);
-    const verified = await scheme.verify(payload as never, requirements as never);
-    const settled = await scheme.settle(payload as never, requirements as never);
+    const verified = await scheme.verify(payload as never, eipRequirements as never);
+    const settled = await scheme.settle(payload as never, eipRequirements as never);
 
     expect(verified).toMatchObject({
       isValid: false,
