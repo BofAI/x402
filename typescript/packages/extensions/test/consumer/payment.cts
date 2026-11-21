@@ -174,12 +174,14 @@ async function main() {
     payTo: "0x2222222222222222222222222222222222222222",
     maxTimeoutSeconds: 600,
     price: {
-      asset: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
+      asset: "0x3333333333333333333333333333333333333333",
       amount: "1",
       extra: { name: "Test", version: "1", assetTransferMethod: "eip3009" },
     },
   });
-  const client = new x402Client().register(network, new ExactClient(signer));
+  const client = new x402Client()
+    .register(network, new ExactClient(signer))
+    .setSpendControls({ allowedAssets: [{ network, asset: accepts[0].asset }] });
   const payment = await client.createPaymentPayload({
     x402Version: 2,
     accepts,
