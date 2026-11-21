@@ -4,6 +4,11 @@ import {
   X402_PERMIT2_PROXY_ADDRESSES,
   X402_UPTO_PERMIT2_PROXY_ADDRESSES,
 } from "../constants";
+import {
+  BATCH_SETTLEMENT_ADDRESSES,
+  ERC3009_DEPOSIT_COLLECTOR_ADDRESSES,
+  PERMIT2_DEPOSIT_COLLECTOR_ADDRESSES,
+} from "../shared/batch-settlement/constants";
 import { getNetworkTokens } from "../shared/tokens";
 import type { AssetTransferMethod } from "../types";
 import { normalizeAddressForSigning } from "../utils";
@@ -47,6 +52,9 @@ export function validateExactRequirements(requirements: ExactRequirements): Vali
     PERMIT2_ADDRESSES,
     X402_PERMIT2_PROXY_ADDRESSES,
     X402_UPTO_PERMIT2_PROXY_ADDRESSES,
+    BATCH_SETTLEMENT_ADDRESSES,
+    ERC3009_DEPOSIT_COLLECTOR_ADDRESSES,
+    PERMIT2_DEPOSIT_COLLECTOR_ADDRESSES,
   ];
   if (
     infrastructure.some(addresses =>

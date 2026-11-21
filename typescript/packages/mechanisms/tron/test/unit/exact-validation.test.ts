@@ -4,6 +4,12 @@ import { ExactTronScheme as Client } from "../../src/exact/client/scheme";
 import { ExactTronScheme as Server } from "../../src/exact/server/scheme";
 import { ExactTronScheme as Facilitator } from "../../src/exact/facilitator/scheme";
 import { PERMIT2_ADDRESSES, X402_PERMIT2_PROXY_ADDRESSES } from "../../src/constants";
+import { TRON_MAINNET, TRON_NILE, TRON_SHASTA } from "../../src/network";
+import {
+  BATCH_SETTLEMENT_ADDRESSES,
+  ERC3009_DEPOSIT_COLLECTOR_ADDRESSES,
+  PERMIT2_DEPOSIT_COLLECTOR_ADDRESSES,
+} from "../../src/shared/batch-settlement/constants";
 import { normalizeAddressForSigning } from "../../src/utils";
 import type { ClientTronSigner, FacilitatorTronSigner } from "../../src/signer";
 
@@ -146,6 +152,30 @@ describe("exact TRON requirements and payload validation", () => {
       expect(fac.signer.writeContract).not.toHaveBeenCalled();
     },
   );
+  it.each(
+    [TRON_MAINNET, TRON_NILE, TRON_SHASTA].flatMap(network =>
+      [
+        BATCH_SETTLEMENT_ADDRESSES,
+        ERC3009_DEPOSIT_COLLECTOR_ADDRESSES,
+        PERMIT2_DEPOSIT_COLLECTOR_ADDRESSES,
+      ].map(addresses => ({ network, asset: addresses[network]! })),
+    ),
+  )("rejects batch infrastructure asset $asset before chain access", async ({ network, asset }) => {
+    const req = { ...requirements({ assetTransferMethod: "eip3009" }), network, asset };
+    const fac = facilitator();
+    const payment = payload(req);
+    expect(await fac.scheme.verify(payment, req)).toMatchObject({
+      isValid: false,
+      invalidReason: "invalid_exact_tron_asset",
+    });
+    expect(await fac.scheme.settle(payment, req)).toMatchObject({
+      success: false,
+      transaction: "",
+      errorReason: "invalid_exact_tron_asset",
+    });
+    expect(fac.signer.readContract).not.toHaveBeenCalled();
+    expect(fac.signer.writeContract).not.toHaveBeenCalled();
+  });
   it.each(["0", "-1", "1.5", "garbage"])(
     "rejects amount %s before signing or broadcasting",
     async amount => {
