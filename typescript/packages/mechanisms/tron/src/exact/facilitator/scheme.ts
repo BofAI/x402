@@ -1,3 +1,5 @@
+import { validateExactRequirements } from "../requirements";
+import { isValidExactPayload } from "./validation";
 import {
   TronSettlementTracker,
   type TronSettlementOptions,
@@ -87,7 +89,15 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
     requirements: PaymentRequirements,
     context?: FacilitatorContext,
   ): Promise<VerifyResponse> {
-    const rawPayload = payload.payload as ExactTronPayload;
+    const validation = validateExactRequirements(requirements);
+    if (!validation.success) return { isValid: false, invalidReason: validation.reason };
+    if (!isValidExactPayload(payload.payload)) {
+      return { isValid: false, invalidReason: "invalid_exact_tron_payload_authorization" };
+    }
+    const rawPayload = payload.payload;
+    if (isPermit2Payload(rawPayload) !== (validation.method === "permit2")) {
+      return { isValid: false, invalidReason: errors.INVALID_ASSET_TRANSFER_METHOD };
+    }
 
     if (isPermit2Payload(rawPayload)) {
       return verifyPermit2(this.signer, payload, requirements, rawPayload, context);
@@ -118,6 +128,22 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
     requirements: PaymentRequirements,
     context?: FacilitatorContext,
   ): Promise<SettleResponse> {
+    const validation = validateExactRequirements(requirements);
+    const reason = !validation.success
+      ? validation.reason
+      : !isValidExactPayload(payload.payload)
+        ? "invalid_exact_tron_payload_authorization"
+        : isPermit2Payload(payload.payload) !== (validation.method === "permit2")
+          ? errors.INVALID_ASSET_TRANSFER_METHOD
+          : undefined;
+    if (reason) {
+      return {
+        success: false,
+        network: requirements.network,
+        transaction: "",
+        errorReason: reason,
+      };
+    }
     return this.settlement.run(payload, requirements, pending =>
       this.settleOnce(payload, requirements, context, pending),
     );

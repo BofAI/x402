@@ -45,6 +45,57 @@ async function settlementSigner() {
 }
 
 describe("TRON composed with published official Core", () => {
+  it.each([
+    { supported: ["permit2"], expected: "permit2" },
+    { supported: ["permit2", "eip3009"], expected: "eip3009" },
+    { supported: undefined, expected: "eip3009" },
+  ])(
+    "negotiates $expected for an unregistered Exact asset with $supported",
+    async ({ supported, expected }) => {
+      const asset = "0x3333333333333333333333333333333333333333";
+      const server = new x402ResourceServer({
+        getSupported: async () => ({
+          kinds: [
+            {
+              x402Version: 2,
+              scheme: "exact",
+              network: NETWORK,
+              extra: {
+                supportedAssetTransferMethods: supported,
+                permit2FacilitatorAddress: RECEIVER,
+              },
+            },
+          ],
+          extensions: [],
+          signers: {},
+        }),
+        verify: async () => {
+          throw new Error("unexpected verification");
+        },
+        settle: async () => {
+          throw new Error("unexpected settlement");
+        },
+      }).register(NETWORK, new ExactServer());
+      await server.initialize();
+      const accepts = await server.buildPaymentRequirements({
+        scheme: "exact",
+        network: NETWORK,
+        price: { asset, amount: "1", extra: { name: "Custom Token", version: "1" } },
+        payTo: RECEIVER,
+        maxTimeoutSeconds: 600,
+      });
+      expect(accepts).toHaveLength(1);
+      expect(accepts[0]).toMatchObject({
+        asset,
+        amount: "1",
+        extra: { name: "Custom Token", version: "1", assetTransferMethod: expected },
+      });
+      expect(accepts[0].extra.permit2FacilitatorAddress).toBe(
+        expected === "permit2" ? RECEIVER : undefined,
+      );
+    },
+  );
+
   it.each(["exact", "upto"] as const)(
     "creates, verifies and settles %s through Core",
     async scheme => {

@@ -146,10 +146,10 @@ describe("pending transaction storage boundaries", () => {
     const result = await new ExactFacilitator(f.signer).settle(payment, requirements);
     expect(result).toMatchObject({
       success: false,
-      errorReason: "settlement_execution_failed",
+      errorReason: "invalid_exact_tron_payload_authorization",
       transaction: "",
     });
-    expect(result.errorMessage).not.toContain("reconcile");
+    expect(result.errorMessage).toBeUndefined();
     expect(f.signer.verifyTypedData).not.toHaveBeenCalled();
     expect(f.writeContract).not.toHaveBeenCalled();
   });
