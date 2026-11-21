@@ -21,17 +21,17 @@ interface ExactRequirements {
 }
 
 type ValidationResult =
-  | { success: true; method: AssetTransferMethod }
+  | { success: true; method: AssetTransferMethod | undefined }
   | { success: false; reason: string };
 
 /**
  * Validate exact payment terms and infer registered tokens' transfer methods.
- * Unknown custom tokens retain the legacy EIP-3009 default. Infrastructure
+ * Leave the method unresolved for custom tokens without an explicit choice. Infrastructure
  * contracts are never payment assets, and registered Permit2 tokens cannot be
  * forced through an unsupported EIP-3009 call.
  *
  * @param requirements - Payment terms before signing or settlement.
- * @returns Resolved method, or a stable protocol rejection reason.
+ * @returns Explicit or registered method if available, or a stable protocol rejection reason.
  */
 export function validateExactRequirements(requirements: ExactRequirements): ValidationResult {
   if (
@@ -73,7 +73,7 @@ export function validateExactRequirements(requirements: ExactRequirements): Vali
   if (explicit === "eip3009" && token?.assetTransferMethod === "permit2") {
     return { success: false, reason: "invalid_exact_tron_asset_transfer_method" };
   }
-  return { success: true, method: explicit ?? token?.assetTransferMethod ?? "eip3009" };
+  return { success: true, method: explicit ?? token?.assetTransferMethod };
 }
 
 /**

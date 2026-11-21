@@ -122,7 +122,11 @@ export class ExactTronScheme implements SchemeNetworkServer {
       | undefined;
     const validation = validateExactRequirements(paymentRequirements);
     if (!validation.success) throw new Error(validation.reason);
-    const method = validation.method;
+    const method =
+      validation.method ??
+      (supportedMethods?.includes("permit2") && !supportedMethods.includes("eip3009")
+        ? "permit2"
+        : this.defaultAssetTransferMethod);
     if (supportedMethods && !supportedMethods.includes(method)) {
       throw new Error("invalid_exact_tron_asset_transfer_method");
     }
@@ -159,11 +163,12 @@ export class ExactTronScheme implements SchemeNetworkServer {
    *
    * @param price - Parsed atomic asset amount.
    * @param network - Payment network.
-   * @returns Validated amount with a supported transfer method.
+   * @returns Validated amount with any explicit or registered transfer method.
    */
   private prepareAssetAmount(price: AssetAmount, network: Network): AssetAmount {
     const validation = validateExactRequirements({ ...price, network });
     if (!validation.success) throw new Error(validation.reason);
+    if (!validation.method) return price;
     return { ...price, extra: { ...price.extra, assetTransferMethod: validation.method } };
   }
 
