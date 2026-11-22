@@ -285,6 +285,27 @@ describe("Permit2 (exact) end-to-end (in-process)", () => {
     expect(settle.transaction).toBe(FAKE_TX);
   });
 
+  it("infers Permit2 for custom USDT terms and settles a real TIP-712 signature", async () => {
+    const chain: Chain = { balance: 10_000_000n, allowance: 10_000_000n };
+    const server = new ExactServer();
+    const signer = await facilitatorSigner(chain);
+    const writeContract = vi.spyOn(signer, "writeContract");
+    const facilitator = new ExactFacilitator(signer);
+    const client = new ExactClient(await clientSigner(chain));
+    const price = await server.parsePrice({ asset: USDT, amount: "1" }, NETWORK);
+    const req = await server.enhancePaymentRequirements(
+      { scheme: "exact", network: NETWORK, ...price, payTo: PAY_TO, maxTimeoutSeconds: 120 },
+      { x402Version: 2, scheme: "exact", network: NETWORK, extra: facilitator.getExtra(NETWORK) },
+      [],
+    );
+    const payment = await pay(client, req);
+    expect(req.extra?.assetTransferMethod).toBe("permit2");
+    expect(payment.payload).toHaveProperty("permit2Authorization");
+    expect(await facilitator.verify(payment, req)).toMatchObject({ isValid: true });
+    expect(await facilitator.settle(payment, req)).toMatchObject({ success: true });
+    expect(writeContract).toHaveBeenCalledWith(expect.objectContaining({ functionName: "settle" }));
+  });
+
   it("surfaces the broadcast error in errorMessage when settle throws", async () => {
     const chain: Chain = { balance: 10_000_000n, allowance: 10_000_000n };
     const base = await facilitatorSigner(chain);

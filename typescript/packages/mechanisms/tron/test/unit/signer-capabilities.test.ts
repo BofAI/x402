@@ -6,7 +6,8 @@ import type { PaymentRequirements } from "@x402/core/types";
 const requirements: PaymentRequirements = {
   scheme: "exact",
   network: "tron:3448148188",
-  asset: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
+  // A custom token implementing EIP-3009; registered USDT uses Permit2.
+  asset: "0x3333333333333333333333333333333333333333",
   amount: "1000000",
   payTo: "TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC",
   maxTimeoutSeconds: 600,

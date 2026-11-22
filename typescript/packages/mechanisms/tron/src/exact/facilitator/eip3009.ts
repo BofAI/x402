@@ -107,7 +107,7 @@ export async function verifyEIP3009(
       };
     }
   } catch {
-    // If balance check fails, continue
+    return { isValid: false, invalidReason: errors.CHAIN_READ_FAILED, payer };
   }
 
   return { isValid: true, invalidReason: undefined, payer };
