@@ -6,6 +6,8 @@
 
 - [#120](https://github.com/BofAI/x402/pull/120) [`957d799`](https://github.com/BofAI/x402/commit/957d7996ccfa9ec5eecef5c401cc30d6829c149a) Thanks [@boboliu-1010](https://github.com/boboliu-1010)! - Upgrade TronWeb to 6.5.2 for stricter validation of node responses and explicit broadcast acknowledgments. Use a Node.js version supported by both packages and TronWeb: Node.js 24.22.1 or later in the 24.x line, or Node.js 26.12.1 or later.
 
+- [#124](https://github.com/BofAI/x402/pull/124) Validate TRON Exact assets, amounts, and authorization methods before signing or broadcasting. Infer Permit2 for registered USDT/USDD and preserve negotiation for custom assets.
+
 ## 2.1.2
 
 ### Patch Changes
