@@ -15,6 +15,7 @@ import {
   parsePrice as parseTokenPrice,
 } from "../../shared/tokens";
 import type { AssetTransferMethod } from "../../types";
+import { validateExactRequirements } from "../requirements";
 
 /**
  * TRON server implementation for the Exact payment scheme.
@@ -69,28 +70,24 @@ export class ExactTronScheme implements SchemeNetworkServer {
       if (!price.asset) {
         throw new Error(`Asset address must be specified for AssetAmount on network ${network}`);
       }
-      return {
-        amount: price.amount,
-        asset: price.asset,
-        extra: price.extra || {},
-      };
+      return this.prepareAssetAmount(price, network);
     }
 
     const { amount, symbol } = parseMoney(price);
     if (symbol) {
-      return parseTokenPrice(`${amount} ${symbol}`, network);
+      return this.prepareAssetAmount(parseTokenPrice(`${amount} ${symbol}`, network), network);
     }
 
     // Try each custom money parser in order
     for (const parser of this.moneyParsers) {
       const result = await parser(amount, network);
       if (result !== null) {
-        return result;
+        return this.prepareAssetAmount(result, network);
       }
     }
 
     // All custom parsers returned null, use default conversion
-    return this.defaultMoneyConversion(amount, network);
+    return this.prepareAssetAmount(this.defaultMoneyConversion(amount, network), network);
   }
 
   /**
@@ -105,7 +102,7 @@ export class ExactTronScheme implements SchemeNetworkServer {
    * @param extensionKeys - Extension keys supported by the facilitator (unused)
    * @returns Payment requirements ready to be sent to clients
    */
-  enhancePaymentRequirements(
+  async enhancePaymentRequirements(
     paymentRequirements: PaymentRequirements,
     supportedKind: {
       x402Version: number;
@@ -119,22 +116,19 @@ export class ExactTronScheme implements SchemeNetworkServer {
 
     const extra = { ...paymentRequirements.extra };
     delete extra.fee;
-    const requirementsWithoutFee = { ...paymentRequirements, extra };
 
     const supportedMethods = supportedKind.extra?.supportedAssetTransferMethods as
       | string[]
       | undefined;
-    const existingMethod = paymentRequirements.extra?.assetTransferMethod as string | undefined;
+    const validation = validateExactRequirements(paymentRequirements);
+    if (!validation.success) throw new Error(validation.reason);
     const method =
-      existingMethod ??
-      (supportedMethods && supportedMethods.length > 0
-        ? supportedMethods.includes("eip3009")
-          ? "eip3009"
-          : supportedMethods[0]
-        : undefined);
-
-    if (!method) {
-      return Promise.resolve(requirementsWithoutFee);
+      validation.method ??
+      (supportedMethods?.includes("permit2") && !supportedMethods.includes("eip3009")
+        ? "permit2"
+        : this.defaultAssetTransferMethod);
+    if (supportedMethods && !supportedMethods.includes(method)) {
+      throw new Error("invalid_exact_tron_asset_transfer_method");
     }
 
     const permit2FacilitatorAddress =
@@ -142,7 +136,7 @@ export class ExactTronScheme implements SchemeNetworkServer {
       (supportedKind.extra?.permit2FacilitatorAddress as string | undefined);
 
     return Promise.resolve({
-      ...requirementsWithoutFee,
+      ...paymentRequirements,
       extra: {
         ...extra,
         assetTransferMethod: method,
@@ -162,6 +156,20 @@ export class ExactTronScheme implements SchemeNetworkServer {
    */
   getAssetDecimals(asset: string, network: Network): number {
     return getDecimals(network, asset);
+  }
+
+  /**
+   * Resolve transfer metadata for both custom and money-derived prices.
+   *
+   * @param price - Parsed atomic asset amount.
+   * @param network - Payment network.
+   * @returns Validated amount with any explicit or registered transfer method.
+   */
+  private prepareAssetAmount(price: AssetAmount, network: Network): AssetAmount {
+    const validation = validateExactRequirements({ ...price, network });
+    if (!validation.success) throw new Error(validation.reason);
+    if (!validation.method) return price;
+    return { ...price, extra: { ...price.extra, assetTransferMethod: validation.method } };
   }
 
   /**

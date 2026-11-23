@@ -1,3 +1,4 @@
+import { validateExactRequirements } from "../requirements";
 import type { PaymentPayload, PaymentRequirements, VerifyResponse } from "@x402/core/types";
 import {
   erc20AllowanceAbi,
@@ -66,7 +67,8 @@ function validateAuthorizationFields(
   if (!tronNetworksEqual(payload.accepted.network, requirements.network)) {
     return invalid(errors.NETWORK_MISMATCH, payer);
   }
-  if (requirements.extra?.assetTransferMethod !== "permit2") {
+  const validation = validateExactRequirements(requirements);
+  if (!validation.success || validation.method !== "permit2") {
     return invalid(errors.INVALID_ASSET_TRANSFER_METHOD, payer);
   }
   if (

@@ -6,7 +6,7 @@ The TRON `exact` binding transfers one fixed TRC-20 amount. It supports:
 
 | `extra.assetTransferMethod` | Authorization | Settlement |
 | --- | --- | --- |
-| `eip3009` or omitted | TIP-712 `TransferWithAuthorization` | Call the token's `transferWithAuthorization` |
+| `eip3009` | TIP-712 `TransferWithAuthorization` | Call the token's `transferWithAuthorization` |
 | `permit2` | TIP-712 `PermitWitnessTransferFrom` | Call the network's `x402ExactPermit2Proxy.settle` |
 
 TRON Base58Check addresses are used in requirements and deployment configuration. Addresses inside
@@ -32,12 +32,23 @@ The common fields follow the [core specification](../../x402-specification-v2.md
 
 | Field | Required | Meaning |
 | --- | --- | --- |
-| `assetTransferMethod` | No | `eip3009` (default) or `permit2` |
+| `assetTransferMethod` | No | `eip3009` or `permit2`; see method resolution below |
 | `name` | For `eip3009` | Token TIP-712 domain name |
 | `version` | For `eip3009` | Token TIP-712 domain version |
 
-The built-in token registry selects Permit2 for mainstream USDT/USDD deployments because those
-tokens do not expose TransferWithAuthorization.
+Resolve the method using the token contract on the specified network:
+
+1. Honor an explicit `assetTransferMethod` if valid for the token. Reject unknown methods and
+   reject `eip3009` for tokens registered as Permit2-only, including the listed USDT/USDD deployments.
+2. If the method is omitted and the token registry specifies a method, use the registered method.
+3. For an unregistered token with no explicit method, the resource server selects `permit2`
+   when it is the only supported Exact transfer method advertised by the facilitator. Prefer
+   `eip3009` when both are supported, and default to `eip3009` if the facilitator does not
+   advertise a method list. Write the selected method into the generated requirements.
+
+When a facilitator advertises its supported methods, the resource server MUST reject a resolved
+method the facilitator does not support. If a client or facilitator receives requirements that
+still omit the method, it uses the token registry and defaults to `eip3009` for unregistered tokens.
 
 ## TransferWithAuthorization Payload
 
@@ -119,16 +130,18 @@ needed and when its wallet can sign TRON transactions.
 
 The facilitator MUST:
 
-1. Match both schemes and the accepted network.
+1. Match both schemes and the accepted network, and require the authorization format to match
+   the resolved transfer method.
 2. Reconstruct typed data using the requirement's network and configured contracts.
 3. Verify the payer signature.
 4. Match recipient, asset, and exact amount.
 5. Require at least six seconds of remaining validity and reject a future `validAfter`.
-6. For Permit2, match the exact proxy spender and check Permit2 allowance when readable.
-7. Check payer token balance when readable.
+6. For Permit2, match the exact proxy spender and check Permit2 allowance when required by the
+   payment flow.
+7. Check the payer's token balance.
 
-Allowance and balance read failures are treated optimistically by the current implementation; all
-cryptographic and term checks remain mandatory, and settlement is authoritative.
+If a required allowance or balance read fails, the facilitator MUST reject verification or
+settlement with `chain_read_failed` before broadcasting a new transaction.
 
 ## Settlement
 

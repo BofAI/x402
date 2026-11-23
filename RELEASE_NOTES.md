@@ -1,3 +1,13 @@
+# v2.1.3 — TRON Exact validation and TronWeb 6.5.2
+
+- Upgrade `@bankofai/x402-tron` and `@bankofai/x402-tron-extensions` together to `2.1.3` with their existing `@x402/core@2.29.0` peer.
+- Upgrade both TRON packages and the TypeScript examples to [TronWeb 6.5.2](https://github.com/tronprotocol/tronweb/releases/tag/v6.5.2). This release validates node transaction responses more strictly and requires an explicit broadcast acknowledgment for contract sends.
+- Use Node.js 24.22.1 or later in the 24.x line, or Node.js 26.12.1 or later. The repository's Axios and follow-redirects overrides apply to its pnpm workspaces. Independent installs resolve those dependencies through TronWeb.
+
+- [#124](https://github.com/BofAI/x402/pull/124) validates TRON Exact payment terms before signing or broadcasting, selects Permit2 for registered USDT/USDD, and preserves Permit2-only negotiation for custom assets.
+
+---
+
 # v2.1.2 — TronWeb Update
 
 - Release `@bankofai/x402-tron` and `@bankofai/x402-tron-extensions` at `2.1.2`. Upgrade both together with their existing `@x402/core@2.29.0` peer.
