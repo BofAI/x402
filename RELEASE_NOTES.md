@@ -2,6 +2,7 @@
 
 - Upgrade `@bankofai/x402-tron` and `@bankofai/x402-tron-extensions` together to `2.1.4` with their existing `@x402/core@2.29.0` peer.
 - Reject invalid Exact payment assets, nonpositive amounts, and authorizations that do not match the selected method. Registered USDT/USDD default to Permit2, and custom assets retain Permit2-only negotiation. Required chain-read failures prevent settlement. See [#124](https://github.com/BofAI/x402/pull/124).
+- Normalize 20-byte `0x` asset addresses before contract reads in the wallet-backed TRON facilitator, so allowance and balance checks work with the same address formats accepted by Exact quotes.
 - Use TronWeb 6.5.2 for stricter validation of node transaction responses and explicit broadcast acknowledgments. Use Node.js 24.22.1 or later in the 24.x line, or Node.js 26.12.1 or later. See [#120](https://github.com/BofAI/x402/pull/120).
 
 ---
