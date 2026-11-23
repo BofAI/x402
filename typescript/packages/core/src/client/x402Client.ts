@@ -13,6 +13,51 @@ import {
   toComparableArray,
 } from "../utils";
 
+// ─── DACS-Standard Guardrail (§9.5.7 & §14.4) ─────────────────────────────
+
+export interface DacsMandateMeta {
+  /** Signed DACS mandate identifier or URI. */
+  dacsMandate?: string;
+  /** Active DACS session identifier. */
+  dacsSessionId?: string;
+  /** Hard authorized spend ceiling in atomic units (wei / sun / lamports / base units). */
+  dacsMaxAmount?: bigint | string | number;
+}
+
+export function assertDacsSpendMandate(
+  requestedAmount: bigint | string | number,
+  meta?: DacsMandateMeta,
+): void {
+  if (!meta || (!meta.dacsMandate && !meta.dacsSessionId)) {
+    return;
+  }
+
+  if (meta.dacsMaxAmount !== undefined) {
+    let ceiling: bigint;
+    let requested: bigint;
+    try {
+      ceiling = BigInt(meta.dacsMaxAmount);
+      requested = BigInt(requestedAmount);
+    } catch {
+      throw new Error(
+        `[DACS-Standard §9.5.7] Invalid numeric amount or dacsMaxAmount ceiling.`,
+      );
+    }
+
+    if (ceiling < 0n) {
+      throw new Error(
+        `[DACS-Standard §9.5.7] Invalid negative dacsMaxAmount ceiling: "${meta.dacsMaxAmount}".`,
+      );
+    }
+
+    if (requested > ceiling) {
+      throw new Error(
+        `[DACS-Standard §9.5.7] x402Client payment creation aborted: requested amount (${requested}) exceeds authorized mandate ceiling (${ceiling}).`,
+      );
+    }
+  }
+}
+
 /**
  * Client Hook Context Interfaces
  */
@@ -187,6 +232,10 @@ export interface SpendControls {
    * - list: defaults plus listed entries; optional integer atomic `maxAmountPerPayment` per entry
    */
   allowedAssets?: true | SpendControlAsset[];
+  /**
+   * Optional DACS-Standard (§9.5.7) delegated spend mandate metadata & atomic ceiling.
+   */
+  dacsMandate?: DacsMandateMeta;
 }
 
 /**
@@ -232,6 +281,11 @@ export interface x402ClientConfig {
   spendControls?: SpendControls | false;
 
   /**
+   * Optional DACS-Standard (§9.5.7) delegated spend mandate ceiling for autonomous agent sessions.
+   */
+  dacsMandate?: DacsMandateMeta;
+
+  /**
    * Custom payment requirements selector function
    * If not provided, uses the default selector (first available option)
    */
@@ -257,6 +311,7 @@ export class x402Client {
   private readonly policies: PaymentPolicy[] = [];
   private readonly registeredExtensions: Map<string, ClientExtension> = new Map();
   private spendControls: SpendControls | false = {};
+  private dacsMandate?: DacsMandateMeta;
 
   private beforePaymentCreationHooks: BeforePaymentCreationHook[] = [];
   private afterPaymentCreationHooks: AfterPaymentCreationHook[] = [];
@@ -294,7 +349,21 @@ export class x402Client {
     if (config.spendControls !== undefined) {
       client.setSpendControls(config.spendControls);
     }
+    if (config.dacsMandate !== undefined) {
+      client.setDacsMandate(config.dacsMandate);
+    }
     return client;
+  }
+
+  /**
+   * Configures or updates the DACS-Standard (§9.5.7) delegated spend mandate ceiling.
+   *
+   * @param mandate - The DACS mandate metadata and atomic spend ceiling
+   * @returns This client for chaining
+   */
+  setDacsMandate(mandate?: DacsMandateMeta): x402Client {
+    this.dacsMandate = mandate;
+    return this;
   }
 
   /**
@@ -356,6 +425,9 @@ export class x402Client {
    */
   setSpendControls(controls: SpendControls | false): x402Client {
     this.spendControls = controls;
+    if (controls !== false && controls.dacsMandate !== undefined) {
+      this.dacsMandate = controls.dacsMandate;
+    }
     return this;
   }
 
@@ -474,6 +546,22 @@ export class x402Client {
       paymentRequired.x402Version,
       paymentRequired.accepts,
     );
+
+    // DACS-Standard (§9.5.7 & §14.4) pre-flight spend mandate ceiling check
+    const rawRequestedAmount =
+      paymentRequired.x402Version === 1
+        ? (requirements as unknown as PaymentRequirementsV1).maxAmountRequired
+        : requirements.amount;
+    const declaredDacsExt = paymentRequired.extensions?.dacs as DacsMandateMeta | undefined;
+    const effectiveDacsMeta: DacsMandateMeta | undefined =
+      this.dacsMandate || declaredDacsExt
+        ? {
+            dacsMandate: this.dacsMandate?.dacsMandate ?? declaredDacsExt?.dacsMandate,
+            dacsSessionId: this.dacsMandate?.dacsSessionId ?? declaredDacsExt?.dacsSessionId,
+            dacsMaxAmount: this.dacsMandate?.dacsMaxAmount ?? declaredDacsExt?.dacsMaxAmount,
+          }
+        : undefined;
+    assertDacsSpendMandate(rawRequestedAmount, effectiveDacsMeta);
 
     const context: PaymentCreationContext = {
       paymentRequired,
