@@ -35,7 +35,9 @@ The exact scheme supports two `assetTransferMethod`s, selected via `extra.assetT
 | `eip3009` | TIP-712 `TransferWithAuthorization` (TRON equivalent of EIP-3009) | only tokens that implement `transferWithAuthorization` |
 | `permit2` | Permit2 `PermitWitnessTransferFrom` + `x402ExactPermit2Proxy` | **any TRC-20** — the universal path |
 
-> ⚠️ Mainstream TRON stablecoins (**USDT, USDD**) do **not** implement `transferWithAuthorization`, so real payments use **`permit2`**. The code falls back to `eip3009` only when no method is specified; `shared/defaultAssets.ts` therefore marks the TRON stablecoins as `permit2`. See the [migration guide](../../../../docs/migrations/tron-2.1.md) for integration requirements.
+Mainstream TRON stablecoins (**USDT, USDD**) do **not** implement `transferWithAuthorization`, so real payments use **`permit2`**. All exact roles infer this method from the token registry, including custom `{ asset, amount }` prices and normalized hex addresses. An explicit `eip3009` override for these tokens, an unknown method, or a payload that does not match the selected method is rejected. Unknown custom tokens retain the `eip3009` default; use it only for tokens implementing `transferWithAuthorization`. See the [migration guide](../../../../docs/migrations/tron-2.1.md) for integration requirements.
+
+Exact payments require a positive integer amount in atomic units. Permit2 and x402 proxy addresses are infrastructure, not valid payment assets. Malformed authorizations return `invalid_exact_tron_payload_authorization`; invalid terms return `invalid_exact_tron_amount`, `invalid_exact_tron_asset`, or `invalid_exact_tron_asset_transfer_method`. EIP-3009 balance RPC failures now return `chain_read_failed` instead of allowing settlement to proceed. Retry once the RPC is healthy.
 
 ### Exact witness shape
 

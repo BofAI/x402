@@ -154,12 +154,18 @@ async function main() {
     payTo: "0x2222222222222222222222222222222222222222",
     maxTimeoutSeconds: 600,
     price: {
-      asset: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
+      // Custom token implementing EIP-3009; registered USDT must use Permit2.
+      asset: "0x3333333333333333333333333333333333333333",
       amount: "1",
       extra: { name: "Test", version: "1", assetTransferMethod: "eip3009" },
     },
   });
-  const client = new x402Client().register(network, new ExactClient(signer));
+  const customAssetControls = {
+    allowedAssets: [{ network: network as `${string}:${string}`, asset: accepts[0].asset }],
+  };
+  const client = new x402Client()
+    .setSpendControls(customAssetControls)
+    .register(network, new ExactClient(signer));
   const payment = await client.createPaymentPayload({
     x402Version: 2,
     accepts,
@@ -167,6 +173,22 @@ async function main() {
   });
   assert.equal((await server.verifyPayment(payment, accepts[0])).isValid, true);
   assert.equal((await server.settlePayment(payment, accepts[0])).success, true);
+  const usdtAccepts = await server.buildPaymentRequirements({
+    scheme: "exact",
+    network,
+    payTo: accepts[0].payTo,
+    maxTimeoutSeconds: 600,
+    price: { asset: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf", amount: "1" },
+  });
+  assert.equal(usdtAccepts[0].extra?.assetTransferMethod, "permit2");
+  const usdtPayment = await client.createPaymentPayload({
+    x402Version: 2,
+    accepts: usdtAccepts,
+    resource: { url: "https://example.test/usdt" },
+  });
+  assert.ok("permit2Authorization" in usdtPayment.payload);
+  assert.equal((await server.verifyPayment(usdtPayment, usdtAccepts[0])).isValid, true);
+  assert.equal((await server.settlePayment(usdtPayment, usdtAccepts[0])).success, true);
   const uptoRequirements = {
     ...accepts[0],
     scheme: "upto",
@@ -176,6 +198,7 @@ async function main() {
     },
   };
   const uptoPayment = await new x402Client()
+    .setSpendControls(customAssetControls)
     .register(network, new UptoClient.UptoTronScheme(signer))
     .createPaymentPayload({
       x402Version: 2,

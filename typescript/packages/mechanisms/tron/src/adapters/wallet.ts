@@ -202,9 +202,13 @@ export async function createFacilitatorTronSigner(
   return toFacilitatorTronSigner({
     address,
     async readContract(args) {
+      // Payment terms may carry a 20-byte address; TronWeb expects the TRON prefix.
+      const contractAddress = /^0x[0-9a-fA-F]{40}$/.test(args.address)
+        ? `41${args.address.slice(2)}`
+        : args.address;
       const contract = (await tronWeb.contract(
         args.abi as unknown as TronContractAbi,
-        args.address,
+        contractAddress,
       )) as unknown as TronContract;
       const method = contract.methods[args.functionName];
       if (!method) {

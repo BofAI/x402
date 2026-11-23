@@ -5,9 +5,9 @@
     "tag": "latest",
     "registry": "https://registry.npmjs.org/"
   },
-  "version": "2.1.2",
+  "version": "2.1.4",
   "engines": {
-    "node": ">=24.22.1"
+    "node": "^24.22.1 || >=26.12.1"
   },
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.mjs",
@@ -59,7 +59,7 @@
     "vitest": "^3.0.5"
   },
   "dependencies": {
-    "tronweb": "^6.5.1"
+    "tronweb": "^6.5.2"
   },
   "exports": {
     ".": {

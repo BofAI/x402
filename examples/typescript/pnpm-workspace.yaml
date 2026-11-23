@@ -8,8 +8,9 @@ packages:
   - "../../typescript/packages/mechanisms/tron"
 minimumReleaseAge: 4320 # Only install package versions that have been published for at least 3 days.
 minimumReleaseAgeStrict: true
-# Allow the verified official Zod security release before the normal 3-day delay.
 minimumReleaseAgeExclude:
+  # Verified official TronWeb release with stricter transaction validation.
+  - "tronweb@6.5.2"
   - "@x402/core@2.29.0"
   - "@x402/evm@2.29.0"
   - "@x402/extensions@2.29.0"
@@ -28,6 +29,6 @@ allowBuilds:
 
 # Use one Express 4 declaration tree for our Express 4 examples and middleware.
 overrides:
-  "tronweb@6.5.1>axios": "1.21.0"
+  "tronweb@6.5.2>axios": "1.21.0"
   "axios@1.21.0>follow-redirects": "1.16.2"
   "@types/express": "4.17.25"
