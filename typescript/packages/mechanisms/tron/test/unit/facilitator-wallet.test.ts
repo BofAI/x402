@@ -1,11 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
+import { TronWeb } from "tronweb";
 import {
   createFacilitatorTronSigner,
   DEFAULT_CONFIRMATION_TIMEOUT_MS,
   type FacilitatorTronWallet,
 } from "../../src/signer";
 import { buildTronWeb } from "../../src/rpc";
-import { x402ExactPermit2ProxyABI } from "../../src/constants";
+import { erc20AllowanceAbi, x402ExactPermit2ProxyABI } from "../../src/constants";
 
 // The factory builds TronWeb internally from the network; mock that builder so
 // tests inject a fake TronWeb (was previously passed as the first arg).
@@ -58,6 +59,40 @@ function makeFacilitatorSigner(
 }
 
 describe("createFacilitatorTronSigner — wallet path", () => {
+  const usdt = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf";
+  const usdtHex = TronWeb.address.toHex(usdt);
+
+  it.each([usdt, usdtHex, `0x${usdtHex.slice(2)}`])(
+    "reads allowance through TronWeb for token address %s",
+    async asset => {
+      const tronWeb = new TronWeb({ fullHost: "http://127.0.0.1:1" });
+      const request = vi.spyOn(tronWeb.fullNode, "request").mockResolvedValue({
+        result: { result: true },
+        constant_result: ["1".padStart(64, "0")],
+      });
+      const signer = await makeFacilitatorSigner(tronWeb, {
+        getAddress: () => FAC_ADDR,
+        signTransaction: async () => {
+          throw new Error("unexpected transaction signing");
+        },
+      });
+
+      await expect(
+        signer.readContract({
+          address: asset,
+          abi: erc20AllowanceAbi,
+          functionName: "allowance",
+          args: [FAC_ADDR, PROXY],
+        }),
+      ).resolves.toBe(1n);
+      expect(request).toHaveBeenCalledWith(
+        "wallet/triggerconstantcontract",
+        expect.objectContaining({ contract_address: usdtHex.toLowerCase() }),
+        "post",
+      );
+    },
+  );
+
   const settleArgs = [
     [[TOKEN, 1_000_000n], 7n, 9_999n], // permit tuple
     OWNER,

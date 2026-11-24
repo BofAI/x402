@@ -5,9 +5,9 @@
     "tag": "latest",
     "registry": "https://registry.npmjs.org/"
   },
-  "version": "2.1.2",
+  "version": "2.1.4",
   "engines": {
-    "node": ">=24.22.1"
+    "node": "^24.22.1 || >=26.12.1"
   },
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.mjs",
@@ -59,7 +59,7 @@
     "@bankofai/agent-wallet": "2.4.0"
   },
   "dependencies": {
-    "@bankofai/x402-tron": "workspace:2.1.2",
+    "@bankofai/x402-tron": "workspace:2.1.4",
     "ajv": "^8.17.1",
     "tronweb": "6.5.2"
   },
