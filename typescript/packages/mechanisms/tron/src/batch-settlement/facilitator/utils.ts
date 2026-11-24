@@ -5,6 +5,7 @@
 import type { PaymentRequirements } from "@x402/core/types";
 import { FacilitatorTronSigner } from "../../signer";
 import { normalizeAddressForSigning } from "../../utils";
+import { isTronPaymentAddress } from "../../shared/validation";
 import { batchSettlementABI } from "../../shared/batch-settlement/abi";
 import {
   MIN_WITHDRAW_DELAY,
@@ -158,14 +159,18 @@ export async function verifyBatchSettlementVoucherTypedData(
   const verifyAddress =
     authorizer !== ZERO_ADDRESS ? authorizer : normalizeAddressForSigning(params.payer);
 
-  return signer.verifyTypedData({
-    address: verifyAddress,
-    domain,
-    types: voucherTypes as unknown as Record<string, Array<{ name: string; type: string }>>,
-    primaryType: "Voucher",
-    message,
-    signature: params.signature,
-  });
+  try {
+    return await signer.verifyTypedData({
+      address: verifyAddress,
+      domain,
+      types: voucherTypes as unknown as Record<string, Array<{ name: string; type: string }>>,
+      primaryType: "Voucher",
+      message,
+      signature: params.signature,
+    });
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -188,6 +193,7 @@ export function validateChannelConfig(
   }
 
   if (
+    !isTronPaymentAddress(requirements.payTo) ||
     normalizeAddressForSigning(config.receiver) !== normalizeAddressForSigning(requirements.payTo)
   ) {
     return Errors.ErrReceiverMismatch;
@@ -197,7 +203,7 @@ export function validateChannelConfig(
   const requiredReceiverAuthorizer = extra?.receiverAuthorizer;
 
   if (
-    !requiredReceiverAuthorizer ||
+    !isTronPaymentAddress(requiredReceiverAuthorizer) ||
     normalizeAddressForSigning(requiredReceiverAuthorizer) === ZERO_ADDRESS ||
     normalizeAddressForSigning(config.receiverAuthorizer) !==
       normalizeAddressForSigning(requiredReceiverAuthorizer)
@@ -205,7 +211,10 @@ export function validateChannelConfig(
     return Errors.ErrReceiverAuthorizerMismatch;
   }
 
-  if (normalizeAddressForSigning(config.token) !== normalizeAddressForSigning(requirements.asset)) {
+  if (
+    !isTronPaymentAddress(requirements.asset) ||
+    normalizeAddressForSigning(config.token) !== normalizeAddressForSigning(requirements.asset)
+  ) {
     return Errors.ErrTokenMismatch;
   }
 

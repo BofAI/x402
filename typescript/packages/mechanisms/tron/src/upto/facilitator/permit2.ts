@@ -23,6 +23,7 @@ import {
   executeTrc20Sponsorship,
   verifyTrc20Sponsorship,
 } from "../../shared/extensions/trc20ApprovalResourceSponsoring";
+import { isTronPaymentAddress, isUint256 } from "../../shared/validation";
 import { waitAndReturnSettleResponse } from "../../shared/settleReceipt";
 
 interface UptoVerificationOptions {
@@ -92,6 +93,15 @@ export async function verifyUptoPermit2(
     return { isValid: false, invalidReason: errors.MISSING_PERMIT2_ADDRESS, payer };
   }
 
+  if (!isTronPaymentAddress(requirements.asset)) {
+    return { isValid: false, invalidReason: errors.PERMIT2_TOKEN_MISMATCH, payer };
+  }
+  if (!isTronPaymentAddress(requirements.payTo)) {
+    return { isValid: false, invalidReason: errors.PERMIT2_RECIPIENT_MISMATCH, payer };
+  }
+  if (!isUint256(requirements.amount)) {
+    return { isValid: false, invalidReason: errors.PERMIT2_AMOUNT_MISMATCH, payer };
+  }
   const normalizedProxy = normalizeAddressForSigning(proxyAddress);
   const tokenAddress = normalizeAddressForSigning(requirements.asset);
 
@@ -279,6 +289,15 @@ export async function settleUptoPermit2(
     );
   }
 
+  if (!isUint256(requirements.amount)) {
+    return {
+      success: false,
+      network: payload.accepted.network,
+      transaction: "",
+      errorReason: errors.PERMIT2_AMOUNT_MISMATCH,
+      payer,
+    };
+  }
   const settlementAmount = BigInt(requirements.amount);
   const maxAmount = BigInt(permit2Payload.permit2Authorization.permitted.amount);
 

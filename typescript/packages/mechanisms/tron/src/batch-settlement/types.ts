@@ -5,6 +5,8 @@
  * pass TRON Base58Check or EVM hex. Hashing/signing normalizes to hex internally.
  */
 
+import { isRecord, isTronPaymentAddress, isUint256 } from "../shared/validation";
+
 /**
  * Signer that produces TIP-712 signatures for the receiver-authorizer
  * (`claimWithSignature` / `refundWithSignature`) and exposes its address.
@@ -180,27 +182,115 @@ export type BatchSettlementFacilitatorSettlePayload =
   | BatchSettlementEnrichedRefundPayload;
 
 /**
- * Returns true when the value is a non-null object (a usable record).
+ * Check a bytes32 channel ID or salt.
  *
- * @param payload - Value of unknown shape.
- * @returns True if `payload` is an object that can be indexed by string keys.
+ * @param value - Untrusted hex value.
+ * @returns Whether the value encodes 32 bytes.
  */
-function isObject(payload: unknown): payload is Record<string, unknown> {
-  return typeof payload === "object" && payload !== null;
+function isBytes32(value: unknown): boolean {
+  return typeof value === "string" && /^0x[0-9a-fA-F]{64}$/.test(value);
 }
 
 /**
- * Type guard for internal voucher field shape (channel, amount, signature).
+ * Check a batch-settlement amount before encoding it as a uint128.
  *
- * @param payload - Unknown value to check.
- * @returns True if `payload` has `channelId`, `maxClaimableAmount`, and `signature`.
+ * @param value - Untrusted amount.
+ * @returns Whether it fits the contract amount type.
  */
-function isVoucherFields(payload: unknown): payload is BatchSettlementVoucherFields {
+function isUint128(value: unknown): boolean {
+  return isUint256(value) && BigInt(value) < 1n << 128n;
+}
+
+/**
+ * Check the fields consumed by channel hashing and settlement.
+ *
+ * @param config - Untrusted channel configuration.
+ * @returns Whether the fields can be safely encoded.
+ */
+function isChannelConfig(config: unknown): boolean {
   return (
-    isObject(payload) &&
-    "channelId" in payload &&
-    "maxClaimableAmount" in payload &&
-    "signature" in payload
+    isRecord(config) &&
+    isTronPaymentAddress(config.payer) &&
+    isTronPaymentAddress(config.payerAuthorizer) &&
+    isTronPaymentAddress(config.receiver) &&
+    isTronPaymentAddress(config.receiverAuthorizer) &&
+    isTronPaymentAddress(config.token) &&
+    typeof config.withdrawDelay === "number" &&
+    Number.isSafeInteger(config.withdrawDelay) &&
+    config.withdrawDelay >= 0 &&
+    config.withdrawDelay < 2 ** 40 &&
+    isBytes32(config.salt)
+  );
+}
+
+/**
+ * Check the signed voucher fields before hashing or verifying them.
+ *
+ * @param voucher - Untrusted voucher fields.
+ * @returns Whether it has the required field types.
+ */
+function isVoucherFields(voucher: unknown): boolean {
+  return (
+    isRecord(voucher) &&
+    isBytes32(voucher.channelId) &&
+    isUint128(voucher.maxClaimableAmount) &&
+    typeof voucher.signature === "string"
+  );
+}
+
+/**
+ * Check a supplied deposit authorization before using its contract arguments.
+ *
+ * @param authorization - Untrusted authorization containing either supported method.
+ * @returns Whether all supplied authorization fields have the required types.
+ */
+function isDepositAuthorization(authorization: unknown): boolean {
+  if (!isRecord(authorization)) return false;
+
+  const { erc3009Authorization, permit2Authorization } = authorization;
+  if (
+    erc3009Authorization !== undefined &&
+    !(
+      isRecord(erc3009Authorization) &&
+      isUint256(erc3009Authorization.validAfter) &&
+      isUint256(erc3009Authorization.validBefore) &&
+      isBytes32(erc3009Authorization.salt) &&
+      typeof erc3009Authorization.signature === "string"
+    )
+  ) {
+    return false;
+  }
+
+  return (
+    permit2Authorization === undefined ||
+    (isRecord(permit2Authorization) &&
+      isTronPaymentAddress(permit2Authorization.from) &&
+      isTronPaymentAddress(permit2Authorization.spender) &&
+      isUint256(permit2Authorization.nonce) &&
+      isUint256(permit2Authorization.deadline) &&
+      typeof permit2Authorization.signature === "string" &&
+      isRecord(permit2Authorization.permitted) &&
+      isTronPaymentAddress(permit2Authorization.permitted.token) &&
+      isUint256(permit2Authorization.permitted.amount) &&
+      isRecord(permit2Authorization.witness) &&
+      isBytes32(permit2Authorization.witness.channelId))
+  );
+}
+
+/**
+ * Check the channel, voucher and cumulative amount of a claim.
+ *
+ * @param claim - Untrusted claim entry.
+ * @returns Whether it has the fields needed to settle the claim.
+ */
+function isVoucherClaim(claim: unknown): boolean {
+  return (
+    isRecord(claim) &&
+    isRecord(claim.voucher) &&
+    isChannelConfig(claim.voucher.channel) &&
+    isUint128(claim.voucher.maxClaimableAmount) &&
+    typeof claim.signature === "string" &&
+    isUint128(claim.totalClaimed)
   );
 }
 
@@ -214,13 +304,13 @@ export function isBatchSettlementDepositPayload(
   payload: unknown,
 ): payload is BatchSettlementDepositPayload {
   return (
-    isObject(payload) &&
+    isRecord(payload) &&
     payload.type === "deposit" &&
-    "channelConfig" in payload &&
+    isChannelConfig(payload.channelConfig) &&
     isVoucherFields(payload.voucher) &&
-    isObject(payload.deposit) &&
-    typeof payload.deposit.amount === "string" &&
-    isObject(payload.deposit.authorization)
+    isRecord(payload.deposit) &&
+    isUint128(payload.deposit.amount) &&
+    isDepositAuthorization(payload.deposit.authorization)
   );
 }
 
@@ -234,9 +324,9 @@ export function isBatchSettlementVoucherPayload(
   payload: unknown,
 ): payload is BatchSettlementVoucherPayload {
   return (
-    isObject(payload) &&
+    isRecord(payload) &&
     payload.type === "voucher" &&
-    "channelConfig" in payload &&
+    isChannelConfig(payload.channelConfig) &&
     isVoucherFields(payload.voucher)
   );
 }
@@ -251,10 +341,11 @@ export function isBatchSettlementRefundPayload(
   payload: unknown,
 ): payload is BatchSettlementRefundPayload {
   return (
-    isObject(payload) &&
+    isRecord(payload) &&
     payload.type === "refund" &&
-    "channelConfig" in payload &&
-    isVoucherFields(payload.voucher)
+    isChannelConfig(payload.channelConfig) &&
+    isVoucherFields(payload.voucher) &&
+    (payload.amount === undefined || isUint128(payload.amount))
   );
 }
 
@@ -267,7 +358,14 @@ export function isBatchSettlementRefundPayload(
 export function isBatchSettlementClaimPayload(
   payload: unknown,
 ): payload is BatchSettlementClaimPayload {
-  return isObject(payload) && payload.type === "claim" && "claims" in payload;
+  return (
+    isRecord(payload) &&
+    payload.type === "claim" &&
+    Array.isArray(payload.claims) &&
+    payload.claims.every(isVoucherClaim) &&
+    (payload.claimAuthorizerSignature === undefined ||
+      typeof payload.claimAuthorizerSignature === "string")
+  );
 }
 
 /**
@@ -280,7 +378,10 @@ export function isBatchSettlementSettlePayload(
   payload: unknown,
 ): payload is BatchSettlementSettlePayload {
   return (
-    isObject(payload) && payload.type === "settle" && "receiver" in payload && "token" in payload
+    isRecord(payload) &&
+    payload.type === "settle" &&
+    isTronPaymentAddress(payload.receiver) &&
+    isTronPaymentAddress(payload.token)
   );
 }
 
@@ -293,10 +394,17 @@ export function isBatchSettlementSettlePayload(
 export function isBatchSettlementEnrichedRefundPayload(
   payload: unknown,
 ): payload is BatchSettlementEnrichedRefundPayload {
+  if (!isRecord(payload)) return false;
+
+  const { amount, refundNonce, claims, refundAuthorizerSignature, claimAuthorizerSignature } =
+    payload;
   return (
     isBatchSettlementRefundPayload(payload) &&
-    "amount" in payload &&
-    "refundNonce" in payload &&
-    "claims" in payload
+    isUint128(amount) &&
+    isUint256(refundNonce) &&
+    Array.isArray(claims) &&
+    claims.every(isVoucherClaim) &&
+    (refundAuthorizerSignature === undefined || typeof refundAuthorizerSignature === "string") &&
+    (claimAuthorizerSignature === undefined || typeof claimAuthorizerSignature === "string")
   );
 }

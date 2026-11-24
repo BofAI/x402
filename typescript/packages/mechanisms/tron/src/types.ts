@@ -1,3 +1,4 @@
+import { isRecord, isTronPaymentAddress, isUint256 } from "./shared/validation";
 /**
  * Asset transfer methods for the exact TRON scheme.
  * - eip3009: Uses TransferWithAuthorization via TIP-712 (TRON equivalent of EIP-3009)
@@ -107,34 +108,25 @@ export type UptoPermit2Payload = {
  * @param payload - The payload to check.
  * @returns True if the payload is an UptoPermit2Payload.
  */
-export function isUptoPermit2Payload(
-  payload: Record<string, unknown>,
-): payload is UptoPermit2Payload {
-  if (typeof payload.signature !== "string") return false;
-  if (!("permit2Authorization" in payload)) return false;
+export function isUptoPermit2Payload(payload: unknown): payload is UptoPermit2Payload {
+  if (!isRecord(payload) || typeof payload.signature !== "string" || !payload.signature) {
+    return false;
+  }
 
   const auth = payload.permit2Authorization;
-  if (typeof auth !== "object" || auth === null) return false;
-
-  const a = auth as Record<string, unknown>;
-  if (typeof a.from !== "string") return false;
-  if (typeof a.spender !== "string") return false;
-  if (typeof a.nonce !== "string") return false;
-  if (typeof a.deadline !== "string") return false;
-
-  const permitted = a.permitted;
-  if (typeof permitted !== "object" || permitted === null) return false;
-  const p = permitted as Record<string, unknown>;
-  if (typeof p.token !== "string") return false;
-  if (typeof p.amount !== "string") return false;
-
-  const witness = a.witness;
-  if (typeof witness !== "object" || witness === null) return false;
-  const w = witness as Record<string, unknown>;
   return (
-    typeof w.facilitator === "string" &&
-    typeof w.to === "string" &&
-    typeof w.validAfter === "string"
+    isRecord(auth) &&
+    isTronPaymentAddress(auth.from) &&
+    isTronPaymentAddress(auth.spender) &&
+    isUint256(auth.nonce) &&
+    isUint256(auth.deadline) &&
+    isRecord(auth.permitted) &&
+    isTronPaymentAddress(auth.permitted.token) &&
+    isUint256(auth.permitted.amount) &&
+    isRecord(auth.witness) &&
+    isTronPaymentAddress(auth.witness.to) &&
+    isTronPaymentAddress(auth.witness.facilitator) &&
+    isUint256(auth.witness.validAfter)
   );
 }
 

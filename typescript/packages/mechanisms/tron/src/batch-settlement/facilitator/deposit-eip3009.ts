@@ -77,29 +77,34 @@ export async function verifyEip3009DepositAuthorization(
   const erc3009Nonce = buildErc3009DepositNonce(voucher.channelId, auth.salt);
   const collector = getCollectorAddressForNetwork(network);
 
-  const ok = await signer.verifyTypedData({
-    address: normalizeAddressForSigning(payer),
-    domain: {
-      name: extra.name,
-      version: extra.version,
-      chainId: getTronChainId(network),
-      verifyingContract: normalizeAddressForSigning(requirements.asset),
-    },
-    types: receiveAuthorizationTypes as unknown as Record<
-      string,
-      Array<{ name: string; type: string }>
-    >,
-    primaryType: "ReceiveWithAuthorization",
-    message: {
-      from: normalizeAddressForSigning(payer),
-      to: normalizeAddressForSigning(collector),
-      value: BigInt(deposit.amount),
-      validAfter,
-      validBefore,
-      nonce: erc3009Nonce,
-    },
-    signature: auth.signature,
-  });
+  let ok: boolean;
+  try {
+    ok = await signer.verifyTypedData({
+      address: normalizeAddressForSigning(payer),
+      domain: {
+        name: extra.name,
+        version: extra.version,
+        chainId: getTronChainId(network),
+        verifyingContract: normalizeAddressForSigning(requirements.asset),
+      },
+      types: receiveAuthorizationTypes as unknown as Record<
+        string,
+        Array<{ name: string; type: string }>
+      >,
+      primaryType: "ReceiveWithAuthorization",
+      message: {
+        from: normalizeAddressForSigning(payer),
+        to: normalizeAddressForSigning(collector),
+        value: BigInt(deposit.amount),
+        validAfter,
+        validBefore,
+        nonce: erc3009Nonce,
+      },
+      signature: auth.signature,
+    });
+  } catch {
+    ok = false;
+  }
 
   if (!ok) {
     return { isValid: false, invalidReason: Errors.ErrInvalidReceiveAuthorizationSignature, payer };
