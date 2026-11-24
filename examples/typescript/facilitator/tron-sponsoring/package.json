@@ -11,7 +11,7 @@
     "@bankofai/agent-wallet": "^3.0.0",
     "@bankofai/x402-tron": "workspace:*",
     "@bankofai/x402-tron-extensions": "workspace:*",
-    "@x402/core": "2.29.0",
+    "@x402/core": "2.32.0",
     "express": "^4.22.3",
     "tronweb": "6.5.2"
   },

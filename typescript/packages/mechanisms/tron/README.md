@@ -4,9 +4,8 @@ TRON payment schemes for official `@x402/core`: `exact`, `upto`, `batch-settleme
 
 ## Installation
 
-This branch requires official `@x402/core@2.29.0` for the Zod security fix.
-The peer update is unreleased; build this package in the repository workspace
-until the next BOA release. Published TRON 2.1.0 still requires Core 2.28.0.
+This development workspace uses official `@x402/core@2.32.0`.
+For the published TRON SDK 2.1.4, use official Core 2.29.0.
 
 Use official HTTP/MCP integration packages with the same Core version.
 

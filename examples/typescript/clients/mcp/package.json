@@ -12,8 +12,8 @@
     "@bankofai/agent-wallet": "^3.0.0",
     "@modelcontextprotocol/sdk": "^1.32.0",
     "tronweb": "6.5.2",
-    "@x402/core": "2.29.0",
-    "@x402/mcp": "2.29.0"
+    "@x402/core": "2.32.0",
+    "@x402/mcp": "2.32.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

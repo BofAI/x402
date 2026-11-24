@@ -41,8 +41,8 @@ importers:
         specifier: ^8.29.1
         version: 8.61.1(eslint@9.39.4)(typescript@5.9.3)
       '@x402/core':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       eslint:
         specifier: ^9.24.0
         version: 9.39.4
@@ -99,8 +99,8 @@ importers:
         specifier: ^8.29.1
         version: 8.61.1(eslint@9.39.4)(typescript@5.9.3)
       '@x402/core':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       eslint:
         specifier: ^9.24.0
         version: 9.39.4
@@ -144,11 +144,11 @@ importers:
         specifier: workspace:*
         version: link:../../../../typescript/packages/mechanisms/tron
       '@x402/core':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       '@x402/fetch':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       tronweb:
         specifier: 6.5.2
         version: 6.5.2
@@ -172,11 +172,11 @@ importers:
         specifier: workspace:*
         version: link:../../../../typescript/packages/mechanisms/tron
       '@x402/core':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       '@x402/fetch':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       tronweb:
         specifier: 6.5.2
         version: 6.5.2
@@ -200,11 +200,11 @@ importers:
         specifier: workspace:*
         version: link:../../../../typescript/packages/mechanisms/tron
       '@x402/core':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       '@x402/fetch':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       tronweb:
         specifier: 6.5.2
         version: 6.5.2
@@ -231,11 +231,11 @@ importers:
         specifier: ^1.32.0
         version: 1.32.2(zod@4.6.7)
       '@x402/core':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       '@x402/mcp':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       tronweb:
         specifier: 6.5.2
         version: 6.5.2
@@ -262,11 +262,11 @@ importers:
         specifier: workspace:*
         version: link:../../../../typescript/packages/extensions
       '@x402/core':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       '@x402/fetch':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       tronweb:
         specifier: 6.5.2
         version: 6.5.2
@@ -290,11 +290,11 @@ importers:
         specifier: workspace:*
         version: link:../../../../typescript/packages/mechanisms/tron
       '@x402/core':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       '@x402/fetch':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       tronweb:
         specifier: 6.5.2
         version: 6.5.2
@@ -318,8 +318,8 @@ importers:
         specifier: workspace:*
         version: link:../../../../typescript/packages/mechanisms/tron
       '@x402/core':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       express:
         specifier: ^4.22.3
         version: 4.22.3
@@ -349,8 +349,8 @@ importers:
         specifier: workspace:*
         version: link:../../../../typescript/packages/mechanisms/tron
       '@x402/core':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       express:
         specifier: ^4.22.3
         version: 4.22.3
@@ -380,8 +380,8 @@ importers:
         specifier: workspace:*
         version: link:../../../../typescript/packages/mechanisms/tron
       '@x402/core':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       express:
         specifier: ^4.22.3
         version: 4.22.3
@@ -414,8 +414,8 @@ importers:
         specifier: workspace:*
         version: link:../../../../typescript/packages/extensions
       '@x402/core':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       express:
         specifier: ^4.22.3
         version: 4.22.3
@@ -445,8 +445,8 @@ importers:
         specifier: workspace:*
         version: link:../../../../typescript/packages/mechanisms/tron
       '@x402/core':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       express:
         specifier: ^4.22.3
         version: 4.22.3
@@ -489,11 +489,11 @@ importers:
         specifier: workspace:*
         version: link:../../../../typescript/packages/mechanisms/tron
       '@x402/core':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       '@x402/express':
-        specifier: 2.29.0
-        version: 2.29.0(ethers@6.17.0)(express@4.22.3)(typescript@5.9.3)
+        specifier: 2.32.0
+        version: 2.32.0(ethers@6.17.0)(express@4.22.3)(typescript@5.9.3)
       express:
         specifier: ^4.22.3
         version: 4.22.3
@@ -517,11 +517,11 @@ importers:
         specifier: workspace:*
         version: link:../../../../typescript/packages/mechanisms/tron
       '@x402/core':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       '@x402/express':
-        specifier: 2.29.0
-        version: 2.29.0(ethers@6.17.0)(express@4.22.3)(typescript@5.9.3)
+        specifier: 2.32.0
+        version: 2.32.0(ethers@6.17.0)(express@4.22.3)(typescript@5.9.3)
       express:
         specifier: ^4.22.3
         version: 4.22.3
@@ -545,11 +545,11 @@ importers:
         specifier: workspace:*
         version: link:../../../../typescript/packages/mechanisms/tron
       '@x402/core':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       '@x402/express':
-        specifier: 2.29.0
-        version: 2.29.0(ethers@6.17.0)(express@4.22.3)(typescript@5.9.3)
+        specifier: 2.32.0
+        version: 2.32.0(ethers@6.17.0)(express@4.22.3)(typescript@5.9.3)
       express:
         specifier: ^4.22.3
         version: 4.22.3
@@ -576,11 +576,11 @@ importers:
         specifier: ^1.32.0
         version: 1.32.2(zod@4.6.7)
       '@x402/core':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       '@x402/mcp':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       express:
         specifier: ^4.22.3
         version: 4.22.3
@@ -610,11 +610,11 @@ importers:
         specifier: workspace:*
         version: link:../../../../typescript/packages/extensions
       '@x402/core':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       '@x402/express':
-        specifier: 2.29.0
-        version: 2.29.0(ethers@6.17.0)(express@4.22.3)(typescript@5.9.3)
+        specifier: 2.32.0
+        version: 2.32.0(ethers@6.17.0)(express@4.22.3)(typescript@5.9.3)
       express:
         specifier: ^4.22.3
         version: 4.22.3
@@ -638,11 +638,11 @@ importers:
         specifier: workspace:*
         version: link:../../../../typescript/packages/mechanisms/tron
       '@x402/core':
-        specifier: 2.29.0
-        version: 2.29.0
+        specifier: 2.32.0
+        version: 2.32.0
       '@x402/express':
-        specifier: 2.29.0
-        version: 2.29.0(ethers@6.17.0)(express@4.22.3)(typescript@5.9.3)
+        specifier: 2.32.0
+        version: 2.32.0(ethers@6.17.0)(express@4.22.3)(typescript@5.9.3)
       express:
         specifier: ^4.22.3
         version: 4.22.3
@@ -1856,26 +1856,26 @@ packages:
   '@vitest/utils@3.2.6':
     resolution: {integrity: sha512-lI23nIs4bnT3T8NIoh+vFaz5s2/DdP0Jgt2jxwgWljvwn82cLJtyi/If+fjFyoLMGIOz0U/fKvWE0d4jsNQEfg==}
 
-  '@x402/core@2.29.0':
-    resolution: {integrity: sha512-fkS0JqVwHgczteDlwItLRipOlIzm28U9HWLvYnYpnNbfmepoBT/4ux7LjrR0xGD51JHoC8/r+Qo7uCfoAQYeuw==}
+  '@x402/core@2.32.0':
+    resolution: {integrity: sha512-HyS8vbaR3XP79EIATKGMt8eL0Ql46yrfVDrtv1Inmlx4qJl4NU61cJmTh/pSGOCJIeb7ETNhWR/GQ4XsWZcQIA==}
 
-  '@x402/express@2.29.0':
-    resolution: {integrity: sha512-0Ka1740ye02ZjSN3VeiEt3Gt7iINvTCl9nlP6ttGKSsySLMeMuDXJOzSOuzUnkJxy4LBxpG4Z+w3F46mhn6AUA==}
+  '@x402/express@2.32.0':
+    resolution: {integrity: sha512-aPZDcDsSIAy6dz5YmcuosoBRy4t2VUCwzeZG/S5bxE7xZfxouyRbm3M+mlUNHymAjy4Z/lNqK6jummRe770AGw==}
     peerDependencies:
-      '@x402/paywall': ^2.29.0
+      '@x402/paywall': ^2.32.0
       express: ^4.22.3 || ^5.3.0
     peerDependenciesMeta:
       '@x402/paywall':
         optional: true
 
-  '@x402/extensions@2.29.0':
-    resolution: {integrity: sha512-FCpjZ6QR6ZtHTRZBV7VHMt7tc66LnTrpKDERiL3atXlLu4PlmgiulHt9PWE+Ktm5iUbXr3dAYZu2e7XrVd/XgA==}
+  '@x402/extensions@2.32.0':
+    resolution: {integrity: sha512-bvhqNqCjmULkjCpjM1fJvDfoL8tzp1IFcMTXN7QJTwqM22ucNe8B4UefKeQOCpjJ3tuIEbp8k9A0fR0CiYtjrQ==}
 
-  '@x402/fetch@2.29.0':
-    resolution: {integrity: sha512-ym/+6Cg7uUqScrE/pCV0sfmKecX46KTk5B/VKyJo579Xn1Z6dq2KiLd04rTvvO2xldLKKluU/3SqpDIgkp6T9Q==}
+  '@x402/fetch@2.32.0':
+    resolution: {integrity: sha512-MxDqmBxQz6I5NWUVu90cQ1XRZayAi8oDpGllDwrwihxfAHloE7eqXkNuFC80IRE3BbMwj8h65aBEaOaiq3EBUQ==}
 
-  '@x402/mcp@2.29.0':
-    resolution: {integrity: sha512-ueAoUILuWzugwQIvAgcTMuCf026S9QPBGUNYCNC9Tf3w4BfPn4UM2NWJT56kvM+b4M811LKpANYpJrVPBIRMeA==}
+  '@x402/mcp@2.32.0':
+    resolution: {integrity: sha512-nBXgtE0h9jD3RrRaMkpXrCl7GIF+9j61Uf6la0l6skX/UPNFVCfpV8omBYNAdew8+7WOQ6Ae5M9YsxsgZwWWmQ==}
 
   abitype@1.2.3:
     resolution: {integrity: sha512-Ofer5QUnuUdTFsBRwARMoWKOH1ND5ehwYhJ3OJ/BQO+StkwQjHw0XyVh4vDttzHB7QOFhPHa/o413PJ82gU/Tg==}
@@ -4620,14 +4620,14 @@ snapshots:
       loupe: 3.2.1
       tinyrainbow: 2.0.0
 
-  '@x402/core@2.29.0':
+  '@x402/core@2.32.0':
     dependencies:
       zod: 4.6.7
 
-  '@x402/express@2.29.0(ethers@6.17.0)(express@4.22.3)(typescript@5.9.3)':
+  '@x402/express@2.32.0(ethers@6.17.0)(express@4.22.3)(typescript@5.9.3)':
     dependencies:
-      '@x402/core': 2.29.0
-      '@x402/extensions': 2.29.0(ethers@6.17.0)(typescript@5.9.3)
+      '@x402/core': 2.32.0
+      '@x402/extensions': 2.32.0(ethers@6.17.0)(typescript@5.9.3)
       express: 4.22.3
     transitivePeerDependencies:
       - bufferutil
@@ -4635,12 +4635,12 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@x402/extensions@2.29.0(ethers@6.17.0)(typescript@5.9.3)':
+  '@x402/extensions@2.32.0(ethers@6.17.0)(typescript@5.9.3)':
     dependencies:
       '@noble/curves': 1.9.7
       '@scure/base': 1.2.6
       '@signinwithethereum/siwe': 4.2.0(ethers@6.17.0)(viem@2.52.2(typescript@5.9.3)(zod@4.6.7))
-      '@x402/core': 2.29.0
+      '@x402/core': 2.32.0
       ajv: 8.20.0
       jose: 5.10.0
       tweetnacl: 1.0.3
@@ -4652,14 +4652,14 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@x402/fetch@2.29.0':
+  '@x402/fetch@2.32.0':
     dependencies:
-      '@x402/core': 2.29.0
+      '@x402/core': 2.32.0
 
-  '@x402/mcp@2.29.0':
+  '@x402/mcp@2.32.0':
     dependencies:
       '@modelcontextprotocol/sdk': 1.32.2(zod@4.6.7)
-      '@x402/core': 2.29.0
+      '@x402/core': 2.32.0
       zod: 4.6.7
     transitivePeerDependencies:
       - '@cfworker/json-schema'
