@@ -219,7 +219,7 @@ function setup(
   const signer = {
     getAddresses: () => [receiver],
     verifyTypedData: vi.fn(async () => true),
-    readContract: vi.fn(async () => 1000n),
+    readContract: vi.fn(async (): Promise<unknown> => 1000n),
     writeContract: vi.fn(async () => "11".repeat(32)),
     waitForTransactionReceipt: vi.fn(async () => ({ status: "success" as const })),
   };
@@ -276,6 +276,75 @@ describe("malformed TRON facilitator requests", () => {
 });
 
 describe("TRON signature field errors", () => {
+  const voucherSignatureError = "invalid_batch_settlement_tron_voucher_signature";
+
+  it.each([
+    ["wrong length", "0x1234"],
+    ["non-hex bytes", `0x${"gg".repeat(64)}1b`],
+    ["high s", `0x${"01".repeat(32)}${"ff".repeat(32)}1b`],
+    ["raw recovery parity", `0x${"01".repeat(64)}00`],
+  ])("rejects a voucher with %s before checking its signer", async (_label, signature) => {
+    const { facilitator, payload, requirements, signer } = setup("batch-settlement", {
+      type: "voucher",
+      channelConfig,
+      voucher: { ...voucher, signature },
+    });
+    signer.readContract.mockResolvedValueOnce([1000n, 0n]);
+    await expect(facilitator.verify(payload, requirements)).resolves.toMatchObject({
+      isValid: false,
+      invalidReason: voucherSignatureError,
+    });
+    expect(signer.verifyTypedData).not.toHaveBeenCalled();
+    expect(signer.readContract).not.toHaveBeenCalled();
+  });
+
+  it.each(["claim", "refund"] as const)(
+    "rejects an invalid voucher signature in %s before broadcasting",
+    async type => {
+      const { facilitator, payload, requirements, signer } = setup("batch-settlement", {
+        type,
+        claims: [claim],
+        claimAuthorizerSignature: signature,
+        ...(type === "refund"
+          ? {
+              channelConfig,
+              voucher,
+              amount: "1",
+              refundNonce: "0",
+              refundAuthorizerSignature: signature,
+            }
+          : {}),
+      });
+      signer.readContract.mockResolvedValueOnce([1000n, 0n]);
+      await expect(facilitator.settle(payload, requirements)).resolves.toMatchObject({
+        success: false,
+        errorReason: voucherSignatureError,
+        transaction: "",
+      });
+      expect(signer.writeContract).not.toHaveBeenCalled();
+    },
+  );
+
+  it("lets the contract check the signature when a claim has no explicit payer authorizer", async () => {
+    const { facilitator, payload, requirements, signer } = setup("batch-settlement", {
+      type: "claim",
+      claims: [
+        {
+          ...claim,
+          voucher: {
+            ...claim.voucher,
+            channel: { ...channelConfig, payerAuthorizer: `0x${"00".repeat(20)}` },
+          },
+        },
+      ],
+      claimAuthorizerSignature: signature,
+    });
+    await expect(facilitator.settle(payload, requirements)).resolves.toMatchObject({
+      success: true,
+    });
+    expect(signer.writeContract).toHaveBeenCalledOnce();
+  });
+
   it("identifies the missing GasFree field in both responses", async () => {
     const { facilitator, payload, requirements } = setup("exact_gasfree", {
       signature,

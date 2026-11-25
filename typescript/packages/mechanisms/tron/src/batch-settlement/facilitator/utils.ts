@@ -12,10 +12,12 @@ import {
   MAX_WITHDRAW_DELAY,
   voucherTypes,
   getBatchSettlementAddress,
+  ZERO_ADDRESS,
 } from "../../shared/batch-settlement/constants";
 import {
   computeChannelId,
   getBatchSettlementTip712Domain,
+  hasInvalidEoaVoucherSignature,
 } from "../../shared/batch-settlement/utils";
 import type {
   BatchSettlementPaymentRequirementsExtra,
@@ -23,8 +25,6 @@ import type {
   ChannelState,
 } from "../types";
 import * as Errors from "../errors";
-
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 const abi = batchSettlementABI as unknown as readonly Record<string, unknown>[];
 
@@ -149,6 +149,8 @@ export async function verifyBatchSettlementVoucherTypedData(
   },
   network: string,
 ): Promise<boolean> {
+  if (hasInvalidEoaVoucherSignature(params.payerAuthorizer, params.signature)) return false;
+
   const domain = getBatchSettlementTip712Domain(network);
   const message = {
     channelId: params.channelId,

@@ -109,7 +109,7 @@ async function channelManager(
     channelConfig: config,
     chargedCumulativeAmount: "100",
     signedMaxClaimable: "200",
-    signature: `0x${"55".repeat(65)}`,
+    signature: `0x${"55".repeat(64)}1b`,
     balance: "200",
     totalClaimed: "0",
     withdrawRequestedAt: 0,

@@ -22,6 +22,7 @@ import { tronNetworksEqual } from "../../network";
 import {
   computeChannelId,
   getBatchSettlementTip712Domain,
+  hasInvalidEoaVoucherSignature,
   recoverTypedDataAddress,
 } from "../../shared/batch-settlement/utils";
 import { validateChannelConfig } from "../facilitator/utils";
@@ -89,6 +90,9 @@ export async function handleBeforeVerify(
   const isZeroChargePayload = isBatchSettlementRefundPayload(raw);
   if (!isPaidPayload && !isZeroChargePayload) {
     return;
+  }
+  if (hasInvalidEoaVoucherSignature(raw.channelConfig.payerAuthorizer, raw.voucher.signature)) {
+    return { abort: true, reason: Errors.ErrInvalidVoucherSignature };
   }
 
   const channelId = raw.voucher.channelId;
@@ -372,10 +376,13 @@ export async function handleVerifiedPaymentCanceled(
   scheme: BatchSettlementTronScheme,
   ctx: VerifiedPaymentCanceledContext,
 ): Promise<void> {
-  if (ctx.reason !== "handler_threw" && ctx.reason !== "handler_failed") {
-    return;
+  if (
+    ctx.reason === "handler_threw" ||
+    ctx.reason === "handler_failed" ||
+    ctx.reason === "settlement_preflight_failed"
+  ) {
+    await scheme.clearPendingRequest(ctx.paymentPayload);
   }
-  await scheme.clearPendingRequest(ctx.paymentPayload);
 }
 
 /**

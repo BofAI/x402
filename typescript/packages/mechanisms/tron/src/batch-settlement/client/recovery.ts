@@ -4,6 +4,7 @@ import { BATCH_SETTLEMENT_SCHEME, voucherTypes } from "../../shared/batch-settle
 import {
   computeChannelId,
   getBatchSettlementTip712Domain,
+  isCanonicalVoucherSignature,
   recoverTypedDataAddress,
 } from "../../shared/batch-settlement/utils";
 import * as Errors from "../errors";
@@ -64,9 +65,11 @@ export async function recoverFromSignature(
   channelState: BatchSettlementChannelStateExtra,
   voucherState: BatchSettlementVoucherStateExtra,
 ): Promise<boolean> {
+  const sig = voucherState.signature as `0x${string}`;
+  if (!isCanonicalVoucherSignature(sig)) return false;
+
   const charged = BigInt(String(channelState.chargedCumulativeAmount));
   const signed = BigInt(String(voucherState.signedMaxClaimable));
-  const sig = voucherState.signature as `0x${string}`;
 
   if (charged > signed) return false;
 

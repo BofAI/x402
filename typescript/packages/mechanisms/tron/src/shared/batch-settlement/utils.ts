@@ -12,8 +12,44 @@ import {
   BATCH_SETTLEMENT_DOMAIN,
   channelConfigTypes,
   getBatchSettlementAddress,
+  ZERO_ADDRESS,
 } from "./constants";
 import type { ChannelConfig } from "../../batch-settlement/types";
+
+const SECP256K1_HALF_ORDER = 0x7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a0n;
+
+/**
+ * Checks the signature encoding used by the contract's ECDSA recovery path.
+ *
+ * @param signature - Voucher signature supplied by a client or included in a stored claim.
+ * @returns Whether it is a 65-byte hex signature with low s and v of 27 or 28.
+ */
+export function isCanonicalVoucherSignature(signature: unknown): boolean {
+  return (
+    typeof signature === "string" &&
+    signature.length === 132 &&
+    /^0x[0-9a-fA-F]{128}1[bBcC]$/.test(signature) &&
+    BigInt(`0x${signature.slice(66, 130)}`) <= SECP256K1_HALF_ORDER
+  );
+}
+
+/**
+ * Checks whether a voucher's signature is unsuitable for its explicit EOA authorizer.
+ * With a zero authorizer the contract delegates signature validation to the payer.
+ *
+ * @param payerAuthorizer - The channel's configured payer authorizer.
+ * @param signature - Voucher signature bytes.
+ * @returns Whether to reject the signature before ECDSA verification or submission.
+ */
+export function hasInvalidEoaVoucherSignature(
+  payerAuthorizer: string,
+  signature: unknown,
+): boolean {
+  return (
+    !isCanonicalVoucherSignature(signature) &&
+    normalizeAddressForSigning(payerAuthorizer) !== ZERO_ADDRESS
+  );
+}
 
 type Eip712Domain = {
   name: string;
