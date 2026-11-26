@@ -215,6 +215,27 @@ describe("batch lifecycle dispatched by official Core", () => {
     });
   });
 
+  it("allows the same channel to retry after an after-verify abort", async () => {
+    const f = await batch();
+    let abort = true;
+    f.server.onAfterVerify(async () => {
+      if (!abort) return;
+      abort = false;
+      return { abort: true, reason: "test_after_verify_abort" };
+    });
+    await expect(f.server.verifyPayment(f.payment, f.requirements)).resolves.toMatchObject({
+      isValid: false,
+      invalidReason: "test_after_verify_abort",
+    });
+    const channel = await f.serverScheme.getStorage().get(f.channelId);
+    expect(channel?.pendingRequest).toBeUndefined();
+    expect(channel?.chargedCumulativeAmount ?? "0").toBe("0");
+    await expect(
+      f.server.verifyPayment(structuredClone(f.payment), f.requirements),
+    ).resolves.toMatchObject({ isValid: true });
+    expect(f.chain.writeContract).not.toHaveBeenCalled();
+  });
+
   it("allows the same channel to retry after a pre-settlement abort", async () => {
     const f = await batch();
     f.server.onBeforeSettle(async () => ({ abort: true, reason: "test_preflight_abort" }));
@@ -253,7 +274,12 @@ describe("batch lifecycle dispatched by official Core", () => {
     expect(f.chain.writeContract).not.toHaveBeenCalled();
   });
 
-  it("ignores a corrective 402 with a malformed voucher signature", async () => {
+  it.each([
+    ["short signature", "100000", "100000", "0x1234"],
+    ["unrecoverable signature", "100000", "100000", `0x${"00".repeat(64)}1b`],
+    ["invalid charged amount", "invalid", "100000", undefined],
+    ["invalid signed amount", "100000", "invalid", undefined],
+  ])("ignores a corrective 402 with %s", async (_label, charged, signed, signature) => {
     const f = await batch();
     const paymentRequired = {
       x402Version: 2,
@@ -264,8 +290,12 @@ describe("batch lifecycle dispatched by official Core", () => {
           ...f.requirements,
           extra: {
             ...f.requirements.extra,
-            channelState: { chargedCumulativeAmount: "100000" },
-            voucherState: { signedMaxClaimable: "100000", signature: "0x1234" },
+            channelState: { chargedCumulativeAmount: charged },
+            voucherState: {
+              signedMaxClaimable: signed,
+              signature:
+                signature ?? (f.payment.payload as BatchSettlementDepositPayload).voucher.signature,
+            },
           },
         },
       ],

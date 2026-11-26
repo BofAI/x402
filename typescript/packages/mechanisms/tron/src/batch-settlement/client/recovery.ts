@@ -1,5 +1,6 @@
 import type { PaymentRequired, PaymentRequirements } from "@x402/core/types";
 import { normalizeAddressForSigning } from "../../utils";
+import { isUint256 } from "../../shared/validation";
 import { BATCH_SETTLEMENT_SCHEME, voucherTypes } from "../../shared/batch-settlement/constants";
 import {
   computeChannelId,
@@ -65,36 +66,45 @@ export async function recoverFromSignature(
   channelState: BatchSettlementChannelStateExtra,
   voucherState: BatchSettlementVoucherStateExtra,
 ): Promise<boolean> {
-  const sig = voucherState.signature as `0x${string}`;
-  if (!isCanonicalVoucherSignature(sig)) return false;
+  const sig = voucherState.signature;
+  if (!sig || !isCanonicalVoucherSignature(sig)) return false;
 
-  const charged = BigInt(String(channelState.chargedCumulativeAmount));
-  const signed = BigInt(String(voucherState.signedMaxClaimable));
+  const { chargedCumulativeAmount } = channelState;
+  const { signedMaxClaimable } = voucherState;
+  if (!isUint256(chargedCumulativeAmount) || !isUint256(signedMaxClaimable)) return false;
+
+  const charged = BigInt(chargedCumulativeAmount);
+  const signed = BigInt(signedMaxClaimable);
 
   if (charged > signed) return false;
 
   const config = buildChannelConfig(deps, accept);
   const channelId = computeChannelId(config, accept.network);
 
-  const [chBalance, chTotalClaimed] = await readChannelBalanceAndTotalClaimed(
-    deps.signer,
-    channelId,
-    accept.network,
-  );
-
-  if (charged < chTotalClaimed) return false;
-
-  const recovered = recoverTypedDataAddress(
-    getBatchSettlementTip712Domain(accept.network),
-    voucherTypes,
-    { channelId, maxClaimableAmount: signed },
-    sig,
-  );
+  const domain = getBatchSettlementTip712Domain(accept.network);
+  let recovered: string;
+  try {
+    recovered = recoverTypedDataAddress(
+      domain,
+      voucherTypes,
+      { channelId, maxClaimableAmount: signed },
+      sig,
+    );
+  } catch {
+    return false;
+  }
 
   const expectedSigner = normalizeAddressForSigning(
     deps.payerAuthorizer ?? deps.voucherSigner?.address ?? deps.signer.address,
   );
   if (recovered.toLowerCase() !== expectedSigner.toLowerCase()) return false;
+
+  const [chBalance, chTotalClaimed] = await readChannelBalanceAndTotalClaimed(
+    deps.signer,
+    channelId,
+    accept.network,
+  );
+  if (charged < chTotalClaimed) return false;
 
   const ctx: BatchSettlementClientContext = {
     chargedCumulativeAmount: charged.toString(),

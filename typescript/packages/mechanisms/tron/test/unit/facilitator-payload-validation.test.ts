@@ -275,6 +275,41 @@ describe("malformed TRON facilitator requests", () => {
   });
 });
 
+describe("GasFree relayer integer boundaries", () => {
+  it.each(["deadline", "version", "nonce"] as const)(
+    "accepts a safe %s and rejects the first integer that is not safe",
+    async field => {
+      const makeRequest = (value: string) =>
+        setup("exact_gasfree", {
+          signature,
+          gasfreeAddress: payer,
+          gasfree: { ...gasfree, [field]: value },
+        });
+      const valid = makeRequest(String(Number.MAX_SAFE_INTEGER));
+      await expect(
+        valid.facilitator.verify(valid.payload, valid.requirements),
+      ).resolves.toMatchObject({
+        isValid: true,
+      });
+
+      const invalid = makeRequest(String(BigInt(Number.MAX_SAFE_INTEGER) + 1n));
+      await expect(
+        invalid.facilitator.verify(invalid.payload, invalid.requirements),
+      ).resolves.toMatchObject({
+        isValid: false,
+        invalidReason: gasfreeReason,
+        invalidMessage: expect.stringContaining(`gasfree.${field}`),
+      });
+      await expect(
+        invalid.facilitator.settle(invalid.payload, invalid.requirements),
+      ).resolves.toMatchObject({ success: false, errorReason: gasfreeReason });
+      expect(invalid.signer.verifyTypedData).not.toHaveBeenCalled();
+      expect(invalid.api.getProviders).not.toHaveBeenCalled();
+      expect(invalid.api.submit).not.toHaveBeenCalled();
+    },
+  );
+});
+
 describe("TRON signature field errors", () => {
   const voucherSignatureError = "invalid_batch_settlement_tron_voucher_signature";
 

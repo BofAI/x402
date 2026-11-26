@@ -45,7 +45,12 @@ function validateGasFreePayload(
   );
   const invalidField =
     invalidAddress ??
-    ["value", "maxFee", "deadline", "version", "nonce"].find(field => !isUint256(permit[field]));
+    ["value", "maxFee"].find(field => !isUint256(permit[field])) ??
+    // The relayer HTTP API uses JSON numbers for these signed permit fields.
+    ["deadline", "version", "nonce"].find(field => {
+      const value = permit[field];
+      return !isUint256(value) || !Number.isSafeInteger(Number(value));
+    });
   if (invalidField) return { message: `Missing or invalid GasFree field gasfree.${invalidField}` };
 
   return { data: payload as ExactGasFreePayload };

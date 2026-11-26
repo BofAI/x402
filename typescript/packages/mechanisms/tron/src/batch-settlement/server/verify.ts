@@ -367,7 +367,7 @@ export async function handleVerifyFailure(
 }
 
 /**
- * Cleanup hook: clears this request's reservation when handler work is canceled.
+ * Cleanup hook: clears this request's reservation when verified payment is canceled.
  *
  * @param scheme - Owning `BatchSettlementTronScheme` instance.
  * @param ctx - Verified-payment cancellation context.
@@ -377,6 +377,7 @@ export async function handleVerifiedPaymentCanceled(
   ctx: VerifiedPaymentCanceledContext,
 ): Promise<void> {
   if (
+    ctx.reason === "after_verify_aborted" ||
     ctx.reason === "handler_threw" ||
     ctx.reason === "handler_failed" ||
     ctx.reason === "settlement_preflight_failed"
