@@ -12,13 +12,49 @@ import {
   VerifyResponse,
 } from "@x402/core/types";
 import { FacilitatorTronSigner } from "../../signer";
-import { ExactGasFreePayload } from "../../types";
+import type { ExactGasFreePayload } from "../../types";
+import { isRecord, isTronPaymentAddress, isUint256 } from "../../shared/validation";
 import { isValidTronTxHash, normalizeAddressForSigning } from "../../utils";
 import { GasFreeAPIClient, GasFreeTransactionStatusError } from "../../shared/gasfree/api";
 import { getTronNetworkValue, tronNetworksEqual } from "../../network";
 import { assembleGasFreeTransaction } from "../../shared/gasfree/assemble";
 import { SETTLEMENT_PENDING, waitAndReturnSettleResponse } from "../../shared/settleReceipt";
 import * as errors from "./errors";
+
+/**
+ * Validate the signed permit and account address before using their fields.
+ *
+ * @param payload - Untrusted GasFree payload.
+ * @returns The validated payload or a diagnostic naming the invalid field.
+ */
+function validateGasFreePayload(
+  payload: unknown,
+): { data: ExactGasFreePayload } | { message: string } {
+  if (!isRecord(payload)) return { message: "Missing or invalid GasFree payload" };
+  if (typeof payload.signature !== "string" || !payload.signature) {
+    return { message: "Missing or invalid GasFree field signature" };
+  }
+  if (!isTronPaymentAddress(payload.gasfreeAddress)) {
+    return { message: "Missing or invalid GasFree field gasfreeAddress" };
+  }
+  const permit = payload.gasfree;
+  if (!isRecord(permit)) return { message: "Missing or invalid GasFree field gasfree" };
+
+  const invalidAddress = ["token", "serviceProvider", "user", "receiver"].find(
+    field => !isTronPaymentAddress(permit[field]),
+  );
+  const invalidField =
+    invalidAddress ??
+    ["value", "maxFee"].find(field => !isUint256(permit[field])) ??
+    // The relayer HTTP API uses JSON numbers for these signed permit fields.
+    ["deadline", "version", "nonce"].find(field => {
+      const value = permit[field];
+      return !isUint256(value) || !Number.isSafeInteger(Number(value));
+    });
+  if (invalidField) return { message: `Missing or invalid GasFree field gasfree.${invalidField}` };
+
+  return { data: payload as ExactGasFreePayload };
+}
 
 /**
  * Build the terminal response for a malformed relayer transaction hash.
@@ -103,10 +139,15 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
     context?: FacilitatorContext,
   ): Promise<VerifyResponse> {
     void context;
-    const gf = payload.payload as ExactGasFreePayload;
-    if (!gf?.gasfree || !gf.signature) {
-      return { isValid: false, invalidReason: errors.MISSING_PAYLOAD };
+    const validated = validateGasFreePayload(payload.payload);
+    if ("message" in validated) {
+      return {
+        isValid: false,
+        invalidReason: errors.MISSING_PAYLOAD,
+        invalidMessage: validated.message,
+      };
     }
+    const gf = validated.data;
     const payer = gf.gasfree.user;
 
     if (payload.accepted.scheme !== "exact_gasfree" || requirements.scheme !== "exact_gasfree") {
@@ -142,8 +183,18 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
     requirements: PaymentRequirements,
     context?: FacilitatorContext,
   ): Promise<SettleResponse> {
+    const validated = validateGasFreePayload(payload.payload);
+    if ("message" in validated) {
+      return {
+        success: false,
+        errorReason: errors.MISSING_PAYLOAD,
+        errorMessage: validated.message,
+        transaction: "",
+        network: requirements.network,
+      };
+    }
     return this.settlement.run(payload, requirements, pending =>
-      this.settleOnce(payload, requirements, context, pending),
+      this.settleOnce(payload, requirements, validated.data, context, pending),
     );
   }
 
@@ -152,6 +203,7 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
    *
    * @param payload - Payment payload for this settlement.
    * @param requirements - Effective payment requirements, including the actual settlement amount.
+   * @param gf - Validated GasFree payload.
    * @param context - Registered facilitator extension capabilities.
    * @param pending - Original-transaction tracking for this attempt.
    * @returns Settlement result preserving the original transaction identity.
@@ -159,11 +211,10 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
   private async settleOnce(
     payload: PaymentPayload,
     requirements: PaymentRequirements,
+    gf: ExactGasFreePayload,
     context: FacilitatorContext | undefined,
     pending: TronPendingSettlementContext,
   ): Promise<SettleResponse> {
-    void context;
-    const gf = payload.payload as ExactGasFreePayload;
     if (pending.record?.transaction) {
       return waitAndReturnSettleResponse(
         this.signer,
@@ -185,7 +236,7 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
           errorReason: verifyResult.invalidReason ?? errors.INVALID_SCHEME,
           transaction: "",
           network: requirements.network,
-          payer: gf?.gasfree?.user,
+          payer: gf.gasfree.user,
         };
       }
     }
@@ -327,7 +378,7 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
     const norm = (a: string) => normalizeAddressForSigning(a);
     const m = gf.gasfree;
 
-    if (norm(m.token) !== norm(requirements.asset)) {
+    if (!isTronPaymentAddress(requirements.asset) || norm(m.token) !== norm(requirements.asset)) {
       return errors.TOKEN_MISMATCH;
     }
     // Reject short payments only (value >= amount). GasFree's maxFee is a separate
@@ -335,10 +386,13 @@ export class ExactGasFreeTronScheme implements SchemeNetworkFacilitator {
     // value > amount lets the client cover a fee_quote that slightly exceeds the
     // listed price; the payer cannot be charged more than they signed. Mirrors the
     // Python facilitator's `value >= required amount` semantics.
-    if (BigInt(m.value) < BigInt(requirements.amount)) {
+    if (!isUint256(requirements.amount) || BigInt(m.value) < BigInt(requirements.amount)) {
       return errors.AMOUNT_MISMATCH;
     }
-    if (norm(m.receiver) !== norm(requirements.payTo)) {
+    if (
+      !isTronPaymentAddress(requirements.payTo) ||
+      norm(m.receiver) !== norm(requirements.payTo)
+    ) {
       return errors.PAYTO_MISMATCH;
     }
 

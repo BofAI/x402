@@ -38,13 +38,13 @@
     "tsup": "^8.4.0",
     "tsx": "^4.21.0",
     "typescript": "^5.7.3",
-    "vite": "^6.2.6",
+    "vite": "^6.4.4",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.0.5"
+    "vitest": "4.1.0"
   },
   "dependencies": {
     "@bankofai/x402-core": "workspace:~",
-    "@x402/extensions": "2.29.0"
+    "@x402/extensions": "2.32.0"
   },
   "peerDependencies": {
     "express": "^4.0.0 || ^5.0.0"

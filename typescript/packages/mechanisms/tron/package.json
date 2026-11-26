@@ -40,12 +40,12 @@
   },
   "description": "x402 payment mechanism for TRON (TRC-20 via TIP-712 TransferWithAuthorization and Permit2)",
   "devDependencies": {
-    "@bankofai/agent-wallet": "^3.0.0",
+    "@bankofai/agent-wallet": "3.1.0-beta.1",
     "@eslint/js": "^9.24.0",
     "@types/node": "^22.13.4",
     "@typescript-eslint/eslint-plugin": "^8.29.1",
     "@typescript-eslint/parser": "^8.29.1",
-    "@x402/core": "2.29.0",
+    "@x402/core": "2.32.0",
     "eslint": "^9.24.0",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-jsdoc": "^50.6.9",
@@ -54,9 +54,9 @@
     "tsup": "^8.4.0",
     "tsx": "^4.21.0",
     "typescript": "^5.7.3",
-    "vite": "^6.2.6",
+    "vite": "^6.4.4",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.0.5"
+    "vitest": "4.1.0"
   },
   "dependencies": {
     "tronweb": "^6.5.2"
@@ -267,6 +267,6 @@
     "dist"
   ],
   "peerDependencies": {
-    "@x402/core": "2.29.0"
+    "@x402/core": "2.32.0"
   }
 }

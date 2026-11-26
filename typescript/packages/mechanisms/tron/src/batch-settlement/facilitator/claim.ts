@@ -5,12 +5,27 @@ import { normalizeAddressForSigning } from "../../utils";
 import type { TronAuthorizerSigner, BatchSettlementClaimPayload } from "../types";
 import { batchSettlementABI } from "../../shared/batch-settlement/abi";
 import { getBatchSettlementAddress } from "../../shared/batch-settlement/constants";
+import { hasInvalidEoaVoucherSignature } from "../../shared/batch-settlement/utils";
 import { signClaimBatch } from "../../shared/batch-settlement/authorizerSigner";
 import { toContractChannelConfig } from "./utils";
 import * as Errors from "../errors";
 import { waitAndReturnSettleResponse } from "../../shared/settleReceipt";
 
 const abi = batchSettlementABI as unknown as readonly Record<string, unknown>[];
+
+/**
+ * Checks the payer voucher signatures before submitting a claim or bundled refund.
+ *
+ * @param claims - Voucher claims to be sent to the settlement contract.
+ * @returns Whether any explicit EOA authorizer has an invalid signature encoding.
+ */
+export function hasInvalidClaimVoucherSignature(
+  claims: BatchSettlementClaimPayload["claims"],
+): boolean {
+  return claims.some(claim =>
+    hasInvalidEoaVoucherSignature(claim.voucher.channel.payerAuthorizer, claim.signature),
+  );
+}
 
 /**
  * Converts voucher claims into the onchain tuple format expected by
@@ -59,6 +74,14 @@ export async function executeClaimWithSignature(
       pending,
     });
 
+  if (hasInvalidClaimVoucherSignature(payload.claims)) {
+    return {
+      success: false,
+      errorReason: Errors.ErrInvalidVoucherSignature,
+      transaction: "",
+      network,
+    };
+  }
   const claimArgs = buildVoucherClaimArgs(payload.claims);
 
   let sig = payload.claimAuthorizerSignature;

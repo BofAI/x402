@@ -18,6 +18,8 @@ import {
 /** Scheme identifier for the batch-settlement payment scheme. */
 export const BATCH_SETTLEMENT_SCHEME = "batch-settlement" as const;
 
+export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
 /**
  * Deployed `x402BatchSettlement` contract addresses per TRON network (Base58Check).
  */

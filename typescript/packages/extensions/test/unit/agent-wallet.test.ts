@@ -65,7 +65,7 @@ async function setup() {
   return { rpc, payer, facilitator, owner, signer, facSigner, requirements, client, fac, required };
 }
 
-describe("real BOA 2.4.0 wallet + existing TRON adapters + official Core", () => {
+describe("real BOA wallet + existing TRON adapters + official Core", () => {
   it("creates a genuine Permit2 signature verified against the BOA wallet address", async () => {
     const e = await setup();
     e.rpc.state.allowance = MAX;
@@ -114,7 +114,7 @@ describe("real BOA 2.4.0 wallet + existing TRON adapters + official Core", () =>
     expect(e.rpc.state.broadcasts).toHaveLength(1);
   });
 
-  it("BOA JSON transaction and 27/28 recovery bytes need the existing normalization", async () => {
+  it("normalizes a structured transaction artifact from the BOA wallet", async () => {
     const e = await setup();
     const unsigned = unsignedContract({
       owner_address: TronWeb.address.toHex(e.payer.address),
@@ -123,15 +123,13 @@ describe("real BOA 2.4.0 wallet + existing TRON adapters + official Core", () =>
       parameter: "0".repeat(128),
     });
     const raw = await e.payer.wallet.signTransaction(unsigned);
-    expect(typeof raw).toBe("string");
-    const decoded = JSON.parse(raw);
-    expect(["1b", "1c"]).toContain(decoded.signature[0].slice(-2));
+    expect(raw).toMatchObject({ family: "tron", transaction: { txID: unsigned.txID } });
     const normalized = normalizeSignedTronTransaction(raw, unsigned);
-    expect(["00", "01"]).toContain((normalized.signature as string[])[0].slice(-2));
-    const tw = new TronWeb({ fullHost: e.rpc.url });
-    await expect(tw.trx.sendRawTransaction(raw as never)).rejects.toThrow("Invalid transaction");
-    const detached = e.payer.wallet.signTransaction;
-    await expect(detached(unsigned)).rejects.toThrow();
+    const [signature] = normalized.signature as string[];
+    expect(["00", "01"]).toContain(signature.slice(-2));
+    expect(utils.crypto.ecRecover(unsigned.txID, signature).toLowerCase()).toBe(
+      TronWeb.address.toHex(e.payer.address).toLowerCase(),
+    );
   });
 
   it("official facilitator settles using the real BOA settlement wallet and permissionId", async () => {

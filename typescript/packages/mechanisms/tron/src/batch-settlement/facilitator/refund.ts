@@ -12,7 +12,7 @@ import { getBatchSettlementAddress } from "../../shared/batch-settlement/constan
 import { computeChannelId } from "../../shared/batch-settlement/utils";
 import { encodeFunctionData } from "../../shared/batch-settlement/encoding";
 import { signClaimBatch, signRefund } from "../../shared/batch-settlement/authorizerSigner";
-import { buildVoucherClaimArgs } from "./claim";
+import { buildVoucherClaimArgs, hasInvalidClaimVoucherSignature } from "./claim";
 import { waitAndReturnSettleResponse } from "../../shared/settleReceipt";
 import { readChannelState, toContractChannelConfig } from "./utils";
 import * as Errors from "../errors";
@@ -139,6 +139,14 @@ export async function executeRefundWithSignature(
         },
         pending,
       );
+    }
+    if (hasInvalidClaimVoucherSignature(payload.claims)) {
+      return {
+        success: false,
+        errorReason: Errors.ErrInvalidVoucherSignature,
+        transaction: "",
+        network,
+      };
     }
     const preState = await readChannelState(signer, channelId, network);
     const refundableAmount = getRefundableAmount(payload, preState, channelId, network);
