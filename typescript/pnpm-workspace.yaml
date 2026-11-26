@@ -6,6 +6,7 @@ packages:
   - packages/mechanisms/tron
   - examples/**/*
 overrides:
+  "proxy-addr@<2.0.8": "2.0.8"
   "tronweb@6.5.2>axios": "1.21.0"
   "axios@1.21.0>follow-redirects": "1.16.2"
   cssstyle: 5.3.6

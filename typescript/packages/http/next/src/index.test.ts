@@ -80,28 +80,32 @@ vi.mock("@bankofai/x402-core/server", async importOriginal => {
       return null;
     },
     SETTLEMENT_OVERRIDES_HEADER: "Settlement-Overrides",
-    x402ResourceServer: vi.fn().mockImplementation(() => ({
-      initialize: vi.fn().mockResolvedValue(undefined),
-      registerExtension: vi.fn(),
-      register: vi.fn(),
-      hasExtension: vi.fn().mockReturnValue(false),
-    })),
-    x402HTTPResourceServer: vi.fn().mockImplementation((server, routes) => ({
-      initialize: vi.fn().mockResolvedValue(undefined),
-      registerPaywallProvider: vi.fn(),
-      processHTTPRequest: (...args: unknown[]) => mockFunctions.processHTTPRequest(...args),
-      processSettlement: (...args: unknown[]) => mockFunctions.processSettlement(...args),
-      createCompletedSettlementHeaders: (...args: unknown[]) =>
-        mockFunctions.createCompletedSettlementHeaders(...args),
-      createFailurePathSettlementHeaders: (...args: unknown[]) =>
-        mockFunctions.createFailurePathSettlementHeaders(...args),
-      requiresPayment: (...args: unknown[]) => mockFunctions.requiresPayment(...args),
-      routes: routes || {},
-      server: server || {
-        hasExtension: vi.fn().mockReturnValue(false),
+    x402ResourceServer: vi.fn().mockImplementation(function () {
+      return {
+        initialize: vi.fn().mockResolvedValue(undefined),
         registerExtension: vi.fn(),
-      },
-    })),
+        register: vi.fn(),
+        hasExtension: vi.fn().mockReturnValue(false),
+      };
+    }),
+    x402HTTPResourceServer: vi.fn().mockImplementation(function (server, routes) {
+      return {
+        initialize: vi.fn().mockResolvedValue(undefined),
+        registerPaywallProvider: vi.fn(),
+        processHTTPRequest: (...args: unknown[]) => mockFunctions.processHTTPRequest(...args),
+        processSettlement: (...args: unknown[]) => mockFunctions.processSettlement(...args),
+        createCompletedSettlementHeaders: (...args: unknown[]) =>
+          mockFunctions.createCompletedSettlementHeaders(...args),
+        createFailurePathSettlementHeaders: (...args: unknown[]) =>
+          mockFunctions.createFailurePathSettlementHeaders(...args),
+        requiresPayment: (...args: unknown[]) => mockFunctions.requiresPayment(...args),
+        routes: routes || {},
+        server: server || {
+          hasExtension: vi.fn().mockReturnValue(false),
+          registerExtension: vi.fn(),
+        },
+      };
+    }),
     checkIfBazaarNeeded: vi.fn().mockReturnValue(false),
   };
 });
