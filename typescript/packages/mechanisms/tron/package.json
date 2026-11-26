@@ -5,7 +5,7 @@
     "tag": "latest",
     "registry": "https://registry.npmjs.org/"
   },
-  "version": "2.1.4",
+  "version": "2.1.5",
   "engines": {
     "node": "^24.22.1 || >=26.12.1"
   },

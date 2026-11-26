@@ -1,3 +1,11 @@
+# v2.1.5 — TRON payload validation and dependency security
+
+- Upgrade the TRON mechanism and resource sponsorship extension together to `2.1.5` with official `@x402/core@2.32.0`. Use matching official HTTP and MCP packages when upgrading an application.
+- Validate Exact, Upto, GasFree, and Batch Settlement payment fields before verification or settlement. Release Batch Settlement reservations after an aborted verification, reject GasFree values that cannot be submitted without rounding, and handle malformed corrective 402 responses. See [#128](https://github.com/BofAI/x402/pull/128).
+- Raise patched dependency floors in the HTTP adapters and update the SDK and example workspace dependency graphs. Axios moves to `1.1.2`. Express, Fastify, Hono, and Next.js move to `1.1.4`. Applications resolve their own transitive dependencies and should audit their installed lockfiles.
+
+---
+
 # v2.1.4 — TRON Exact validation and TronWeb 6.5.2
 
 - Upgrade `@bankofai/x402-tron` and `@bankofai/x402-tron-extensions` together to `2.1.4` with their existing `@x402/core@2.29.0` peer.

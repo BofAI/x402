@@ -1,5 +1,11 @@
 # @bankofai/x402-axios Changelog
 
+## 1.1.2
+
+### Patch Changes
+
+- [#128](https://github.com/BofAI/x402/pull/128) [`a6186ee`](https://github.com/BofAI/x402/commit/a6186ee90cae3bbd98fe6e2776e1567a6f560943) Thanks [@boboliu-1010](https://github.com/boboliu-1010)! - Raise the Axios, Fastify, and Hono peer dependency minimums to patched versions.
+
 ## 1.1.1
 
 ### Patch Changes

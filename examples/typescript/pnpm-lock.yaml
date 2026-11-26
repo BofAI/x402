@@ -32,7 +32,7 @@ importers:
   ../../typescript/packages/extensions:
     dependencies:
       '@bankofai/x402-tron':
-        specifier: workspace:2.1.4
+        specifier: workspace:2.1.5
         version: link:../mechanisms/tron
       ajv:
         specifier: ^8.17.1

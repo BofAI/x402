@@ -1,5 +1,13 @@
 # @bankofai/x402-next Changelog
 
+## 1.1.4
+
+### Patch Changes
+
+- [#128](https://github.com/BofAI/x402/pull/128) [`3e0394d`](https://github.com/BofAI/x402/commit/3e0394dd83ac089ae3926ef4753fafc4ec227bf6) Thanks [@boboliu-1010](https://github.com/boboliu-1010)! - Align official x402 dependencies and example integrations on 2.32.0. Upgrade the official `@x402/core` peer to 2.32.0 when updating the TRON mechanism and resource sponsorship extension.
+
+- [#128](https://github.com/BofAI/x402/pull/128) [`b0952cd`](https://github.com/BofAI/x402/commit/b0952cd7697bf16f4a8d167f76bdb0cfd35be951) Thanks [@boboliu-1010](https://github.com/boboliu-1010)! - Require Next.js 16.4.1 or newer to avoid affected releases of Next.js 16.
+
 ## 1.1.3
 
 ### Patch Changes
