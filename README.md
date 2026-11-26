@@ -10,15 +10,15 @@ x402 currently supports the **TRON** and **BSC** networks, with plans to expand 
 
 ---
 
-## Release 2.1.4
+## Release 2.1.5
 
-Release target `2.1.4`. The SDK is a **TypeScript-only** pnpm/turbo monorepo published as granular `@bankofai/x402-*` packages (there is no umbrella package). The TRON mechanism is maintained here; current EVM integrations use the official [`@x402/evm`](https://www.npmjs.com/package/@x402/evm) package rather than a local fork. Supported schemes: `exact` (ERC-3009 / Permit2), `upto`, `batch-settlement`, `auth-capture` (EVM), and `exact_gasfree` (TRON). See [the v2.1.4 release notes](RELEASE_NOTES.md#v214--tron-exact-validation-and-tronweb-652) for upgrade details.
+Release target `2.1.5`. The SDK is a **TypeScript-only** pnpm/turbo monorepo published as granular `@bankofai/x402-*` packages (there is no umbrella package). The TRON mechanism is maintained here; current EVM integrations use the official [`@x402/evm`](https://www.npmjs.com/package/@x402/evm) package rather than a local fork. Supported schemes: `exact` (ERC-3009 / Permit2), `upto`, `batch-settlement`, `auth-capture` (EVM), and `exact_gasfree` (TRON). See [the v2.1.5 release notes](RELEASE_NOTES.md#v215--tron-payload-validation-and-dependency-security) for upgrade details.
 
 ## TRON 2.1 migration
 
-TRON 2.1.4 uses official Core 2.29.0 and publishes resource sponsorship as a separate package.
+TRON 2.1.5 uses official Core 2.32.0 and publishes resource sponsorship as a separate package.
 This requires source migration from 2.0. Read the [TRON 2.1 migration guide](docs/migrations/tron-2.1.md)
-before upgrading. The development workspace and its examples use official Core 2.32.0.
+before upgrading.
 Historical 2.0 installation details remain in the release notes.
 
 ## Features
@@ -31,8 +31,7 @@ Historical 2.0 installation details remain in the release notes.
 
 ## Installation
 
-Build the development packages in this workspace to use official Core 2.32.0.
-For the published TRON SDK 2.1.4, use official Core 2.29.0.
+Use official Core 2.32.0 with TRON SDK 2.1.5. See the migration guide for matching npm versions.
 
 ```bash
 cd typescript

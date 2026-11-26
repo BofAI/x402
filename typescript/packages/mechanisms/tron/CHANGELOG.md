@@ -1,5 +1,15 @@
 # @bankofai/x402-tron
 
+## 2.1.5
+
+### Patch Changes
+
+- [#128](https://github.com/BofAI/x402/pull/128) [`3e0394d`](https://github.com/BofAI/x402/commit/3e0394dd83ac089ae3926ef4753fafc4ec227bf6) Thanks [@boboliu-1010](https://github.com/boboliu-1010)! - Align official x402 dependencies and example integrations on 2.32.0. Upgrade the official `@x402/core` peer to 2.32.0 when updating the TRON mechanism and resource sponsorship extension.
+
+- [#128](https://github.com/BofAI/x402/pull/128) [`220c36b`](https://github.com/BofAI/x402/commit/220c36b8edadebee9141afea63eb2204f5c4818e) Thanks [@boboliu-1010](https://github.com/boboliu-1010)! - Return structured verification and settlement failures for missing or malformed TRON payment fields across GasFree, Exact, Upto, and Batch Settlement. GasFree responses identify the invalid payload field.
+
+  Align Batch Settlement voucher signature checks with the contract's ECDSA rules and release channel reservations when settlement fails before reaching the facilitator.
+
 ## 2.1.4
 
 ### Patch Changes
