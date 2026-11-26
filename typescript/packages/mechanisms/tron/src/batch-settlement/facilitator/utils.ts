@@ -5,16 +5,19 @@
 import type { PaymentRequirements } from "@x402/core/types";
 import { FacilitatorTronSigner } from "../../signer";
 import { normalizeAddressForSigning } from "../../utils";
+import { isTronPaymentAddress } from "../../shared/validation";
 import { batchSettlementABI } from "../../shared/batch-settlement/abi";
 import {
   MIN_WITHDRAW_DELAY,
   MAX_WITHDRAW_DELAY,
   voucherTypes,
   getBatchSettlementAddress,
+  ZERO_ADDRESS,
 } from "../../shared/batch-settlement/constants";
 import {
   computeChannelId,
   getBatchSettlementTip712Domain,
+  hasInvalidEoaVoucherSignature,
 } from "../../shared/batch-settlement/utils";
 import type {
   BatchSettlementPaymentRequirementsExtra,
@@ -22,8 +25,6 @@ import type {
   ChannelState,
 } from "../types";
 import * as Errors from "../errors";
-
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 const abi = batchSettlementABI as unknown as readonly Record<string, unknown>[];
 
@@ -148,6 +149,8 @@ export async function verifyBatchSettlementVoucherTypedData(
   },
   network: string,
 ): Promise<boolean> {
+  if (hasInvalidEoaVoucherSignature(params.payerAuthorizer, params.signature)) return false;
+
   const domain = getBatchSettlementTip712Domain(network);
   const message = {
     channelId: params.channelId,
@@ -158,14 +161,18 @@ export async function verifyBatchSettlementVoucherTypedData(
   const verifyAddress =
     authorizer !== ZERO_ADDRESS ? authorizer : normalizeAddressForSigning(params.payer);
 
-  return signer.verifyTypedData({
-    address: verifyAddress,
-    domain,
-    types: voucherTypes as unknown as Record<string, Array<{ name: string; type: string }>>,
-    primaryType: "Voucher",
-    message,
-    signature: params.signature,
-  });
+  try {
+    return await signer.verifyTypedData({
+      address: verifyAddress,
+      domain,
+      types: voucherTypes as unknown as Record<string, Array<{ name: string; type: string }>>,
+      primaryType: "Voucher",
+      message,
+      signature: params.signature,
+    });
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -188,6 +195,7 @@ export function validateChannelConfig(
   }
 
   if (
+    !isTronPaymentAddress(requirements.payTo) ||
     normalizeAddressForSigning(config.receiver) !== normalizeAddressForSigning(requirements.payTo)
   ) {
     return Errors.ErrReceiverMismatch;
@@ -197,7 +205,7 @@ export function validateChannelConfig(
   const requiredReceiverAuthorizer = extra?.receiverAuthorizer;
 
   if (
-    !requiredReceiverAuthorizer ||
+    !isTronPaymentAddress(requiredReceiverAuthorizer) ||
     normalizeAddressForSigning(requiredReceiverAuthorizer) === ZERO_ADDRESS ||
     normalizeAddressForSigning(config.receiverAuthorizer) !==
       normalizeAddressForSigning(requiredReceiverAuthorizer)
@@ -205,7 +213,10 @@ export function validateChannelConfig(
     return Errors.ErrReceiverAuthorizerMismatch;
   }
 
-  if (normalizeAddressForSigning(config.token) !== normalizeAddressForSigning(requirements.asset)) {
+  if (
+    !isTronPaymentAddress(requirements.asset) ||
+    normalizeAddressForSigning(config.token) !== normalizeAddressForSigning(requirements.asset)
+  ) {
     return Errors.ErrTokenMismatch;
   }
 

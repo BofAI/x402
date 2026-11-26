@@ -1,5 +1,4 @@
-import { validateExactRequirements } from "../requirements";
-import { isValidExactPayload } from "./validation";
+import { isValidExactPayload, validateExactFacilitatorRequirements } from "./validation";
 import {
   TronSettlementTracker,
   type TronSettlementOptions,
@@ -89,7 +88,7 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
     requirements: PaymentRequirements,
     context?: FacilitatorContext,
   ): Promise<VerifyResponse> {
-    const validation = validateExactRequirements(requirements);
+    const validation = validateExactFacilitatorRequirements(requirements);
     if (!validation.success) return { isValid: false, invalidReason: validation.reason };
     if (!isValidExactPayload(payload.payload)) {
       return { isValid: false, invalidReason: "invalid_exact_tron_payload_authorization" };
@@ -128,7 +127,7 @@ export class ExactTronScheme implements SchemeNetworkFacilitator {
     requirements: PaymentRequirements,
     context?: FacilitatorContext,
   ): Promise<SettleResponse> {
-    const validation = validateExactRequirements(requirements);
+    const validation = validateExactFacilitatorRequirements(requirements);
     const reason = !validation.success
       ? validation.reason
       : !isValidExactPayload(payload.payload)

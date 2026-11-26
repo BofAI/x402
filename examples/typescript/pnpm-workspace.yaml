@@ -11,12 +11,6 @@ minimumReleaseAgeStrict: true
 minimumReleaseAgeExclude:
   # Verified official TronWeb release with stricter transaction validation.
   - "tronweb@6.5.2"
-  - "@x402/core@2.29.0"
-  - "@x402/evm@2.29.0"
-  - "@x402/extensions@2.29.0"
-  - "@x402/express@2.29.0"
-  - "@x402/fetch@2.29.0"
-  - "@x402/mcp@2.29.0"
 allowBuilds:
   bigint-buffer: true
   bufferutil: true
@@ -29,6 +23,23 @@ allowBuilds:
 
 # Use one Express 4 declaration tree for our Express 4 examples and middleware.
 overrides:
+  # Keep reported transitive advisories out of the resolved dependency graph.
+  "@bankofai/agent-wallet@3.1.0-beta.1>viem": "2.54.2"
+  "@hono/node-server@<1.19.10": "1.19.10"
+  "body-parser@<1.20.9": "1.20.9"
+  "body-parser@>=2.0.0 <2.4.0": "2.4.0"
+  "brace-expansion@<1.1.20": "1.1.20"
+  "brace-expansion@>=5.0.0 <5.0.11": "5.0.11"
+  "fast-uri@>=3.0.0 <3.1.7": "3.1.7"
+  "hono@>=4.0.0 <4.12.25": "4.12.25"
+  "ip-address@>=10.0.0 <10.3.1": "10.3.1"
+  "js-yaml@>=4.0.0 <4.3.2": "4.3.2"
+  "nanoid@>=3.0.0 <3.3.18": "3.3.18"
+  "path-to-regexp@>=8.0.0 <8.4.0": "8.4.0"
+  "postcss@>=8.0.0 <8.5.18": "8.5.18"
+  "source-map-js@>=1.0.0 <1.2.2": "1.2.2"
+  "ws@>=8.0.0 <8.21.0": "8.21.0"
+  "proxy-addr@<2.0.8": "2.0.8"
   "tronweb@6.5.2>axios": "1.21.0"
   "axios@1.21.0>follow-redirects": "1.16.2"
   "@types/express": "4.17.25"

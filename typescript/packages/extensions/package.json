@@ -5,7 +5,7 @@
     "tag": "latest",
     "registry": "https://registry.npmjs.org/"
   },
-  "version": "2.1.4",
+  "version": "2.1.5",
   "engines": {
     "node": "^24.22.1 || >=26.12.1"
   },
@@ -52,14 +52,14 @@
     "tsup": "^8.4.0",
     "tsx": "^4.21.0",
     "typescript": "^5.7.3",
-    "vite": "^6.2.6",
+    "vite": "^6.4.4",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.0.5",
-    "@x402/core": "2.29.0",
-    "@bankofai/agent-wallet": "2.4.0"
+    "vitest": "4.1.0",
+    "@x402/core": "2.32.0",
+    "@bankofai/agent-wallet": "3.1.0-beta.1"
   },
   "dependencies": {
-    "@bankofai/x402-tron": "workspace:2.1.4",
+    "@bankofai/x402-tron": "workspace:2.1.5",
     "ajv": "^8.17.1",
     "tronweb": "6.5.2"
   },
@@ -119,6 +119,6 @@
     "dist"
   ],
   "peerDependencies": {
-    "@x402/core": "2.29.0"
+    "@x402/core": "2.32.0"
   }
 }

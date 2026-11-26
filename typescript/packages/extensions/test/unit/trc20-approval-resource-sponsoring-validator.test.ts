@@ -621,7 +621,7 @@ describe("TRC-20 Approval Resource Sponsoring facilitator integration", () => {
         voucher: {
           channelId,
           maxClaimableAmount: "1000",
-          signature: `0x${"22".repeat(65)}`,
+          signature: `0x${"22".repeat(64)}1b`,
         },
         deposit: {
           amount: "5000",

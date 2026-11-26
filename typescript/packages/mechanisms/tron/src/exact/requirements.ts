@@ -1,3 +1,4 @@
+import { isUint256 } from "../shared/validation";
 import type { Network } from "@x402/core/types";
 import {
   PERMIT2_ADDRESSES,
@@ -74,19 +75,4 @@ export function validateExactRequirements(requirements: ExactRequirements): Vali
     return { success: false, reason: "invalid_exact_tron_asset_transfer_method" };
   }
   return { success: true, method: explicit ?? token?.assetTransferMethod };
-}
-
-/**
- * Check an unsigned 256-bit integer without allowing BigInt coercion of empty
- * strings, negative values, or JSON numbers.
- *
- * @param value - Untrusted integer field.
- * @returns Whether the field can be safely used as a contract uint256.
- */
-export function isUint256(value: unknown): value is string {
-  return (
-    typeof value === "string" &&
-    /^(?:[0-9]+|0x[0-9a-fA-F]+)$/.test(value) &&
-    BigInt(value) < 1n << 256n
-  );
 }

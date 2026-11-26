@@ -34,6 +34,7 @@ const PAYER_PK = "da146374a75310b9666e834ee4ad0866d6f4035967bfc76217c5a495fff9f0
 const RECEIVER = "0x9876543210987654321098765432109876543210";
 const RECEIVER_AUTHORIZER = "0x1111111111111111111111111111111111111111";
 const ASSET = "0x5555555555555555555555555555555555555555";
+const VOUCHER_SIGNATURE = `0x${"55".repeat(64)}1b` as const;
 
 function makeRequirements(overrides: Partial<PaymentRequirements> = {}): PaymentRequirements {
   return {
@@ -65,7 +66,7 @@ function voucherPayload(
   channelId: string,
   maxClaimableAmount: string,
   config: ChannelConfig,
-  signature: `0x${string}` = "0xdeadbeef",
+  signature: `0x${string}` = VOUCHER_SIGNATURE,
 ): PaymentPayload {
   const payload: BatchSettlementVoucherPayload = {
     type: "voucher",
@@ -83,7 +84,11 @@ function depositPayload(
   const payload: BatchSettlementDepositPayload = {
     type: "deposit",
     channelConfig: config,
-    voucher: { channelId: channelId as `0x${string}`, maxClaimableAmount, signature: "0xbeef" },
+    voucher: {
+      channelId: channelId as `0x${string}`,
+      maxClaimableAmount,
+      signature: VOUCHER_SIGNATURE,
+    },
     deposit: {
       amount: "5000",
       authorization: {
@@ -352,7 +357,7 @@ describe("batch-settlement server hooks (TRON, offline)", () => {
       voucher: {
         channelId: channelId as `0x${string}`,
         maxClaimableAmount: "1000",
-        signature: "0xab",
+        signature: VOUCHER_SIGNATURE,
       },
     };
     const payload = {
