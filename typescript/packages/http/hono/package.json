@@ -32,12 +32,12 @@
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-jsdoc": "^50.6.9",
     "eslint-plugin-prettier": "^5.2.6",
-    "hono": "^4.7.1",
+    "hono": "^4.12.25",
     "prettier": "3.5.2",
     "tsup": "^8.4.0",
     "tsx": "^4.21.0",
     "typescript": "^5.7.3",
-    "vite": "^6.2.6",
+    "vite": "^6.4.4",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "4.1.0"
   },
@@ -46,7 +46,7 @@
     "@x402/extensions": "2.32.0"
   },
   "peerDependencies": {
-    "hono": "^4.0.0"
+    "hono": "^4.12.25"
   },
   "exports": {
     ".": {

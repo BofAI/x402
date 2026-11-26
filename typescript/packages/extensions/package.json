@@ -52,11 +52,11 @@
     "tsup": "^8.4.0",
     "tsx": "^4.21.0",
     "typescript": "^5.7.3",
-    "vite": "^6.2.6",
+    "vite": "^6.4.4",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "4.1.0",
     "@x402/core": "2.32.0",
-    "@bankofai/agent-wallet": "2.4.0"
+    "@bankofai/agent-wallet": "3.1.0-beta.1"
   },
   "dependencies": {
     "@bankofai/x402-tron": "workspace:2.1.4",
